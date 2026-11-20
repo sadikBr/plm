@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Copy, GitBranchPlus, Link2, Lock, LockOpen, MoreHorizontal, Pencil, ShieldAlert, Undo2, Upload } from "lucide-react";
+import { ArrowRightLeft, Copy, GitBranchPlus, Link2, Lock, LockOpen, MoreHorizontal, Pencil, PencilLine, ShieldAlert, Undo2, Upload } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { isApiError } from "../api/client";
@@ -10,6 +10,7 @@ import {
   useMe,
   useObject,
   useObjectActions,
+  useRenameObject,
   usePermissions,
   useLayout,
   useTypeAttributes,
@@ -82,6 +83,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
   const [checkingIn, setCheckingIn] = useState(false);
   const [comment, setComment] = useState("");
   const [stateChange, setStateChange] = useState<{ to: string; override: boolean } | null>(null);
+  const [renaming, setRenaming] = useState(false);
 
   const mine = !!myId && obj.checkedOutBy === myId;
   const free = !obj.checkedOutBy;
@@ -237,6 +239,23 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
                   >
                     <Link2 size={14} aria-hidden /> Copy link
                   </button>
+                  <button
+                    role="menuitem"
+                    disabled={!permissions?.has("MANAGE") || !free}
+                    title={
+                      !permissions?.has("MANAGE")
+                        ? "Only managers of this context can rename or renumber"
+                        : !free
+                          ? "Check it in first"
+                          : undefined
+                    }
+                    onClick={() => {
+                      setRenaming(true);
+                      close();
+                    }}
+                  >
+                    <PencilLine size={14} aria-hidden /> Rename or renumber…
+                  </button>
                 </>
               )}
             </MenuButton>
@@ -249,6 +268,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
           <ErrorBanner error={failed} />
         </div>
       )}
+      {renaming && <RenameDialog obj={obj} onClose={() => setRenaming(false)} />}
       <StateChangeDialog
         objectNumber={obj.number}
         from={current}
@@ -308,6 +328,65 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
 function stateName(lifecycle: ObjectLifecycle | undefined, state: string): string {
   const labels = lifecycle?.states.find((s) => s.key === state)?.labels;
   return labels?.en ?? state.charAt(0) + state.slice(1).toLowerCase().replace(/_/g, " ");
+}
+
+function RenameDialog({ obj, onClose }: { obj: VersionedObject; onClose: () => void }) {
+  const rename = useRenameObject(obj.id);
+  const [number, setNumber] = useState(obj.number);
+  const [name, setName] = useState(obj.name);
+  const [comment, setComment] = useState("");
+  const changed = number.trim() !== obj.number || name.trim() !== obj.name;
+  return (
+    <Dialog
+      open
+      title={`Rename or renumber ${obj.number}`}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn" type="button" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn primary" type="submit" form="rename-form" disabled={rename.isPending || !changed || !name.trim() || !number.trim()}>
+            Save
+          </button>
+        </>
+      }
+    >
+      <form
+        id="rename-form"
+        style={{ display: "grid", gap: 12 }}
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault();
+          rename.mutate(
+            {
+              number: number.trim() !== obj.number ? number.trim() : null,
+              name: name.trim() !== obj.name ? name.trim() : null,
+              comment: comment.trim() || null,
+            },
+            { onSuccess: onClose },
+          );
+        }}
+      >
+        <ErrorBanner error={rename.error} />
+        <p className="muted" style={{ margin: 0 }}>
+          Applies to every version. The old number and name stay in the audit trail.
+        </p>
+        <div className="field">
+          <label htmlFor="rename-number">Number</label>
+          <input id="rename-number" value={number} onChange={(e) => setNumber(e.target.value)} />
+        </div>
+        <div className="field">
+          <label htmlFor="rename-name">Name</label>
+          <input id="rename-name" value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <div className="field">
+          <label htmlFor="rename-comment">Reason</label>
+          <input id="rename-comment" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="e.g. Align with the ERP number" />
+        </div>
+      </form>
+    </Dialog>
+  );
 }
 
 function StateChangeDialog({
@@ -551,6 +630,9 @@ function AuditTab({ id }: { id: string }) {
                   </td>
                   <td>
                     {"version" in entry.details && <span className="version">{String(entry.details.version)}</span>}
+                    {"previousNumber" in entry.details &&
+                      ` · was ${String(entry.details.previousNumber)} “${String(entry.details.previousName)}”, now ${String(entry.details.number)} “${String(entry.details.name)}”`}
+                    {"from" in entry.details && "to" in entry.details && ` · ${String(entry.details.from)} → ${String(entry.details.to)}`}
                     {"comment" in entry.details && entry.details.comment ? ` · “${String(entry.details.comment)}”` : ""}
                   </td>
                 </tr>

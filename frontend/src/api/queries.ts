@@ -367,6 +367,19 @@ export function useObjectActions(id: string) {
   };
 }
 
+/** Changes an object's number and/or name (needs MANAGE). Kept apart from the toolbar actions so its errors stay in its dialog. */
+export function useRenameObject(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Schemas["RenameRequest"]) => unwrap(api.POST("/api/v1/objects/{id}/rename", { params: { path: { id } }, body })),
+    onSuccess: (obj) => {
+      for (const key of [keys.object(id), keys.audit(id), keys.history(id), keys.objects(obj.contextId)]) {
+        void qc.invalidateQueries({ queryKey: key });
+      }
+    },
+  });
+}
+
 /** Context kinds that hold objects directly, and what each kind may contain. */
 export const HOLDS_OBJECTS: ReadonlySet<ContextKind> = new Set(["PRODUCT", "LIBRARY", "PROJECT"]);
 export const ALLOWED_CHILDREN: Record<ContextKind, ContextKind[]> = {

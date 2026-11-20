@@ -36,6 +36,7 @@ import com.plm.versioning.api.CreateVersionedObject
 import com.plm.versioning.api.IterationStatus
 import com.plm.versioning.api.MasterId
 import com.plm.versioning.api.ObjectQuery
+import com.plm.versioning.api.Rename
 import com.plm.versioning.api.SetState
 import com.plm.versioning.api.VersioningService
 import org.assertj.core.api.Assertions.assertThat
@@ -812,6 +813,63 @@ class VersioningServiceIT(
                 .update()
 
             assertThat(versioning.get(alice, obj.id).latest.state).isEqualTo("RELEASED")
+        }
+    }
+
+    @Nested
+    inner class RenameAndRenumber {
+        @Test
+        fun `a manager renames and renumbers, for every version, and the old identity stays in the history`() {
+            val obj = newPart()
+            release(obj.id)
+            versioning.revise(alice, obj.id)
+            val newNumber = "BRK-${UUID.randomUUID().toString().take(8)}"
+
+            val renamed = versioning.rename(manager, obj.id, Rename(newNumber, "Motor bracket", "Align with ERP"))
+
+            assertThat(renamed.number).isEqualTo(newNumber)
+            assertThat(renamed.name).isEqualTo("Motor bracket")
+            assertThat(versioning.get(alice, obj.id).number).isEqualTo(newNumber)
+            assertThat(versioning.history(alice, obj.id)).hasSize(2) // A.1 and B.1, both under the new identity
+            val event =
+                jdbc
+                    .sql(
+                        "select event_type || ' ' || payload::text from outbox_event where aggregate_id = :id order by seq desc limit 1",
+                    ).param("id", obj.id.value)
+                    .query(String::class.java)
+                    .single()
+            assertThat(event).contains("versioning.ObjectRenamed.v1", obj.number, "Bracket", "Align with ERP")
+        }
+
+        @Test
+        fun `renaming needs MANAGE, a free number and no check-out`() {
+            val obj = newPart()
+            val other = newPart()
+
+            assertCode(
+                ForbiddenException::class.java,
+                "ACCESS_DENIED",
+            ) { versioning.rename(alice, obj.id, Rename(name = "Mine")) }
+            assertCode(NotFoundException::class.java, "OBJECT_NOT_FOUND") {
+                versioning.rename(outsider, obj.id, Rename(name = "X"))
+            }
+            assertCode(ConflictException::class.java, "DUPLICATE_NUMBER") {
+                versioning.rename(manager, obj.id, Rename(number = other.number))
+            }
+            assertCode(ValidationException::class.java, "INVALID_NUMBER") {
+                versioning.rename(manager, obj.id, Rename(number = "bad number!"))
+            }
+            assertCode(ValidationException::class.java, "NO_CHANGE") {
+                versioning.rename(manager, obj.id, Rename(obj.number, obj.name))
+            }
+
+            versioning.checkOut(bob, obj.id)
+            assertCode(
+                ConflictException::class.java,
+                "CHECKED_OUT",
+            ) { versioning.rename(manager, obj.id, Rename(name = "Later")) }
+            versioning.undoCheckOut(bob, obj.id)
+            assertThat(versioning.rename(manager, obj.id, Rename(name = "Later")).name).isEqualTo("Later")
         }
     }
 

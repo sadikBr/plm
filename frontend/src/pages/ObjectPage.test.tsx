@@ -154,6 +154,33 @@ describe("ObjectPage", () => {
     expect(screen.getByLabelText("Material")).toHaveAttribute("aria-invalid", "true");
   });
 
+  it("lets a manager rename and renumber from the More menu", async () => {
+    const obj = object();
+    const calls = apiFor(obj, ["READ", "MODIFY", "MANAGE"], {
+      "POST /api/v1/objects/:id/rename": () => ({ ...obj, number: "BRK-1", name: "Motor bracket" }),
+    });
+    renderAt(`/objects/${obj.id}`);
+
+    await userEvent.click(await screen.findByRole("button", { name: "More" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /Rename or renumber/ }));
+    const dialog = screen.getByRole("dialog");
+    await userEvent.clear(within(dialog).getByLabelText("Number"));
+    await userEvent.type(within(dialog).getByLabelText("Number"), "BRK-1");
+    await userEvent.type(within(dialog).getByLabelText("Reason"), "ERP alignment");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(calls.find((c) => c.path.endsWith("/rename"))?.body).toEqual({ number: "BRK-1", name: null, comment: "ERP alignment" }),
+    );
+  });
+
+  it("explains why members can't rename", async () => {
+    apiFor(object(), ["READ", "MODIFY"]);
+    renderAt(`/objects/${object().id}`);
+    await userEvent.click(await screen.findByRole("button", { name: "More" }));
+    expect(screen.getByRole("menuitem", { name: /Rename or renumber/ })).toBeDisabled();
+  });
+
   it("is read-only for viewers", async () => {
     const obj = object();
     apiFor(obj, ["READ"]);

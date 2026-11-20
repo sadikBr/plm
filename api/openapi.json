@@ -1313,6 +1313,20 @@
         "required" : [ "role" ],
         "type" : "object"
       },
+      "RenameRequest" : {
+        "properties" : {
+          "comment" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "number" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
       "ResolvedLayoutResponse" : {
         "properties" : {
           "groups" : {
@@ -2932,6 +2946,53 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ObjectLifecycleResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Versioned object" ]
+      }
+    },
+    "/api/v1/objects/{id}/rename" : {
+      "post" : {
+        "operationId" : "versionedObjectRename",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RenameRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ObjectResponse"
                 }
               }
             },

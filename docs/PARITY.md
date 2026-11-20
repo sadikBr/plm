@@ -110,7 +110,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | Revision schemes per type (letters, numbers, custom series) | ✅ | ASME letters, A–Z, 1…, 0…; kept per object |
 | State-based revision series (e.g. numbers while In Work, letters once Released) | ⬜ [1.15] | *(to confirm details)* |
 | Set state, promote through lifecycle, admin override | ✅ | PROMOTE permission; override audited |
-| Rename / renumber (with audit, master-level, all versions) | ⬜ [1.11] | |
+| Rename / renumber (with audit, master-level, all versions) | ✅ | Managers; More → Rename or renumber |
 | Save As (copy to a new number), with or without structure and related objects | ⬜ [3] | |
 | Move between contexts / folders (with access re-check) | ⬜ [3] | |
 | Delete: working iteration, latest iteration, revision, whole object (reference checks) | ⬜ [3] | |

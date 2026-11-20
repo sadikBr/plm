@@ -281,6 +281,27 @@ internal class VersioningRepository(
     }
 
     /** Lifecycle state is the one thing that may change on a checked-in iteration (the history trigger allows it). */
+    fun rename(
+        master: MasterId,
+        number: String,
+        name: String,
+    ) {
+        try {
+            jdbc
+                .sql("update object_master set number = :number, name = :name where id = :id")
+                .param("number", number)
+                .param("name", name)
+                .param("id", master.value)
+                .update()
+        } catch (e: DuplicateKeyException) {
+            throw ConflictException(
+                "DUPLICATE_NUMBER",
+                "An object numbered '$number' already exists",
+                mapOf("number" to number),
+            ).apply { initCause(e) }
+        }
+    }
+
     fun setState(
         iteration: IterationId,
         state: String,

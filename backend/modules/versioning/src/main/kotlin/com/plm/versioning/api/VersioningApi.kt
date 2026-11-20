@@ -94,6 +94,13 @@ data class ObjectLifecycle(
     val canOverride: Boolean,
 )
 
+/** A new identity for an object: number and/or name. Null keeps the current value. */
+data class Rename(
+    val number: String? = null,
+    val name: String? = null,
+    val comment: String? = null,
+)
+
 data class CreateVersionedObject(
     val typeId: TypeId,
     val contextId: ContextId,
@@ -194,6 +201,17 @@ interface VersioningService {
         actor: Actor,
         id: MasterId,
         command: SetState,
+    ): VersionedObject
+
+    /**
+     * Changes the object's number and/or name, for every version (they belong to the master).
+     * Needs MANAGE in the object's context; not while checked out (`CHECKED_OUT`). The old identity
+     * stays in the audit trail. `DUPLICATE_NUMBER`, `INVALID_NUMBER`, `INVALID_NAME`, `NO_CHANGE`.
+     */
+    fun rename(
+        actor: Actor,
+        id: MasterId,
+        command: Rename,
     ): VersionedObject
 
     /** Lifecycle, current state and what the actor can do next. Lets the UI explain disabled actions. */

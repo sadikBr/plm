@@ -30,8 +30,10 @@ import com.plm.versioning.api.ObjectCheckedOut
 import com.plm.versioning.api.ObjectCreated
 import com.plm.versioning.api.ObjectLifecycle
 import com.plm.versioning.api.ObjectQuery
+import com.plm.versioning.api.ObjectRenamed
 import com.plm.versioning.api.ObjectRevised
 import com.plm.versioning.api.ObjectStateChanged
+import com.plm.versioning.api.Rename
 import com.plm.versioning.api.SetState
 import com.plm.versioning.api.VersionedObject
 import com.plm.versioning.api.VersioningService
@@ -438,6 +440,52 @@ internal class DefaultVersioningService(
             ),
         )
         return master.toObject(latest.copy(state = target.key))
+    }
+
+    override fun rename(
+        actor: Actor,
+        id: MasterId,
+        command: Rename,
+    ): VersionedObject {
+        val comment = command.comment?.trim()?.takeIf { it.isNotEmpty() }
+        if (comment != null && comment.length > MAX_COMMENT_LENGTH) {
+            throw ValidationException("INVALID_COMMENT", "Comment must be at most $MAX_COMMENT_LENGTH characters")
+        }
+        val master = findMaster(actor, id, forUpdate = true)
+        // Renumbering changes what every document, drawing and system refers to: a manager's call.
+        val latest = authorize(actor, master, Permission.MANAGE)
+        if (master.checkedOutBy != null) {
+            throw ConflictException(
+                "CHECKED_OUT",
+                "${master.number} is checked out by ${nameOf(actor, master.checkedOutBy)}; check it in first",
+                mapOf("checkedOutBy" to master.checkedOutBy),
+            )
+        }
+        val number = command.number?.trim()?.also(::validateNumber) ?: master.number
+        val name = command.name?.let(::validName) ?: master.name
+        if (number == master.number && name == master.name) {
+            throw ValidationException("NO_CHANGE", "${master.number} already has this number and name")
+        }
+        repository.rename(master.id, number, name)
+        val renamed = master.copy(number = number, name = name)
+        events.publish(
+            actor,
+            renamed.event(latest) { objectId, n, typeId, contextId, iterationId, version ->
+                ObjectRenamed(
+                    objectId,
+                    n,
+                    typeId,
+                    contextId,
+                    iterationId,
+                    version,
+                    master.number,
+                    master.name,
+                    name,
+                    comment,
+                )
+            },
+        )
+        return renamed.toObject(latest)
     }
 
     @Transactional(readOnly = true)

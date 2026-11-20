@@ -476,6 +476,7 @@ Rules of the game (see [ADR 0019](adr/0019-configuration-as-code.md)):
 | GET / POST | `/api/v1/lifecycles` | Lifecycle templates / create one (site admin) |
 | GET / PUT | `/api/v1/types/{typeId}/lifecycle` | Lifecycle a type uses (inherited) / assign one (site admin) |
 | GET / PUT | `/api/v1/types/{typeId}/rules` | Numbering scheme, revision scheme, manual numbers (inherited) / set (site admin) |
+| POST | `/api/v1/objects/{id}/rename` | New number and/or name, all versions (MANAGE; not while checked out) |
 | GET | `/api/v1/configuration/export` | The whole configuration as one bundle (site admin) |
 | POST | `/api/v1/configuration/import?dryRun=true\|false` | Plan an import, or apply it (site admin) |
 | GET / POST | `/api/v1/team-roles` | Team roles / define one (site admin) |

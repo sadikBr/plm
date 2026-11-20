@@ -8,6 +8,7 @@ import com.plm.versioning.api.Iteration
 import com.plm.versioning.api.MasterId
 import com.plm.versioning.api.ObjectLifecycle
 import com.plm.versioning.api.ObjectQuery
+import com.plm.versioning.api.Rename
 import com.plm.versioning.api.SetState
 import com.plm.versioning.api.VersionedObject
 import com.plm.versioning.api.VersioningService
@@ -135,6 +136,14 @@ internal class VersionedObjectController(
         ),
     )
 
+    /** Changes the number and/or name (all versions). Needs MANAGE; not while checked out. */
+    @PostMapping("/{id}/rename")
+    fun rename(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: RenameRequest,
+    ) = ObjectResponse(versioning.rename(actor, MasterId(id), Rename(request.number, request.name, request.comment)))
+
     @PostMapping("/{id}/revise")
     fun revise(
         actor: Actor,
@@ -254,3 +263,11 @@ internal data class ObjectLifecycleResponse(
         l.canOverride,
     )
 }
+
+internal data class RenameRequest(
+    /** New number; null keeps the current one. */
+    val number: String? = null,
+    /** New name; null keeps the current one. */
+    val name: String? = null,
+    val comment: String? = null,
+)

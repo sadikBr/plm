@@ -107,3 +107,19 @@ data class ObjectStateChanged(
 ) : VersioningEvent {
     override val eventType = "versioning.ObjectStateChanged.v1"
 }
+
+/** Number and/or name changed. [number] is the new number; the previous values are kept here. */
+data class ObjectRenamed(
+    override val objectId: UUID,
+    override val number: String,
+    override val typeId: UUID,
+    override val contextId: UUID,
+    override val iterationId: UUID,
+    override val version: String,
+    val previousNumber: String,
+    val previousName: String,
+    val name: String,
+    val comment: String?,
+) : VersioningEvent {
+    override val eventType = "versioning.ObjectRenamed.v1"
+}
