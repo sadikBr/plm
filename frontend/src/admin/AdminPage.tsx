@@ -4,6 +4,7 @@ import { useMe } from "../api/queries";
 import { Loading } from "../components/common";
 import { PageHeader, Tabs } from "../components/Layout";
 import { ActionsAdmin } from "./ActionsAdmin";
+import { DocumentTemplatesAdmin } from "./DocumentTemplatesAdmin";
 import { ExtensionsAdmin } from "./ExtensionsAdmin";
 import { RulesAdmin } from "./RulesAdmin";
 import { JobsAdmin } from "./JobsAdmin";
@@ -27,6 +28,7 @@ type Section =
   | "roles"
   | "teams"
   | "templates"
+  | "document-templates"
   | "actions"
   | "rules"
   | "webhooks"
@@ -46,6 +48,7 @@ const SECTIONS: [Section, string][] = [
   ["roles", "Team roles"],
   ["teams", "Shared teams"],
   ["templates", "Context templates"],
+  ["document-templates", "Document templates"],
   ["actions", "Actions"],
   ["rules", "Rules"],
   ["webhooks", "Webhooks"],
@@ -89,6 +92,7 @@ export function AdminPage() {
         {tab === "roles" && <RolesAdmin />}
         {tab === "teams" && <SharedTeamsAdmin />}
         {tab === "templates" && <ContextTemplatesAdmin />}
+        {tab === "document-templates" && <DocumentTemplatesAdmin />}
         {tab === "actions" && <ActionsAdmin />}
         {tab === "rules" && <RulesAdmin />}
         {tab === "webhooks" && <WebhooksAdmin />}

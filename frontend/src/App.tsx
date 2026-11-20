@@ -1,3 +1,4 @@
+import { ComparePage } from "./documents/ComparePage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { BrowserRouter, Route, Routes } from "react-router";
@@ -40,6 +41,7 @@ export function AppRoutes() {
         <Route path="contexts/:id" element={<ContextPage />} />
         <Route path="objects/:id" element={<ObjectPage />} />
         <Route path="search" element={<SearchPage />} />
+        <Route path="compare" element={<ComparePage />} />
         <Route path="admin" element={<AdminPage />} />
         <Route path="preferences" element={<MyPreferencesPage />} />
         <Route path="*" element={<NotFoundPage />} />

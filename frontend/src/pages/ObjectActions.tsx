@@ -1,6 +1,8 @@
 import {
   ArrowRightLeft,
   Copy,
+  CopyPlus,
+  GitCompare,
   GitBranchPlus,
   Link2,
   LockOpen,
@@ -31,6 +33,8 @@ export const ACTION_ICONS: Record<string, LucideIcon> = {
   workflow: Workflow,
   send: Send,
   play: Play,
+  "copy-plus": CopyPlus,
+  "git-compare": GitCompare,
 };
 
 function ActionIcon({ name, size }: { name?: string | null; size: number }) {

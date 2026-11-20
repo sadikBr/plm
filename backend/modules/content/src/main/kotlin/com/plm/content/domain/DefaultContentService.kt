@@ -232,6 +232,31 @@ internal class DefaultContentService(
         return PreviewPage(link.url, link.expiresAt, page, pages!!)
     }
 
+    @Transactional
+    override fun copyLatest(
+        actor: Actor,
+        from: MasterId,
+        to: MasterId,
+    ): Int {
+        val source = versioning.get(actor, from)
+        val target = versioning.get(actor, to)
+        if (target.latest.createdBy != actor.principal.value ||
+            target.latest.iteration != 1 ||
+            content.items(target.latest.id.value).isNotEmpty()
+        ) {
+            throw ConflictException("NOT_A_NEW_OBJECT", "Files are only copied into an object you just created")
+        }
+        return content.copyInto(
+            source.latest.id.value,
+            to.value,
+            target.latest.id.value,
+            actor.principal.value,
+            clock.instant(),
+        ) {
+            UuidV7.generate(clock)
+        }
+    }
+
     override fun open(
         actor: Actor,
         contentId: UUID,

@@ -137,8 +137,10 @@ platform gets the background machinery (jobs, schedules, notifications) later ph
       (Done: `content` module, S3 or local-disk stores, signed upload and file links, content
       carried over at check-out and revise, thumbnails as background jobs, PDF pages rendered for
       previews, nightly vault cleanup.)
-- [ ] 3.3 Documents: document templates (a new document starts from a template's file), Save As
+- [x] 3.3 Documents: document templates (a new document starts from a template's file), Save As
       (a copy with a new number), compare two versions (attributes and content).
+      (Done: templates are ordinary objects registered per site or organization; Save As and
+      Compare in the action registry; compare covers values, files and a line diff of text files.)
 - [ ] 3.4 Folders and organizing: folders in contexts, move between folders and contexts, delete
       rules (what may be deleted, by whom, in which states), ownership and reservation, a clipboard.
 - [ ] 3.5 Mass operations: select many objects and set state, move, delete or change an

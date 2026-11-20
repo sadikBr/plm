@@ -28,7 +28,7 @@ Three layers enforce this:
 | content | File vault: blobs (S3 or disk), signed links, iteration content, thumbnails, previews | access, versioning, jobs |
 | versioning | Master / Version / Iteration engine, lifecycle enforcement | types, access, identity, lifecycle, preferences |
 | lifecycle | Lifecycle templates and their assignment to types | types |
-| documents | Document types | versioning, content, lifecycle |
+| documents | Document templates, Save As, compare | access, types, versioning, content, extensions |
 | parts | Part types | versioning, lifecycle |
 | bom | Usage links, config specs, where-used | parts |
 | workflow | Temporal workflows, tasks | lifecycle, identity |

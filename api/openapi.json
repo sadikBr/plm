@@ -385,6 +385,20 @@
         "required" : [ "active", "dataType", "immutable", "labels", "multiValued", "name", "required", "sortOrder" ],
         "type" : "object"
       },
+      "AttributeDifference" : {
+        "properties" : {
+          "changed" : {
+            "type" : "boolean"
+          },
+          "left" : { },
+          "name" : {
+            "type" : "string"
+          },
+          "right" : { }
+        },
+        "required" : [ "changed", "name" ],
+        "type" : "object"
+      },
       "AttributeResponse" : {
         "properties" : {
           "active" : {
@@ -680,6 +694,67 @@
             "type" : [ "string", "null" ]
           }
         },
+        "type" : "object"
+      },
+      "ComparedVersion" : {
+        "properties" : {
+          "iterationId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "iterationId", "name", "number", "objectId", "state", "typeId", "version" ],
+        "type" : "object"
+      },
+      "Comparison" : {
+        "properties" : {
+          "attributes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AttributeDifference"
+            },
+            "type" : "array"
+          },
+          "files" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FileDifference"
+            },
+            "type" : "array"
+          },
+          "left" : {
+            "$ref" : "#/components/schemas/ComparedVersion"
+          },
+          "primaryText" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/TextDifference"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "right" : {
+            "$ref" : "#/components/schemas/ComparedVersion"
+          }
+        },
+        "required" : [ "attributes", "files", "left", "right" ],
         "type" : "object"
       },
       "ConfigBundle" : {
@@ -1153,6 +1228,25 @@
         "required" : [ "code", "dimension", "labels" ],
         "type" : "object"
       },
+      "CreatedObject" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name", "number", "version" ],
+        "type" : "object"
+      },
       "DefineAttributeRequest" : {
         "properties" : {
           "dataType" : {
@@ -1229,6 +1323,74 @@
           }
         },
         "required" : [ "dataType", "labels", "name" ],
+        "type" : "object"
+      },
+      "DiffLine" : {
+        "properties" : {
+          "change" : {
+            "enum" : [ "SAME", "ADDED", "REMOVED" ],
+            "type" : "string"
+          },
+          "leftLine" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "rightLine" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "text" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "change", "text" ],
+        "type" : "object"
+      },
+      "DocumentTemplate" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "fileName" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "organizationId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "updatedBy" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "id", "name", "number", "objectId", "typeId", "updatedAt", "updatedBy", "version" ],
         "type" : "object"
       },
       "EffectiveProfile" : {
@@ -1692,6 +1854,38 @@
           }
         },
         "required" : [ "auditId", "config", "enabled", "id", "installedAt", "installedBy", "manifest", "name", "permissions", "platform", "secretsSet", "source", "status", "updatedAt", "updatedBy", "version" ],
+        "type" : "object"
+      },
+      "FileDifference" : {
+        "properties" : {
+          "change" : {
+            "enum" : [ "SAME", "CHANGED", "ADDED", "REMOVED" ],
+            "type" : "string"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "leftContentId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "leftSize" : {
+            "format" : "int64",
+            "type" : [ "integer", "null" ]
+          },
+          "rightContentId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "rightSize" : {
+            "format" : "int64",
+            "type" : [ "integer", "null" ]
+          },
+          "role" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "change", "fileName", "role" ],
         "type" : "object"
       },
       "FileLink" : {
@@ -2484,6 +2678,30 @@
         "required" : [ "addedAt", "addedBy", "contextId", "principalId", "role" ],
         "type" : "object"
       },
+      "NewFromTemplate" : {
+        "properties" : {
+          "attributes" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          },
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : [ "string", "null" ]
+          },
+          "templateId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "attributes", "contextId", "name", "templateId" ],
+        "type" : "object"
+      },
       "NumberingSchemeConfig" : {
         "properties" : {
           "name" : {
@@ -3228,6 +3446,25 @@
         "required" : [ "groups", "screen", "typeId" ],
         "type" : "object"
       },
+      "SaveAs" : {
+        "properties" : {
+          "contextId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : [ "string", "null" ]
+          },
+          "withFiles" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "name", "withFiles" ],
+        "type" : "object"
+      },
       "SaveContextTemplateRequest" : {
         "properties" : {
           "content" : {
@@ -3618,6 +3855,55 @@
           }
         },
         "required" : [ "effect", "permissions", "role" ],
+        "type" : "object"
+      },
+      "TemplateSettings" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "organizationId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "active", "name", "objectId" ],
+        "type" : "object"
+      },
+      "TextDifference" : {
+        "properties" : {
+          "added" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "lines" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DiffLine"
+            },
+            "type" : "array"
+          },
+          "removed" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "skipped" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "added", "fileName", "lines", "removed" ],
         "type" : "object"
       },
       "TransitionDto" : {
@@ -4465,6 +4751,67 @@
           }
         },
         "tags" : [ "Audit" ]
+      }
+    },
+    "/api/v1/compare" : {
+      "get" : {
+        "operationId" : "documentCompare",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "left",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "right",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "leftIteration",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "rightIteration",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Comparison"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Document" ]
       }
     },
     "/api/v1/configuration/export" : {
@@ -5790,6 +6137,165 @@
           }
         },
         "tags" : [ "Context" ]
+      }
+    },
+    "/api/v1/document-templates" : {
+      "get" : {
+        "operationId" : "documentTemplates",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "contextId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "typeId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/DocumentTemplate"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Document" ]
+      },
+      "post" : {
+        "operationId" : "documentCreateTemplate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TemplateSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplate"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Document" ]
+      }
+    },
+    "/api/v1/document-templates/{id}" : {
+      "delete" : {
+        "operationId" : "documentDeleteTemplate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Document" ]
+      },
+      "put" : {
+        "operationId" : "documentUpdateTemplate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TemplateSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplate"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Document" ]
       }
     },
     "/api/v1/enumerations" : {
@@ -7548,6 +8054,44 @@
         "tags" : [ "Versioned object" ]
       }
     },
+    "/api/v1/objects/from-template" : {
+      "post" : {
+        "operationId" : "documentFromTemplate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NewFromTemplate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CreatedObject"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Document" ]
+      }
+    },
     "/api/v1/objects/{id}" : {
       "get" : {
         "operationId" : "versionedObjectGet",
@@ -8243,6 +8787,53 @@
           }
         },
         "tags" : [ "Versioned object" ]
+      }
+    },
+    "/api/v1/objects/{id}/save-as" : {
+      "post" : {
+        "operationId" : "documentSaveAs",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveAs"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CreatedObject"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Document" ]
       }
     },
     "/api/v1/objects/{id}/state" : {
@@ -10747,6 +11338,8 @@
     "name" : "Context"
   }, {
     "name" : "Context template"
+  }, {
+    "name" : "Document"
   }, {
     "name" : "Expression"
   }, {

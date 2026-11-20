@@ -40,6 +40,7 @@ import {
 } from "../components/common";
 import { Breadcrumbs, PageHeader, Tabs, useIdParam } from "../components/Layout";
 import { ObjectFiles } from "../components/ObjectFiles";
+import { CompareDialog, SaveAsDialog } from "../documents/DocumentDialogs";
 import { NotFoundPage } from "./NotFoundPage";
 import { useActionRunner } from "./ActionRunner";
 import { ObjectActionBar, type ActionHandlers } from "./ObjectActions";
@@ -94,6 +95,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
   const [stateChange, setStateChange] = useState<{ to: string; override: boolean } | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [changingLifecycle, setChangingLifecycle] = useState(false);
+  const [docDialog, setDocDialog] = useState<"save-as" | "compare" | null>(null);
   const { data: prefs } = useEffectivePreferences(obj.contextId);
   const commentRequired = prefs?.get("versioning.checkInCommentRequired") === true;
 
@@ -116,6 +118,8 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
     "object.copy-link": () => void navigator.clipboard?.writeText(window.location.href),
     "object.rename": () => setRenaming(true),
     "object.change-lifecycle": () => setChangingLifecycle(true),
+    "object.save-as": () => setDocDialog("save-as"),
+    "object.compare": () => setDocDialog("compare"),
   };
 
   return (
@@ -159,6 +163,8 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
       )}
       {runner.ui}
       {renaming && <RenameDialog obj={obj} onClose={() => setRenaming(false)} />}
+      {docDialog === "save-as" && <SaveAsDialog obj={obj} onClose={() => setDocDialog(null)} />}
+      {docDialog === "compare" && <CompareDialog obj={obj} onClose={() => setDocDialog(null)} />}
       {changingLifecycle && lifecycle && (
         <ChangeLifecycleDialog obj={obj} current={lifecycle} onClose={() => setChangingLifecycle(false)} />
       )}

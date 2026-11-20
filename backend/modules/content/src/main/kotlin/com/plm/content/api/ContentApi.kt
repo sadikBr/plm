@@ -125,6 +125,17 @@ interface ContentService {
         page: Int,
     ): PreviewPage
 
+    /**
+     * Copies the files of [from]'s latest iteration to [to]'s first iteration (Save As, new from
+     * a template): the same stored files, new entries. [to] must be new: created by the actor, at
+     * its first iteration, with no files yet. Returns how many were copied.
+     */
+    fun copyLatest(
+        actor: Actor,
+        from: MasterId,
+        to: MasterId,
+    ): Int
+
     /** Bytes of a file the actor can read, for other modules (compare, templates, extensions). */
     fun open(
         actor: Actor,

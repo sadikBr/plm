@@ -610,3 +610,20 @@ tr.clickable { cursor: pointer; }
 .details-stack { display: grid; gap: 12px; }
 .pdf-pages { display: grid; gap: 10px; justify-items: center; width: 100%; }
 .pdf-pages img { max-width: 100%; max-height: 62vh; border: 1px solid var(--border); box-shadow: 0 1px 4px rgba(0,0,0,0.12); background: #fff; }
+
+/* Compare (roadmap 3.3) */
+.compare-heads { display: flex; gap: 16px; align-items: center; }
+.compare-side { flex: 1; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; display: grid; gap: 6px; }
+table.compare td.old { background: var(--danger-soft); }
+table.compare td.new { background: var(--ok-soft); }
+.text-diff { margin: 0; font-size: 12px; line-height: 1.55; overflow: auto; max-height: 60vh; }
+.text-diff > div { padding: 0 12px; white-space: pre-wrap; }
+.text-diff .added { background: var(--ok-soft); }
+.text-diff .removed { background: var(--danger-soft); }
+.text-diff .fold { color: var(--text-3); background: var(--panel-2); text-align: center; }
+.text-diff .ln { display: inline-block; width: 34px; color: var(--text-3); text-align: right; margin-right: 6px; user-select: none; }
+.text-diff .mark { display: inline-block; width: 14px; font-weight: 700; }
+.pick-list { display: grid; gap: 2px; margin-top: 6px; max-height: 200px; overflow: auto; }
+.pick-list button { text-align: left; border: 1px solid transparent; background: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font: inherit; color: inherit; }
+.pick-list button:hover { background: var(--row-hover); }
+.pick-list button.selected { background: var(--row-selected); border-color: var(--accent); }

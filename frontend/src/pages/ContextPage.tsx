@@ -1,7 +1,8 @@
 import { FilePlus, LayoutTemplate, Plus } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
-import { isApiError } from "../api/client";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { api, isApiError, unwrap } from "../api/client";
 import {
   ALLOWED_CHILDREN,
   HOLDS_OBJECTS,
@@ -410,6 +411,26 @@ function NewObjectDialog({ context, baseClass, onClose }: { context: Context; ba
   const create = useCreateObject();
   const navigate = useNavigate();
   const [typeId, setTypeId] = useState("");
+  // Templates (roadmap 3.3): a new object can start from one, with its values and files.
+  const { data: allTemplates } = useQuery({
+    queryKey: ["documentTemplates", context.id],
+    queryFn: () => unwrap(api.GET("/api/v1/document-templates", { params: { query: { contextId: context.id } } })),
+  });
+  const templates = allTemplates?.filter((t) => types?.some((ty) => ty.id === t.typeId));
+  const [templateId, setTemplateId] = useState("");
+  const template = templates?.find((t) => t.id === templateId);
+  const fromTemplate = useMutation({
+    mutationFn: () =>
+      unwrap(
+        api.POST("/api/v1/objects/from-template", {
+          body: { templateId, contextId: context.id, name, number: number.trim() || null, attributes: {} },
+        }),
+      ),
+    onSuccess: (obj) => {
+      onClose();
+      navigate(`/objects/${obj.id}`);
+    },
+  });
   const [name, setName] = useState("");
   const [number, setNumber] = useState("");
   const chosenType = typeId || types?.[0]?.id;
@@ -425,6 +446,10 @@ function NewObjectDialog({ context, baseClass, onClose }: { context: Context; ba
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    if (template) {
+      fromTemplate.mutate();
+      return;
+    }
     if (!chosenType) return;
     create.mutate(
       {
@@ -453,26 +478,47 @@ function NewObjectDialog({ context, baseClass, onClose }: { context: Context; ba
           <button className="btn" type="button" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn primary" type="submit" form={formId} disabled={create.isPending || !name.trim()}>
+          <button className="btn primary" type="submit" form={formId} disabled={create.isPending || fromTemplate.isPending || !name.trim()}>
             Create
           </button>
         </>
       }
     >
       <form id={formId} onSubmit={submit} noValidate style={{ display: "grid", gap: 12 }}>
-        <ErrorBanner error={create.error} />
+        <ErrorBanner error={create.error ?? fromTemplate.error} />
         <div className="section-label">Identity</div>
         <div className="attr-form">
-          <div className="field">
-            <label htmlFor="obj-type">Type</label>
-            <select id="obj-type" value={chosenType ?? ""} onChange={(e) => setTypeId(e.target.value)}>
-              {types?.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {typeLabel(t)}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!!templates?.length && (
+            <div className="field wide">
+              <label htmlFor="obj-template">Start from</label>
+              <select id="obj-template" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
+                <option value="">Blank</option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                    {t.fileName ? ` (${t.fileName})` : ""}
+                  </option>
+                ))}
+              </select>
+              {template && (
+                <span className="hint">
+                  A copy of {template.number} {template.version}: its type, values and files. Change them after creating.
+                </span>
+              )}
+            </div>
+          )}
+          {!template && (
+            <div className="field">
+              <label htmlFor="obj-type">Type</label>
+              <select id="obj-type" value={chosenType ?? ""} onChange={(e) => setTypeId(e.target.value)}>
+                {types?.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {typeLabel(t)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="field">
             <label htmlFor="obj-number">Number</label>
             <input id="obj-number" value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Assigned automatically" />
@@ -487,7 +533,7 @@ function NewObjectDialog({ context, baseClass, onClose }: { context: Context; ba
             <input id="obj-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
           </div>
         </div>
-        {definitions && layout && chosenType && (
+        {!template && definitions && layout && chosenType && (
           <AttributeForm
             idPrefix="new"
             definitions={definitions}

@@ -296,6 +296,41 @@ internal class ContentRepository(
         jdbc.sql("delete from content_item where id = :id").param("id", id).update()
     }
 
+    /** Copies [sourceIteration]'s content into [targetIteration] (another object's). */
+    fun copyInto(
+        sourceIteration: UUID,
+        targetMaster: UUID,
+        targetIteration: UUID,
+        by: String,
+        now: Instant,
+        newId: () -> UUID,
+    ): Int {
+        val rows =
+            jdbc
+                .sql("select id from content_item where iteration_id = :src order by added_at")
+                .param("src", sourceIteration)
+                .query { rs, _ -> rs.getObject("id", UUID::class.java) }
+                .list()
+        rows.forEach { from ->
+            jdbc
+                .sql(
+                    """
+                    insert into content_item (id, tenant_id, master_id, iteration_id, role, file_name, description, blob_key,
+                                              copied_from, added_at, added_by)
+                    select :id, tenant_id, :master, :it, role, file_name, description, blob_key, coalesce(copied_from, id), :now, :by
+                    from content_item where id = :from
+                    """.trimIndent(),
+                ).param("id", newId())
+                .param("master", targetMaster)
+                .param("it", targetIteration)
+                .param("from", from)
+                .param("now", ts(now))
+                .param("by", by)
+                .update()
+        }
+        return rows.size
+    }
+
     /**
      * Carries content over to a new iteration (a working copy, a new revision) from the iteration
      * it's based on: same files, new rows. Reads the versioning module's iteration table.
