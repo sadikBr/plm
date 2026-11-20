@@ -38,7 +38,7 @@ test("bob, manager of an organization, sets up its own shared team and product t
   await bob.getByRole("button", { name: "New context" }).click();
   await bob.getByRole("dialog").getByLabel("Kind").selectOption("PRODUCT");
   await bob.getByRole("dialog").getByLabel("Name").fill("Pilot");
-  await bob.getByRole("button", { name: "Create" }).click();
+  await bob.getByRole("dialog").getByRole("button", { name: "Create" }).click();
   await expect(bob.getByRole("heading", { name: "Pilot" })).toBeVisible();
   await bob.getByRole("link", { name: "Team" }).click();
   await bob.getByLabel("Attach a shared team").selectOption({ label: `Delegated QA ${suffix}` });
@@ -55,7 +55,7 @@ test("bob, manager of an organization, sets up its own shared team and product t
   await bob.getByRole("dialog").getByLabel("Kind").selectOption("PRODUCT");
   await bob.getByRole("dialog").getByLabel("Name").fill("Series");
   await bob.getByRole("dialog").getByLabel("Template", { exact: true }).selectOption({ label: `Delegated product ${suffix}` });
-  await bob.getByRole("button", { name: "Create" }).click();
+  await bob.getByRole("dialog").getByRole("button", { name: "Create" }).click();
   await expect(bob.getByRole("heading", { name: "Series" })).toBeVisible();
   await bob.getByRole("link", { name: "Team" }).click();
   await expect(bob.getByRole("table", { name: "Shared teams" }).getByText(`Delegated QA ${suffix}`)).toBeVisible();
