@@ -1,7 +1,7 @@
 import { ChevronRight, LogOut, Settings } from "lucide-react";
 import { type ReactNode } from "react";
 import { Link, NavLink, Outlet, useParams } from "react-router";
-import { useContextById, useMe } from "../api/queries";
+import { useCanOpen, useContextById, useMe } from "../api/queries";
 import { userManager } from "../auth/oidc";
 import { initials } from "./common";
 import { GlobalSearch } from "./GlobalSearch";
@@ -34,12 +34,7 @@ export function Layout() {
           <Link to="/preferences" className="topbar-link" title="My preferences" data-testid="current-user">
             {me?.user.displayName}
           </Link>
-          <button
-            className="icon-btn"
-            aria-label="Sign out"
-            title="Sign out"
-            onClick={() => void userManager.signoutRedirect()}
-          >
+          <button className="icon-btn" aria-label="Sign out" title="Sign out" onClick={() => void userManager.signoutRedirect()}>
             <LogOut size={15} />
           </button>
         </div>
@@ -71,16 +66,26 @@ export function Breadcrumbs({ contextId, current }: { contextId: string; current
 
 function CrumbChain({ id, isLast }: { id: string; isLast: boolean }) {
   const { data } = useContextById(id);
-  if (!data) return null;
+  const canOpen = useCanOpen();
+  if (!data || !canOpen) return null;
+  // The site is only for site administrators: other people's trail starts at the organization.
+  if (data.kind === "SITE" && !canOpen(data)) return null;
   return (
     <>
-      {data.parentId && (
-        <>
-          <CrumbChain id={data.parentId} isLast={false} />
-          <ChevronRight size={11} aria-hidden />
-        </>
-      )}
-      {isLast ? <span>{data.name}</span> : <Link to={`/contexts/${data.id}`}>{data.name}</Link>}
+      {data.parentId && <ParentCrumb id={data.parentId} />}
+      {isLast || !canOpen(data) ? <span>{data.name}</span> : <Link to={`/contexts/${data.id}`}>{data.name}</Link>}
+    </>
+  );
+}
+
+function ParentCrumb({ id }: { id: string }) {
+  const { data } = useContextById(id);
+  const canOpen = useCanOpen();
+  if (!data || !canOpen || (data.kind === "SITE" && !canOpen(data))) return null;
+  return (
+    <>
+      <CrumbChain id={id} isLast={false} />
+      <ChevronRight size={11} aria-hidden />
     </>
   );
 }
@@ -121,15 +126,7 @@ export function PageHeader({
 }
 
 /** Tab strip driven by the `tab` search parameter. */
-export function Tabs<T extends string>({
-  tabs,
-  active,
-  onSelect,
-}: {
-  tabs: [T, string][];
-  active: T;
-  onSelect: (tab: T) => void;
-}) {
+export function Tabs<T extends string>({ tabs, active, onSelect }: { tabs: [T, string][]; active: T; onSelect: (tab: T) => void }) {
   return (
     <nav className="tabs" aria-label="Sections">
       {tabs.map(([key, label]) => (

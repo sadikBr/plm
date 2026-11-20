@@ -1,7 +1,15 @@
 import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useParams } from "react-router";
-import { useContextsOfKind, useManagedOrganizations, useMe, useOrganizationNames, useSite, type ContextKind } from "../api/queries";
+import { Navigate, useParams } from "react-router";
+import {
+  useBrowsableContexts,
+  useContextsOfKind,
+  useManagedOrganizations,
+  useMe,
+  useOrganizationNames,
+  useSite,
+  type ContextKind,
+} from "../api/queries";
 import { ContextIcon, ErrorBanner, Loading, Panel, kindFromSlug, kindLabel, kindPlural } from "../components/common";
 import { PageHeader } from "../components/Layout";
 import { ContextTable, NewContextDialog, countOf } from "./ContextLists";
@@ -15,7 +23,7 @@ export function BrowsePage() {
 }
 
 function BrowseView({ kind }: { kind: ContextKind }) {
-  const { data: contexts, isLoading, error } = useContextsOfKind(kind);
+  const { data: contexts, isLoading, error } = useBrowsableContexts(kind);
   const { data: organizations } = useContextsOfKind(kind === "ORGANIZATION" ? undefined : "ORGANIZATION");
   const { data: me } = useMe();
   // The Organization column follows the user's "Show organization names" preference.
@@ -35,13 +43,21 @@ function BrowseView({ kind }: { kind: ContextKind }) {
   // Organizations are made by site admins on the site; the rest by managers of an organization.
   const canCreate = kind === "ORGANIZATION" ? !!me?.siteAdmin && !!site : !!managed?.length;
   const label = kindLabel(kind).toLowerCase();
+  // Organizations are for administrators (site, or of an organization): others go home.
+  if (kind === "ORGANIZATION" && managed && managed.length === 0) return <Navigate to="/" replace />;
 
   return (
     <>
       <PageHeader
         icon={<ContextIcon kind={kind} size={18} />}
         title={kindPlural(kind)}
-        meta={contexts && <span className="sub">{countOf(contexts.length, kind)} you can see</span>}
+        meta={
+          contexts && (
+            <span className="sub">
+              {countOf(contexts.length, kind)} {kind === "ORGANIZATION" && !me?.siteAdmin ? "you manage" : "you can see"}
+            </span>
+          )
+        }
         toolbar={
           canCreate ? (
             <button className="btn ghost" onClick={() => setCreating(true)}>

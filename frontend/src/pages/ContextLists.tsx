@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
-import { useContextTemplates, useCreateContext, type Context, type ContextKind } from "../api/queries";
+import { useCanOpen, useContextTemplates, useCreateContext, type Context, type ContextKind } from "../api/queries";
 import { ContextIcon, Dialog, ErrorBanner, PrincipalName, formatDate, kindLabel, kindPlural } from "../components/common";
 
 /** A table of contexts: an organization's products, the site's organizations, every visible library... */
@@ -14,6 +14,7 @@ export function ContextTable({
   /** When given, an Organization column names each context's parent. */
   organizations?: Map<string, Context>;
 }) {
+  const canOpen = useCanOpen();
   return (
     <div className="grid-wrap">
       <table className="grid" aria-label={label}>
@@ -42,7 +43,17 @@ export function ContextTable({
                   </Link>
                 </td>
                 {organizations && (
-                  <td className="nowrap">{org ? <Link to={`/contexts/${org.id}`}>{org.name}</Link> : <span className="muted">—</span>}</td>
+                  <td className="nowrap">
+                    {org ? (
+                      canOpen?.(org) ? (
+                        <Link to={`/contexts/${org.id}`}>{org.name}</Link>
+                      ) : (
+                        org.name
+                      )
+                    ) : (
+                      <span className="muted">—</span>
+                    )}
+                  </td>
                 )}
                 <td className="nowrap">
                   <PrincipalName id={c.createdBy} />

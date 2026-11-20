@@ -4,8 +4,11 @@ import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react
 import { Link, NavLink, useLocation } from "react-router";
 import { api, unwrap } from "../api/client";
 import {
+  useBrowsableContexts,
+  useCanOpen,
   useContextById,
-  useContextsOfKind,
+  useManagedOrganizations,
+  useMe,
   useObject,
   useOrganizationNames,
   useSite,
@@ -113,10 +116,17 @@ export function Navigator() {
   const [collapsed, setCollapsed] = useNavigatorCollapsed();
   const [filter, setFilter] = useState("");
   const { contextId, kind } = useWhere();
-  const { data: site } = useSite();
-  const pinned = useStored<Remembered[]>(PINNED, NONE);
+  const { data: siteContext } = useSite();
+  const canOpen = useCanOpen();
+  const managed = useManagedOrganizations();
+  // The site and organizations are for administrators; others see the containers they work in.
+  const site = siteContext && canOpen?.(siteContext) ? siteContext : undefined;
+  const { data: me } = useMe();
+  const kinds = BROWSABLE_KINDS.filter((k) => k !== "ORGANIZATION" || !!me?.siteAdmin || !!managed?.length);
+  const allowed = (r: Remembered) => !!canOpen?.(r);
+  const pinned = useStored<Remembered[]>(PINNED, NONE).filter(allowed);
   const recent = useStored<Remembered[]>(RECENT, NONE)
-    .filter((r) => !pinned.some((p) => p.id === r.id))
+    .filter((r) => allowed(r) && !pinned.some((p) => p.id === r.id))
     .slice(0, 5);
 
   if (collapsed) {
@@ -130,7 +140,7 @@ export function Navigator() {
             <ContextIcon kind="SITE" size={15} />
           </NavLink>
         )}
-        {BROWSABLE_KINDS.map((k) => (
+        {kinds.map((k) => (
           <NavLink
             key={k}
             to={browsePath(k)}
@@ -194,7 +204,7 @@ export function Navigator() {
                   </div>
                 </li>
               )}
-              {BROWSABLE_KINDS.map((k) => (
+              {kinds.map((k) => (
                 <KindRow key={k} kind={k} active={k === kind} browsing={k === kind && !contextId} currentId={contextId} pinned={pinned} />
               ))}
             </ul>
@@ -236,7 +246,7 @@ function KindRow({
   const openKinds = useStored<ContextKind[]>(OPEN_KINDS, NO_KINDS);
   // The kind we're in opens itself; the others open on request (and stay open).
   const open = active || openKinds.includes(kind);
-  const { data: contexts, isLoading } = useContextsOfKind(open ? kind : undefined);
+  const { data: contexts, isLoading } = useBrowsableContexts(open ? kind : undefined);
   const pinnedIds = new Set(pinned.map((p) => p.id));
   const toggle = () => write(OPEN_KINDS, openKinds.includes(kind) ? openKinds.filter((k) => k !== kind) : [...openKinds, kind]);
   // The first few, plus where we are if it's further down.
@@ -354,12 +364,14 @@ function FilterResults({ text, currentId }: { text: string; currentId?: string }
       ),
   });
   const pinned = new Set(read<Remembered[]>(PINNED, NONE).map((p) => p.id));
-  if (!data) return <div className="nav-empty">{isFetching ? <Spinner /> : null}</div>;
-  if (data.length === 0) return <p className="nav-empty">No context matches “{query}”.</p>;
+  const canOpen = useCanOpen();
+  if (!data || !canOpen) return <div className="nav-empty">{isFetching || !canOpen ? <Spinner /> : null}</div>;
+  const matches = data.filter(canOpen);
+  if (matches.length === 0) return <p className="nav-empty">No context matches “{query}”.</p>;
   return (
-    <NavSection title={`${data.length} match${data.length === 1 ? "" : "es"}`} grow>
+    <NavSection title={`${matches.length} match${matches.length === 1 ? "" : "es"}`} grow>
       <div className="nav-scroll">
-        {data.map((c) => (
+        {matches.map((c) => (
           <FlatRow key={c.id} item={c} current={c.id === currentId} pinned={pinned.has(c.id)} />
         ))}
       </div>

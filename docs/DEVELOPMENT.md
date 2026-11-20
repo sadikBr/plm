@@ -89,6 +89,12 @@ make ui            # cd frontend && npm run dev
 Open http://localhost:5173 and sign in as `alice`, `bob` or `carol` (password = username).
 The dev server proxies `/api` to the backend on :8080, so `make up` and `make run` must be running.
 
+What you see depends on your role. **Site administrators** see the Site and every organization;
+**organization administrators** (managers of an organization) see the organizations they manage;
+everyone else sees only the products, libraries and projects they're on the team of (directly or
+through their organization), and lands on them after signing in. This shapes navigation only:
+what anyone may read or change is still decided by access rules.
+
 The sidebar browses by kind of container: **Site**, **Organizations**, **Products**, **Libraries**
 and **Projects**. Each kind opens a list of every one you can see (`/browse/products`, with a filter
 by organization and its own **New product** action), and the kind you're in lists its containers

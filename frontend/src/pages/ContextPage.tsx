@@ -1,11 +1,13 @@
 import { FilePlus, LayoutTemplate, Plus } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { isApiError } from "../api/client";
 import {
   ALLOWED_CHILDREN,
   HOLDS_OBJECTS,
   useChildren,
+  useCanOpen,
+  useManagedOrganizations,
   useContextById,
   useEffectivePreferences,
   useSaveAsTemplate,
@@ -77,6 +79,8 @@ function ContextView({ id }: { id: string }) {
   const { data: context, error, isLoading } = useContextById(id);
   const { data: permissions } = usePermissions(context?.id);
   const { data: me } = useMe();
+  const canOpen = useCanOpen();
+  const managed = useManagedOrganizations();
   const [params, setParams] = useSearchParams();
   const [dialog, setDialog] = useState<"template" | null>(null);
 
@@ -84,9 +88,11 @@ function ContextView({ id }: { id: string }) {
     if (context) rememberVisit(context);
   }, [context]);
 
-  if (isLoading) return <Loading />;
+  if (isLoading || (context && !canOpen) || (context?.kind === "ORGANIZATION" && !me?.siteAdmin && !managed)) return <Loading />;
   if (isApiError(error, 404)) return <NotFoundPage what="context" />;
   if (error || !context) return <ErrorBanner error={error} />;
+  // The site and organizations are for administrators; others are sent to their own work.
+  if (!canOpen!(context)) return <Navigate to="/" replace />;
 
   const holdsObjects = HOLDS_OBJECTS.has(context.kind);
   const childKinds = ALLOWED_CHILDREN[context.kind];
@@ -175,6 +181,7 @@ function OverviewTab({
   onSelect: (tab: Tab) => void;
 }) {
   const { data: parent } = useContextById(context.parentId && context.kind !== "ORGANIZATION" ? context.parentId : undefined);
+  const canOpen = useCanOpen();
   const { data: children } = useChildren(context.id, !HOLDS_OBJECTS.has(context.kind));
   const { data: members } = useMembers(context.id);
   const childKinds = ALLOWED_CHILDREN[context.kind];
@@ -186,9 +193,7 @@ function OverviewTab({
           <Prop label="Name">{context.name}</Prop>
           <Prop label="Kind">{kindLabel(context.kind)}</Prop>
           {parent && (
-            <Prop label="Organization">
-              <Link to={`/contexts/${parent.id}`}>{parent.name}</Link>
-            </Prop>
+            <Prop label="Organization">{canOpen?.(parent) ? <Link to={`/contexts/${parent.id}`}>{parent.name}</Link> : parent.name}</Prop>
           )}
           <Prop label="Created">
             {formatDate(context.createdAt)} by <PrincipalName id={context.createdBy} />

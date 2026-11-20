@@ -9,9 +9,9 @@ const SITE = { ...product, id: "site-id", parentId: null, kind: "SITE", name: "S
 const ORG = { ...product, id: "org-id", parentId: "site-id", kind: "ORGANIZATION", name: "Acme" };
 const DRONE = { ...product, parentId: "org-id" };
 
-function api(showOrganization = true) {
+function api(showOrganization = true, siteAdmin = true) {
   return fakeApi({
-    "GET /api/v1/me": () => me(ALICE, true),
+    "GET /api/v1/me": () => me(ALICE, siteAdmin),
     "GET /api/v1/contexts/site": () => SITE,
     "GET /api/v1/contexts": (req) => {
       const params = new URL(req.url).searchParams;
@@ -39,8 +39,8 @@ describe("Navigator", () => {
     renderAt(`/contexts/${PRODUCT}`);
 
     const browse = await screen.findByRole("list", { name: "Browse by kind" });
-    for (const kind of ["Organizations", "Products", "Libraries", "Projects"]) {
-      expect(within(browse).getByRole("link", { name: new RegExp(kind) })).toBeInTheDocument();
+    for (const kind of ["Site", "Organizations", "Products", "Libraries", "Projects"]) {
+      expect(await within(browse).findByRole("link", { name: new RegExp(kind) })).toBeInTheDocument();
     }
     const products = await within(browse).findByRole("list", { name: "Products" });
     expect(await within(products).findByRole("link", { name: /Drone X1/ })).toHaveAttribute("aria-current", "page");
@@ -65,6 +65,27 @@ describe("Navigator", () => {
     const products = await screen.findByRole("list", { name: "Products" });
     await within(products).findByRole("link", { name: /Drone X1/ });
     expect(within(products).queryByText("Acme")).not.toBeInTheDocument();
+  });
+
+  it("shows a team member only their products, libraries and projects: no site, no organizations", async () => {
+    api(true, false); // alice is not a site admin here, and only reads the organization
+    renderAt(`/contexts/${PRODUCT}`);
+
+    const browse = await screen.findByRole("list", { name: "Browse by kind" });
+    expect(await within(browse).findByRole("link", { name: /Products/ })).toBeInTheDocument();
+    expect(within(browse).queryByRole("link", { name: /Site/ })).not.toBeInTheDocument();
+    expect(within(browse).queryByRole("link", { name: /Organizations/ })).not.toBeInTheDocument();
+    // The trail starts at the organization, as text: it isn't theirs to open.
+    const crumbs = screen.getByRole("navigation", { name: "Breadcrumb" });
+    expect(await within(crumbs).findByText("Acme")).toBeInTheDocument();
+    expect(within(crumbs).queryByRole("link")).not.toBeInTheDocument();
+    expect(within(crumbs).queryByText("Site")).not.toBeInTheDocument();
+  });
+
+  it("sends a team member who opens the site to their own work", async () => {
+    api(true, false);
+    renderAt("/contexts/site-id");
+    expect(await screen.findByRole("heading", { name: "Products", level: 1 })).toBeInTheDocument();
   });
 
   it("lists every context of a kind on its browse page", async () => {

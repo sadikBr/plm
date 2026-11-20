@@ -106,11 +106,15 @@ export function useOrganizationNames(): Map<string, string> | undefined {
   return useMemo(() => (show && organizations ? new Map(organizations.map((o) => [o.id, o.name])) : undefined), [show, organizations]);
 }
 
-/** The organizations the user manages: where they may create products, libraries and projects. */
+/**
+ * The organizations the user manages: where they may create products, libraries and projects, and
+ * which they can open. Site administrators manage them all (no per-organization checks needed).
+ */
 export function useManagedOrganizations(): Context[] | undefined {
-  const { data: organizations } = useContextsOfKind("ORGANIZATION");
+  const { data: me } = useMe();
+  const { data: organizations, isError } = useContextsOfKind("ORGANIZATION");
   const permissions = useQueries({
-    queries: (organizations ?? []).map((org) => ({
+    queries: (me && !me.siteAdmin ? (organizations ?? []) : []).map((org) => ({
       queryKey: keys.permissions(org.id),
       queryFn: async () =>
         new Set(
@@ -120,8 +124,35 @@ export function useManagedOrganizations(): Context[] | undefined {
         ),
     })),
   });
-  if (!organizations || permissions.some((p) => !p.data)) return undefined;
-  return organizations.filter((_, i) => permissions[i]!.data!.has("MANAGE"));
+  if (isError) return [];
+  if (!me || !organizations) return undefined;
+  if (me.siteAdmin) return organizations;
+  if (permissions.some((p) => p.isPending)) return undefined;
+  return organizations.filter((_, i) => !!permissions[i]!.data?.has("MANAGE"));
+}
+
+/** What the navigator and lists show of a kind: every visible one, but only managed organizations. */
+export function useBrowsableContexts(kind: ContextKind | undefined) {
+  const all = useContextsOfKind(kind === "ORGANIZATION" ? undefined : kind);
+  const managed = useManagedOrganizations();
+  if (kind === "ORGANIZATION") return { data: managed, isLoading: !managed, error: all.error };
+  return { data: all.data, isLoading: all.isLoading, error: all.error };
+}
+
+/**
+ * Who may open what in the navigation: the site is for site administrators, an organization for site
+ * administrators and its managers. Everyone else works in the products, libraries and projects they
+ * are on the team of. (Undefined while loading.)
+ */
+export function useCanOpen(): ((context: { id: string; kind: ContextKind }) => boolean) | undefined {
+  const { data: me } = useMe();
+  const managed = useManagedOrganizations();
+  return useMemo(() => {
+    if (!me) return undefined;
+    // Until the organizations are known, none counts as managed (pages wait for them: see ContextPage).
+    const ids = new Set((managed ?? []).map((o) => o.id));
+    return (c) => (c.kind === "SITE" ? me.siteAdmin : c.kind === "ORGANIZATION" ? me.siteAdmin || ids.has(c.id) : true);
+  }, [me, managed]);
 }
 
 export const useMembers = (contextId: string) =>

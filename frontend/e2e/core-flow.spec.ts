@@ -43,6 +43,8 @@ test("alice sets up a product, bob works on a part, carol sees nothing", async (
   const bob = await asUser(browser, "bob");
   await bob.goto(productUrl);
   await expect(bob.getByRole("heading", { name: "Drone X1" })).toBeVisible();
+  // Not a site admin: the site isn't in his navigator, and opening it sends him to his own work.
+  await expect(bob.getByRole("list", { name: "Browse by kind" }).getByRole("link", { name: "Site", exact: true })).toHaveCount(0);
   await bob.getByRole("button", { name: "New part" }).click();
   await bob.getByLabel("Type").selectOption({ label: "Part" });
   await bob.getByLabel("Name", { exact: true }).fill("Motor mount");
