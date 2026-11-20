@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router";
 import { useMe } from "../api/queries";
 import { Loading } from "../components/common";
 import { PageHeader, Tabs } from "../components/Layout";
+import { ActionsAdmin } from "./ActionsAdmin";
 import { ConfigurationAdmin } from "./ConfigurationAdmin";
 import { GlobalAttributesAdmin } from "./GlobalAttributesAdmin";
 import { LifecyclesAdmin } from "./LifecyclesAdmin";
@@ -10,7 +11,7 @@ import { NumberingAdmin, RolesAdmin, UnitsAdmin, ValueListsAdmin } from "./Refer
 import { ContextTemplatesAdmin, SharedTeamsAdmin } from "./TeamsAndTemplatesAdmin";
 import { TypesAdmin } from "./TypesAdmin";
 
-type Section = "types" | "globals" | "lists" | "units" | "numbering" | "lifecycles" | "roles" | "teams" | "templates" | "configuration";
+type Section = "types" | "globals" | "lists" | "units" | "numbering" | "lifecycles" | "roles" | "teams" | "templates" | "actions" | "configuration";
 
 const SECTIONS: [Section, string][] = [
   ["types", "Types and attributes"],
@@ -22,6 +23,7 @@ const SECTIONS: [Section, string][] = [
   ["roles", "Team roles"],
   ["teams", "Shared teams"],
   ["templates", "Context templates"],
+  ["actions", "Actions"],
   ["configuration", "Export / import"],
 ];
 
@@ -58,6 +60,7 @@ export function AdminPage() {
         {tab === "roles" && <RolesAdmin />}
         {tab === "teams" && <SharedTeamsAdmin />}
         {tab === "templates" && <ContextTemplatesAdmin />}
+        {tab === "actions" && <ActionsAdmin />}
         {tab === "configuration" && <ConfigurationAdmin />}
       </div>
     </>

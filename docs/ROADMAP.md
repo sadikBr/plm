@@ -91,9 +91,10 @@ product from a template with its own lifecycle and team roles, without site admi
 **Goal:** customers add behaviour (actions, rules, integrations) without touching our code, and
 our own later features are built on the same mechanisms. See [EXTENSIBILITY.md](EXTENSIBILITY.md).
 
-- [ ] 2.1 Action registry: every built-in action (check out, revise, set state…) is declared as
+- [x] 2.1 Action registry: every built-in action (check out, revise, set state…) is declared as
       data, with placement, applies-to (types, states), required permission and a visibility
-      condition. The UI renders toolbars and menus from the registry.
+      condition. The UI renders toolbars and menus from the registry. (Done: registry, placement,
+      order, types, states, permission, admin screen. Visibility conditions use expressions, 2.2.)
 - [ ] 2.2 Expression language (CEL) for conditions, validations, calculated attributes and gates.
 - [ ] 2.3 Extension packages: manifest (`plm-extension.yaml`), install / upgrade / disable per
       tenant, compatibility check against the platform contract version, audit.

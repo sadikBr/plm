@@ -26,7 +26,14 @@ const basic = (() => {
 function api(admin = true, extra: Parameters<typeof fakeApi>[0] = {}) {
   return fakeApi({
     "GET /api/v1/me": () => me(admin ? ALICE : BOB, admin),
-    "GET /api/v1/contexts/site": () => ({ id: "site", parentId: null, kind: "SITE", name: "Site", createdAt: "2026-11-20T09:00:00Z", createdBy: "system" }),
+    "GET /api/v1/contexts/site": () => ({
+      id: "site",
+      parentId: null,
+      kind: "SITE",
+      name: "Site",
+      createdAt: "2026-11-20T09:00:00Z",
+      createdBy: "system",
+    }),
     "GET /api/v1/contexts/:id/children": () => [],
     "GET /api/v1/principals/:id": (_, { id }) => principal(id!),
     "GET /api/v1/types": () => types.map((t) => ({ ...t, description: null, labels: {}, icon: null, instantiable: true })),
@@ -43,7 +50,9 @@ function api(admin = true, extra: Parameters<typeof fakeApi>[0] = {}) {
     }),
     "GET /api/v1/types/:id/lifecycle": () => basic,
     "GET /api/v1/lifecycles": () => [basic],
-    "GET /api/v1/numbering-schemes": () => [{ id: "ns1", name: "Fasteners", prefix: "FST-", padding: 4, suffix: "", nextValue: 7, example: "FST-0007" }],
+    "GET /api/v1/numbering-schemes": () => [
+      { id: "ns1", name: "Fasteners", prefix: "FST-", padding: 4, suffix: "", nextValue: 7, example: "FST-0007" },
+    ],
     "GET /api/v1/enumerations": () => enumerations,
     "GET /api/v1/units": () => units,
     "GET /api/v1/team-roles": () => [],
@@ -156,7 +165,9 @@ describe("Administration", () => {
         ...(conflict ? [{ kind: "lifecycle", key: "Quick", action: "CONFLICT", details: ["exists with different states"] }] : []),
       ],
     });
-    const calls = api(true, { "POST /api/v1/configuration/import": (req) => plan(new URL(req.url).searchParams.get("dryRun") === "false") });
+    const calls = api(true, {
+      "POST /api/v1/configuration/import": (req) => plan(new URL(req.url).searchParams.get("dryRun") === "false"),
+    });
     renderAt("/admin?tab=configuration");
 
     const file = new File([JSON.stringify({ format: "plm-config/1", types: [] })], "plm-config.json", { type: "application/json" });
@@ -181,7 +192,10 @@ describe("Administration", () => {
   it("refuses a file that isn't JSON", async () => {
     api(true);
     renderAt("/admin?tab=configuration");
-    await userEvent.upload(await screen.findByLabelText("Configuration file"), new File(["not json"], "notes.json", { type: "application/json" }));
+    await userEvent.upload(
+      await screen.findByLabelText("Configuration file"),
+      new File(["not json"], "notes.json", { type: "application/json" }),
+    );
     expect(await screen.findByText("notes.json is not a JSON configuration file.")).toBeInTheDocument();
   });
 
@@ -225,6 +239,66 @@ describe("Administration", () => {
         icon: "bolt",
         instantiable: false,
         labels: { fr: "Pièce" },
+      }),
+    );
+  });
+
+  it("moves, hides and restricts actions in the action registry", async () => {
+    const def = (label: string, placement: string, order: number) => ({
+      label,
+      description: `${label} it`,
+      icon: null,
+      placement,
+      order,
+      group: "g",
+      types: [],
+      states: [],
+      requires: null,
+      handler: "BUILTIN",
+    });
+    const action = (id: string, label: string, placement: string, order: number) => ({
+      id,
+      source: "platform",
+      hidden: false,
+      declared: def(label, placement, order),
+      effective: def(label, placement, order),
+      configuration: null,
+      configuredAt: null,
+      configuredBy: null,
+    });
+    const registry = [
+      action("object.check-out", "Check out", "OBJECT_TOOLBAR", 10),
+      action("object.revise", "Revise", "OBJECT_TOOLBAR", 40),
+      action("object.copy-link", "Copy link", "OBJECT_MORE", 120),
+    ];
+    const calls = api(true, {
+      "GET /api/v1/actions": () => registry,
+      "PUT /api/v1/actions/:id/configuration": (_, { id }) => registry.find((a) => a.id === id),
+    });
+    renderAt("/admin?tab=actions");
+
+    const toolbar = await screen.findByRole("table", { name: "Object toolbar" });
+    expect(
+      within(toolbar)
+        .getAllByRole("row")
+        .slice(1)
+        .map((r) => within(r).getByRole("strong").textContent),
+    ).toEqual(["Check out", "Revise"]);
+
+    await userEvent.click(within(toolbar).getByRole("button", { name: "Move Revise up" }));
+    await waitFor(() => expect(posted(calls, "PUT", "/api/v1/actions/object.revise/configuration")).toMatchObject({ order: 10 }));
+    expect(posted(calls, "PUT", "/api/v1/actions/object.check-out/configuration")).toMatchObject({ order: 20 });
+
+    await userEvent.selectOptions(screen.getByLabelText("Where Copy link shows"), "HIDDEN");
+    await waitFor(() => expect(posted(calls, "PUT", "/api/v1/actions/object.copy-link/configuration")).toMatchObject({ hidden: true }));
+
+    await userEvent.click(within(toolbar).getByRole("button", { name: "Edit Revise" }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(within(dialog).getByRole("checkbox", { name: /Released/ }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(calls.filter((c) => c.path === "/api/v1/actions/object.revise/configuration").at(-1)?.body).toMatchObject({
+        states: ["RELEASED"],
       }),
     );
   });

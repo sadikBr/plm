@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { VersionedObject } from "../api/queries";
 import { Reply, fakeApi, problem } from "../test/fakeApi";
-import { ALICE, BOB, attributeRoutes, iteration, lifecycle, me, object, principal, product, types } from "../test/fixtures";
+import { ALICE, BOB, attributeRoutes, iteration, lifecycle, me, object, objectActions, principal, product, types } from "../test/fixtures";
 import { renderAt } from "../test/render";
 
 /** The API as seen by bob, with [obj] and the given permissions on its context. */
@@ -17,6 +17,14 @@ function apiFor(obj: VersionedObject, permissions: string[], extra: Parameters<t
     "GET /api/v1/principals/:id": (_, { id }) => principal(id!),
     "GET /api/v1/objects/:id": () => obj,
     "GET /api/v1/objects/:id/lifecycle": () => lifecycle(obj.latest.state),
+    // The registry's answer follows the (possibly overridden) user and lifecycle of each test.
+    "GET /api/v1/objects/:id/actions": async (req, params) => {
+      const who = (await (extra["GET /api/v1/me"] ?? (() => me(BOB)))(req, params)) as ReturnType<typeof me>;
+      const lc = (await (extra["GET /api/v1/objects/:id/lifecycle"] ?? (() => lifecycle(obj.latest.state)))(req, params)) as ReturnType<
+        typeof lifecycle
+      >;
+      return objectActions(obj, permissions, lc, { userId: who.user.id, siteAdmin: who.siteAdmin });
+    },
     ...attributeRoutes,
     ...extra,
   });
@@ -72,7 +80,11 @@ describe("ObjectPage", () => {
     await userEvent.click(within(dialog).getByRole("button", { name: "Set state" }));
 
     await waitFor(() =>
-      expect(calls.find((c) => c.path.endsWith("/state"))?.body).toEqual({ state: "UNDER_REVIEW", comment: "Ready for DR-12", override: false }),
+      expect(calls.find((c) => c.path.endsWith("/state"))?.body).toEqual({
+        state: "UNDER_REVIEW",
+        comment: "Ready for DR-12",
+        override: false,
+      }),
     );
   });
 
@@ -104,7 +116,8 @@ describe("ObjectPage", () => {
     const calls = apiFor(obj, ["MODIFY", "READ"], {
       "GET /api/v1/objects/:id/working-copy": () =>
         iteration({ id: "wc", version: "A.2", status: "WORKING", checkedOutBy: BOB, attributes: { source: "make", material: "AL6061" } }),
-      "PATCH /api/v1/objects/:id/working-copy": (req) => req.json().then((b: { attributes: Record<string, unknown> }) => iteration({ attributes: b.attributes })),
+      "PATCH /api/v1/objects/:id/working-copy": (req) =>
+        req.json().then((b: { attributes: Record<string, unknown> }) => iteration({ attributes: b.attributes })),
       "POST /api/v1/objects/:id/checkin": () => object({ latest: iteration({ version: "A.2" }) }),
     });
     renderAt(`/objects/${obj.id}`);
@@ -213,7 +226,12 @@ describe("ObjectPage", () => {
     await userEvent.selectOptions(within(dialog).getByLabelText("State"), "DRAFT");
     await userEvent.click(within(dialog).getByRole("button", { name: "Move" }));
 
-    await waitFor(() => expect(calls.find((c) => c.path.endsWith("/lifecycle") && c.method === "POST")?.body).toEqual({ lifecycleId: "quick", state: "DRAFT" }));
+    await waitFor(() =>
+      expect(calls.find((c) => c.path.endsWith("/lifecycle") && c.method === "POST")?.body).toEqual({
+        lifecycleId: "quick",
+        state: "DRAFT",
+      }),
+    );
   });
 
   it("is read-only for viewers", async () => {

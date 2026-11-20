@@ -53,6 +53,8 @@ export const keys = {
   workingCopy: (id: string) => ["workingCopy", id] as const,
   principal: (id: string) => ["principal", id] as const,
   audit: (aggregateId: string) => ["audit", aggregateId] as const,
+  availableActions: (id: string) => ["availableActions", id] as const,
+  actionRegistry: ["actionRegistry"] as const,
 };
 
 // ---------- Reads ----------
@@ -486,6 +488,41 @@ export function useCreateObject() {
 }
 
 /** Check out / in, undo, revise, edit: all refresh the same views of one object. */
+export type AvailableAction = Schemas["AvailableActionResponse"];
+export type RegisteredAction = Schemas["RegisteredActionResponse"];
+export type ActionConfiguration = Schemas["ActionConfigurationRequest"];
+
+/**
+ * The actions the user sees on an object, from the server's action registry (with reasons for the
+ * disabled ones). Keyed on the object's state too, so any change to it refetches.
+ */
+export const useAvailableActions = (obj: VersionedObject) =>
+  useQuery({
+    queryKey: [...keys.availableActions(obj.id), obj.latest.id, obj.latest.state, obj.checkedOutBy ?? "", obj.number, obj.name],
+    queryFn: () => unwrap(api.GET("/api/v1/objects/{id}/actions", { params: { path: { id: obj.id } } })),
+  });
+
+/** Admin → Actions: every action as declared and configured. */
+export const useActionRegistry = () =>
+  useQuery({ queryKey: keys.actionRegistry, queryFn: () => unwrap(api.GET("/api/v1/actions")) });
+
+export function useConfigureAction() {
+  const qc = useQueryClient();
+  const done = () =>
+    Promise.all([qc.invalidateQueries({ queryKey: keys.actionRegistry }), qc.invalidateQueries({ queryKey: ["availableActions"] })]);
+  return {
+    configure: useMutation({
+      mutationFn: ({ id, body }: { id: string; body: ActionConfiguration }) =>
+        unwrap(api.PUT("/api/v1/actions/{id}/configuration", { params: { path: { id } }, body })),
+      onSuccess: done,
+    }),
+    reset: useMutation({
+      mutationFn: (id: string) => unwrap(api.DELETE("/api/v1/actions/{id}/configuration", { params: { path: { id } } })),
+      onSuccess: done,
+    }),
+  };
+}
+
 export function useObjectActions(id: string) {
   const qc = useQueryClient();
   const refresh = (contextId?: string) =>
@@ -495,6 +532,7 @@ export function useObjectActions(id: string) {
       qc.invalidateQueries({ queryKey: keys.workingCopy(id) }),
       qc.invalidateQueries({ queryKey: keys.audit(id) }),
       qc.invalidateQueries({ queryKey: keys.lifecycle(id) }),
+      qc.invalidateQueries({ queryKey: keys.availableActions(id) }),
       contextId ? qc.invalidateQueries({ queryKey: keys.objects(contextId) }) : Promise.resolve(),
     ]);
   const path = { params: { path: { id } } };

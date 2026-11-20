@@ -496,6 +496,28 @@ curl -s $API/types/00000000-0000-7000-8000-000000000101/attributes -H "Authoriza
   | jq -c '[.[] | select(.global) | .name]'
 ```
 
+### Actions
+
+Every action on an object (check out, check in, revise, set state, copy link, rename…) is an entry
+in the **action registry**, declared as data: label, icon, placement (object toolbar or More menu),
+order, group, the types and states it applies to, and the permission it needs. The object page
+draws its toolbar and More menu from `GET /api/v1/objects/{id}/actions`, which lists what you see
+on that object in display order, and says why each disabled action can't be used right now.
+
+Site administrators adjust actions under **Admin → Actions**: move an action between the toolbar
+and the More menu, reorder, hide it, rename it, or restrict it to some types (subtypes included)
+and states. Only the changes are stored, so improvements to built-in actions still arrive; **Reset**
+goes back to the defaults. Extensions will add their own actions to the same registry (roadmap 2.3, 2.4).
+
+```bash
+# Show Revise only on Released objects, and move Copy link to the toolbar
+curl -s -X PUT $API/actions/object.revise/configuration -H "Authorization: Bearer $ALICE" \
+  -H 'Content-Type: application/json' -d '{"states": ["RELEASED"]}'
+curl -s -X PUT $API/actions/object.copy-link/configuration -H "Authorization: Bearer $ALICE" \
+  -H 'Content-Type: application/json' -d '{"placement": "OBJECT_TOOLBAR", "order": 5}'
+curl -s "$API/objects/$PART/actions" -H "Authorization: Bearer $BOB" | jq -c '.[] | {id, enabled, reason}'
+```
+
 ### Preferences
 
 Preferences are settings each module declares (type, default, where they may be set). A value set
@@ -592,6 +614,9 @@ Rules of the game (see [ADR 0019](adr/0019-configuration-as-code.md)):
 | GET / POST | `/api/v1/context-templates?kind=…` | Context templates / create one (site admin) |
 | PUT / DELETE | `/api/v1/context-templates/{id}` | Change / delete a template (site admin) |
 | POST | `/api/v1/contexts/{id}/save-as-template` | Save a context as a template (site admin) |
+| GET | `/api/v1/objects/{id}/actions` | Actions you see on an object, in order, with reasons for disabled ones |
+| GET | `/api/v1/actions` | Action registry: every action as declared and configured (site admin) |
+| PUT / DELETE | `/api/v1/actions/{id}/configuration` | Hide, move, reorder, relabel, restrict an action / reset it (site admin) |
 | GET | `/api/v1/preferences/effective?contextId=…` | Every preference's value for you in a context |
 | GET | `/api/v1/contexts/{id}/preferences` | Preferences settable on a context, with where values come from |
 | PUT / DELETE | `/api/v1/contexts/{id}/preferences/{key}` | Set (`{value, locked}`) / clear (MANAGE; site: site admin) |

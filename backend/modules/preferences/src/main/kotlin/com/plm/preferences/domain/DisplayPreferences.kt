@@ -25,7 +25,9 @@ internal class DisplayPreferences : PreferenceDeclarations {
             PreferenceDefinition(
                 key = "ui.showOrganization",
                 label = "Show organization names",
-                description = "Show which organization a product, library or project belongs to, next to its name in the navigator and lists.",
+                description =
+                    "Show which organization a product, library or project belongs to, " +
+                        "next to its name in the navigator and lists.",
                 category = "Display",
                 type = PreferenceType.BOOLEAN,
                 default = true,

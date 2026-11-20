@@ -1,6 +1,97 @@
 {
   "components" : {
     "schemas" : {
+      "ActionConfigurationRequest" : {
+        "properties" : {
+          "hidden" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "label" : {
+            "type" : [ "string", "null" ]
+          },
+          "order" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "placement" : {
+            "enum" : [ "OBJECT_TOOLBAR", "OBJECT_MORE" ],
+            "type" : [ "string", "null" ]
+          },
+          "states" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : [ "array", "null" ]
+          },
+          "types" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : [ "array", "null" ]
+          }
+        },
+        "type" : "object"
+      },
+      "ActionDefinitionResponse" : {
+        "properties" : {
+          "description" : {
+            "type" : "string"
+          },
+          "group" : {
+            "type" : "string"
+          },
+          "handler" : {
+            "enum" : [ "BUILTIN", "CLIENT" ],
+            "type" : "string"
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "order" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "placement" : {
+            "enum" : [ "OBJECT_TOOLBAR", "OBJECT_MORE" ],
+            "type" : "string"
+          },
+          "requires" : {
+            "type" : [ "string", "null" ]
+          },
+          "states" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "types" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "description", "group", "handler", "label", "order", "placement", "states", "types" ],
+        "type" : "object"
+      },
+      "ActionOptionResponse" : {
+        "properties" : {
+          "label" : {
+            "type" : "string"
+          },
+          "override" : {
+            "type" : "boolean"
+          },
+          "value" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "label", "override", "value" ],
+        "type" : "object"
+      },
       "AssignLifecycleRequest" : {
         "properties" : {
           "lifecycleId" : {
@@ -276,6 +367,44 @@
           }
         },
         "required" : [ "action", "actor", "aggregateId", "aggregateType", "details", "eventId", "occurredAt", "seq" ],
+        "type" : "object"
+      },
+      "AvailableActionResponse" : {
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "group" : {
+            "type" : "string"
+          },
+          "handler" : {
+            "enum" : [ "BUILTIN", "CLIENT" ],
+            "type" : "string"
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "options" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ActionOptionResponse"
+            },
+            "type" : "array"
+          },
+          "placement" : {
+            "enum" : [ "OBJECT_TOOLBAR", "OBJECT_MORE" ],
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "enabled", "group", "handler", "id", "label", "options", "placement" ],
         "type" : "object"
       },
       "ChangeLifecycleRequest" : {
@@ -1655,6 +1784,41 @@
         "required" : [ "role" ],
         "type" : "object"
       },
+      "RegisteredActionResponse" : {
+        "properties" : {
+          "configuration" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ActionConfigurationRequest"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "configuredAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "configuredBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "declared" : {
+            "$ref" : "#/components/schemas/ActionDefinitionResponse"
+          },
+          "effective" : {
+            "$ref" : "#/components/schemas/ActionDefinitionResponse"
+          },
+          "hidden" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "source" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "declared", "effective", "hidden", "id", "source" ],
+        "type" : "object"
+      },
       "RenameRequest" : {
         "properties" : {
           "comment" : {
@@ -2305,6 +2469,117 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
+    "/api/v1/actions" : {
+      "get" : {
+        "operationId" : "actionRegistry",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/RegisteredActionResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Action" ]
+      }
+    },
+    "/api/v1/actions/{id}/configuration" : {
+      "delete" : {
+        "operationId" : "actionReset",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RegisteredActionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Action" ]
+      },
+      "put" : {
+        "operationId" : "actionConfigure",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ActionConfigurationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RegisteredActionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Action" ]
+      }
+    },
     "/api/v1/attributes/global" : {
       "get" : {
         "operationId" : "globalAttributeList",
@@ -4348,6 +4623,46 @@
         "tags" : [ "Versioned object" ]
       }
     },
+    "/api/v1/objects/{id}/actions" : {
+      "get" : {
+        "operationId" : "actionAvailable",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/AvailableActionResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Action" ]
+      }
+    },
     "/api/v1/objects/{id}/checkin" : {
       "post" : {
         "operationId" : "versionedObjectCheckIn",
@@ -6112,6 +6427,8 @@
     "keycloak" : [ ]
   } ],
   "tags" : [ {
+    "name" : "Action"
+  }, {
     "name" : "Attribute"
   }, {
     "name" : "Audit"

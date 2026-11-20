@@ -1,9 +1,10 @@
-import { ArrowRightLeft, Copy, GitBranchPlus, Link2, Lock, LockOpen, MoreHorizontal, Pencil, PencilLine, ShieldAlert, Undo2, Upload, Workflow } from "lucide-react";
+import { Lock, Pencil } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { isApiError } from "../api/client";
 import {
   useAudit,
+  useAvailableActions,
   useContextById,
   useHistory,
   useLifecycle,
@@ -14,7 +15,6 @@ import {
   useChangeLifecycle,
   useLifecycles,
   useEffectivePreferences,
-  usePermissions,
   useLayout,
   useTypeAttributes,
   useWorkingCopy,
@@ -29,7 +29,6 @@ import {
   Dialog,
   ErrorBanner,
   Loading,
-  MenuButton,
   Panel,
   PrincipalName,
   Props,
@@ -40,6 +39,7 @@ import {
 } from "../components/common";
 import { Breadcrumbs, PageHeader, Tabs, useIdParam } from "../components/Layout";
 import { NotFoundPage } from "./NotFoundPage";
+import { ObjectActionBar, type ActionHandlers } from "./ObjectActions";
 
 type Tab = "details" | "history" | "audit";
 
@@ -79,46 +79,37 @@ function ObjectView({ id }: { id: string }) {
 }
 
 function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string; tabs: React.ReactNode }) {
-  const { data: permissions } = usePermissions(obj.contextId, obj.typeId);
   const typeName = useTypeName(obj.typeId);
   const actions = useObjectActions(obj.id);
+  const { data: available } = useAvailableActions(obj);
   const { data: lifecycle } = useLifecycle(obj.id);
   const [checkingIn, setCheckingIn] = useState(false);
   const [comment, setComment] = useState("");
   const [stateChange, setStateChange] = useState<{ to: string; override: boolean } | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [changingLifecycle, setChangingLifecycle] = useState(false);
-  const { data: me } = useMe();
   const { data: prefs } = useEffectivePreferences(obj.contextId);
   const commentRequired = prefs?.get("versioning.checkInCommentRequired") === true;
 
   const mine = !!myId && obj.checkedOutBy === myId;
-  const free = !obj.checkedOutBy;
-  const canModify = !!permissions?.has("MODIFY");
-  const canRevise = !!permissions?.has("REVISE");
   const busy = Object.values(actions).some((m) => m.isPending);
   const failed = Object.values(actions).find((m) => m.error)?.error;
   const label = (state: string) => stateName(lifecycle, state);
   const current = label(obj.latest.state);
-  const revisableIn = lifecycle?.states.filter((s) => s.revisable).map((s) => label(s.key)).join(" or ");
 
-  // Why an action is unavailable, shown as a tooltip on the disabled button.
-  const checkOutReason = !free
-    ? `Checked out by ${mine ? "you" : "someone else"}`
-    : !canModify
-      ? "You don't have permission to edit this"
-      : lifecycle && !lifecycle.editable
-        ? `${current} objects can't be edited. Revise to start a new revision.`
-        : undefined;
-  const reviseReason = !free
-    ? "Check it in first"
-    : !canRevise
-      ? "You don't have permission to revise this"
-      : lifecycle && !lifecycle.revisable
-        ? `Only ${revisableIn || "released"} objects can be revised (this one is ${current})`
-        : undefined;
-  const otherStates = (lifecycle?.states ?? []).filter((s) => s.key !== obj.latest.state && !lifecycle?.nextStates.includes(s.key));
-  const canChangeState = free && !!lifecycle && (lifecycle.nextStates.length > 0 || lifecycle.canOverride);
+  // What each registry action does on this page. Which ones show, where, and whether they can be
+  // used comes from the server (GET /objects/{id}/actions).
+  const handlers: ActionHandlers = {
+    "object.check-out": () => actions.checkOut.mutate(),
+    "object.check-in": () => setCheckingIn(true),
+    "object.undo-check-out": () => actions.undoCheckOut.mutate(),
+    "object.revise": () => actions.revise.mutate(),
+    "object.set-state": (option) => option && setStateChange({ to: option.value, override: option.override }),
+    "object.copy-number": () => void navigator.clipboard?.writeText(obj.number),
+    "object.copy-link": () => void navigator.clipboard?.writeText(window.location.href),
+    "object.rename": () => setRenaming(true),
+    "object.change-lifecycle": () => setChangingLifecycle(true),
+  };
 
   return (
     <>
@@ -147,140 +138,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
             <span className="sub">{typeName}</span>
           </>
         }
-        toolbar={
-          <>
-            <button
-              className="btn ghost"
-              disabled={busy || !!checkOutReason || !lifecycle}
-              title={checkOutReason}
-              onClick={() => actions.checkOut.mutate()}
-            >
-              <LockOpen size={15} aria-hidden />
-              Check out
-            </button>
-            <button className="btn ghost" disabled={busy || !mine} onClick={() => setCheckingIn(true)}>
-              <Upload size={15} aria-hidden />
-              Check in
-            </button>
-            <button className="btn ghost" disabled={busy || !mine} onClick={() => actions.undoCheckOut.mutate()}>
-              <Undo2 size={15} aria-hidden />
-              Undo check-out
-            </button>
-            <span className="divider" />
-            <button
-              className="btn ghost"
-              disabled={busy || !!reviseReason || !lifecycle}
-              title={reviseReason}
-              onClick={() => actions.revise.mutate()}
-            >
-              <GitBranchPlus size={15} aria-hidden />
-              Revise
-            </button>
-            {canChangeState ? (
-              <MenuButton label="Set state" icon={<ArrowRightLeft size={15} aria-hidden />} align="left">
-                {(close) => (
-                  <>
-                    {lifecycle!.nextStates.length === 0 && <button disabled>No transitions from {current}</button>}
-                    {lifecycle!.nextStates.map((to) => (
-                      <button
-                        key={to}
-                        role="menuitem"
-                        onClick={() => {
-                          setStateChange({ to, override: false });
-                          close();
-                        }}
-                      >
-                        <StateBadge state={to} label={label(to)} />
-                      </button>
-                    ))}
-                    {lifecycle!.canOverride && otherStates.length > 0 && (
-                      <>
-                        <hr />
-                        {otherStates.map((s) => (
-                          <button
-                            key={s.key}
-                            role="menuitem"
-                            title="Site administrator override: ignores the lifecycle's transitions"
-                            onClick={() => {
-                              setStateChange({ to: s.key, override: true });
-                              close();
-                            }}
-                          >
-                            <ShieldAlert size={14} aria-hidden /> {label(s.key)} (override)
-                          </button>
-                        ))}
-                      </>
-                    )}
-                  </>
-                )}
-              </MenuButton>
-            ) : (
-              <button
-                className="btn ghost"
-                disabled
-                title={!free ? "Check it in first" : "You don't have permission to change the state"}
-              >
-                <ArrowRightLeft size={15} aria-hidden />
-                Set state
-              </button>
-            )}
-            <span className="grow" />
-            <MenuButton label="More" icon={<MoreHorizontal size={15} aria-hidden />}>
-              {(close) => (
-                <>
-                  <button
-                    role="menuitem"
-                    onClick={() => {
-                      void navigator.clipboard?.writeText(obj.number);
-                      close();
-                    }}
-                  >
-                    <Copy size={14} aria-hidden /> Copy number
-                  </button>
-                  <button
-                    role="menuitem"
-                    onClick={() => {
-                      void navigator.clipboard?.writeText(window.location.href);
-                      close();
-                    }}
-                  >
-                    <Link2 size={14} aria-hidden /> Copy link
-                  </button>
-                  <button
-                    role="menuitem"
-                    disabled={!permissions?.has("MANAGE") || !free}
-                    title={
-                      !permissions?.has("MANAGE")
-                        ? "Only managers of this context can rename or renumber"
-                        : !free
-                          ? "Check it in first"
-                          : undefined
-                    }
-                    onClick={() => {
-                      setRenaming(true);
-                      close();
-                    }}
-                  >
-                    <PencilLine size={14} aria-hidden /> Rename or renumber…
-                  </button>
-                  {me?.siteAdmin && (
-                    <button
-                      role="menuitem"
-                      disabled={!free}
-                      title={!free ? "Check it in first" : undefined}
-                      onClick={() => {
-                        setChangingLifecycle(true);
-                        close();
-                      }}
-                    >
-                      <Workflow size={14} aria-hidden /> Change lifecycle…
-                    </button>
-                  )}
-                </>
-              )}
-            </MenuButton>
-          </>
-        }
+        toolbar={available ? <ObjectActionBar actions={available} handlers={handlers} busy={busy} stateLabel={label} /> : undefined}
         tabs={tabs}
       />
       {failed != null && (
@@ -289,7 +147,9 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
         </div>
       )}
       {renaming && <RenameDialog obj={obj} onClose={() => setRenaming(false)} />}
-      {changingLifecycle && lifecycle && <ChangeLifecycleDialog obj={obj} current={lifecycle} onClose={() => setChangingLifecycle(false)} />}
+      {changingLifecycle && lifecycle && (
+        <ChangeLifecycleDialog obj={obj} current={lifecycle} onClose={() => setChangingLifecycle(false)} />
+      )}
       <StateChangeDialog
         objectNumber={obj.number}
         from={current}
@@ -335,7 +195,11 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
         <div className="field">
           <div className="label-row">
             <label htmlFor="checkin-comment">Comment</label>
-            {commentRequired && <span aria-hidden className="required">*</span>}
+            {commentRequired && (
+              <span aria-hidden className="required">
+                *
+              </span>
+            )}
           </div>
           <textarea
             id="checkin-comment"
@@ -428,7 +292,9 @@ function ChangeLifecycleDialog({ obj, current, onClose }: { obj: VersionedObject
               </option>
             ))}
           </select>
-          {!keeps && chosen && <span className="hint">This lifecycle has no {stateName(current, obj.latest.state)} state: choose one.</span>}
+          {!keeps && chosen && (
+            <span className="hint">This lifecycle has no {stateName(current, obj.latest.state)} state: choose one.</span>
+          )}
         </div>
       </form>
     </Dialog>
@@ -451,7 +317,12 @@ function RenameDialog({ obj, onClose }: { obj: VersionedObject; onClose: () => v
           <button className="btn" type="button" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn primary" type="submit" form="rename-form" disabled={rename.isPending || !changed || !name.trim() || !number.trim()}>
+          <button
+            className="btn primary"
+            type="submit"
+            form="rename-form"
+            disabled={rename.isPending || !changed || !name.trim() || !number.trim()}
+          >
             Save
           </button>
         </>
@@ -487,7 +358,12 @@ function RenameDialog({ obj, onClose }: { obj: VersionedObject; onClose: () => v
         </div>
         <div className="field">
           <label htmlFor="rename-comment">Reason</label>
-          <input id="rename-comment" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="e.g. Align with the ERP number" />
+          <input
+            id="rename-comment"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="e.g. Align with the ERP number"
+          />
         </div>
       </form>
     </Dialog>
@@ -598,9 +474,19 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
             ["State", <StateBadge state={latest.state} />],
             ["Context", context ? <Link to={`/contexts/${obj.contextId}`}>{context.name}</Link> : null],
             ["Checked out by", obj.checkedOutBy ? <PrincipalName id={obj.checkedOutBy} /> : null],
-            ["Last checked in", <>{formatDate(latest.checkedInAt)} · <PrincipalName id={latest.createdBy} /></>],
+            [
+              "Last checked in",
+              <>
+                {formatDate(latest.checkedInAt)} · <PrincipalName id={latest.createdBy} />
+              </>,
+            ],
             ["Comment", latest.comment],
-            ["Created", <>{formatDate(obj.createdAt)} · <PrincipalName id={obj.createdBy} /></>],
+            [
+              "Created",
+              <>
+                {formatDate(obj.createdAt)} · <PrincipalName id={obj.createdBy} />
+              </>,
+            ],
           ]}
         />
       </Panel>
@@ -752,7 +638,10 @@ function AuditTab({ id }: { id: string }) {
 
 /** `versioning.ObjectCheckedIn.v1` → `Checked in`. */
 function auditAction(action: string): string {
-  const name = action.replace(/^\w+\./, "").replace(/\.v\d+$/, "").replace(/^Object/, "");
+  const name = action
+    .replace(/^\w+\./, "")
+    .replace(/\.v\d+$/, "")
+    .replace(/^Object/, "");
   const words = name.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();
   return words.charAt(0).toUpperCase() + words.slice(1);
 }

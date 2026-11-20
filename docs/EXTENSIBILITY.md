@@ -96,7 +96,7 @@ shows a diff of actions, rules and permissions before applying.
 
 ## Custom actions
 
-- **Registry.** Every action, built-in or not, is an entry: id, label, icon, placement,
+- **Registry** (built: roadmap 2.1, module `extensions`). Every action, built-in or not, is an entry: id, label, icon, placement,
   applies-to (types including subtypes, states), required permission, visibility condition,
   handler. The UI asks the server which actions are available for an object (`GET
   /api/v1/objects/{id}/actions`), with a reason for each disabled one, so menus are never hard-coded.

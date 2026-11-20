@@ -113,10 +113,36 @@ const base = {
 };
 
 export const partAttributes = [
-  { ...base, id: "a1", name: "source", labels: { en: "Source" }, dataType: "ENUMERATION" as const, enumerationId: SOURCE_ENUM, defaultValue: "make", sortOrder: 20 },
+  {
+    ...base,
+    id: "a1",
+    name: "source",
+    labels: { en: "Source" },
+    dataType: "ENUMERATION" as const,
+    enumerationId: SOURCE_ENUM,
+    defaultValue: "make",
+    sortOrder: 20,
+  },
   { ...base, id: "a2", name: "endItem", labels: { en: "End item" }, dataType: "BOOLEAN" as const, defaultValue: false, sortOrder: 50 },
-  { ...base, id: "a3", name: "material", labels: { en: "Material", fr: "Matériau" }, dataType: "STRING" as const, maxLength: 200, sortOrder: 90 },
-  { ...base, id: "a4", name: "mass", labels: { en: "Mass" }, dataType: "QUANTITY" as const, dimension: "MASS", displayUnit: "kg", sortOrder: 100 },
+  {
+    ...base,
+    id: "a3",
+    name: "material",
+    labels: { en: "Material", fr: "Matériau" },
+    dataType: "STRING" as const,
+    maxLength: 200,
+    sortOrder: 90,
+  },
+  {
+    ...base,
+    id: "a4",
+    name: "mass",
+    labels: { en: "Mass" },
+    dataType: "QUANTITY" as const,
+    dimension: "MASS",
+    displayUnit: "kg",
+    sortOrder: 100,
+  },
   { ...base, id: "a5", name: "releasedAt", labels: { en: "Released at" }, dataType: "TIMESTAMP" as const, sortOrder: 110 },
   { ...base, id: "a6", name: "legacyCode", labels: { en: "Legacy code" }, dataType: "STRING" as const, active: false, sortOrder: 120 },
 ];
@@ -173,4 +199,97 @@ export function lifecycle(state = "IN_WORK", { canPromote = false, canOverride =
     nextStates: canPromote ? (NEXT[state] ?? []) : [],
     canOverride,
   };
+}
+
+/**
+ * What GET /objects/{id}/actions answers for [obj]: the built-in actions with the server's rules
+ * (tested for real in ActionServiceIT), so page tests can drive the registry-drawn toolbar.
+ */
+export function objectActions(
+  obj: { checkedOutBy?: string | null; latest: { state: string } },
+  permissions: string[],
+  lc: ReturnType<typeof lifecycle>,
+  { userId, siteAdmin = false }: { userId: string; siteAdmin?: boolean },
+) {
+  const label = (key: string) => basicStates.find((s) => s.key === key)?.labels.en ?? key;
+  const free = !obj.checkedOutBy;
+  const mine = obj.checkedOutBy === userId;
+  const has = (p: string) => permissions.includes(p);
+  const current = label(obj.latest.state);
+  const act = (
+    id: string,
+    name: string,
+    icon: string,
+    placement: "OBJECT_TOOLBAR" | "OBJECT_MORE",
+    group: string,
+    reason: string | null,
+    options: { value: string; label: string; override: boolean }[] = [],
+  ) => ({ id, label: name, icon, placement, group, handler: "BUILTIN" as const, enabled: reason == null, reason, options });
+  const next = lc.nextStates.map((s) => ({ value: s, label: label(s), override: false }));
+  const overrides = lc.canOverride
+    ? basicStates
+        .filter((s) => s.key !== obj.latest.state && !lc.nextStates.includes(s.key))
+        .map((s) => ({ value: s.key, label: label(s.key), override: true }))
+    : [];
+  return [
+    act(
+      "object.check-out",
+      "Check out",
+      "lock-open",
+      "OBJECT_TOOLBAR",
+      "edit",
+      !free
+        ? `Checked out by ${mine ? "you" : "someone else"}`
+        : !has("MODIFY")
+          ? "You don't have permission to edit this"
+          : !lc.editable
+            ? `${current} objects can't be edited. Revise to start a new revision.`
+            : null,
+    ),
+    act("object.check-in", "Check in", "upload", "OBJECT_TOOLBAR", "edit", mine ? null : "Only whoever checked it out can do this"),
+    act(
+      "object.undo-check-out",
+      "Undo check-out",
+      "undo-2",
+      "OBJECT_TOOLBAR",
+      "edit",
+      mine ? null : "Only whoever checked it out can do this",
+    ),
+    act(
+      "object.revise",
+      "Revise",
+      "git-branch-plus",
+      "OBJECT_TOOLBAR",
+      "lifecycle",
+      !free
+        ? "Check it in first"
+        : !has("REVISE")
+          ? "You don't have permission to revise this"
+          : !lc.revisable
+            ? `Only Released objects can be revised (this one is ${current})`
+            : null,
+    ),
+    act(
+      "object.set-state",
+      "Set state",
+      "arrow-right-left",
+      "OBJECT_TOOLBAR",
+      "lifecycle",
+      !free ? "Check it in first" : next.length + overrides.length === 0 ? "You don't have permission to change the state" : null,
+      [...next, ...overrides],
+    ),
+    act("object.copy-number", "Copy number", "copy", "OBJECT_MORE", "share", null),
+    act("object.copy-link", "Copy link", "link-2", "OBJECT_MORE", "share", null),
+    act(
+      "object.rename",
+      "Rename or renumber…",
+      "pencil-line",
+      "OBJECT_MORE",
+      "manage",
+      !has("MANAGE") ? "Only managers of this context can rename or renumber" : !free ? "Check it in first" : null,
+    ),
+    ...(siteAdmin
+      ? [act("object.change-lifecycle", "Change lifecycle…", "workflow", "OBJECT_MORE", "manage", !free ? "Check it in first" : null)]
+      : []),
+  ];
 }
