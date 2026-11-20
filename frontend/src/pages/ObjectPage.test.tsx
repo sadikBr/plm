@@ -42,9 +42,9 @@ describe("ObjectPage", () => {
     renderAt(`/objects/${obj.id}`);
 
     await waitFor(() => expect(screen.getByTestId("checked-out")).toHaveTextContent("Checked out by Alice Admin"));
-    expect(screen.queryByRole("button", { name: "Check out" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Revise" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Check in" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Check out" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Revise" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Check in" })).toBeDisabled();
   });
 
   it("lets the owner edit the working copy with typed fields and check in", async () => {
@@ -109,8 +109,8 @@ describe("ObjectPage", () => {
 
     expect(await screen.findByText("AL6061")).toBeInTheDocument();
     expect(await screen.findByText("Make")).toBeInTheDocument(); // enumeration label, not the key
-    expect(screen.queryByRole("button", { name: "Check out" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Revise" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Check out" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Revise" })).toBeDisabled();
   });
 
   it("explains a 404 without revealing whether the object exists", async () => {

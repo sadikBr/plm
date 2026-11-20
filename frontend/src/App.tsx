@@ -7,6 +7,7 @@ import { ContextPage } from "./pages/ContextPage";
 import { HomePage } from "./pages/HomePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { ObjectPage } from "./pages/ObjectPage";
+import { SearchPage } from "./pages/SearchPage";
 
 export function makeQueryClient(): QueryClient {
   return new QueryClient({
@@ -34,6 +35,7 @@ export function AppRoutes() {
         <Route index element={<HomePage />} />
         <Route path="contexts/:id" element={<ContextPage />} />
         <Route path="objects/:id" element={<ObjectPage />} />
+        <Route path="search" element={<SearchPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

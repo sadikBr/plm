@@ -61,6 +61,18 @@ data class VersionedObject(
     val createdBy: String,
 )
 
+/**
+ * Which objects to list. Everything is optional: no filter means every object the actor can read.
+ * [text] matches number or name, case-insensitively, anywhere in the string.
+ */
+data class ObjectQuery(
+    val contextId: ContextId? = null,
+    val text: String? = null,
+    val limit: Int = 50,
+    /** Keyset paging: the last id of the previous page. */
+    val after: MasterId? = null,
+)
+
 data class CreateVersionedObject(
     val typeId: TypeId,
     val contextId: ContextId,
@@ -103,9 +115,7 @@ interface VersioningService {
      */
     fun list(
         actor: Actor,
-        contextId: ContextId,
-        limit: Int = 50,
-        after: MasterId? = null,
+        query: ObjectQuery,
     ): List<VersionedObject>
 
     /** Checked-in iterations, newest first. */

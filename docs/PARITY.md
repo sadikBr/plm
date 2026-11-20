@@ -104,8 +104,8 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | Upload/download straight to object storage, large files | ⬜ [2] | |
 | Desktop / office integration (check out a file, edit locally, check in) | ⬜ [7] | |
 | Thumbnails and previews (PDF, images, office) | ⬜ [2] | |
-| Full-text and attribute search, facets, saved searches | ⬜ [2] | OpenSearch, permission-filtered |
-| Table views: choose columns, filters, sort, save views, export to Excel | ⬜ [2] | |
+| Full-text and attribute search, facets, saved searches | 🟡 | Global number/name search (trigram-indexed, permission-filtered) ✅ · full text, facets, saved searches [2] |
+| Table views: choose columns, filters, sort, save views, export to Excel | 🟡 | Sort and filter ✅ · column choice, saved views, Excel export [2] |
 | Favorites, recently visited, subscriptions/notifications | ⬜ [2] | |
 
 ## 7. Product structure

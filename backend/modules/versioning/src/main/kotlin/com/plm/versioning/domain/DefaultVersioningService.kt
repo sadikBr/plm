@@ -3,7 +3,6 @@ package com.plm.versioning.domain
 import com.plm.access.api.AccessColumns
 import com.plm.access.api.AccessService
 import com.plm.access.api.AccessTarget
-import com.plm.access.api.ContextId
 import com.plm.access.api.ContextService
 import com.plm.access.api.Permission
 import com.plm.identity.api.PrincipalDirectory
@@ -26,6 +25,7 @@ import com.plm.versioning.api.MasterId
 import com.plm.versioning.api.ObjectCheckedIn
 import com.plm.versioning.api.ObjectCheckedOut
 import com.plm.versioning.api.ObjectCreated
+import com.plm.versioning.api.ObjectQuery
 import com.plm.versioning.api.ObjectRevised
 import com.plm.versioning.api.VersionedObject
 import com.plm.versioning.api.VersioningService
@@ -39,6 +39,7 @@ import java.time.Clock
 private const val MAX_NAME_LENGTH = 200
 private const val MAX_COMMENT_LENGTH = 2000
 private const val MAX_PAGE_SIZE = 500
+private const val MAX_QUERY_LENGTH = 100
 private val NUMBER = Regex("^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 
 /**
@@ -136,14 +137,17 @@ internal class DefaultVersioningService(
     @Transactional(readOnly = true)
     override fun list(
         actor: Actor,
-        contextId: ContextId,
-        limit: Int,
-        after: MasterId?,
+        query: ObjectQuery,
     ): List<VersionedObject> {
-        val context = contexts.get(actor, contextId)
+        // An explicit context must be visible (404 otherwise); objects are then filtered per row in SQL.
+        val context = query.contextId?.let { contexts.get(actor, it).id }
+        val text = query.text?.trim()?.takeIf { it.isNotEmpty() }
+        if (text != null && text.length > MAX_QUERY_LENGTH) {
+            throw ValidationException("INVALID_QUERY", "Search text must be at most $MAX_QUERY_LENGTH characters")
+        }
         val filter = access.filter(actor, Permission.READ, AccessColumns("m.context_id", "m.type_id", "i.state"))
         return repository
-            .list(actor.tenant, context.id, filter, limit.coerceIn(1, MAX_PAGE_SIZE), after)
+            .list(actor.tenant, context, text, filter, query.limit.coerceIn(1, MAX_PAGE_SIZE), query.after)
             .map { (master, latest) -> master.toObject(latest) }
     }
 

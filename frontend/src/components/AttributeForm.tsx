@@ -1,3 +1,4 @@
+import { Info } from "lucide-react";
 import type { ReactNode } from "react";
 import { ApiError } from "../api/client";
 import {
@@ -145,7 +146,17 @@ export function AttributeForm({
                 <div className="label-row">
                   <label htmlFor={id}>{pickLabel(def.labels, def.name)}</label>
                   {def.required && <span aria-hidden className="required">*</span>}
+                  {def.description && (
+                    <span title={def.description} className="info">
+                      <Info size={12} aria-hidden />
+                    </span>
+                  )}
                 </div>
+              )}
+              {def.description && (
+                <span id={`${id}-desc`} className="sr-only">
+                  {def.description}
+                </span>
               )}
               <Input
                 id={id}
@@ -156,7 +167,6 @@ export function AttributeForm({
                 units={units ?? []}
                 invalid={!!error}
               />
-              {def.description && <span className="hint">{def.description}</span>}
               {error && (
                 <span className="field-error" role="alert">
                   {error}
@@ -186,7 +196,12 @@ function Input({
   units: Unit[];
   invalid: boolean;
 }): ReactNode {
-  const common = { id, "aria-invalid": invalid || undefined, required: def.required };
+  const common = {
+    id,
+    "aria-invalid": invalid || undefined,
+    "aria-describedby": def.description ? `${id}-desc` : undefined,
+    required: def.required,
+  };
   const str = (v: unknown) => (v === undefined || v === null ? "" : String(v));
 
   if (def.multiValued) {
@@ -281,8 +296,14 @@ function Input({
     }
     case "BOOLEAN":
       return (
-        <label className="check">
-          <input id={id} type="checkbox" checked={value === true} onChange={(e) => onChange(e.target.checked)} />
+        <label className="check" title={def.description ?? undefined}>
+          <input
+            id={id}
+            type="checkbox"
+            aria-describedby={def.description ? `${id}-desc` : undefined}
+            checked={value === true}
+            onChange={(e) => onChange(e.target.checked)}
+          />
           {pickLabel(def.labels, def.name)}
         </label>
       );

@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { ChevronDown, ChevronRight, LogOut } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useParams } from "react-router";
-import { useChildren, useContextById, useMe, useSite, type Context } from "../api/queries";
+import { HOLDS_OBJECTS, useChildren, useContextById, useMe, useSite, type Context } from "../api/queries";
 import { userManager } from "../auth/oidc";
-import { Spinner } from "./common";
+import { ContextIcon, initials, Spinner } from "./common";
+import { GlobalSearch } from "./GlobalSearch";
 
 export function Layout() {
   const { data: me } = useMe();
@@ -14,17 +16,27 @@ export function Layout() {
           <img src="/favicon.svg" alt="" />
           PLM
         </Link>
+        <GlobalSearch />
         <div className="spacer" />
-        <div className="user">
-          {me?.siteAdmin && <span className="badge accent">Site admin</span>}
+        <div className="who">
+          {me?.siteAdmin && <span className="chip-admin">Site admin</span>}
+          <span className="avatar" aria-hidden>
+            {initials(me?.user.displayName)}
+          </span>
           <span data-testid="current-user">{me?.user.displayName}</span>
-          <button className="btn small" onClick={() => void userManager.signoutRedirect()}>
-            Sign out
+          <button
+            className="icon-btn"
+            aria-label="Sign out"
+            title="Sign out"
+            onClick={() => void userManager.signoutRedirect()}
+          >
+            <LogOut size={15} />
           </button>
         </div>
       </header>
       <div className="body">
         <nav className="sidebar" aria-label="Contexts">
+          <div className="sidebar-title">Navigator</div>
           <ContextTree />
         </nav>
         <main className="main">
@@ -38,8 +50,8 @@ export function Layout() {
 /** Lazily expanding tree of the contexts the user can see. */
 function ContextTree() {
   const { data: site, isLoading } = useSite();
-  if (isLoading) return <Spinner />;
-  if (!site) return <p className="muted" style={{ padding: 8 }}>You are not on any team yet.</p>;
+  if (isLoading) return <div style={{ padding: 12 }}><Spinner /></div>;
+  if (!site) return <p className="muted" style={{ padding: "4px 12px" }}>You are not on any team yet.</p>;
   return (
     <ul className="tree">
       <TreeNode context={site} initiallyOpen />
@@ -49,12 +61,13 @@ function ContextTree() {
 
 function TreeNode({ context, initiallyOpen = false }: { context: Context; initiallyOpen?: boolean }) {
   const [open, setOpen] = useState(initiallyOpen);
-  const leaf = context.kind === "PRODUCT" || context.kind === "LIBRARY" || context.kind === "PROJECT";
+  const leaf = HOLDS_OBJECTS.has(context.kind);
   const { data: children } = useChildren(context.id, open && !leaf);
+  const { id: currentId } = useParams();
 
   return (
     <li>
-      <div className="tree-row">
+      <div className={currentId === context.id ? "tree-row active" : "tree-row"}>
         {leaf ? (
           <span className="tree-spacer" />
         ) : (
@@ -64,11 +77,12 @@ function TreeNode({ context, initiallyOpen = false }: { context: Context; initia
             aria-expanded={open}
             onClick={() => setOpen(!open)}
           >
-            {open ? "▼" : "▶"}
+            {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           </button>
         )}
-        <NavLink to={`/contexts/${context.id}`} className={({ isActive }) => (isActive ? "active" : undefined)}>
-          {context.name}
+        <NavLink to={`/contexts/${context.id}`}>
+          <ContextIcon kind={context.kind} size={14} />
+          <span>{context.name}</span>
         </NavLink>
       </div>
       {open && children && children.length > 0 && (
@@ -89,7 +103,7 @@ export function Breadcrumbs({ contextId, current }: { contextId: string; current
       <CrumbChain id={contextId} isLast={!current} />
       {current && (
         <>
-          <span aria-hidden>/</span>
+          <ChevronRight size={11} aria-hidden />
           <span>{current}</span>
         </>
       )}
@@ -105,11 +119,76 @@ function CrumbChain({ id, isLast }: { id: string; isLast: boolean }) {
       {data.parentId && (
         <>
           <CrumbChain id={data.parentId} isLast={false} />
-          <span aria-hidden>/</span>
+          <ChevronRight size={11} aria-hidden />
         </>
       )}
       {isLast ? <span>{data.name}</span> : <Link to={`/contexts/${data.id}`}>{data.name}</Link>}
     </>
+  );
+}
+
+/**
+ * The header strip every object and context page shares: breadcrumbs, title with icon and
+ * status chips, a toolbar of actions, then tabs.
+ */
+export function PageHeader({
+  crumbs,
+  icon,
+  title,
+  meta,
+  toolbar,
+  tabs,
+}: {
+  crumbs?: ReactNode;
+  icon?: ReactNode;
+  title: ReactNode;
+  meta?: ReactNode;
+  toolbar?: ReactNode;
+  tabs?: ReactNode;
+}) {
+  return (
+    <div className="page-head">
+      {crumbs ?? <div className="crumbs" />}
+      <div className="title-row">
+        <h1>
+          {icon}
+          {title}
+        </h1>
+        {meta && <div className="meta">{meta}</div>}
+      </div>
+      {toolbar && <div className="toolbar">{toolbar}</div>}
+      {tabs}
+    </div>
+  );
+}
+
+/** Tab strip driven by the `tab` search parameter. */
+export function Tabs<T extends string>({
+  tabs,
+  active,
+  onSelect,
+}: {
+  tabs: [T, string][];
+  active: T;
+  onSelect: (tab: T) => void;
+}) {
+  return (
+    <nav className="tabs" aria-label="Sections">
+      {tabs.map(([key, label]) => (
+        <a
+          key={key}
+          href={`?tab=${key}`}
+          className={active === key ? "active" : undefined}
+          aria-current={active === key ? "page" : undefined}
+          onClick={(e) => {
+            e.preventDefault();
+            onSelect(key);
+          }}
+        >
+          {label}
+        </a>
+      ))}
+    </nav>
   );
 }
 

@@ -38,6 +38,8 @@ The detailed, capability-by-capability view lives in [PARITY.md](PARITY.md).
 | 12 | Core implementation conventions (SQL, IDs, errors, actors) | [0012](adr/0012-core-implementation-conventions.md) |
 | 13 | Events, audit, identity and access implementation | [0013](adr/0013-events-identity-access.md) |
 | 14 | API contract and web frontend | [0014](adr/0014-api-contract-and-frontend.md) |
+| 15 | Typed attributes, enumerations and units | [0015](adr/0015-attributes-and-reference-data.md) |
+| 16 | Workbench UI design system | [0016](adr/0016-workbench-ui.md) |
 
 ### 2.1 Architecture: modular monolith
 One deployable, strictly separated modules: `identity`, `access`, `types`, `content`, `versioning`,

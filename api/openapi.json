@@ -1216,9 +1216,16 @@
         "parameters" : [ {
           "in" : "query",
           "name" : "contextId",
-          "required" : true,
+          "required" : false,
           "schema" : {
             "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
             "type" : "string"
           }
         }, {

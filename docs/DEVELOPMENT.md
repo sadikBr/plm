@@ -101,6 +101,9 @@ Try this:
 
 ![Product page](images/ui-product.png)
 
+**Search** from the top bar: press `/`, type part of a number or name, pick with the arrow keys and
+Enter, or press Enter on "See all results" for the full list (every context you can read).
+
 ### API explorer
 
 Swagger UI is at http://localhost:8080/swagger-ui.html. Click **Authorize**, choose the

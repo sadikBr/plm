@@ -5,6 +5,7 @@ import { App } from "./App";
 import { setTokenProvider } from "./api/client";
 import { AuthGate } from "./auth/AuthGate";
 import { onSigninCallback, userManager } from "./auth/oidc";
+import "@fontsource-variable/inter";
 import "./styles.css";
 
 // Every API call carries the current access token (renewed in the background).

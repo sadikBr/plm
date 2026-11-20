@@ -125,6 +125,18 @@ export const useObjects = (contextId: string) =>
     getNextPageParam: (last) => (last.length === PAGE_SIZE ? last[last.length - 1]?.id : undefined),
   });
 
+/** Objects whose number or name contains [text], across every context the user can read. */
+export const useObjectSearch = (text: string, limit = PAGE_SIZE) =>
+  useInfiniteQuery({
+    queryKey: ["search", text, limit],
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      unwrap(api.GET("/api/v1/objects", { params: { query: { q: text, limit, ...(pageParam ? { after: pageParam } : {}) } } })),
+    getNextPageParam: (last) => (last.length === limit ? last[last.length - 1]?.id : undefined),
+    enabled: text.trim().length > 0,
+    staleTime: 5_000,
+  });
+
 export const useObject = (id: string) =>
   useQuery({
     queryKey: keys.object(id),

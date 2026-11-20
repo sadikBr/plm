@@ -6,6 +6,7 @@ import com.plm.types.api.TypeId
 import com.plm.versioning.api.CreateVersionedObject
 import com.plm.versioning.api.Iteration
 import com.plm.versioning.api.MasterId
+import com.plm.versioning.api.ObjectQuery
 import com.plm.versioning.api.VersionedObject
 import com.plm.versioning.api.VersioningService
 import org.springframework.http.HttpStatus
@@ -48,14 +49,20 @@ internal class VersionedObjectController(
         ),
     )
 
-    /** Objects in a context that the caller can read. Page with `after` = last `id` of the previous page. */
+    /**
+     * Objects the caller can read, optionally in one context and/or matching `q` (number or name,
+     * case-insensitive substring). Page with `after` = the last `id` of the previous page.
+     */
     @GetMapping
     fun list(
         actor: Actor,
-        @RequestParam contextId: UUID,
+        @RequestParam(required = false) contextId: UUID?,
+        @RequestParam(required = false) q: String?,
         @RequestParam(defaultValue = "50") limit: Int,
         @RequestParam(required = false) after: UUID?,
-    ) = versioning.list(actor, ContextId(contextId), limit, after?.let(::MasterId)).map(::ObjectResponse)
+    ) = versioning
+        .list(actor, ObjectQuery(contextId?.let(::ContextId), q, limit, after?.let(::MasterId)))
+        .map(::ObjectResponse)
 
     @GetMapping("/{id}")
     fun get(
