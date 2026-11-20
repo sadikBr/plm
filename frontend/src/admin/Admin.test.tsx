@@ -537,7 +537,7 @@ describe("Administration", () => {
     const subs = await screen.findByRole("table", { name: "Event subscriptions" });
     expect(await within(subs).findByText("1 dead")).toBeInTheDocument();
     const log = await screen.findByRole("table", { name: "Deliveries" });
-    expect(within(log).getByText("The receiver answered 503")).toBeInTheDocument();
+    expect(within(log).getByText("Answered 503")).toBeInTheDocument();
     await userEvent.click(within(log).getByRole("button", { name: "Redeliver" }));
     await waitFor(() => expect(calls.some((c) => c.path === "/api/v1/webhook-deliveries/d1/redeliver")).toBe(true));
 
