@@ -1,0 +1,105 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { useState } from "react";
+import { describe, expect, it } from "vitest";
+import { ApiError } from "../api/client";
+import type { AttributeDefinition, Attributes } from "../api/queries";
+import { fakeApi } from "../test/fakeApi";
+import { attributeRoutes, enumerations, partAttributes } from "../test/fixtures";
+import {
+  AttributeForm,
+  defaultValues,
+  fieldErrors,
+  formatAttribute,
+  fromLocalInput,
+  pickLabel,
+  toLocalInput,
+} from "./AttributeForm";
+
+const defs = partAttributes as unknown as AttributeDefinition[];
+
+function Harness({ initial = {}, onValues }: { initial?: Attributes; onValues: (v: Attributes) => void }) {
+  const [values, setValues] = useState(initial);
+  return (
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <AttributeForm
+        definitions={defs}
+        values={values}
+        onChange={(v) => {
+          setValues(v);
+          onValues(v);
+        }}
+      />
+    </QueryClientProvider>
+  );
+}
+
+describe("helpers", () => {
+  it("picks the label for the user's language, falling back to English", () => {
+    expect(pickLabel({ en: "Material", fr: "Matériau" })).toBe("Material"); // jsdom is en-US
+    expect(pickLabel({ de: "Masse" })).toBe("Masse");
+    expect(pickLabel(undefined, "mass")).toBe("mass");
+  });
+
+  it("round-trips timestamps through datetime-local inputs", () => {
+    const iso = "2026-11-20T10:15:00.000Z";
+    expect(fromLocalInput(toLocalInput(iso))).toBe(iso);
+    expect(toLocalInput("not a date")).toBe("");
+  });
+
+  it("formats values with enumeration labels and units", () => {
+    const map = new Map(enumerations.map((e) => [e.id, e]));
+    const source = defs.find((d) => d.name === "source");
+    expect(formatAttribute(source, "buy", map as never)).toBe("Buy");
+    expect(formatAttribute(undefined, { value: 1.5, unit: "kg" })).toBe("1.5 kg");
+    expect(formatAttribute(undefined, true)).toBe("Yes");
+    expect(formatAttribute(undefined, null)).toBe("—");
+  });
+
+  it("collects defaults of active attributes", () => {
+    expect(defaultValues(defs)).toEqual({ source: "make", endItem: false });
+  });
+
+  it("extracts per-field errors only from INVALID_ATTRIBUTES problems", () => {
+    const invalid = new ApiError(422, {
+      code: "INVALID_ATTRIBUTES",
+      details: { errors: [{ attribute: "mass", code: "OUT_OF_RANGE", message: "Mass must be at least 0 kg" }] },
+    });
+    expect(fieldErrors(invalid)).toEqual({ mass: "Mass must be at least 0 kg" });
+    expect(fieldErrors(new ApiError(409, { code: "ALREADY_CHECKED_OUT" }))).toEqual({});
+  });
+});
+
+describe("AttributeForm", () => {
+  it("renders an input per data type and emits typed values", async () => {
+    fakeApi(attributeRoutes);
+    let latest: Attributes = {};
+    render(<Harness onValues={(v) => (latest = v)} />);
+
+    // Enumeration: labels shown, inactive values hidden.
+    const source = await screen.findByLabelText("Source");
+    expect(await screen.findByRole("option", { name: "Buy" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Legacy" })).not.toBeInTheDocument();
+    await userEvent.selectOptions(source, "buy");
+
+    await userEvent.type(screen.getByLabelText("Mass"), "12");
+    expect(await screen.findByRole("option", { name: "g" })).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("Mass unit"), "g");
+    expect(screen.queryByRole("option", { name: "m" })).not.toBeInTheDocument(); // other dimensions excluded
+
+    await userEvent.type(screen.getByLabelText("Released at"), "2026-11-20T09:30");
+
+    expect(latest).toEqual({ source: "buy", mass: { value: 12, unit: "g" }, releasedAt: fromLocalInput("2026-11-20T09:30") });
+  });
+
+  it("clears a value when the input is emptied", async () => {
+    fakeApi(attributeRoutes);
+    let latest: Attributes = {};
+    render(<Harness initial={{ material: "AL" }} onValues={(v) => (latest = v)} />);
+
+    await userEvent.clear(await screen.findByLabelText("Material"));
+
+    expect(latest).toEqual({});
+  });
+});

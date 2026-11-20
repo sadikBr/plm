@@ -9,6 +9,10 @@ export type Member = Schemas["MemberResponse"];
 export type TeamRole = Member["role"];
 export type Permission = "READ" | "CREATE" | "MODIFY" | "REVISE" | "MANAGE";
 export type Attributes = Record<string, unknown>;
+export type AttributeDefinition = Schemas["AttributeResponse"];
+export type DataType = AttributeDefinition["dataType"];
+export type Enumeration = Schemas["EnumerationResponse"];
+export type Unit = Schemas["UnitResponse"];
 
 const PAGE_SIZE = 50;
 
@@ -21,6 +25,9 @@ export const keys = {
   members: (id: string) => ["members", id] as const,
   permissions: (contextId: string, typeId?: string) => ["permissions", contextId, typeId ?? "any"] as const,
   types: ["types"] as const,
+  typeAttributes: (typeId: string) => ["typeAttributes", typeId] as const,
+  enumerations: ["enumerations"] as const,
+  units: ["units"] as const,
   objects: (contextId: string) => ["objects", contextId] as const,
   object: (id: string) => ["object", id] as const,
   history: (id: string) => ["history", id] as const,
@@ -82,6 +89,28 @@ export const usePermissions = (contextId: string | undefined, typeId?: string) =
   });
 
 export const useTypes = () => useQuery({ queryKey: keys.types, queryFn: () => unwrap(api.GET("/api/v1/types")) });
+
+/** Reference data changes rarely: cache it for the session (admins' changes show after a reload). */
+const REFERENCE_DATA = { staleTime: 10 * 60_000 };
+
+/** Effective attributes of a type (inherited first), the basis for every form. */
+export const useTypeAttributes = (typeId: string | undefined) =>
+  useQuery({
+    queryKey: keys.typeAttributes(typeId ?? ""),
+    queryFn: () => unwrap(api.GET("/api/v1/types/{typeId}/attributes", { params: { path: { typeId: typeId! } } })),
+    enabled: !!typeId,
+    ...REFERENCE_DATA,
+  });
+
+export const useEnumerations = () =>
+  useQuery({
+    queryKey: keys.enumerations,
+    queryFn: async () => new Map((await unwrap(api.GET("/api/v1/enumerations"))).map((e) => [e.id, e])),
+    ...REFERENCE_DATA,
+  });
+
+export const useUnits = () =>
+  useQuery({ queryKey: keys.units, queryFn: () => unwrap(api.GET("/api/v1/units")), ...REFERENCE_DATA });
 
 export const useObjects = (contextId: string) =>
   useInfiniteQuery({

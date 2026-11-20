@@ -1,6 +1,135 @@
 {
   "components" : {
     "schemas" : {
+      "AttributeResponse" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "dataType" : {
+            "enum" : [ "STRING", "TEXT", "INTEGER", "REAL", "QUANTITY", "BOOLEAN", "DATE", "TIMESTAMP", "URL", "ENUMERATION" ],
+            "type" : "string"
+          },
+          "defaultValue" : { },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "dimension" : {
+            "type" : [ "string", "null" ]
+          },
+          "displayUnit" : {
+            "type" : [ "string", "null" ]
+          },
+          "enumerationId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "immutable" : {
+            "type" : "boolean"
+          },
+          "inherited" : {
+            "type" : "boolean"
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "maxLength" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "maxValue" : {
+            "type" : [ "number", "null" ]
+          },
+          "minLength" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "minValue" : {
+            "type" : [ "number", "null" ]
+          },
+          "multiValued" : {
+            "type" : "boolean"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "pattern" : {
+            "type" : [ "string", "null" ]
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "sortOrder" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "system" : {
+            "type" : "boolean"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "dataType", "id", "immutable", "inherited", "labels", "multiValued", "name", "required", "sortOrder", "system", "typeId" ],
+        "type" : "object"
+      },
+      "AttributeSettingsRequest" : {
+        "properties" : {
+          "active" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "defaultValue" : { },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "displayUnit" : {
+            "type" : [ "string", "null" ]
+          },
+          "immutable" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "maxLength" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "maxValue" : {
+            "type" : [ "number", "null" ]
+          },
+          "minLength" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "minValue" : {
+            "type" : [ "number", "null" ]
+          },
+          "pattern" : {
+            "type" : [ "string", "null" ]
+          },
+          "required" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "sortOrder" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "required" : [ "labels" ],
+        "type" : "object"
+      },
       "AuditEntry" : {
         "properties" : {
           "action" : {
@@ -127,6 +256,136 @@
           }
         },
         "required" : [ "displayName", "name", "parentId" ],
+        "type" : "object"
+      },
+      "DefineAttributeRequest" : {
+        "properties" : {
+          "dataType" : {
+            "enum" : [ "STRING", "TEXT", "INTEGER", "REAL", "QUANTITY", "BOOLEAN", "DATE", "TIMESTAMP", "URL", "ENUMERATION" ],
+            "type" : "string"
+          },
+          "defaultValue" : { },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "dimension" : {
+            "type" : [ "string", "null" ]
+          },
+          "displayUnit" : {
+            "type" : [ "string", "null" ]
+          },
+          "enumerationId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "immutable" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "maxLength" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "maxValue" : {
+            "type" : [ "number", "null" ]
+          },
+          "minLength" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "minValue" : {
+            "type" : [ "number", "null" ]
+          },
+          "multiValued" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "pattern" : {
+            "type" : [ "string", "null" ]
+          },
+          "required" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "sortOrder" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "required" : [ "dataType", "labels", "name" ],
+        "type" : "object"
+      },
+      "EnumerationRequest" : {
+        "properties" : {
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "values" : {
+            "items" : {
+              "$ref" : "#/components/schemas/EnumerationValueDto"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "labels", "values" ],
+        "type" : "object"
+      },
+      "EnumerationResponse" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "system" : {
+            "type" : "boolean"
+          },
+          "values" : {
+            "items" : {
+              "$ref" : "#/components/schemas/EnumerationValueDto"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "id", "labels", "name", "system", "values" ],
+        "type" : "object"
+      },
+      "EnumerationValueDto" : {
+        "properties" : {
+          "active" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          }
+        },
+        "required" : [ "key", "labels" ],
         "type" : "object"
       },
       "IterationResponse" : {
@@ -340,6 +599,30 @@
           }
         },
         "required" : [ "baseClass", "displayName", "id", "name" ],
+        "type" : "object"
+      },
+      "UnitResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "dimension" : {
+            "type" : "string"
+          },
+          "factor" : {
+            "type" : "number"
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "offset" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "code", "dimension", "factor", "labels", "offset" ],
         "type" : "object"
       },
       "UpdateWorkingCopyRequest" : {
@@ -748,6 +1031,155 @@
           }
         },
         "tags" : [ "Context" ]
+      }
+    },
+    "/api/v1/enumerations" : {
+      "get" : {
+        "operationId" : "referenceDataList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/EnumerationResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Reference data" ]
+      },
+      "post" : {
+        "operationId" : "referenceDataCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EnumerationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EnumerationResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Reference data" ]
+      }
+    },
+    "/api/v1/enumerations/{id}" : {
+      "get" : {
+        "operationId" : "referenceDataGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EnumerationResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Reference data" ]
+      },
+      "put" : {
+        "operationId" : "referenceDataUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EnumerationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EnumerationResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Reference data" ]
       }
     },
     "/api/v1/me" : {
@@ -1362,17 +1794,200 @@
         },
         "tags" : [ "Type" ]
       }
+    },
+    "/api/v1/types/{typeId}/attributes" : {
+      "get" : {
+        "operationId" : "attributeList",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "typeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "includeInactive",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/AttributeResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Attribute" ]
+      },
+      "post" : {
+        "operationId" : "attributeDefine",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "typeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DefineAttributeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AttributeResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Attribute" ]
+      }
+    },
+    "/api/v1/types/{typeId}/attributes/{attributeId}" : {
+      "put" : {
+        "operationId" : "attributeUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "typeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "attributeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttributeSettingsRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AttributeResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Attribute" ]
+      }
+    },
+    "/api/v1/units" : {
+      "get" : {
+        "operationId" : "referenceDataUnits",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/UnitResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Reference data" ]
+      }
     }
   },
   "security" : [ {
     "keycloak" : [ ]
   } ],
   "tags" : [ {
+    "name" : "Attribute"
+  }, {
     "name" : "Audit"
   }, {
     "name" : "Context"
   }, {
     "name" : "Principal"
+  }, {
+    "name" : "Reference data"
   }, {
     "name" : "Team"
   }, {

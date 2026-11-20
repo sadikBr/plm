@@ -16,13 +16,20 @@ import com.plm.platform.error.PlmException
 import com.plm.platform.error.ValidationException
 import com.plm.platform.id.PrincipalId
 import com.plm.platform.id.TenantId
+import com.plm.types.api.AttributeService
+import com.plm.types.api.AttributeSettings
+import com.plm.types.api.CreateSubtype
+import com.plm.types.api.DataType
+import com.plm.types.api.DefineAttribute
 import com.plm.types.api.TypeId
+import com.plm.types.api.TypeService
 import com.plm.versioning.api.CreateVersionedObject
 import com.plm.versioning.api.IterationStatus
 import com.plm.versioning.api.MasterId
 import com.plm.versioning.api.VersioningService
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.assertj.core.api.Assertions.catchThrowableOfType
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -43,6 +50,8 @@ class VersioningServiceIT(
     @Autowired private val contexts: ContextService,
     @Autowired private val teams: TeamService,
     @Autowired private val directory: PrincipalDirectory,
+    @Autowired private val types: TypeService,
+    @Autowired private val attributeDefinitions: AttributeService,
     @Autowired private val jdbc: JdbcClient,
     @Autowired private val clock: MutableClock,
 ) {
@@ -92,10 +101,45 @@ class VersioningServiceIT(
         }
 
         @Test
-        fun `keeps nested attribute values intact`() {
-            val attrs = mapOf("mass" to mapOf("value" to 1.25, "unit" to "kg"), "tags" to listOf("a", "b"), "x" to null)
+        fun `stores validated attributes with out-of-the-box defaults`() {
+            val attrs =
+                mapOf(
+                    "mass" to mapOf("value" to 1.25, "unit" to "kg"),
+                    "endItem" to true,
+                    "description" to "Two\nlines",
+                )
 
-            assertThat(newPart(attrs).latest.attributes).isEqualTo(attrs)
+            val stored = newPart(attrs).latest.attributes
+
+            assertThat(
+                stored,
+            ).containsAllEntriesOf(attrs).containsEntry("source", "make").containsEntry("traceCode", "untraced")
+            assertThat(versioning.history(alice, newPart(attrs).id).single().attributes).isEqualTo(stored)
+        }
+
+        @Test
+        fun `rejects invalid attributes with a reason per field`() {
+            val error =
+                catchThrowableOfType(ValidationException::class.java) {
+                    newPart(
+                        mapOf("source" to "steal", "mass" to mapOf("value" to 3, "unit" to "mm"), "colour" to "red"),
+                    )
+                }
+
+            assertThat(error.code).isEqualTo("INVALID_ATTRIBUTES")
+            @Suppress("UNCHECKED_CAST")
+            val fields =
+                (error.details["errors"] as List<Map<String, String>>).associate {
+                    it["attribute"] to
+                        it["code"]
+                }
+            assertThat(fields).isEqualTo(
+                mapOf(
+                    "colour" to "UNKNOWN_ATTRIBUTE",
+                    "source" to "UNKNOWN_VALUE",
+                    "mass" to "WRONG_DIMENSION",
+                ),
+            )
         }
 
         @Test
@@ -302,7 +346,7 @@ class VersioningServiceIT(
 
         @Test
         fun `list returns readable objects in pages`() {
-            val created = (1..5).map { newPart(mapOf("n" to it)) }
+            val created = (1..5).map { newPart(mapOf("material" to "M$it")) }
 
             val firstPage = versioning.list(viewer, product, limit = 2)
             val secondPage = versioning.list(viewer, product, limit = 2, after = firstPage.last().id)
@@ -328,6 +372,80 @@ class VersioningServiceIT(
             versioning.checkOut(alice, obj.id)
 
             assertThatThrownBy { versioning.checkOut(bob, obj.id) }.hasMessageContaining("checked out by Alice Admin")
+        }
+    }
+
+    @Nested
+    inner class Attributes {
+        @Test
+        fun `working copy edits are validated and normalized`() {
+            val obj = newPart()
+            versioning.checkOut(alice, obj.id)
+
+            assertThatThrownBy { versioning.updateWorkingCopy(alice, obj.id, mapOf("phantom" to "maybe")) }
+                .isInstanceOfSatisfying(
+                    ValidationException::class.java,
+                ) { assertThat(it.code).isEqualTo("INVALID_ATTRIBUTES") }
+
+            val updated =
+                versioning.updateWorkingCopy(
+                    alice,
+                    obj.id,
+                    mapOf(
+                        "mass" to mapOf("value" to 250, "unit" to "g"),
+                    ),
+                )
+            assertThat(updated.attributes["mass"]).isEqualTo(mapOf("value" to 250.0, "unit" to "g"))
+            assertThat(updated.attributes["source"]).isEqualTo("make")
+        }
+
+        @Test
+        fun `check-in enforces attributes that became required after check-out`() {
+            val type =
+                types.createSubtype(
+                    admin,
+                    CreateSubtype(
+                        TypeId.PART,
+                        "Valve" +
+                            UUID
+                                .randomUUID()
+                                .toString()
+                                .take(8)
+                                .replace("-", ""),
+                        "Valve",
+                    ),
+                )
+            val pressure =
+                attributeDefinitions.define(
+                    admin,
+                    DefineAttribute(
+                        type.id,
+                        "ratedPressure",
+                        DataType.QUANTITY,
+                        dimension = "PRESSURE",
+                        settings =
+                            AttributeSettings(
+                                mapOf(
+                                    "en" to "Rated pressure",
+                                ),
+                            ),
+                    ),
+                )
+            val obj = versioning.create(alice, CreateVersionedObject(type.id, product, "Ball valve"))
+            versioning.checkOut(alice, obj.id)
+            attributeDefinitions.update(
+                admin,
+                pressure.id,
+                AttributeSettings(mapOf("en" to "Rated pressure"), required = true),
+            )
+
+            assertThatThrownBy { versioning.checkIn(alice, obj.id) }
+                .isInstanceOfSatisfying(ValidationException::class.java) {
+                    assertThat(it.message).contains("Rated pressure is required")
+                }
+
+            versioning.updateWorkingCopy(alice, obj.id, mapOf("ratedPressure" to mapOf("value" to 16, "unit" to "bar")))
+            assertThat(versioning.checkIn(alice, obj.id).latest.attributes).containsKey("ratedPressure")
         }
     }
 
@@ -362,7 +480,7 @@ class VersioningServiceIT(
                 "versioning.CheckOutUndone.v1",
             )
             val updated = events[2].second
-            assertThat(updated).contains("\"before\": {\"material\": \"AL6061\"}", "\"after\": {\"material\": \"Ti\"}")
+            assertThat(updated).contains("\"material\": \"AL6061\"", "\"material\": \"Ti\"")
             assertThat(events.map { it.second }).noneMatch { it.contains("aggregateType") || it.contains("eventType") }
         }
 
