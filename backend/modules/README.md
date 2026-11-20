@@ -25,8 +25,8 @@ Three layers enforce this:
 | events | Relays the outbox to Kafka (infrastructure) | — |
 | access | Contexts, teams, policies, permission checks and SQL filters | identity, types |
 | content | File vault metadata, presigned URLs | access |
-| versioning | Master / Version / Iteration engine | types, access, identity |
-| lifecycle | Lifecycle state machines | types, access |
+| versioning | Master / Version / Iteration engine, lifecycle enforcement | types, access, identity, lifecycle |
+| lifecycle | Lifecycle templates and their assignment to types | types |
 | documents | Document types | versioning, content, lifecycle |
 | parts | Part types | versioning, lifecycle |
 | bom | Usage links, config specs, where-used | parts |

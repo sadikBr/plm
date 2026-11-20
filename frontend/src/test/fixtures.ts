@@ -127,3 +127,35 @@ export const attributeRoutes = {
   "GET /api/v1/enumerations": () => enumerations,
   "GET /api/v1/units": () => units,
 };
+
+// ---------- Lifecycle (the out-of-the-box Basic lifecycle) ----------
+
+const basicStates = [
+  { key: "IN_WORK", labels: { en: "In Work" }, editable: true, revisable: false },
+  { key: "UNDER_REVIEW", labels: { en: "Under Review" }, editable: false, revisable: false },
+  { key: "RELEASED", labels: { en: "Released" }, editable: false, revisable: true },
+  { key: "OBSOLETE", labels: { en: "Obsolete" }, editable: false, revisable: false },
+  { key: "CANCELED", labels: { en: "Canceled" }, editable: false, revisable: false },
+];
+
+const NEXT: Record<string, string[]> = {
+  IN_WORK: ["UNDER_REVIEW", "CANCELED"],
+  UNDER_REVIEW: ["IN_WORK", "RELEASED"],
+  RELEASED: ["OBSOLETE"],
+};
+
+/** What GET /objects/{id}/lifecycle returns for an object in [state]. */
+export function lifecycle(state = "IN_WORK", { canPromote = false, canOverride = false } = {}) {
+  const s = basicStates.find((x) => x.key === state)!;
+  return {
+    lifecycleId: "00000000-0000-7000-8000-000000000301",
+    lifecycleName: "Basic",
+    states: basicStates,
+    state,
+    editable: s.editable,
+    revisable: s.revisable,
+    revisionScheme: "ALPHABETIC_ASME",
+    nextStates: canPromote ? (NEXT[state] ?? []) : [],
+    canOverride,
+  };
+}

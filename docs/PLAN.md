@@ -40,6 +40,7 @@ The detailed, capability-by-capability view lives in [PARITY.md](PARITY.md).
 | 14 | API contract and web frontend | [0014](adr/0014-api-contract-and-frontend.md) |
 | 15 | Typed attributes, enumerations and units | [0015](adr/0015-attributes-and-reference-data.md) |
 | 16 | Workbench UI design system | [0016](adr/0016-workbench-ui.md) |
+| 17 | Numbering, revision schemes and lifecycles | [0017](adr/0017-numbering-and-lifecycles.md) |
 
 ### 2.1 Architecture: modular monolith
 One deployable, strictly separated modules: `identity`, `access`, `types`, `content`, `versioning`,

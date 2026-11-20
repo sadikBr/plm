@@ -2,8 +2,10 @@ package com.plm.versioning.infra
 
 import com.plm.access.api.ContextId
 import com.plm.access.api.SqlPredicate
+import com.plm.lifecycle.api.LifecycleTemplateId
 import com.plm.platform.error.ConflictException
 import com.plm.platform.id.TenantId
+import com.plm.types.api.RevisionScheme
 import com.plm.types.api.TypeId
 import com.plm.versioning.api.Iteration
 import com.plm.versioning.api.IterationId
@@ -27,6 +29,8 @@ internal data class MasterRow(
     val number: String,
     val name: String,
     val latestIterationId: IterationId,
+    val lifecycleId: LifecycleTemplateId,
+    val revisionScheme: RevisionScheme,
     val createdAt: Instant,
     val createdBy: String,
     /** Derived: owner of the working copy, if any. */
@@ -49,6 +53,8 @@ internal class VersioningRepository(
                 number = rs.getString("number"),
                 name = rs.getString("name"),
                 latestIterationId = IterationId(rs.uuid("latest_iteration_id")),
+                lifecycleId = LifecycleTemplateId(rs.uuid("lifecycle_id")),
+                revisionScheme = RevisionScheme.valueOf(rs.getString("revision_scheme")),
                 createdAt = rs.instant("created_at")!!,
                 createdBy = rs.getString("created_by"),
                 checkedOutBy = rs.getString("checked_out_by"),
@@ -156,8 +162,10 @@ internal class VersioningRepository(
                 .sql(
                     """
                     insert into object_master
-                        (id, tenant_id, type_id, context_id, number, name, latest_iteration_id, created_at, created_by)
-                    values (:id, :tenant, :type, :context, :number, :name, :latest, :createdAt, :createdBy)
+                        (id, tenant_id, type_id, context_id, number, name, latest_iteration_id, lifecycle_id,
+                         revision_scheme, created_at, created_by)
+                    values (:id, :tenant, :type, :context, :number, :name, :latest, :lifecycle, :revisionScheme,
+                            :createdAt, :createdBy)
                     """,
                 ).param("id", master.id.value)
                 .param("tenant", tenant.value)
@@ -166,6 +174,8 @@ internal class VersioningRepository(
                 .param("number", master.number)
                 .param("name", master.name)
                 .param("latest", master.latestIterationId.value)
+                .param("lifecycle", master.lifecycleId.value)
+                .param("revisionScheme", master.revisionScheme.name)
                 .param("createdAt", Timestamp.from(master.createdAt))
                 .param("createdBy", master.createdBy)
                 .update()
@@ -268,6 +278,19 @@ internal class VersioningRepository(
             .param("id", id.value)
             .update()
             .also { check(it == 1) { "working copy $id vanished" } }
+    }
+
+    /** Lifecycle state is the one thing that may change on a checked-in iteration (the history trigger allows it). */
+    fun setState(
+        iteration: IterationId,
+        state: String,
+    ) {
+        jdbc
+            .sql("update object_iteration set state = :state where id = :id and status = 'CHECKED_IN'")
+            .param("state", state)
+            .param("id", iteration.value)
+            .update()
+            .also { check(it == 1) { "iteration $iteration is not checked in" } }
     }
 
     fun setLatest(

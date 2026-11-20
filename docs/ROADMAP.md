@@ -36,9 +36,9 @@ code**. Every later phase builds on this. See [PARITY.md](PARITY.md) §2–§5.
 - [x] 1.3 Constraints: required, range, length, regex, immutable, unique. Clear per-field errors.
 - [x] 1.4 OOTB types and attributes seeded: Part (source, default unit, assembly mode, end item,
       phantom, trace code, description…) and Document (title, description, category, department…).
-- [ ] 1.5 Initialization rules per type: numbering schemes (prefix, sequence, padding), revision
+- [x] 1.5 Initialization rules per type: numbering schemes (prefix, sequence, padding), revision
       schemes, default values, default lifecycle.
-- [ ] 1.6 Lifecycle templates: states, transitions (promote, demote, revise, set state), per-type
+- [x] 1.6 Lifecycle templates: states, transitions (promote, demote, revise, set state), per-type
       assignment. **Revise allowed only from configured states (Released by default).** Default
       state-based policies: Released is read-only.
 - [ ] 1.7 Layouts per type (create / edit / info / table): attribute groups and order. The UI

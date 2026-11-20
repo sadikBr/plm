@@ -11,6 +11,7 @@ import com.plm.access.api.Permission
 import com.plm.access.api.Permission.CREATE
 import com.plm.access.api.Permission.MANAGE
 import com.plm.access.api.Permission.MODIFY
+import com.plm.access.api.Permission.PROMOTE
 import com.plm.access.api.Permission.READ
 import com.plm.access.api.Permission.REVISE
 import com.plm.access.api.TeamRole
@@ -84,7 +85,9 @@ class AccessServiceIT(
     fun `default policies grant by role, inherited down the tree`() {
         val w = World()
 
-        assertThat(perms(w.manager, w.drone.id)).containsExactlyInAnyOrder(READ, CREATE, MODIFY, REVISE, MANAGE)
+        assertThat(
+            perms(w.manager, w.drone.id),
+        ).containsExactlyInAnyOrder(READ, CREATE, MODIFY, REVISE, MANAGE, PROMOTE)
         assertThat(perms(w.member, w.drone.id)).containsExactlyInAnyOrder(READ, CREATE, MODIFY, REVISE)
         assertThat(perms(w.viewer, w.drone.id)).containsExactly(READ)
         assertThat(perms(w.outsider, w.drone.id)).isEmpty()

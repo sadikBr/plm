@@ -36,3 +36,14 @@ data class EnumerationChanged(
     override val aggregateType = "enumeration"
     override val aggregateId = enumerationId
 }
+
+data class TypeRulesChanged(
+    val typeId: UUID,
+    val numberingSchemeId: UUID?,
+    val revisionScheme: String?,
+    val allowManualNumber: Boolean?,
+) : DomainEvent {
+    override val eventType = "types.TypeRulesChanged.v1"
+    override val aggregateType = "type"
+    override val aggregateId = typeId
+}

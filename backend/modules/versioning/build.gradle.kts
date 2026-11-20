@@ -6,4 +6,5 @@ dependencies {
     implementation(project(":backend:modules:types"))
     implementation(project(":backend:modules:access"))
     implementation(project(":backend:modules:identity"))
+    implementation(project(":backend:modules:lifecycle"))
 }

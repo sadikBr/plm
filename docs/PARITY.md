@@ -46,7 +46,7 @@ systems (Windchill is the reference point), and do better on UI, configurability
 | Multi-valued attributes | ✅ | |
 | Classification (class hierarchy with class-specific attributes) | ⬜ [6] | |
 | Layouts: which attributes, groups and order per type, for create / edit / info / table | ⬜ [1] | UI renders from layouts. No code |
-| Initialization rules per type: numbering scheme, revision scheme, default values, default lifecycle, default folder | ⬜ [1] | |
+| Initialization rules per type: numbering scheme, revision scheme, default values, default lifecycle, default folder | 🟡 | Numbering, revision scheme, lifecycle, defaults ✅ · default folder (Phase 2) |
 | Localization of type and attribute labels | 🟡 | Attribute and value labels per language; type labels later |
 | Admin UI for all of the above | ⬜ [1] | Live preview of layouts |
 | Import/export type definitions between environments (dev → test → prod) | ⬜ [1] | Configuration as code (JSON/YAML) |
@@ -74,9 +74,9 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 |---|---|---|
 | Master / revision / iteration (A.1, A.2, B.1) | ✅ | History immutable, enforced by the database |
 | Check out / check in / undo check-out | ✅ | |
-| Revise | 🟡 | Works; **lifecycle rules (e.g. only from Released) come in Phase 1** |
-| Revision schemes per type (letters, numbers, custom series, prefix) | ⬜ [1] | ASME-style letters exist as the default |
-| Set state (admin override), promote through lifecycle | ⬜ [1] | |
+| Revise | ✅ | Only from revisable states (Released by default) |
+| Revision schemes per type (letters, numbers, custom series, prefix) | ✅ | ASME letters, A–Z, 1…, 0…; kept per object |
+| Set state (admin override), promote through lifecycle | ✅ | PROMOTE permission; admin override audited |
 | Rename / renumber (with audit) | ⬜ [1] | |
 | Save As (copy to a new number), with or without structure | ⬜ [2] | |
 | Move between contexts / folders | ⬜ [2] | |
@@ -89,10 +89,10 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 
 | Capability | Status | Notes |
 |---|---|---|
-| Lifecycle templates: states and allowed transitions | ⬜ [1] | Default: In Work → Under Review → Released → Canceled/Obsolete |
-| Transitions: promote, demote, revise, set state, change | ⬜ [1] | Revise allowed only from configured states |
-| Lifecycle per type (via initialization rules) | ⬜ [1] | |
-| State-based access (e.g. Released is read-only) | 🟡 | The policy model supports it; default lifecycle policies come in [1] |
+| Lifecycle templates: states and allowed transitions | ✅ | Basic: In Work → Under Review → Released → Obsolete, Canceled |
+| Transitions: promote, demote, revise, set state, change | ✅ | Revise only from revisable states |
+| Lifecycle per type (via initialization rules) | ✅ | Inherited by subtypes; kept per object |
+| State-based access (e.g. Released is read-only) | ✅ | Editable states + state-scoped policies |
 | Workflow per lifecycle phase | ⬜ [4] | |
 | Admin editor with a state diagram | ⬜ [1] | |
 

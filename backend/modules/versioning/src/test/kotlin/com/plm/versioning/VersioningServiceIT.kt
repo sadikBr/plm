@@ -8,6 +8,11 @@ import com.plm.access.api.TeamRole
 import com.plm.access.api.TeamService
 import com.plm.identity.api.PrincipalDirectory
 import com.plm.identity.api.SignIn
+import com.plm.lifecycle.api.CreateLifecycleTemplate
+import com.plm.lifecycle.api.LifecycleService
+import com.plm.lifecycle.api.LifecycleState
+import com.plm.lifecycle.api.LifecycleTemplateId
+import com.plm.lifecycle.api.LifecycleTransition
 import com.plm.platform.actor.Actor
 import com.plm.platform.error.ConflictException
 import com.plm.platform.error.ForbiddenException
@@ -18,15 +23,20 @@ import com.plm.platform.id.PrincipalId
 import com.plm.platform.id.TenantId
 import com.plm.types.api.AttributeService
 import com.plm.types.api.AttributeSettings
+import com.plm.types.api.CreateNumberingScheme
 import com.plm.types.api.CreateSubtype
 import com.plm.types.api.DataType
 import com.plm.types.api.DefineAttribute
+import com.plm.types.api.RevisionScheme
 import com.plm.types.api.TypeId
+import com.plm.types.api.TypeRuleService
+import com.plm.types.api.TypeRuleSettings
 import com.plm.types.api.TypeService
 import com.plm.versioning.api.CreateVersionedObject
 import com.plm.versioning.api.IterationStatus
 import com.plm.versioning.api.MasterId
 import com.plm.versioning.api.ObjectQuery
+import com.plm.versioning.api.SetState
 import com.plm.versioning.api.VersioningService
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -53,6 +63,8 @@ class VersioningServiceIT(
     @Autowired private val directory: PrincipalDirectory,
     @Autowired private val types: TypeService,
     @Autowired private val attributeDefinitions: AttributeService,
+    @Autowired private val typeRules: TypeRuleService,
+    @Autowired private val lifecycles: LifecycleService,
     @Autowired private val jdbc: JdbcClient,
     @Autowired private val clock: MutableClock,
 ) {
@@ -61,6 +73,9 @@ class VersioningServiceIT(
     private val bob = Actor(TenantId.DEFAULT, PrincipalId("bob"))
     private val viewer = Actor(TenantId.DEFAULT, PrincipalId("victor-viewer"))
     private val outsider = Actor(TenantId.DEFAULT, PrincipalId("olga-outsider"))
+
+    /** Product manager: may promote (change lifecycle state). */
+    private val manager = Actor(TenantId.DEFAULT, PrincipalId("mona-manager"))
     private val product: ContextId by lazy { createProduct() }
 
     private fun createProduct(): ContextId {
@@ -72,8 +87,15 @@ class VersioningServiceIT(
         val product = contexts.create(admin, CreateContext(org.id, ContextKind.PRODUCT, "Drone")).id
         teams.put(admin, product, alice.principal, TeamRole.MEMBER)
         teams.put(admin, product, bob.principal, TeamRole.MEMBER)
+        teams.put(admin, product, manager.principal, TeamRole.MANAGER)
         teams.put(admin, org.id, viewer.principal, TeamRole.VIEWER)
         return product
+    }
+
+    /** In Work -> Under Review -> Released, the way a manager would. */
+    private fun release(id: MasterId) {
+        versioning.setState(manager, id, SetState("UNDER_REVIEW"))
+        versioning.setState(manager, id, SetState("RELEASED", "Approved"))
     }
 
     private fun newPart(attributes: Map<String, Any?> = mapOf("material" to "AL6061")) =
@@ -299,10 +321,12 @@ class VersioningServiceIT(
             val obj = newPart()
             versioning.checkOut(alice, obj.id)
             versioning.checkIn(alice, obj.id)
+            release(obj.id)
 
             val revised = versioning.revise(bob, obj.id)
 
             assertThat(revised.latest.version).isEqualTo("B.1")
+            assertThat(revised.latest.state).isEqualTo("IN_WORK")
             assertThat(revised.latest.createdBy).isEqualTo("bob")
             assertThat(revised.latest.attributes).isEqualTo(obj.latest.attributes)
             assertThat(versioning.history(alice, obj.id).map { it.version }).containsExactly("B.1", "A.2", "A.1")
@@ -491,6 +515,218 @@ class VersioningServiceIT(
     }
 
     @Nested
+    inner class Lifecycle {
+        @Test
+        fun `new objects start in the lifecycle's initial state, editable but not revisable`() {
+            val obj = newPart()
+            val info = versioning.lifecycle(alice, obj.id)
+
+            assertThat(obj.latest.state).isEqualTo("IN_WORK")
+            assertThat(info.template.name).isEqualTo("Basic")
+            assertThat(info.editable).isTrue()
+            assertThat(info.revisable).isFalse()
+            assertThat(info.nextStates).describedAs("members can't promote").isEmpty()
+            assertThat(versioning.lifecycle(manager, obj.id).nextStates).containsExactly("UNDER_REVIEW", "CANCELED")
+        }
+
+        @Test
+        fun `revise is only allowed from Released, and starts In Work again`() {
+            val obj = newPart()
+            assertCode(ConflictException::class.java, "REVISE_NOT_ALLOWED") { versioning.revise(alice, obj.id) }
+
+            release(obj.id)
+            val revised = versioning.revise(alice, obj.id)
+
+            assertThat(revised.latest.version).isEqualTo("B.1")
+            assertThat(revised.latest.state).isEqualTo("IN_WORK")
+            // The released iteration keeps its state in history.
+            assertThat(versioning.history(alice, obj.id).map { it.version to it.state })
+                .containsExactly("B.1" to "IN_WORK", "A.1" to "RELEASED")
+        }
+
+        @Test
+        fun `released objects are read-only until revised`() {
+            val obj = newPart()
+            release(obj.id)
+
+            assertThatThrownBy { versioning.checkOut(alice, obj.id) }
+                .isInstanceOfSatisfying(ConflictException::class.java) {
+                    assertThat(it.code).isEqualTo("NOT_EDITABLE")
+                    assertThat(it.message).contains("is Released", "Revise it")
+                }
+            assertThat(versioning.lifecycle(alice, obj.id).editable).isFalse()
+        }
+
+        @Test
+        fun `state changes follow the lifecycle's transitions and need PROMOTE`() {
+            val obj = newPart()
+
+            assertCode(ForbiddenException::class.java, "ACCESS_DENIED") {
+                versioning.setState(alice, obj.id, SetState("UNDER_REVIEW"))
+            }
+            assertCode(ConflictException::class.java, "TRANSITION_NOT_ALLOWED") {
+                versioning.setState(manager, obj.id, SetState("RELEASED"))
+            }
+            assertCode(ValidationException::class.java, "UNKNOWN_STATE") {
+                versioning.setState(manager, obj.id, SetState("SHIPPED"))
+            }
+            assertCode(
+                ValidationException::class.java,
+                "SAME_STATE",
+            ) { versioning.setState(manager, obj.id, SetState("IN_WORK")) }
+
+            versioning.checkOut(alice, obj.id)
+            assertCode(ConflictException::class.java, "CHECKED_OUT") {
+                versioning.setState(manager, obj.id, SetState("UNDER_REVIEW"))
+            }
+            versioning.undoCheckOut(alice, obj.id)
+
+            assertThat(
+                versioning.setState(manager, obj.id, SetState("UNDER_REVIEW")).latest.state,
+            ).isEqualTo("UNDER_REVIEW")
+            assertThat(versioning.lifecycle(manager, obj.id).nextStates).containsExactly("IN_WORK", "RELEASED")
+        }
+
+        @Test
+        fun `site administrators can override the lifecycle, nobody else`() {
+            val obj = newPart()
+
+            assertCode(ForbiddenException::class.java, "ADMIN_REQUIRED") {
+                versioning.setState(manager, obj.id, SetState("RELEASED", override = true))
+            }
+            assertThat(
+                versioning.setState(admin, obj.id, SetState("RELEASED", "Legacy import", override = true)).latest.state,
+            ).isEqualTo("RELEASED")
+        }
+
+        @Test
+        fun `a numbering scheme on a type numbers new objects, and can forbid manual numbers`() {
+            val type =
+                types.createSubtype(
+                    admin,
+                    CreateSubtype(
+                        TypeId.PART,
+                        "Gear" +
+                            UUID
+                                .randomUUID()
+                                .toString()
+                                .take(6)
+                                .replace("-", ""),
+                        "Gear",
+                    ),
+                )
+            val scheme =
+                typeRules.createNumberingScheme(
+                    admin,
+                    CreateNumberingScheme("Gears ${UUID.randomUUID()}", prefix = "GR-", padding = 4, start = 7),
+                )
+            typeRules.updateRules(
+                admin,
+                type.id,
+                TypeRuleSettings(numberingSchemeId = scheme.id, allowManualNumber = false),
+            )
+
+            val first = versioning.create(alice, CreateVersionedObject(type.id, product, "Spur gear"))
+            val second = versioning.create(alice, CreateVersionedObject(type.id, product, "Bevel gear"))
+
+            assertThat(listOf(first.number, second.number)).containsExactly("GR-0007", "GR-0008")
+            assertCode(ValidationException::class.java, "MANUAL_NUMBER_NOT_ALLOWED") {
+                versioning.create(alice, CreateVersionedObject(type.id, product, "Rack", number = "MY-1"))
+            }
+        }
+
+        @Test
+        fun `concurrent creates never get the same number`() {
+            val type =
+                types.createSubtype(
+                    admin,
+                    CreateSubtype(
+                        TypeId.PART,
+                        "Pin" +
+                            UUID
+                                .randomUUID()
+                                .toString()
+                                .take(6)
+                                .replace("-", ""),
+                        "Pin",
+                    ),
+                )
+            val scheme =
+                typeRules.createNumberingScheme(
+                    admin,
+                    CreateNumberingScheme("Pins ${UUID.randomUUID()}", prefix = "PIN-"),
+                )
+            typeRules.updateRules(admin, type.id, TypeRuleSettings(numberingSchemeId = scheme.id))
+            val pool = Executors.newFixedThreadPool(8)
+
+            val numbers =
+                (1..24)
+                    .map {
+                        pool.submit<String> {
+                            versioning
+                                .create(
+                                    alice,
+                                    CreateVersionedObject(type.id, product, "Pin $it"),
+                                ).number
+                        }
+                    }.map { it.get(30, TimeUnit.SECONDS) }
+            pool.shutdown()
+
+            assertThat(numbers).doesNotHaveDuplicates().hasSize(24).allMatch { it.matches(Regex("PIN-0000\\d\\d")) }
+        }
+
+        @Test
+        fun `objects keep the revision scheme and lifecycle they were created with`() {
+            val type =
+                types.createSubtype(
+                    admin,
+                    CreateSubtype(
+                        TypeId.PART,
+                        "Proto" +
+                            UUID
+                                .randomUUID()
+                                .toString()
+                                .take(6)
+                                .replace("-", ""),
+                        "Prototype",
+                    ),
+                )
+            typeRules.updateRules(admin, type.id, TypeRuleSettings(revisionScheme = RevisionScheme.NUMERIC_FROM_0))
+            val simple =
+                lifecycles.create(
+                    admin,
+                    CreateLifecycleTemplate(
+                        "Simple ${UUID.randomUUID()}",
+                        mapOf("en" to "Simple"),
+                        "DRAFT",
+                        listOf(
+                            LifecycleState("DRAFT", mapOf("en" to "Draft"), editable = true, revisable = false),
+                            LifecycleState("APPROVED", mapOf("en" to "Approved"), editable = false, revisable = true),
+                        ),
+                        listOf(LifecycleTransition("DRAFT", "APPROVED")),
+                    ),
+                )
+            lifecycles.assign(admin, type.id, simple.id)
+            val obj = versioning.create(alice, CreateVersionedObject(type.id, product, "Prototype bracket"))
+            assertThat(obj.latest.version).isEqualTo("0.1")
+            assertThat(obj.latest.state).isEqualTo("DRAFT")
+
+            // The type changes its rules afterwards...
+            typeRules.updateRules(admin, type.id, TypeRuleSettings(revisionScheme = RevisionScheme.ALPHABETIC))
+            lifecycles.assign(admin, type.id, LifecycleTemplateId.BASIC)
+
+            // ...but this object still follows its own.
+            versioning.setState(manager, obj.id, SetState("APPROVED"))
+            val revised = versioning.revise(alice, obj.id)
+            assertThat(revised.latest.version).isEqualTo("1.1")
+            assertThat(revised.latest.state).isEqualTo("DRAFT")
+            assertThat(
+                versioning.create(alice, CreateVersionedObject(type.id, product, "Next")).latest.version,
+            ).isEqualTo("A.1")
+        }
+    }
+
+    @Nested
     inner class Events {
         private fun outbox(id: MasterId) =
             jdbc
@@ -506,6 +742,7 @@ class VersioningServiceIT(
             versioning.checkOut(alice, obj.id)
             versioning.updateWorkingCopy(alice, obj.id, mapOf("material" to "Ti"))
             versioning.checkIn(alice, obj.id, "done")
+            release(obj.id)
             versioning.revise(alice, obj.id)
             versioning.checkOut(alice, obj.id)
             versioning.undoCheckOut(alice, obj.id)
@@ -516,6 +753,8 @@ class VersioningServiceIT(
                 "versioning.ObjectCheckedOut.v1",
                 "versioning.WorkingCopyUpdated.v1",
                 "versioning.ObjectCheckedIn.v1",
+                "versioning.ObjectStateChanged.v1",
+                "versioning.ObjectStateChanged.v1",
                 "versioning.ObjectRevised.v1",
                 "versioning.ObjectCheckedOut.v1",
                 "versioning.CheckOutUndone.v1",

@@ -3,6 +3,6 @@ plugins {
 }
 
 dependencies {
+    // Lifecycles are assigned per type and inherited along the type hierarchy.
     implementation(project(":backend:modules:types"))
-    implementation(project(":backend:modules:access"))
 }

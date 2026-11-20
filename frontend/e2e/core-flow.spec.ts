@@ -93,16 +93,37 @@ test("alice sets up a product, bob works on a part, carol sees nothing", async (
   await expect(bob.getByText("250 g")).toBeVisible();
   await expect(bob.getByText("Buy", { exact: true })).toBeVisible();
 
+  // In Work can't be revised; bob (a member) can't promote either.
+  await expect(bob.getByRole("button", { name: "Revise" })).toBeDisabled();
+  await expect(bob.getByRole("button", { name: "Set state" })).toBeDisabled();
+
+  // ---- alice (site admin) releases it: In Work -> Under Review -> Released ----
+  const setState = async (to: string) => {
+    await alice.getByRole("button", { name: "Set state" }).click();
+    await alice.getByRole("menuitem", { name: to, exact: true }).click();
+    await alice.getByRole("dialog").getByLabel("Comment").fill(`Moved to ${to}`);
+    await alice.getByRole("dialog").getByRole("button", { name: "Set state" }).click();
+    await expect(alice.locator(".title-row .state")).toHaveText(to);
+  };
+  await alice.goto(objectUrl);
+  await setState("Under Review");
+  await setState("Released");
+
+  // Released: read-only, now revisable.
+  await bob.reload();
+  await expect(bob.getByRole("button", { name: "Check out" })).toBeDisabled();
   await bob.getByRole("button", { name: "Revise" }).click();
   await expect(bob.getByTestId("version")).toHaveText("B.1");
+  await expect(bob.locator(".title-row .state")).toHaveText("In Work");
   await bob.getByRole("link", { name: "History" }).click();
   const history = bob.getByRole("table", { name: "Iteration history" });
   await expect(history.getByRole("row")).toHaveCount(4); // header + B.1, A.2, A.1
   await expect(history).toContainText("Switch to titanium");
+  await expect(history.getByRole("row").nth(2)).toContainText("Released"); // A.2 stays Released
 
   // ---- alice reads the audit trail ----
   await alice.goto(objectUrl + "?tab=audit");
-  await expect(alice.getByRole("table", { name: "Audit trail" }).getByRole("row")).toHaveCount(6);
+  await expect(alice.getByRole("table", { name: "Audit trail" }).getByRole("row")).toHaveCount(8); // header + 7 events
 
   // ---- carol (not on the team) ----
   const carol = await asUser(browser, "carol");

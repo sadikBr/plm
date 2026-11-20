@@ -118,8 +118,9 @@ const STATE_CLASS: Record<string, string> = {
   OBSOLETE: "obsolete",
 };
 
-export function StateBadge({ state }: { state: string }) {
-  return <span className={`state ${STATE_CLASS[state] ?? ""}`}>{stateLabel(state)}</span>;
+/** Lifecycle state with its colour dot. Pass [label] from the lifecycle when known. */
+export function StateBadge({ state, label }: { state: string; label?: string }) {
+  return <span className={`state ${STATE_CLASS[state] ?? ""}`}>{label ?? stateLabel(state)}</span>;
 }
 
 // ---------- Layout building blocks ----------

@@ -42,6 +42,12 @@ interface TypeService {
 
     fun list(actor: Actor): List<TypeDefinition>
 
+    /** [id] and its ancestors, root first. Other modules use it to resolve settings inherited along the type tree. */
+    fun lineage(
+        actor: Actor,
+        id: TypeId,
+    ): List<TypeId>
+
     /**
      * Site administrators only.
      *

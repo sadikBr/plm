@@ -87,7 +87,25 @@ class VersioningApiIT : ApiTest() {
         assertThat(patched.status).isEqualTo(200)
         val checkedIn = post("/api/v1/objects/$id/checkin", mapOf("comment" to "Titanium"), as_ = bob)
         assertThat(checkedIn.body["version"]).isEqualTo("A.2")
-        assertThat(post("/api/v1/objects/$id/revise", as_ = bob).body["version"]).isEqualTo("B.1")
+        // Revise is only allowed once released; members can't promote.
+        val tooEarly = post("/api/v1/objects/$id/revise", as_ = bob)
+        assertThat(tooEarly.status).isEqualTo(409)
+        assertThat(tooEarly.body["code"]).isEqualTo("REVISE_NOT_ALLOWED")
+        assertThat(post("/api/v1/objects/$id/state", mapOf("state" to "UNDER_REVIEW"), as_ = bob).status).isEqualTo(403)
+        val lifecycle = get("/api/v1/objects/$id/lifecycle").body
+        assertThat(
+            lifecycle,
+        ).containsEntry("state", "IN_WORK").containsEntry("editable", true).containsEntry("revisable", false)
+        assertThat(lifecycle["nextStates"]).isEqualTo(listOf("UNDER_REVIEW", "CANCELED"))
+
+        assertThat(post("/api/v1/objects/$id/state", mapOf("state" to "UNDER_REVIEW")).status).isEqualTo(200)
+        val released = post("/api/v1/objects/$id/state", mapOf("state" to "RELEASED", "comment" to "Approved by DR-12"))
+        assertThat(released.nested("latest")["state"]).isEqualTo("RELEASED")
+        assertThat(post("/api/v1/objects/$id/checkout", as_ = bob).body["code"]).isEqualTo("NOT_EDITABLE")
+
+        val revised = post("/api/v1/objects/$id/revise", as_ = bob)
+        assertThat(revised.body["version"]).isEqualTo("B.1")
+        assertThat(revised.nested("latest")["state"]).isEqualTo("IN_WORK")
 
         val history = get("/api/v1/objects/$id/iterations", as_ = bob).list
         assertThat(history.map { it["version"] }).containsExactly("B.1", "A.2", "A.1")
@@ -98,12 +116,21 @@ class VersioningApiIT : ApiTest() {
         val audit = get("/api/v1/audit?aggregateId=$id").list
         assertThat(audit.map { it["action"] }).containsExactly(
             "versioning.ObjectRevised.v1",
+            "versioning.ObjectStateChanged.v1",
+            "versioning.ObjectStateChanged.v1",
             "versioning.ObjectCheckedIn.v1",
             "versioning.WorkingCopyUpdated.v1",
             "versioning.ObjectCheckedOut.v1",
             "versioning.ObjectCreated.v1",
         )
-        assertThat(audit).allMatch { it["actor"] == bob.sub }
+        assertThat(audit.filter { it["action"] == "versioning.ObjectStateChanged.v1" }).allMatch {
+            it["actor"] ==
+                alice.sub
+        }
+        assertThat(audit.filterNot { it["action"] == "versioning.ObjectStateChanged.v1" }).allMatch {
+            it["actor"] ==
+                bob.sub
+        }
     }
 
     @Test
