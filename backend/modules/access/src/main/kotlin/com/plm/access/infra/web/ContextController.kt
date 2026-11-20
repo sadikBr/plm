@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import java.time.Instant
@@ -28,6 +29,21 @@ internal class ContextController(
     /** The tenant's root context. */
     @GetMapping("/site")
     fun site(actor: Actor) = ContextResponse(contexts.get(actor, ContextId.DEFAULT_SITE))
+
+    /** Visible contexts whose name contains `q`, by name. */
+    @GetMapping
+    fun search(
+        actor: Actor,
+        @RequestParam q: String,
+        @RequestParam(defaultValue = "20") limit: Int,
+    ) = contexts.search(actor, q, limit).map(::ContextResponse)
+
+    /** The context and its ancestors, root first: breadcrumbs, and opening the navigator to it. */
+    @GetMapping("/{id}/path")
+    fun path(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = contexts.path(actor, ContextId(id)).map(::ContextResponse)
 
     @GetMapping("/{id}")
     fun get(

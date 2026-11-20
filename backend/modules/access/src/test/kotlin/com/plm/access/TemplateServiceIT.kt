@@ -239,4 +239,73 @@ class TemplateServiceIT(
             ),
         ).doesNotContain(REVISE)
     }
+
+    @Test
+    fun `organization managers run their own shared teams and templates, usable only inside the organization`() {
+        val w = World()
+        val other = World()
+        val qaLead = Actors.user("qa-lead")
+
+        val team = sharedTeams.create(w.manager, unique("Acme QA"), null, w.org.id)
+        sharedTeams.putMember(w.manager, team.id, qaLead.principal, TeamRole.MEMBER)
+        val template =
+            templates.create(
+                w.manager,
+                SaveContextTemplate(
+                    unique("Acme product"),
+                    ContextKind.PRODUCT,
+                    content = TemplateContent(sharedTeams = listOf(team.name)),
+                    organizationId = w.org.id,
+                ),
+            )
+
+        // Usable inside the organization...
+        val pump = templates.createContext(w.manager, CreateContext(w.org.id, ContextKind.PRODUCT, "Pump"), template.id)
+        assertThat(perms(qaLead, pump.id)).contains(MODIFY)
+        assertThat(templates.list(w.manager, ContextKind.PRODUCT, w.org.id).map { it.id }).contains(template.id)
+        // ...not elsewhere, and invisible to other organizations.
+        assertThat(
+            templates.list(other.manager, ContextKind.PRODUCT, other.org.id).map { it.id },
+        ).doesNotContain(template.id)
+        assertThat(sharedTeams.list(other.manager).map { it.id }).doesNotContain(team.id)
+        val elsewhere = contexts.create(other.manager, CreateContext(other.org.id, ContextKind.PRODUCT, "Else"))
+        assertThatThrownBy { sharedTeams.attach(admin, elsewhere.id, team.id) }
+            .isInstanceOfSatisfying(
+                ValidationException::class.java,
+            ) { assertThat(it.code).isEqualTo("TEAM_NOT_USABLE_HERE") }
+        assertThatThrownBy {
+            templates.createContext(admin, CreateContext(other.org.id, ContextKind.PRODUCT, "X"), template.id)
+        }.isInstanceOfSatisfying(
+            ValidationException::class.java,
+        ) { assertThat(it.code).isEqualTo("TEMPLATE_NOT_USABLE_HERE") }
+
+        // Other organizations' managers can't touch them; site-wide ones stay with site admins.
+        assertThatThrownBy { sharedTeams.putMember(other.manager, team.id, qaLead.principal, TeamRole.VIEWER) }
+            .isInstanceOf(NotFoundException::class.java)
+        assertThatThrownBy { sharedTeams.create(w.manager, unique("Site-wide"), null, null) }
+            .isInstanceOfSatisfying(ForbiddenException::class.java) { assertThat(it.code).isEqualTo("ADMIN_REQUIRED") }
+        assertThatThrownBy {
+            sharedTeams.create(
+                w.qa,
+                unique("Mine"),
+                null,
+                w.org.id,
+            )
+        }.isInstanceOf(Exception::class.java)
+    }
+
+    @Test
+    fun `saving a product as a template makes it its organization's own, unless a site admin makes it site-wide`() {
+        val w = World()
+        val source = contexts.create(w.manager, CreateContext(w.org.id, ContextKind.PRODUCT, "Source"))
+
+        assertThat(
+            templates.saveFromContext(w.manager, source.id, unique("Mine"), null).organizationId,
+        ).isEqualTo(w.org.id)
+        assertThat(
+            templates.saveFromContext(admin, source.id, unique("Everyone's"), null, siteWide = true).organizationId,
+        ).isNull()
+        assertThatThrownBy { templates.saveFromContext(w.manager, source.id, unique("Sneaky"), null, siteWide = true) }
+            .isInstanceOfSatisfying(ForbiddenException::class.java) { assertThat(it.code).isEqualTo("ADMIN_REQUIRED") }
+    }
 }

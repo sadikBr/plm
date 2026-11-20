@@ -115,9 +115,14 @@ internal class DefaultConfigurationService(
                     },
                 lifecycles = lifecycleList.sortedBy { l -> l.name }.map { l -> l.toConfig() },
                 contextTemplates =
-                    contextTemplates.list(actor).sortedWith(compareBy({ t -> t.kind }, { t -> t.name })).map { t ->
-                        ContextTemplateConfig(t.name, t.kind.name, t.description, t.content)
-                    },
+                    contextTemplates
+                        .list(actor)
+                        .filter { t ->
+                            t.organizationId == null
+                        }.sortedWith(compareBy({ t -> t.kind }, { t -> t.name }))
+                        .map { t ->
+                            ContextTemplateConfig(t.name, t.kind.name, t.description, t.content)
+                        },
                 types =
                     parentsFirst(allTypes).map { t ->
                         val own =
@@ -259,7 +264,11 @@ internal class DefaultConfigurationService(
         }
 
         fun importContextTemplates() {
-            val existing = contextTemplates.list(actor).associateBy { it.kind.name to it.name }
+            val existing =
+                contextTemplates.list(actor).filter { it.organizationId == null }.associateBy {
+                    it.kind.name to
+                        it.name
+                }
             for (t in bundle.contextTemplates) {
                 val key = "${t.kind}/${t.name}"
                 val kind = runCatching { ContextKind.valueOf(t.kind) }.getOrNull()

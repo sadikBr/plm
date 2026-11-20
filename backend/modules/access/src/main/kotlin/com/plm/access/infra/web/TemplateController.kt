@@ -30,12 +30,16 @@ import java.util.UUID
 internal class ContextTemplateController(
     private val templates: ContextTemplateService,
 ) {
-    /** Templates to start a context from; filter by the kind of context to create. */
+    /**
+     * Templates the caller can see. With `kind` and `parentId`: those usable for a new context of
+     * that kind under that parent (site-wide ones, and the parent's organization's own).
+     */
     @GetMapping("/api/v1/context-templates")
     fun list(
         actor: Actor,
         @RequestParam(required = false) kind: ContextKind?,
-    ) = templates.list(actor, kind).map(::ContextTemplateResponse)
+        @RequestParam(required = false) parentId: UUID?,
+    ) = templates.list(actor, kind, parentId?.let(::ContextId)).map(::ContextTemplateResponse)
 
     @GetMapping("/api/v1/context-templates/{id}")
     fun get(
@@ -72,7 +76,13 @@ internal class ContextTemplateController(
         @PathVariable contextId: UUID,
         @RequestBody request: SaveFromContextRequest,
     ) = ContextTemplateResponse(
-        templates.saveFromContext(actor, ContextId(contextId), request.name, request.description),
+        templates.saveFromContext(
+            actor,
+            ContextId(contextId),
+            request.name,
+            request.description,
+            request.siteWide ?: false,
+        ),
     )
 }
 
@@ -80,8 +90,16 @@ internal class ContextTemplateController(
 internal class SharedTeamController(
     private val teams: SharedTeamService,
 ) {
+    /** Shared teams the caller can see: site-wide ones and their organizations' own. */
     @GetMapping("/api/v1/shared-teams")
     fun list(actor: Actor) = teams.list(actor).map(::SharedTeamResponse)
+
+    /** Shared teams that can be attached to this context: site-wide ones and its organization's. */
+    @GetMapping("/api/v1/contexts/{contextId}/shared-teams/usable")
+    fun usable(
+        actor: Actor,
+        @PathVariable contextId: UUID,
+    ) = teams.usableIn(actor, ContextId(contextId)).map(::SharedTeamResponse)
 
     @GetMapping("/api/v1/shared-teams/{id}")
     fun get(
@@ -94,7 +112,9 @@ internal class SharedTeamController(
     fun create(
         actor: Actor,
         @RequestBody request: CreateSharedTeamRequest,
-    ) = SharedTeamResponse(teams.create(actor, request.name, request.description))
+    ) = SharedTeamResponse(
+        teams.create(actor, request.name, request.description, request.organizationId?.let(::ContextId)),
+    )
 
     @DeleteMapping("/api/v1/shared-teams/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -148,13 +168,18 @@ internal data class SaveContextTemplateRequest(
     val kind: ContextKind,
     val description: String? = null,
     val content: TemplateContent? = null,
+    /** The organization this template belongs to (its managers own it); null: site-wide. Fixed at creation. */
+    val organizationId: UUID? = null,
 ) {
-    fun command() = SaveContextTemplate(name, kind, description, content ?: TemplateContent())
+    fun command() =
+        SaveContextTemplate(name, kind, description, content ?: TemplateContent(), organizationId?.let(::ContextId))
 }
 
 internal data class SaveFromContextRequest(
     val name: String,
     val description: String? = null,
+    /** Site admins: make it site-wide instead of the context's organization's own. */
+    val siteWide: Boolean? = null,
 )
 
 internal data class ContextTemplateResponse(
@@ -163,18 +188,29 @@ internal data class ContextTemplateResponse(
     val kind: ContextKind,
     val description: String?,
     val content: TemplateContent,
+    val organizationId: UUID?,
     val createdAt: Instant,
     val createdBy: String,
     val updatedAt: Instant,
 ) {
-    constructor(
-        t: ContextTemplate,
-    ) : this(t.id.value, t.name, t.kind, t.description, t.content, t.createdAt, t.createdBy, t.updatedAt)
+    constructor(t: ContextTemplate) : this(
+        t.id.value,
+        t.name,
+        t.kind,
+        t.description,
+        t.content,
+        t.organizationId?.value,
+        t.createdAt,
+        t.createdBy,
+        t.updatedAt,
+    )
 }
 
 internal data class CreateSharedTeamRequest(
     val name: String,
     val description: String? = null,
+    /** The organization the team belongs to (its managers own it); null: site-wide. */
+    val organizationId: UUID? = null,
 )
 
 internal data class SharedTeamMemberResponse(
@@ -187,6 +223,7 @@ internal data class SharedTeamResponse(
     val id: UUID,
     val name: String,
     val description: String?,
+    val organizationId: UUID?,
     val members: List<SharedTeamMemberResponse>,
     val createdAt: Instant,
 ) {
@@ -194,6 +231,7 @@ internal data class SharedTeamResponse(
         t.id.value,
         t.name,
         t.description,
+        t.organizationId?.value,
         t.members.map { SharedTeamMemberResponse(it.principalId.value, it.role.key, it.addedAt) },
         t.createdAt,
     )

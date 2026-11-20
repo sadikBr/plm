@@ -18,7 +18,7 @@ data class ConfigBundle(
     val lifecycles: List<LifecycleConfig> = emptyList(),
     /** Parents before children. Includes the out-of-the-box base types, matched by name. */
     val types: List<TypeConfig> = emptyList(),
-    /** Templates for new organizations, products, libraries and projects. */
+    /** Site-wide templates for new organizations, products, libraries and projects (organizations' own templates stay with them). */
     val contextTemplates: List<ContextTemplateConfig> = emptyList(),
 ) {
     companion object {

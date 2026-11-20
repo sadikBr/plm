@@ -52,6 +52,28 @@ internal class DefaultContextService(
         parentId: ContextId,
     ): List<Context> = contexts.children(actor.tenant, get(actor, parentId).id).filter { isVisible(actor, it) }
 
+    @Transactional(readOnly = true)
+    override fun path(
+        actor: Actor,
+        id: ContextId,
+    ): List<Context> = contexts.path(get(actor, id).id)
+
+    @Transactional(readOnly = true)
+    override fun search(
+        actor: Actor,
+        text: String,
+        limit: Int,
+    ): List<Context> {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return emptyList()
+        if (trimmed.length >
+            100
+        ) {
+            throw ValidationException("INVALID_QUERY", "Search text must be at most 100 characters")
+        }
+        return contexts.search(actor.tenant, actor.principal.value, actor.siteAdmin, trimmed, limit.coerceIn(1, 100))
+    }
+
     override fun create(
         actor: Actor,
         command: CreateContext,

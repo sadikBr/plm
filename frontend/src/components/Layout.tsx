@@ -1,13 +1,15 @@
-import { ChevronDown, ChevronRight, LogOut, Settings } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { ChevronRight, LogOut, Settings } from "lucide-react";
+import { type ReactNode } from "react";
 import { Link, NavLink, Outlet, useParams } from "react-router";
-import { HOLDS_OBJECTS, useChildren, useContextById, useMe, useSite, type Context } from "../api/queries";
+import { useContextById, useMe } from "../api/queries";
 import { userManager } from "../auth/oidc";
-import { ContextIcon, initials, Spinner } from "./common";
+import { initials } from "./common";
 import { GlobalSearch } from "./GlobalSearch";
+import { Navigator, useNavigatorCollapsed } from "./Navigator";
 
 export function Layout() {
   const { data: me } = useMe();
+  const [collapsed] = useNavigatorCollapsed();
 
   return (
     <div className="shell">
@@ -42,65 +44,13 @@ export function Layout() {
           </button>
         </div>
       </header>
-      <div className="body">
-        <nav className="sidebar" aria-label="Contexts">
-          <div className="sidebar-title">Navigator</div>
-          <ContextTree />
-        </nav>
+      <div className={collapsed ? "body nav-collapsed" : "body"}>
+        <Navigator />
         <main className="main">
           <Outlet />
         </main>
       </div>
     </div>
-  );
-}
-
-/** Lazily expanding tree of the contexts the user can see. */
-function ContextTree() {
-  const { data: site, isLoading } = useSite();
-  if (isLoading) return <div style={{ padding: 12 }}><Spinner /></div>;
-  if (!site) return <p className="muted" style={{ padding: "4px 12px" }}>You are not on any team yet.</p>;
-  return (
-    <ul className="tree">
-      <TreeNode context={site} initiallyOpen />
-    </ul>
-  );
-}
-
-function TreeNode({ context, initiallyOpen = false }: { context: Context; initiallyOpen?: boolean }) {
-  const [open, setOpen] = useState(initiallyOpen);
-  const leaf = HOLDS_OBJECTS.has(context.kind);
-  const { data: children } = useChildren(context.id, open && !leaf);
-  const { id: currentId } = useParams();
-
-  return (
-    <li>
-      <div className={currentId === context.id ? "tree-row active" : "tree-row"}>
-        {leaf ? (
-          <span className="tree-spacer" />
-        ) : (
-          <button
-            className="tree-toggle"
-            aria-label={`${open ? "Collapse" : "Expand"} ${context.name}`}
-            aria-expanded={open}
-            onClick={() => setOpen(!open)}
-          >
-            {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-          </button>
-        )}
-        <NavLink to={`/contexts/${context.id}`}>
-          <ContextIcon kind={context.kind} size={14} />
-          <span>{context.name}</span>
-        </NavLink>
-      </div>
-      {open && children && children.length > 0 && (
-        <ul>
-          {children.map((child) => (
-            <TreeNode key={child.id} context={child} />
-          ))}
-        </ul>
-      )}
-    </li>
   );
 }
 

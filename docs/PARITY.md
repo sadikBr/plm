@@ -29,7 +29,7 @@ search summaries; those are marked *(to confirm)*. The list is about **what** us
 | Capability | Status | Notes |
 |---|---|---|
 | Context hierarchy: Site → Organization → Product / Library / Project | ✅ | Closure table, inherited teams and policies |
-| **Context templates** (product, library, project, organization): team roles, folders, policies, preferences, seed objects. Create a context from a template; export a context as a template | 🟡 | Rules, team, shared teams ✅ · in config bundles ✅ · folders [3], preferences [1.13], seed objects [3] |
+| **Context templates** (product, library, project, organization): team roles, folders, policies, preferences, seed objects. Create a context from a template; export a context as a template | 🟡 | Rules, team, shared teams ✅ · in config bundles ✅ · folders, preferences and seed objects [3] |
 | Teams with roles per context, inherited down the tree | ✅ | Inherited members shown on each context |
 | Custom team roles (e.g. Design Engineer, Change Admin) | ✅ | Roles are data, managed in the admin UI |
 | Shared teams (one team reused by several contexts) | ✅ | Admin → Shared teams; attach on a context's Team tab |

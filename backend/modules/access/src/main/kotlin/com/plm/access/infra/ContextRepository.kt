@@ -51,6 +51,54 @@ internal class ContextRepository(
             .query(mapper)
             .list()
 
+    /** The context and its ancestors, root first. */
+    fun path(context: ContextId): List<Context> =
+        jdbc
+            .sql(
+                """
+                select c.* from context_closure cc join context c on c.id = cc.ancestor_id
+                where cc.descendant_id = :context order by cc.depth desc
+                """,
+            ).param("context", context.value)
+            .query(mapper)
+            .list()
+
+    /**
+     * Contexts whose name contains [text] (case-insensitive) that [principal] can see: on the team
+     * of the context, an ancestor or a descendant (the same rule as visibility). Site admins see all.
+     */
+    fun search(
+        tenant: TenantId,
+        principal: String,
+        siteAdmin: Boolean,
+        text: String,
+        limit: Int,
+    ): List<Context> {
+        val pattern = "%" + text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+        return jdbc
+            .sql(
+                """
+                select c.* from context c
+                where c.tenant_id = :tenant and c.name ilike :pattern
+                  and (:admin or exists (
+                    select 1 from team_membership tm
+                    join context_closure cc
+                      on (cc.ancestor_id = tm.context_id and cc.descendant_id = c.id)
+                      or (cc.descendant_id = tm.context_id and cc.ancestor_id = c.id)
+                    where tm.tenant_id = :tenant and tm.principal_id = :principal
+                  ))
+                order by c.name
+                limit :limit
+                """,
+            ).param("tenant", tenant.value)
+            .param("pattern", pattern)
+            .param("admin", siteAdmin)
+            .param("principal", principal)
+            .param("limit", limit)
+            .query(mapper)
+            .list()
+    }
+
     fun insert(
         tenant: TenantId,
         context: Context,

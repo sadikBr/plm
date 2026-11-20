@@ -317,4 +317,15 @@ class PolicyServiceIT(
         )
         assertThat(members.takeLast(2).map { it.contextId }).containsOnly(w.org.id)
     }
+
+    @Test
+    fun `policies of contexts you can't see don't exist for you`() {
+        val w = World()
+        val other = World()
+        val policy = policies.create(w.manager, w.drone.id, CreatePolicy(TeamRole.VIEWER, permissions = setOf(MODIFY)))
+
+        assertThatThrownBy { policies.delete(other.manager, policy.id) }
+            .isInstanceOfSatisfying(NotFoundException::class.java) { assertThat(it.code).isEqualTo("POLICY_NOT_FOUND") }
+        assertThat(policies.policies(w.manager, w.drone.id)).contains(policy)
+    }
 }

@@ -53,6 +53,7 @@ internal class TemplateRepository(
             id = SharedTeamId(getObject("id", UUID::class.java)),
             name = getString("name"),
             description = getString("description"),
+            organizationId = getObject("organization_id", UUID::class.java)?.let(::ContextId),
             members = members(SharedTeamId(getObject("id", UUID::class.java))),
             createdAt = getTimestamp("created_at").toInstant(),
             createdBy = getString("created_by"),
@@ -85,10 +86,11 @@ internal class TemplateRepository(
             jdbc
                 .sql(
                     """
-                    insert into shared_team (id, tenant_id, name, description, created_at, created_by)
-                    values (:id, :tenant, :name, :description, :createdAt, :createdBy)
+                    insert into shared_team (id, tenant_id, name, description, organization_id, created_at, created_by)
+                    values (:id, :tenant, :name, :description, :organization, :createdAt, :createdBy)
                     """,
                 ).param("id", team.id.value)
+                .param("organization", team.organizationId?.value)
                 .param("tenant", tenant.value)
                 .param("name", team.name)
                 .param("description", team.description)
@@ -176,6 +178,19 @@ internal class TemplateRepository(
             .param("team", team.value)
             .update()
 
+    /** The organization a context belongs to (itself, for an organization); null for the site. */
+    fun organizationOf(context: ContextId): ContextId? =
+        jdbc
+            .sql(
+                """
+                select c.id from context_closure cc join context c on c.id = cc.ancestor_id
+                where cc.descendant_id = :context and c.kind = 'ORGANIZATION'
+                """,
+            ).param("context", context.value)
+            .query { rs, _ -> ContextId(rs.getObject("id", UUID::class.java)) }
+            .optional()
+            .orElse(null)
+
     // ---------- Templates ----------
 
     @Suppress("UNCHECKED_CAST")
@@ -223,6 +238,7 @@ internal class TemplateRepository(
             kind = ContextKind.valueOf(getString("kind")),
             description = getString("description"),
             content = content(getString("content")),
+            organizationId = getObject("organization_id", UUID::class.java)?.let(::ContextId),
             createdAt = getTimestamp("created_at").toInstant(),
             createdBy = getString("created_by"),
             updatedAt = getTimestamp("updated_at").toInstant(),
@@ -255,8 +271,10 @@ internal class TemplateRepository(
             jdbc
                 .sql(
                     """
-                    insert into context_template (id, tenant_id, name, kind, description, content, created_at, created_by, updated_at)
-                    values (:id, :tenant, :name, :kind, :description, cast(:content as jsonb), :createdAt, :createdBy, :updatedAt)
+                    insert into context_template
+                        (id, tenant_id, name, kind, description, content, organization_id, created_at, created_by, updated_at)
+                    values (:id, :tenant, :name, :kind, :description, cast(:content as jsonb), :organization, :createdAt, :createdBy,
+                            :updatedAt)
                     on conflict (id) do update set name = excluded.name, kind = excluded.kind,
                         description = excluded.description, content = excluded.content, updated_at = excluded.updated_at
                     """,
@@ -266,6 +284,7 @@ internal class TemplateRepository(
                 .param("kind", template.kind.name)
                 .param("description", template.description)
                 .param("content", write(template.content))
+                .param("organization", template.organizationId?.value)
                 .param("createdAt", Timestamp.from(template.createdAt))
                 .param("createdBy", template.createdBy)
                 .param("updatedAt", Timestamp.from(template.updatedAt))

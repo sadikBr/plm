@@ -26,6 +26,8 @@ data class SharedTeam(
     val id: SharedTeamId,
     val name: String,
     val description: String?,
+    /** Set for a team that belongs to one organization: managed by its managers, attachable only inside it. */
+    val organizationId: ContextId?,
     val members: List<SharedTeamMember>,
     val createdAt: Instant,
     val createdBy: String,
@@ -34,23 +36,33 @@ data class SharedTeam(
 /**
  * Shared teams (roadmap 1.12): a group of people with roles, maintained in one place and attached
  * to any number of contexts. Members hold their role in every context the team is attached to,
- * and below it. Site administrators manage the teams; a context's managers attach and detach them.
+ * and below it. Site-wide teams are managed by site administrators; an organization's own teams by
+ * its managers (roadmap 1.14). A context's managers attach and detach teams usable there.
  *
  * Error codes: `ADMIN_REQUIRED`, `ACCESS_DENIED`, `SHARED_TEAM_NOT_FOUND`, `INVALID_SHARED_TEAM`,
  * `DUPLICATE_SHARED_TEAM`, `UNKNOWN_ROLE`, `MEMBER_NOT_FOUND`.
  */
 interface SharedTeamService {
+    /** Teams the actor can see: site-wide ones and those of organizations visible to them. */
     fun list(actor: Actor): List<SharedTeam>
+
+    /** Teams that can be attached to [contextId]: site-wide ones and its organization's. */
+    fun usableIn(
+        actor: Actor,
+        contextId: ContextId,
+    ): List<SharedTeam>
 
     fun get(
         actor: Actor,
         id: SharedTeamId,
     ): SharedTeam
 
+    /** [organizationId] null: a site-wide team (site administrators only). */
     fun create(
         actor: Actor,
         name: String,
         description: String?,
+        organizationId: ContextId? = null,
     ): SharedTeam
 
     fun delete(
@@ -129,6 +141,8 @@ data class ContextTemplate(
     val kind: ContextKind,
     val description: String?,
     val content: TemplateContent,
+    /** Set for an organization's own template: managed by its managers, usable only inside it. */
+    val organizationId: ContextId?,
     val createdAt: Instant,
     val createdBy: String,
     val updatedAt: Instant,
@@ -139,17 +153,21 @@ data class SaveContextTemplate(
     val kind: ContextKind,
     val description: String? = null,
     val content: TemplateContent = TemplateContent(),
+    /** Null: site-wide (site administrators only). Can't be changed after creation. */
+    val organizationId: ContextId? = null,
 )
 
 /**
- * Context templates (roadmap 1.12). Everyone can see them (to pick one when creating a context);
- * site administrators create, change and delete them. Error codes: `ADMIN_REQUIRED`,
+ * Context templates (roadmap 1.12). Site-wide templates are managed by site administrators; an
+ * organization's own templates by its managers and usable only inside it (roadmap 1.14). Error codes: `ADMIN_REQUIRED`,
  * `TEMPLATE_NOT_FOUND`, `INVALID_TEMPLATE`, `DUPLICATE_TEMPLATE`, `TEMPLATE_KIND_MISMATCH`.
  */
 interface ContextTemplateService {
+    /** Templates the actor can see; with [parentId], only those usable for a new context under it. */
     fun list(
         actor: Actor,
         kind: ContextKind? = null,
+        parentId: ContextId? = null,
     ): List<ContextTemplate>
 
     fun get(
@@ -173,12 +191,17 @@ interface ContextTemplateService {
         id: ContextTemplateId,
     )
 
-    /** A template from an existing context: its own access rules, team and attached shared teams. */
+    /**
+     * A template from an existing context: its own access rules, team and attached shared teams.
+     * Site administrators may make it site-wide; otherwise it belongs to the context's organization
+     * (needs MANAGE there).
+     */
     fun saveFromContext(
         actor: Actor,
         contextId: ContextId,
         name: String,
         description: String?,
+        siteWide: Boolean = false,
     ): ContextTemplate
 
     /**

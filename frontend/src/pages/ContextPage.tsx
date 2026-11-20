@@ -1,5 +1,5 @@
 import { FilePlus, FolderPlus, LayoutTemplate } from "lucide-react";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { isApiError } from "../api/client";
 import {
@@ -34,6 +34,7 @@ import {
   kindLabel,
 } from "../components/common";
 import { Breadcrumbs, PageHeader, Tabs, useIdParam } from "../components/Layout";
+import { rememberVisit } from "../components/Navigator";
 import { ObjectTable } from "../components/ObjectTable";
 import { AccessTab, TeamTab } from "./ContextAccess";
 import { PreferencesTab } from "./Preferences";
@@ -53,6 +54,10 @@ function ContextView({ id }: { id: string }) {
   const { data: me } = useMe();
   const [params, setParams] = useSearchParams();
   const [dialog, setDialog] = useState<"object" | "context" | "template" | null>(null);
+
+  useEffect(() => {
+    if (context) rememberVisit(context);
+  }, [context]);
 
   if (isLoading) return <Loading />;
   if (isApiError(error, 404)) return <NotFoundPage what="context" />;

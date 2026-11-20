@@ -68,6 +68,19 @@ interface ContextService {
         parentId: ContextId,
     ): List<Context>
 
+    /** The context and its ancestors, root (the site) first. */
+    fun path(
+        actor: Actor,
+        id: ContextId,
+    ): List<Context>
+
+    /** Visible contexts whose name contains [text], by name. At most [limit] (1-100). */
+    fun search(
+        actor: Actor,
+        text: String,
+        limit: Int = 20,
+    ): List<Context>
+
     /**
      * Organizations can only be created by site administrators. Other contexts need MANAGE on the
      * parent. The creator becomes MANAGER of the new context.

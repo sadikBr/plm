@@ -49,6 +49,41 @@ private fun requireAdmin(
     if (!actor.siteAdmin) throw ForbiddenException("ADMIN_REQUIRED", "Only site administrators can $what")
 }
 
+/**
+ * Who administers something scoped to [organizationId]: site administrators for site-wide things,
+ * the organization's managers (MANAGE on it) for its own (roadmap 1.14).
+ */
+private fun requireScopeAdmin(
+    actor: Actor,
+    organizationId: ContextId?,
+    contexts: ContextService,
+    access: AccessService,
+    what: String,
+) {
+    if (organizationId == null) return requireAdmin(actor, "manage site-wide $what")
+    val org = contexts.get(actor, organizationId)
+    if (org.kind != ContextKind.ORGANIZATION) {
+        throw ValidationException(
+            "INVALID_SCOPE",
+            "${org.name} is not an organization",
+            mapOf(
+                "errors" to listOf("${org.name} is not an organization"),
+            ),
+        )
+    }
+    access.require(actor, AccessTarget(org.id), Permission.MANAGE)
+}
+
+/**
+ * Whether something scoped to [organizationId] is visible to [actor]: site-wide, or its organization
+ * is. Asked of the repository: a failed lookup through the service would spoil the transaction.
+ */
+private fun visibleScope(
+    actor: Actor,
+    organizationId: ContextId?,
+    access: AccessRepository,
+) = organizationId == null || actor.siteAdmin || access.isVisible(actor.tenant, actor.principal, organizationId)
+
 @Service
 @Transactional
 internal class DefaultSharedTeamService(
@@ -60,7 +95,18 @@ internal class DefaultSharedTeamService(
     private val clock: Clock,
 ) : SharedTeamService {
     @Transactional(readOnly = true)
-    override fun list(actor: Actor): List<SharedTeam> = teams.teams(actor.tenant)
+    override fun list(actor: Actor): List<SharedTeam> =
+        teams.teams(actor.tenant).filter { visibleScope(actor, it.organizationId, access) }
+
+    @Transactional(readOnly = true)
+    override fun usableIn(
+        actor: Actor,
+        contextId: ContextId,
+    ): List<SharedTeam> {
+        val context = contexts.get(actor, contextId)
+        val org = teams.organizationOf(context.id)
+        return teams.teams(actor.tenant).filter { it.organizationId == null || it.organizationId == org }
+    }
 
     @Transactional(readOnly = true)
     override fun get(
@@ -80,8 +126,9 @@ internal class DefaultSharedTeamService(
         actor: Actor,
         name: String,
         description: String?,
+        organizationId: ContextId?,
     ): SharedTeam {
-        requireAdmin(actor, "manage shared teams")
+        requireScopeAdmin(actor, organizationId, contexts, accessService, "shared teams")
         val trimmed = name.trim()
         if (trimmed.isEmpty() || trimmed.length > 200) {
             throw ValidationException(
@@ -97,6 +144,7 @@ internal class DefaultSharedTeamService(
                 SharedTeamId(UuidV7.generate(clock)),
                 trimmed,
                 description?.trim()?.ifEmpty { null },
+                organizationId,
                 emptyList(),
                 now(),
                 actor.principal.value,
@@ -110,8 +158,8 @@ internal class DefaultSharedTeamService(
         actor: Actor,
         id: SharedTeamId,
     ) {
-        requireAdmin(actor, "manage shared teams")
         val team = get(actor, id)
+        requireScopeAdmin(actor, team.organizationId, contexts, accessService, "shared teams")
         teams.deleteTeam(id)
         events.publish(actor, SharedTeamChanged(id.value, team.name, "deleted"))
     }
@@ -122,8 +170,8 @@ internal class DefaultSharedTeamService(
         principalId: PrincipalId,
         role: TeamRole,
     ): SharedTeam {
-        requireAdmin(actor, "manage shared teams")
         val team = get(actor, id)
+        requireScopeAdmin(actor, team.organizationId, contexts, accessService, "shared teams")
         val definition = access.role(actor.tenant, role)
         if (definition == null || !definition.active) {
             throw ValidationException(
@@ -142,8 +190,8 @@ internal class DefaultSharedTeamService(
         id: SharedTeamId,
         principalId: PrincipalId,
     ): SharedTeam {
-        requireAdmin(actor, "manage shared teams")
         val team = get(actor, id)
+        requireScopeAdmin(actor, team.organizationId, contexts, accessService, "shared teams")
         if (teams.removeTeamMember(id, principalId) == 0) {
             throw NotFoundException("MEMBER_NOT_FOUND", "$principalId is not on this team")
         }
@@ -168,6 +216,9 @@ internal class DefaultSharedTeamService(
         val context = contexts.get(actor, contextId)
         accessService.require(actor, AccessTarget(context.id), Permission.MANAGE)
         val team = get(actor, id)
+        if (team.organizationId != null && team.organizationId != teams.organizationOf(context.id)) {
+            throw ValidationException("TEAM_NOT_USABLE_HERE", "${team.name} belongs to another organization")
+        }
         teams.attach(actor.tenant, context.id, id, now(), actor.principal.value)
         events.publish(actor, SharedTeamChanged(id.value, team.name, "attached to ${context.name} (${context.id})"))
     }
@@ -193,6 +244,7 @@ internal class DefaultSharedTeamService(
 @Transactional
 internal class DefaultContextTemplateService(
     private val templates: TemplateRepository,
+    private val accessService: AccessService,
     private val access: AccessRepository,
     private val contexts: ContextService,
     private val policies: PolicyService,
@@ -206,7 +258,15 @@ internal class DefaultContextTemplateService(
     override fun list(
         actor: Actor,
         kind: ContextKind?,
-    ): List<ContextTemplate> = templates.templates(actor.tenant).filter { kind == null || it.kind == kind }
+        parentId: ContextId?,
+    ): List<ContextTemplate> {
+        val parentOrg = parentId?.let { templates.organizationOf(contexts.get(actor, it).id) }
+        return templates.templates(actor.tenant).filter {
+            (kind == null || it.kind == kind) &&
+                visibleScope(actor, it.organizationId, access) &&
+                (parentId == null || it.organizationId == null || it.organizationId == parentOrg)
+        }
+    }
 
     @Transactional(readOnly = true)
     override fun get(
@@ -226,7 +286,7 @@ internal class DefaultContextTemplateService(
         actor: Actor,
         command: SaveContextTemplate,
     ): ContextTemplate {
-        requireAdmin(actor, "manage context templates")
+        requireScopeAdmin(actor, command.organizationId, contexts, accessService, "context templates")
         val now = now()
         return save(
             actor,
@@ -236,6 +296,7 @@ internal class DefaultContextTemplateService(
                 command.kind,
                 null,
                 TemplateContent(),
+                command.organizationId,
                 now,
                 actor.principal.value,
                 now,
@@ -249,16 +310,17 @@ internal class DefaultContextTemplateService(
         id: ContextTemplateId,
         command: SaveContextTemplate,
     ): ContextTemplate {
-        requireAdmin(actor, "manage context templates")
-        return save(actor, get(actor, id), command)
+        val existing = get(actor, id)
+        requireScopeAdmin(actor, existing.organizationId, contexts, accessService, "context templates")
+        return save(actor, existing, command.copy(organizationId = existing.organizationId))
     }
 
     override fun delete(
         actor: Actor,
         id: ContextTemplateId,
     ) {
-        requireAdmin(actor, "manage context templates")
         val template = get(actor, id)
+        requireScopeAdmin(actor, template.organizationId, contexts, accessService, "context templates")
         templates.deleteTemplate(id)
         events.publish(actor, ContextTemplateChanged(id.value, template.name, template.kind.name, deleted = true))
     }
@@ -268,9 +330,17 @@ internal class DefaultContextTemplateService(
         contextId: ContextId,
         name: String,
         description: String?,
+        siteWide: Boolean,
     ): ContextTemplate {
-        requireAdmin(actor, "manage context templates")
         val context = contexts.get(actor, contextId)
+        val scope =
+            if (siteWide ||
+                context.kind == ContextKind.ORGANIZATION
+            ) {
+                null
+            } else {
+                templates.organizationOf(context.id)
+            }
         if (context.kind == ContextKind.SITE) {
             throw ValidationException(
                 "INVALID_TEMPLATE",
@@ -296,7 +366,7 @@ internal class DefaultContextTemplateService(
                 members = teams.members(actor, context.id).map { TemplateMember(it.principalId.value, it.role.key) },
                 sharedTeams = sharedTeams.attached(actor, context.id).map { it.name },
             )
-        return create(actor, SaveContextTemplate(name, context.kind, description, content))
+        return create(actor, SaveContextTemplate(name, context.kind, description, content, scope))
     }
 
     override fun createContext(
@@ -305,6 +375,10 @@ internal class DefaultContextTemplateService(
         templateId: ContextTemplateId,
     ): Context {
         val template = get(actor, templateId)
+        val parentOrg = templates.organizationOf(contexts.get(actor, command.parentId).id)
+        if (template.organizationId != null && template.organizationId != parentOrg) {
+            throw ValidationException("TEMPLATE_NOT_USABLE_HERE", "'${template.name}' belongs to another organization")
+        }
         if (template.kind != command.kind) {
             throw ValidationException(
                 "TEMPLATE_KIND_MISMATCH",
@@ -312,10 +386,10 @@ internal class DefaultContextTemplateService(
             )
         }
         // The template may have gone stale (a role deactivated, a type renamed): say so before creating anything.
-        failIfAny(errors(actor, template.content))
+        failIfAny(errors(actor, template.content, template.organizationId))
         val context = contexts.create(actor, command)
         val typeIds = types.list(actor).associate { it.name to it.id }
-        val teamIds = sharedTeams.list(actor).associate { it.name to it.id }
+        val teamIds = sharedTeams.usableIn(actor, context.id).associate { it.name to it.id }
         for (m in template.content.members) {
             // The creator stays MANAGER of what they create.
             if (m.principalId !=
@@ -349,7 +423,10 @@ internal class DefaultContextTemplateService(
             problems +=
                 "There is only one site: templates are for organizations, products, libraries and projects"
         }
-        problems += errors(actor, command.content)
+        if (command.kind == ContextKind.ORGANIZATION && existing.organizationId != null) {
+            problems += "Organization templates are site-wide: organizations are created on the site"
+        }
+        problems += errors(actor, command.content, existing.organizationId)
         failIfAny(problems)
         val saved =
             existing.copy(
@@ -368,6 +445,7 @@ internal class DefaultContextTemplateService(
     private fun errors(
         actor: Actor,
         content: TemplateContent,
+        organizationId: ContextId?,
     ): List<String> {
         val errors = mutableListOf<String>()
         val roles =
@@ -377,7 +455,14 @@ internal class DefaultContextTemplateService(
                 .map { it.role.key }
                 .toSet()
         val typeNames = types.list(actor).map { it.name }.toSet()
-        val teamNames = sharedTeams.list(actor).map { it.name }.toSet()
+        // A template may use site-wide teams, and its own organization's.
+        val teamNames =
+            templates
+                .teams(actor.tenant)
+                .filter {
+                    it.organizationId == null || it.organizationId == organizationId
+                }.map { it.name }
+                .toSet()
         content.policies.forEachIndexed { i, p ->
             val rule = "Rule ${i + 1}"
             if (p.role !in roles) errors += "$rule: no active role '${p.role}'"

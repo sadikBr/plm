@@ -157,7 +157,8 @@ internal class DefaultPolicyService(
     ): AccessPolicy {
         val policy = repository.policy(actor.tenant, id)
         // A policy on a context the caller can't see doesn't exist, as far as they know.
-        val visible = policy != null && runCatching { contexts.get(actor, policy.contextId) }.isSuccess
+        val visible =
+            policy != null && (actor.siteAdmin || repository.isVisible(actor.tenant, actor.principal, policy.contextId))
         if (!visible) {
             throw NotFoundException(
                 "POLICY_NOT_FOUND",

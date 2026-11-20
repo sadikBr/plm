@@ -105,4 +105,20 @@ class ContextServiceIT(
                 assertThat(it.code).isEqualTo("DUPLICATE_CONTEXT_NAME")
             }
     }
+
+    @Test
+    fun `search finds visible contexts by name, and path lists ancestors root first`() {
+        val tag = UUID.randomUUID().toString().take(8)
+        val org = contexts.create(admin, CreateContext(ContextId.DEFAULT_SITE, ContextKind.ORGANIZATION, "Search $tag"))
+        val mine = contexts.create(admin, CreateContext(org.id, ContextKind.PRODUCT, "Gearbox $tag"))
+        contexts.create(admin, CreateContext(org.id, ContextKind.PRODUCT, "Gear_$tag hidden"))
+        val dora = Actors.user("dora").also { teams.put(admin, mine.id, it.principal, TeamRole.MEMBER) }
+
+        assertThat(contexts.search(admin, "gear").map { it.name }).contains("Gearbox $tag", "Gear_$tag hidden")
+        // Dora sees her product and, through it, its organization, but not its sibling.
+        assertThat(contexts.search(dora, tag).map { it.name }).containsExactlyInAnyOrder("Search $tag", "Gearbox $tag")
+        // Wildcards are literal.
+        assertThat(contexts.search(admin, "Gear_$tag").map { it.name }).containsExactly("Gear_$tag hidden")
+        assertThat(contexts.path(dora, mine.id).map { it.id }).containsExactly(ContextId.DEFAULT_SITE, org.id, mine.id)
+    }
 }
