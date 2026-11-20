@@ -45,6 +45,7 @@ internal class ActionConfigRepository(
                                     .getString(
                                         "states",
                                     )?.let { json.readValue(it, Array<String>::class.java).toList() },
+                            visibleWhen = rs.getString("visible_when"),
                         ),
                     updatedAt = rs.getTimestamp("updated_at").toInstant(),
                     updatedBy = rs.getString("updated_by"),
@@ -61,11 +62,11 @@ internal class ActionConfigRepository(
         jdbc
             .sql(
                 """
-                insert into action_config (tenant_id, action_id, hidden, placement, sort_order, label, types, states, updated_at, updated_by)
-                values (:tenant, :id, :hidden, :placement, :order, :label, cast(:types as jsonb), cast(:states as jsonb), :at, :by)
+                insert into action_config (tenant_id, action_id, hidden, placement, sort_order, label, types, states, visible_when, updated_at, updated_by)
+                values (:tenant, :id, :hidden, :placement, :order, :label, cast(:types as jsonb), cast(:states as jsonb), :visibleWhen, :at, :by)
                 on conflict (tenant_id, action_id) do update set
                     hidden = excluded.hidden, placement = excluded.placement, sort_order = excluded.sort_order,
-                    label = excluded.label, types = excluded.types, states = excluded.states,
+                    label = excluded.label, types = excluded.types, states = excluded.states, visible_when = excluded.visible_when,
                     updated_at = excluded.updated_at, updated_by = excluded.updated_by
                 """.trimIndent(),
             ).param("tenant", tenant.value)
@@ -76,6 +77,7 @@ internal class ActionConfigRepository(
             .param("label", configuration.label)
             .param("types", configuration.types?.let(json::writeValueAsString))
             .param("states", configuration.states?.let(json::writeValueAsString))
+            .param("visibleWhen", configuration.visibleWhen)
             .param("at", Timestamp.from(at))
             .param("by", by)
             .update()

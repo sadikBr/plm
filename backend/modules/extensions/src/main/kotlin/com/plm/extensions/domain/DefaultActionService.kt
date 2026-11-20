@@ -16,14 +16,19 @@ import com.plm.platform.error.ForbiddenException
 import com.plm.platform.error.NotFoundException
 import com.plm.platform.error.ValidationException
 import com.plm.platform.events.DomainEvents
+import com.plm.platform.expression.ExpressionException
+import com.plm.platform.expression.ExpressionKind
+import com.plm.platform.expression.Expressions
 import com.plm.types.api.TypeService
 import com.plm.versioning.api.MasterId
 import com.plm.versioning.api.VersioningService
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
 
 private const val MAX_LABEL = 60
+private val log = LoggerFactory.getLogger(DefaultActionService::class.java)
 
 @Service
 @Transactional
@@ -87,6 +92,8 @@ internal class DefaultActionService(
                 versioning.lifecycle(actor, objectId),
                 access.permissions(actor, AccessTarget(obj.contextId, obj.typeId, obj.latest.state)),
             )
+        // Built only if some action has a condition.
+        val model by lazy { versioning.expressionModel(actor, objectId) }
         val names = types.list(actor).associate { it.id to it.name }
         val lineage = types.lineage(actor, obj.typeId).mapNotNull { names[it] }.toSet()
         return registered(actor)
@@ -95,6 +102,7 @@ internal class DefaultActionService(
             .map { it.effective }
             .filter { it.types.isEmpty() || it.types.any { t -> t in lineage } }
             .filter { it.states.isEmpty() || obj.latest.state in it.states }
+            .filter { it.visibleWhen == null || visible(it, model) }
             .mapNotNull { action ->
                 when (val availability = BuiltinAvailability.of(action.id, situation)) {
                     Availability.Hidden -> null
@@ -119,6 +127,18 @@ internal class DefaultActionService(
                 }
             }.toList()
     }
+
+    /** A condition that fails to evaluate hides the action (and is logged for the administrator). */
+    private fun visible(
+        action: ActionDefinition,
+        model: Map<String, Any?>,
+    ): Boolean =
+        try {
+            Expressions.test(action.visibleWhen!!, model)
+        } catch (e: ExpressionException) {
+            log.warn("Visibility condition of {} failed, so it is hidden: {}", action.id, e.message)
+            false
+        }
 
     private fun registered(actor: Actor): List<RegisteredAction> {
         val stored = configs.all(actor.tenant).associateBy { it.actionId }
@@ -165,7 +185,26 @@ internal class DefaultActionService(
                 mapOf("states" to unknownStates),
             )
         }
-        return c.copy(label = label, types = c.types?.distinct(), states = c.states?.distinct())
+        val visibleWhen = c.visibleWhen?.trim()
+        if (!visibleWhen.isNullOrEmpty()) {
+            val problems = Expressions.check(visibleWhen, ExpressionKind.CONDITION)
+            if (problems.isNotEmpty()) {
+                throw ValidationException(
+                    "INVALID_EXPRESSION",
+                    "The visibility condition isn't valid: ${problems.first().message}",
+                    mapOf(
+                        "problems" to
+                            problems.map { mapOf("message" to it.message, "line" to it.line, "column" to it.column) },
+                    ),
+                )
+            }
+        }
+        return c.copy(
+            label = label,
+            types = c.types?.distinct(),
+            states = c.states?.distinct(),
+            visibleWhen = visibleWhen,
+        )
     }
 
     private fun requireAdmin(actor: Actor) {

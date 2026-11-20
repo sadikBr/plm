@@ -162,4 +162,34 @@ class ActionServiceIT(
             )
         }.isInstanceOfSatisfying(ValidationException::class.java) { assertThat(it.code).isEqualTo("INVALID_STATE") }
     }
+
+    @Test
+    fun `a visibility condition shows an action only where it holds, and must be valid`() {
+        val part = newPart()
+        actions.configure(
+            admin,
+            "object.copy-link",
+            ActionConfiguration(visibleWhen = "object.attributes.material == 'Ti'"),
+        )
+        assertThat(actions.available(alice, part.id).map { it.id }).doesNotContain("object.copy-link")
+        actions.configure(
+            admin,
+            "object.copy-link",
+            ActionConfiguration(visibleWhen = "object.attributes.material == 'AL6061' && 'Part' in object.types"),
+        )
+        assertThat(actions.available(alice, part.id).map { it.id }).contains("object.copy-link")
+        // Uses what the user may do.
+        actions.configure(admin, "object.copy-link", ActionConfiguration(visibleWhen = "'MANAGE' in user.permissions"))
+        assertThat(actions.available(alice, part.id).map { it.id }).doesNotContain("object.copy-link")
+        assertThat(actions.available(manager, part.id).map { it.id }).contains("object.copy-link")
+        // One that fails at run time hides the action rather than breaking the page.
+        actions.configure(admin, "object.copy-link", ActionConfiguration(visibleWhen = "object.attributes.nosuch == 1"))
+        assertThat(actions.available(alice, part.id).map { it.id }).doesNotContain("object.copy-link")
+
+        assertThatThrownBy {
+            actions.configure(admin, "object.copy-link", ActionConfiguration(visibleWhen = "object.state =="))
+        }.isInstanceOfSatisfying(
+            ValidationException::class.java,
+        ) { assertThat(it.code).isEqualTo("INVALID_EXPRESSION") }
+    }
 }

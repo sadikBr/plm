@@ -28,6 +28,9 @@
               "type" : "string"
             },
             "type" : [ "array", "null" ]
+          },
+          "visibleWhen" : {
+            "type" : [ "string", "null" ]
           }
         },
         "type" : "object"
@@ -72,6 +75,9 @@
               "type" : "string"
             },
             "type" : "array"
+          },
+          "visibleWhen" : {
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "description", "group", "handler", "label", "order", "placement", "states", "types" ],
@@ -418,6 +424,34 @@
           }
         },
         "required" : [ "lifecycleId" ],
+        "type" : "object"
+      },
+      "CheckExpressionRequest" : {
+        "properties" : {
+          "expression" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "CONDITION", "VALUE" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "expression", "kind" ],
+        "type" : "object"
+      },
+      "CheckExpressionResponse" : {
+        "properties" : {
+          "problems" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ExpressionProblem"
+            },
+            "type" : "array"
+          },
+          "valid" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "problems", "valid" ],
         "type" : "object"
       },
       "CheckInRequest" : {
@@ -997,6 +1031,22 @@
         "required" : [ "key", "labels" ],
         "type" : "object"
       },
+      "EvaluateExpressionResponse" : {
+        "properties" : {
+          "error" : {
+            "type" : [ "string", "null" ]
+          },
+          "problems" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ExpressionProblem"
+            },
+            "type" : "array"
+          },
+          "value" : { }
+        },
+        "required" : [ "problems" ],
+        "type" : "object"
+      },
       "ExplanationResponse" : {
         "properties" : {
           "contextId" : {
@@ -1030,6 +1080,23 @@
           }
         },
         "required" : [ "contextId", "permissions", "principalId", "roles", "siteAdmin" ],
+        "type" : "object"
+      },
+      "ExpressionProblem" : {
+        "properties" : {
+          "column" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "line" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "message" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "message" ],
         "type" : "object"
       },
       "GlobalAttributeResponse" : {
@@ -4098,6 +4165,44 @@
         "tags" : [ "Reference data" ]
       }
     },
+    "/api/v1/expressions/check" : {
+      "post" : {
+        "operationId" : "expressionCheck",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CheckExpressionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CheckExpressionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Expression" ]
+      }
+    },
     "/api/v1/lifecycles" : {
       "get" : {
         "operationId" : "lifecycleList",
@@ -4744,6 +4849,91 @@
           }
         },
         "tags" : [ "Versioned object" ]
+      }
+    },
+    "/api/v1/objects/{id}/expression-model" : {
+      "get" : {
+        "operationId" : "expressionModel",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "additionalProperties" : { },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Expression" ]
+      }
+    },
+    "/api/v1/objects/{id}/expression-model/evaluate" : {
+      "post" : {
+        "operationId" : "expressionEvaluate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CheckExpressionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EvaluateExpressionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Expression" ]
       }
     },
     "/api/v1/objects/{id}/iterations" : {
@@ -6438,6 +6628,8 @@
     "name" : "Context"
   }, {
     "name" : "Context template"
+  }, {
+    "name" : "Expression"
   }, {
     "name" : "Global attribute"
   }, {

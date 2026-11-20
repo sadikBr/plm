@@ -496,6 +496,32 @@ curl -s $API/types/00000000-0000-7000-8000-000000000101/attributes -H "Authoriza
   | jq -c '[.[] | select(.global) | .name]'
 ```
 
+### Expressions
+
+Conditions and formulas that administrators write (action visibility, validation rules, calculated
+attributes, lifecycle gates) use [CEL](https://cel.dev), the Common Expression Language: no side
+effects, no I/O, loops bounded, so an expression can't change data or hang the server. They see:
+
+| Variable | Contents |
+|---|---|
+| `object` | `number`, `name`, `type`, `types` (the type and its parents), `state`, `revision`, `iteration`, `version`, `checkedOut`, `context.name`, `context.kind` |
+| `object.attributes` | Every attribute of the type, `null` when empty; quantities are `{value, unit}` |
+| `user` | `id`, `siteAdmin`, `permissions` (e.g. `'MODIFY' in user.permissions`) |
+
+Examples: `object.state == 'RELEASED' && 'Part' in object.types` ·
+`object.attributes.description != null` · `double(object.attributes.quantity) * object.attributes.unitCost`.
+
+Every expression box in the admin UI checks as you type, lists these variables, and can **try** the
+expression on a real object. The same through the API:
+
+```bash
+curl -s -X POST $API/expressions/check -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d '{"expression": "object.state ==", "kind": "CONDITION"}'
+curl -s "$API/objects/$PART/expression-model" -H "Authorization: Bearer $ALICE" | jq
+curl -s -X POST "$API/objects/$PART/expression-model/evaluate" -H "Authorization: Bearer $ALICE" \
+  -H 'Content-Type: application/json' -d '{"expression": "object.attributes.material", "kind": "VALUE"}'
+```
+
 ### Actions
 
 Every action on an object (check out, check in, revise, set state, copy link, rename…) is an entry
@@ -506,7 +532,8 @@ on that object in display order, and says why each disabled action can't be used
 
 Site administrators adjust actions under **Admin → Actions**: move an action between the toolbar
 and the More menu, reorder, hide it, rename it, or restrict it to some types (subtypes included)
-and states. Only the changes are stored, so improvements to built-in actions still arrive; **Reset**
+and states, or give it a **Visible when** condition (an expression, above): it then shows only on
+objects where the condition is true (one that fails to evaluate hides the action). Only the changes are stored, so improvements to built-in actions still arrive; **Reset**
 goes back to the defaults. Extensions will add their own actions to the same registry (roadmap 2.3, 2.4).
 
 ```bash
@@ -614,6 +641,8 @@ Rules of the game (see [ADR 0019](adr/0019-configuration-as-code.md)):
 | GET / POST | `/api/v1/context-templates?kind=…` | Context templates / create one (site admin) |
 | PUT / DELETE | `/api/v1/context-templates/{id}` | Change / delete a template (site admin) |
 | POST | `/api/v1/contexts/{id}/save-as-template` | Save a context as a template (site admin) |
+| POST | `/api/v1/expressions/check` | Check an expression (`{expression, kind: CONDITION\|VALUE}`) |
+| GET · POST | `/api/v1/objects/{id}/expression-model` · `/evaluate` | Variables expressions see for an object / evaluate one there |
 | GET | `/api/v1/objects/{id}/actions` | Actions you see on an object, in order, with reasons for disabled ones |
 | GET | `/api/v1/actions` | Action registry: every action as declared and configured (site admin) |
 | PUT / DELETE | `/api/v1/actions/{id}/configuration` | Hide, move, reorder, relabel, restrict an action / reset it (site admin) |

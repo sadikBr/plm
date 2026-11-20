@@ -469,6 +469,17 @@ tr.inherited .perm { opacity: 0.8; }
 .subtabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
 tr.inactive td { color: var(--text-3); }
 .small { font-size: 12px; }
+/* Expression editor (CEL). */
+textarea.code { font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12.5px; resize: vertical; }
+.expr-status { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-3); }
+.expr-status.bad { color: var(--danger); }
+.expr-help { font-size: 12px; color: var(--text-2); }
+.expr-help summary { cursor: pointer; color: var(--text-3); }
+.expr-help ul { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 3px; }
+.expr-try { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.expr-try input { width: 220px; height: 26px; min-height: 26px; font-size: 12.5px; }
+.expr-result { font-size: 12px; font-family: var(--mono, ui-monospace, monospace); color: var(--ok); }
+.expr-result.bad { color: var(--danger); }
 .check-list { margin: 0; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 12px; max-height: 220px; overflow: auto; }
 .check-list legend { font-size: 12px; color: var(--text-3); padding: 0 4px; }
 .banner.info { background: var(--info-soft); color: var(--info); }

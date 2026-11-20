@@ -88,8 +88,9 @@ internal data class ActionConfigurationRequest(
     val label: String? = null,
     val types: List<String>? = null,
     val states: List<String>? = null,
+    val visibleWhen: String? = null,
 ) {
-    fun toConfiguration() = ActionConfiguration(hidden ?: false, placement, order, label, types, states)
+    fun toConfiguration() = ActionConfiguration(hidden ?: false, placement, order, label, types, states, visibleWhen)
 }
 
 internal data class ActionDefinitionResponse(
@@ -102,6 +103,7 @@ internal data class ActionDefinitionResponse(
     val types: List<String>,
     val states: List<String>,
     val requires: String?,
+    val visibleWhen: String?,
     val handler: ActionHandler,
 )
 
@@ -123,7 +125,15 @@ internal data class RegisteredActionResponse(
         effective = definition(r.effective),
         configuration =
             r.configuration?.let {
-                ActionConfigurationRequest(it.hidden, it.placement, it.order, it.label, it.types, it.states)
+                ActionConfigurationRequest(
+                    it.hidden,
+                    it.placement,
+                    it.order,
+                    it.label,
+                    it.types,
+                    it.states,
+                    it.visibleWhen,
+                )
             },
         configuredAt = r.configuredAt,
         configuredBy = r.configuredBy,
@@ -141,6 +151,7 @@ internal data class RegisteredActionResponse(
                 d.types,
                 d.states,
                 d.requires?.name,
+                d.visibleWhen,
                 d.handler,
             )
     }

@@ -232,6 +232,16 @@ interface VersioningService {
         command: ChangeLifecycle,
     ): VersionedObject
 
+    /**
+     * The variables expressions see for this object, as of its latest iteration (`object`, `user`;
+     * see [com.plm.platform.expression.ExpressionModel]). Used to evaluate conditions elsewhere
+     * (action visibility) and to show administrators what an expression can use.
+     */
+    fun expressionModel(
+        actor: Actor,
+        id: MasterId,
+    ): Map<String, Any?>
+
     /** Lifecycle, current state and what the actor can do next. Lets the UI explain disabled actions. */
     fun lifecycle(
         actor: Actor,

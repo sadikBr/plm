@@ -72,6 +72,7 @@ internal class DefaultVersioningService(
     private val typeRules: TypeRuleService,
     private val lifecycles: LifecycleService,
     private val preferences: PreferenceService,
+    private val models: ObjectModels,
     private val clock: Clock,
 ) : VersioningService {
     override fun create(
@@ -528,6 +529,31 @@ internal class DefaultVersioningService(
         )
         return renamed.toObject(latest)
     }
+
+    @Transactional(readOnly = true)
+    override fun expressionModel(
+        actor: Actor,
+        id: MasterId,
+    ): Map<String, Any?> {
+        val master = findMaster(actor, id, forUpdate = false)
+        return models.build(actor, master.facts(readable(actor, master)))
+    }
+
+    private fun MasterRow.facts(
+        iteration: Iteration,
+        attributes: Map<String, Any?> = iteration.attributes,
+        state: String = iteration.state,
+    ) = ObjectFacts(
+        typeId = typeId,
+        contextId = contextId,
+        number = number,
+        name = name,
+        state = state,
+        revision = iteration.revision,
+        iteration = iteration.iteration,
+        checkedOut = checkedOutBy != null,
+        attributes = attributes,
+    )
 
     @Transactional(readOnly = true)
     override fun lifecycle(

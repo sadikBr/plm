@@ -9,6 +9,7 @@ import {
   type RegisteredAction,
 } from "../api/queries";
 import { Dialog, ErrorBanner, Loading, Panel, PrincipalName, formatDate } from "../components/common";
+import { ExpressionField } from "../components/ExpressionField";
 import { ACTION_ICONS } from "../pages/ObjectActions";
 
 type Placement = RegisteredAction["effective"]["placement"];
@@ -163,7 +164,8 @@ export function ActionsAdmin() {
 function scope(a: RegisteredAction) {
   const types = a.effective.types.length ? a.effective.types.join(", ") : "All types";
   const states = a.effective.states.length ? a.effective.states.join(", ") : "all states";
-  return `${types} · ${states}${a.effective.requires ? ` · needs ${a.effective.requires.toLowerCase()}` : ""}`;
+  const condition = a.effective.visibleWhen ? ` · when ${a.effective.visibleWhen}` : "";
+  return `${types} · ${states}${a.effective.requires ? ` · needs ${a.effective.requires.toLowerCase()}` : ""}${condition}`;
 }
 
 /** Label, and which types and states the action applies to. */
@@ -174,6 +176,7 @@ function ActionDialog({ action, onClose }: { action: RegisteredAction; onClose: 
   const [label, setLabel] = useState(action.configuration?.label ?? "");
   const [typeNames, setTypeNames] = useState<string[]>(action.effective.types);
   const [states, setStates] = useState<string[]>(action.effective.states);
+  const [visibleWhen, setVisibleWhen] = useState(action.configuration?.visibleWhen ?? action.declared.visibleWhen ?? "");
   // Every state any lifecycle has, once, with its first label.
   const stateKeys = [...new Map((lifecycles ?? []).flatMap((l) => l.states.map((s) => [s.key, s.labels.en ?? s.key] as const))).entries()];
   const toggle = (list: string[], set: (l: string[]) => void, value: string) =>
@@ -203,6 +206,8 @@ function ActionDialog({ action, onClose }: { action: RegisteredAction; onClose: 
                     // Only store what differs from the declaration, so later platform changes still apply.
                     types: same(typeNames, action.declared.types) ? null : typeNames,
                     states: same(states, action.declared.states) ? null : states,
+                    // Empty clears a condition the declaration has; unchanged keeps following it.
+                    visibleWhen: visibleWhen.trim() === (action.declared.visibleWhen ?? "") ? null : visibleWhen.trim(),
                   },
                 },
                 { onSuccess: onClose },
@@ -233,6 +238,14 @@ function ActionDialog({ action, onClose }: { action: RegisteredAction; onClose: 
               </label>
             ))}
         </fieldset>
+        <ExpressionField
+          id="action-visible-when"
+          label="Visible when"
+          value={visibleWhen}
+          onChange={setVisibleWhen}
+          placeholder="e.g. object.attributes.source == 'make'"
+          hint="Optional. The action shows only on objects where this is true."
+        />
         <fieldset className="check-list">
           <legend>States (none ticked = every state)</legend>
           {stateKeys.map(([key, name]) => (

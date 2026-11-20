@@ -36,6 +36,8 @@ data class ActionDefinition(
     val states: List<String> = emptyList(),
     /** Permission needed on the object; null: none beyond reading it. */
     val requires: Permission? = null,
+    /** A CEL condition over `object` and `user`; the action shows only where it's true. */
+    val visibleWhen: String? = null,
     val handler: ActionHandler = ActionHandler.BUILTIN,
     /** `platform`, or the extension that declared it. */
     val source: String = "platform",
@@ -54,6 +56,8 @@ data class ActionConfiguration(
     val label: String? = null,
     val types: List<String>? = null,
     val states: List<String>? = null,
+    /** Empty string: no condition, even if the declaration has one. */
+    val visibleWhen: String? = null,
 )
 
 /** An action in the registry: as declared, as configured, and the result. */
@@ -75,6 +79,7 @@ data class RegisteredAction(
                     label = it.label ?: declared.label,
                     types = it.types ?: declared.types,
                     states = it.states ?: declared.states,
+                    visibleWhen = it.visibleWhen?.let { v -> v.ifBlank { null } } ?: declared.visibleWhen,
                 )
             } ?: declared
 }
@@ -104,7 +109,7 @@ interface ActionService {
     /** Every action, in display order. Site administrators only (`ADMIN_REQUIRED`). */
     fun registry(actor: Actor): List<RegisteredAction>
 
-    /** `ACTION_NOT_FOUND`, `UNKNOWN_TYPE`, `INVALID_STATE`. Site administrators only. */
+    /** `ACTION_NOT_FOUND`, `UNKNOWN_TYPE`, `INVALID_STATE`, `INVALID_EXPRESSION`. Site administrators only. */
     fun configure(
         actor: Actor,
         id: String,

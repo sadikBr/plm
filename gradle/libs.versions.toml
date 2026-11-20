@@ -4,6 +4,7 @@ spring-boot = "4.1.2"
 ktlint-gradle = "14.2.0"
 archunit = "1.5.1"
 springdoc = "3.2.0"
+cel = "0.11.1"
 
 [libraries]
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -29,12 +30,15 @@ jackson-databind = { module = "tools.jackson.core:jackson-databind" }
 flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
 postgresql = { module = "org.postgresql:postgresql" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect" }
+slf4j-api = { module = "org.slf4j:slf4j-api" }
 jackson-kotlin = { module = "tools.jackson.module:jackson-module-kotlin" }
 testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }
 testcontainers-redpanda = { module = "org.testcontainers:testcontainers-redpanda" }
 testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupiter" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 springdoc-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+# Common Expression Language, for conditions, validations, formulas and gates (roadmap 2.2).
+cel = { module = "dev.cel:cel", version.ref = "cel" }
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 
 [bundles]
