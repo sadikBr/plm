@@ -398,6 +398,7 @@ textarea { min-height: 56px; resize: vertical; }
 .banner.error { background: var(--danger-soft); color: var(--danger); }
 .banner.warn { background: var(--warn-soft); color: var(--warn); }
 .banner.ok { background: var(--ok-soft); color: var(--ok); display: flex; align-items: center; gap: 6px; }
+.banner.result { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .banner.error[role="status"] { display: flex; align-items: center; gap: 6px; }
 .perm-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
 .perm-items li { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }

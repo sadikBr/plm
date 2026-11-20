@@ -44,7 +44,7 @@
             "type" : "string"
           },
           "handler" : {
-            "enum" : [ "BUILTIN", "CLIENT", "URL" ],
+            "enum" : [ "BUILTIN", "CLIENT", "URL", "WEBHOOK" ],
             "type" : "string"
           },
           "icon" : {
@@ -83,6 +83,86 @@
         "required" : [ "description", "group", "handler", "label", "order", "placement", "states", "types" ],
         "type" : "object"
       },
+      "ActionDownload" : {
+        "properties" : {
+          "content" : {
+            "type" : "string"
+          },
+          "contentType" : {
+            "type" : "string"
+          },
+          "filename" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "content", "contentType", "filename" ],
+        "type" : "object"
+      },
+      "ActionForm" : {
+        "properties" : {
+          "properties" : {
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/FormField"
+            },
+            "type" : "object"
+          },
+          "required" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "title" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "properties", "required" ],
+        "type" : "object"
+      },
+      "ActionInvocation" : {
+        "properties" : {
+          "actionId" : {
+            "type" : "string"
+          },
+          "actor" : {
+            "type" : "string"
+          },
+          "at" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "durationMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "extensionId" : {
+            "type" : "string"
+          },
+          "httpStatus" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "message" : {
+            "type" : [ "string", "null" ]
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "objectNumber" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "actionId", "actor", "at", "durationMs", "extensionId", "id", "objectId", "objectNumber", "status" ],
+        "type" : "object"
+      },
       "ActionOptionResponse" : {
         "properties" : {
           "label" : {
@@ -96,6 +176,38 @@
           }
         },
         "required" : [ "label", "override", "value" ],
+        "type" : "object"
+      },
+      "ActionResult" : {
+        "properties" : {
+          "download" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ActionDownload"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "level" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : [ "string", "null" ]
+          },
+          "navigateToObject" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "navigateToUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "ok" : {
+            "type" : "boolean"
+          },
+          "refresh" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "level", "ok", "refresh" ],
         "type" : "object"
       },
       "AppliesTo" : {
@@ -407,11 +519,18 @@
           "enabled" : {
             "type" : "boolean"
           },
+          "form" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ActionForm"
+            }, {
+              "type" : "null"
+            } ]
+          },
           "group" : {
             "type" : "string"
           },
           "handler" : {
-            "enum" : [ "BUILTIN", "CLIENT", "URL" ],
+            "enum" : [ "BUILTIN", "CLIENT", "URL", "WEBHOOK" ],
             "type" : "string"
           },
           "icon" : {
@@ -1299,6 +1418,40 @@
         "required" : [ "auditId", "config", "enabled", "id", "installedAt", "installedBy", "manifest", "name", "permissions", "platform", "secretsSet", "source", "status", "updatedAt", "updatedBy", "version" ],
         "type" : "object"
       },
+      "FormField" : {
+        "properties" : {
+          "default" : { },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "enum" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "maxLength" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "maximum" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "minimum" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "title" : {
+            "type" : [ "string", "null" ]
+          },
+          "type" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "enum", "type" ],
+        "type" : "object"
+      },
       "GlobalAttributeResponse" : {
         "properties" : {
           "attribute" : {
@@ -1357,6 +1510,15 @@
           }
         },
         "required" : [ "manifest" ],
+        "type" : "object"
+      },
+      "InvokeActionRequest" : {
+        "properties" : {
+          "parameters" : {
+            "additionalProperties" : { },
+            "type" : [ "object", "null" ]
+          }
+        },
         "type" : "object"
       },
       "IterationResponse" : {
@@ -1676,6 +1838,13 @@
           "description" : {
             "type" : [ "string", "null" ]
           },
+          "form" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ActionForm"
+            }, {
+              "type" : "null"
+            } ]
+          },
           "group" : {
             "type" : [ "string", "null" ]
           },
@@ -1712,6 +1881,13 @@
         "properties" : {
           "url" : {
             "type" : [ "string", "null" ]
+          },
+          "webhook" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/WebhookHandler"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "type" : "object"
@@ -2966,6 +3142,22 @@
           }
         },
         "required" : [ "active", "condition", "id", "inherited", "message", "name", "order", "typeId", "updatedAt", "updatedBy" ],
+        "type" : "object"
+      },
+      "WebhookHandler" : {
+        "properties" : {
+          "secret" : {
+            "type" : "string"
+          },
+          "timeoutSeconds" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "url" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "secret", "timeoutSeconds", "url" ],
         "type" : "object"
       }
     },
@@ -4916,6 +5108,45 @@
         "tags" : [ "Extension" ]
       }
     },
+    "/api/v1/extensions/{id}/invocations" : {
+      "get" : {
+        "operationId" : "actionInvocations",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ActionInvocation"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Action" ]
+      }
+    },
     "/api/v1/lifecycles" : {
       "get" : {
         "operationId" : "lifecycleList",
@@ -5462,6 +5693,60 @@
                     "$ref" : "#/components/schemas/AvailableActionResponse"
                   },
                   "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Action" ]
+      }
+    },
+    "/api/v1/objects/{id}/actions/{actionId}/invoke" : {
+      "post" : {
+        "operationId" : "actionInvoke",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "actionId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InvokeActionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ActionResult"
                 }
               }
             },

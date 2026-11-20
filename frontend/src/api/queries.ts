@@ -502,6 +502,27 @@ export const useAvailableActions = (obj: VersionedObject) =>
     queryFn: () => unwrap(api.GET("/api/v1/objects/{id}/actions", { params: { path: { id: obj.id } } })),
   });
 
+export type ActionResult = Schemas["ActionResult"];
+export type ActionForm = Schemas["ActionForm"];
+
+/** Runs a server-side action (an extension's webhook) with the form's answers. */
+export function useInvokeAction(objectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ actionId, parameters }: { actionId: string; parameters: Record<string, unknown> }) =>
+      unwrap(api.POST("/api/v1/objects/{id}/actions/{actionId}/invoke", { params: { path: { id: objectId, actionId } }, body: { parameters } })),
+    onSuccess: (result) => {
+      // The service may have changed the object, and the call is in its audit trail.
+      void qc.invalidateQueries({ queryKey: keys.audit(objectId) });
+      if (result.refresh) {
+        for (const key of [keys.object(objectId), keys.history(objectId), keys.lifecycle(objectId), keys.availableActions(objectId)]) {
+          void qc.invalidateQueries({ queryKey: key });
+        }
+      }
+    },
+  });
+}
+
 /** Admin → Actions: every action as declared and configured. */
 export const useActionRegistry = () =>
   useQuery({ queryKey: keys.actionRegistry, queryFn: () => unwrap(api.GET("/api/v1/actions")) });

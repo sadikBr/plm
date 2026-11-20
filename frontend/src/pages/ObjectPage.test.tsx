@@ -269,4 +269,51 @@ describe("ObjectPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Too slow");
     expect(screen.getByRole("alert")).toHaveTextContent("ALREADY_CHECKED_OUT");
   });
+
+  it("runs an extension's webhook action: asks its form, then shows the answer", async () => {
+    const obj = object({ latest: iteration({ state: "RELEASED" }) });
+    const send = {
+      id: "acme.erp-sync.send-to-erp",
+      label: "Send to ERP",
+      icon: "send",
+      placement: "OBJECT_TOOLBAR",
+      group: "acme.erp-sync",
+      handler: "WEBHOOK",
+      enabled: true,
+      reason: null,
+      options: [],
+      url: null,
+      source: "acme.erp-sync",
+      form: {
+        title: "Production order",
+        properties: {
+          plant: { type: "string", title: "Plant", enum: ["P100", "P200"] },
+          quantity: { type: "integer", title: "Quantity", enum: [], default: 1, minimum: 1 },
+        },
+        required: ["plant", "quantity"],
+      },
+    };
+    const calls = apiFor(obj, ["READ"], {
+      "GET /api/v1/objects/:id/actions": () => [...objectActions(obj, ["READ"], lifecycle("RELEASED"), { userId: BOB }), send],
+      "POST /api/v1/objects/:id/actions/:actionId/invoke": () => ({
+        ok: true,
+        level: "INFO",
+        message: "Production order SO-4711 created",
+        refresh: true,
+      }),
+    });
+    renderAt(`/objects/${obj.id}`);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Send to ERP" }));
+    const dialog = await screen.findByRole("dialog", { name: "Send to ERP: Production order" });
+    expect(within(dialog).getByLabelText("Quantity")).toHaveValue(1);
+    expect(within(dialog).getByRole("button", { name: "Send to ERP" })).toBeDisabled(); // plant is required
+    await userEvent.selectOptions(within(dialog).getByLabelText("Plant"), "P200");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Send to ERP" }));
+
+    await waitFor(() =>
+      expect(calls.find((c) => c.path.endsWith("/invoke"))?.body).toEqual({ parameters: { plant: "P200", quantity: 1 } }),
+    );
+    expect(await screen.findByRole("status")).toHaveTextContent("Send to ERP: Production order SO-4711 created");
+  });
 });

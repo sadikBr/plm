@@ -98,8 +98,10 @@ our own later features are built on the same mechanisms. See [EXTENSIBILITY.md](
 - [x] 2.2 Expression language (CEL) for conditions, validations, calculated attributes and gates.
 - [x] 2.3 Extension packages: manifest (`plm-extension.yaml`), install / upgrade / disable per
       tenant, compatibility check against the platform contract version, audit.
-- [ ] 2.4 Custom actions with handlers: webhook (signed), start a workflow (Phase 5), open a URL or
+- [x] 2.4 Custom actions with handlers: webhook (signed), start a workflow (Phase 5), open a URL or
       panel. Parameter forms generated from a schema; results (message, refresh, navigate, download).
+      (Done: signed webhooks, URLs, forms, results, call log. Starting a workflow comes with the
+      workflow engine in Phase 5, panels with UI extension slots in Phase 5.)
 - [ ] 2.5 Pre-operation rules: synchronous validation hooks that can refuse an operation with a
       message (expressions first; scripts in Phase 5).
 - [ ] 2.6 Event subscriptions and webhooks: filters, signing, retries with backoff, dead letters,

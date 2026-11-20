@@ -39,6 +39,7 @@ import {
 } from "../components/common";
 import { Breadcrumbs, PageHeader, Tabs, useIdParam } from "../components/Layout";
 import { NotFoundPage } from "./NotFoundPage";
+import { useActionRunner } from "./ActionRunner";
 import { ObjectActionBar, type ActionHandlers } from "./ObjectActions";
 
 type Tab = "details" | "history" | "audit";
@@ -82,6 +83,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
   const typeName = useTypeName(obj.typeId);
   const actions = useObjectActions(obj.id);
   const { data: available } = useAvailableActions(obj);
+  const runner = useActionRunner(obj.id);
   const { data: lifecycle } = useLifecycle(obj.id);
   const [checkingIn, setCheckingIn] = useState(false);
   const [comment, setComment] = useState("");
@@ -139,7 +141,11 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
             <span className="sub">{typeName}</span>
           </>
         }
-        toolbar={available ? <ObjectActionBar actions={available} handlers={handlers} busy={busy} stateLabel={label} /> : undefined}
+        toolbar={
+          available ? (
+            <ObjectActionBar actions={available} handlers={handlers} busy={busy || runner.busy} stateLabel={label} onInvoke={runner.run} />
+          ) : undefined
+        }
         tabs={tabs}
       />
       {failed != null && (
@@ -147,6 +153,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
           <ErrorBanner error={failed} />
         </div>
       )}
+      {runner.ui}
       {renaming && <RenameDialog obj={obj} onClose={() => setRenaming(false)} />}
       {changingLifecycle && lifecycle && (
         <ChangeLifecycleDialog obj={obj} current={lifecycle} onClose={() => setChangingLifecycle(false)} />
@@ -634,6 +641,12 @@ function AuditTab({ id }: { id: string }) {
                       ` · was ${String(entry.details.previousNumber)} “${String(entry.details.previousName)}”, now ${String(entry.details.number)} “${String(entry.details.name)}”`}
                     {"from" in entry.details && "to" in entry.details && ` · ${String(entry.details.from)} → ${String(entry.details.to)}`}
                     {"comment" in entry.details && entry.details.comment ? ` · “${String(entry.details.comment)}”` : ""}
+                    {"actionId" in entry.details && (
+                      <>
+                        <code>{String(entry.details.actionId)}</code> · {String(entry.details.status).toLowerCase()}
+                        {entry.details.message ? ` · ${String(entry.details.message)}` : ""}
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}

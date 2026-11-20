@@ -125,6 +125,7 @@ internal class DefaultActionService(
                             options = availability.options,
                             url = action.url?.let { extensionActions.fill(it, obj, model, actor) },
                             source = action.source,
+                            form = action.form,
                         )
                     }
                 }

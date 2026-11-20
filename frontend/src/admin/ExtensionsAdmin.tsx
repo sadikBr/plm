@@ -1,10 +1,12 @@
 import { CircleAlert, CircleCheck, FileUp, Package, Power, Trash2, Upload } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { Link } from "react-router";
 import { useAudit } from "../api/queries";
 import { Dialog, ErrorBanner, Loading, Panel, PrincipalName, formatDate } from "../components/common";
 import {
   useConfigureExtension,
   useEnableExtension,
+  useExtensionInvocations,
   useExtensions,
   useInstallExtension,
   usePlatform,
@@ -176,6 +178,8 @@ function ExtensionDetail({ extension: e }: { extension: Extension }) {
         <ManifestActions manifest={e.manifest} />
       </Panel>
 
+      <RecentCalls extensionId={e.id} />
+
       <ExtensionHistory auditId={e.auditId} />
     </div>
   );
@@ -219,7 +223,7 @@ function ManifestActions({ manifest, highlight }: { manifest: ExtensionManifest;
           <th>Action</th>
           <th>Shows in</th>
           <th>Applies to</th>
-          <th>Opens</th>
+          <th>Does</th>
         </tr>
       </thead>
       <tbody>
@@ -246,7 +250,21 @@ function ManifestActions({ manifest, highlight }: { manifest: ExtensionManifest;
               {a.visibleWhen ? ` · when ${a.visibleWhen}` : ""}
             </td>
             <td>
-              <code className="wrap-code">{a.handler.url}</code>
+              {a.handler.webhook ? (
+                <>
+                  <span className="tag">calls</span> <code className="wrap-code">{a.handler.webhook.url}</code>
+                  {a.form && Object.keys(a.form.properties ?? {}).length > 0 && (
+                    <div className="muted small">
+                      Asks:{" "}
+                      {Object.values(a.form.properties ?? {})
+                        .map((f) => f.title)
+                        .join(", ")}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <code className="wrap-code">{a.handler.url}</code>
+              )}
             </td>
           </tr>
         ))}
@@ -317,6 +335,56 @@ function ConfigForm({
         );
       })}
     </div>
+  );
+}
+
+const CALL_STATUS: Record<string, string> = { OK: "tag allow", FAILED: "tag warn", ERROR: "tag deny", TIMEOUT: "tag deny" };
+
+/** What its actions did lately: who ran what on which object, and how it went. */
+function RecentCalls({ extensionId }: { extensionId: string }) {
+  const { data } = useExtensionInvocations(extensionId);
+  return (
+    <Panel title="Recent calls" note={data ? `${data.length}${data.length === 50 ? "+" : ""}` : undefined} flush>
+      {!data?.length ? (
+        <p className="empty">Its actions haven't called its service yet.</p>
+      ) : (
+        <table className="grid" aria-label="Recent calls">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Action</th>
+              <th>Object</th>
+              <th>Who</th>
+              <th>Result</th>
+              <th>Took</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((c) => (
+              <tr key={c.id}>
+                <td className="nowrap muted">{formatDate(c.at)}</td>
+                <td className="nowrap">
+                  <code>{c.actionId.slice(extensionId.length + 1)}</code>
+                </td>
+                <td className="nowrap">
+                  <Link className="num-link" to={`/objects/${c.objectId}`}>
+                    {c.objectNumber}
+                  </Link>
+                </td>
+                <td className="nowrap">
+                  <PrincipalName id={c.actor} />
+                </td>
+                <td>
+                  <span className={CALL_STATUS[c.status] ?? "tag"}>{c.status.toLowerCase()}</span>
+                  {c.httpStatus != null && <span className="muted"> {c.httpStatus}</span>} {c.message}
+                </td>
+                <td className="nowrap muted">{c.durationMs} ms</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </Panel>
   );
 }
 

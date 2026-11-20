@@ -20,6 +20,9 @@ enum class ActionHandler {
 
     /** Opens a web address (from an extension), with the object's details filled in. */
     URL,
+
+    /** Calls an extension's service and shows what it answers. */
+    WEBHOOK,
 }
 
 /**
@@ -47,6 +50,8 @@ data class ActionDefinition(
     val handler: ActionHandler = ActionHandler.BUILTIN,
     /** For [ActionHandler.URL]: the address, with `${object.number}`-style placeholders. */
     val url: String? = null,
+    /** Questions asked before running it. */
+    val form: ActionForm? = null,
     /** `platform`, or the extension that declared it. */
     val source: String = "platform",
 )
@@ -115,7 +120,81 @@ data class AvailableAction(
     val url: String? = null,
     /** `platform`, or the extension that declared it. */
     val source: String = "platform",
+    val form: ActionForm? = null,
 )
+
+/** What running an action gave: shown to the user, and what the page should do next. */
+data class ActionResult(
+    val ok: Boolean,
+    /** INFO, WARNING or ERROR. */
+    val level: String,
+    val message: String?,
+    val refresh: Boolean = false,
+    /** Go to this object... */
+    val navigateToObject: java.util.UUID? = null,
+    /** ...or open this address. */
+    val navigateToUrl: String? = null,
+    val download: ActionDownload? = null,
+)
+
+data class ActionDownload(
+    val filename: String,
+    val contentType: String,
+    /** Base64. */
+    val content: String,
+)
+
+/** One call of an extension's action, for its log. */
+data class ActionInvocation(
+    val id: java.util.UUID,
+    val actionId: String,
+    val extensionId: String,
+    val objectId: java.util.UUID,
+    val objectNumber: String,
+    val actor: String,
+    val at: java.time.Instant,
+    /** OK, FAILED (the service said no), ERROR (no usable answer), TIMEOUT. */
+    val status: String,
+    val httpStatus: Int?,
+    val durationMs: Long,
+    val message: String?,
+)
+
+/** Runs actions that are carried out on the server (webhooks), and keeps their log. */
+interface ActionInvocationService {
+    /**
+     * Runs [actionId] on the object with the form's [parameters], if the actor may use it there now
+     * (`ACTION_NOT_FOUND`, `ACTION_NOT_AVAILABLE`, `INVALID_PARAMETERS`, `ACTION_NOT_INVOCABLE`).
+     * A service that fails or doesn't answer gives a result with `ok = false`, not an exception.
+     */
+    fun invoke(
+        actor: Actor,
+        objectId: MasterId,
+        actionId: String,
+        parameters: Map<String, Any?>,
+    ): ActionResult
+
+    /** The latest calls of an extension's actions, newest first. Site administrators. */
+    fun invocations(
+        actor: Actor,
+        extensionId: String,
+        limit: Int = 50,
+    ): List<ActionInvocation>
+}
+
+/** Recorded on the object, so its audit trail shows what extensions did with it. */
+data class ExtensionActionInvoked(
+    val objectId: java.util.UUID,
+    val number: String,
+    val actionId: String,
+    val extensionId: String,
+    val status: String,
+    val message: String?,
+) : DomainEvent {
+    override val eventType = "extensions.ExtensionActionInvoked.v1"
+    override val aggregateType = "versioned-object"
+    override val aggregateId: java.util.UUID = objectId
+}
 
 interface ActionService {
     /** Every action, in display order. Site administrators only (`ADMIN_REQUIRED`). */

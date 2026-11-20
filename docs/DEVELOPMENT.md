@@ -519,6 +519,23 @@ curl -s -X POST $API/extensions/preview -H "Authorization: Bearer $ALICE" -H 'Co
 curl -s -X POST $API/extensions -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' -d @/tmp/ext.json | jq '{id, version, status}'
 ```
 
+### Webhook actions
+
+An extension action can call the extension's own service (`handler: webhook`, roadmap 2.4). If it
+has a `form`, the user answers it first (fields generated from the manifest: text, number, yes/no,
+choice; checked on the server, `INVALID_PARAMETERS`). The platform then POSTs the object, the user
+and the answers, signed with HMAC-SHA256 (`X-PLM-Signature`), and shows what the service answers:
+a message (info, warning or error), and optionally refreshes the page, goes to an object or a
+web address, or downloads a file. A service that refuses, fails or doesn't answer in time (at most
+30 s) shows an error; nothing is retried. Every call is in the extension's **Recent calls** and in
+the object's audit trail. The contract, and a mock ERP to try it with, are in
+[extensions/README.md](../extensions/README.md).
+
+```bash
+curl -s -X POST "$API/objects/$PART/actions/acme.erp-sync.send-to-erp/invoke" -H "Authorization: Bearer $BOB" \
+  -H 'Content-Type: application/json' -d '{"parameters": {"plant": "P100", "quantity": 5}}'
+```
+
 ### Expressions
 
 Conditions and formulas that administrators write (action visibility, validation rules, calculated
@@ -713,6 +730,8 @@ Rules of the game (see [ADR 0019](adr/0019-configuration-as-code.md)):
 | POST | `/api/v1/extensions/preview` | What installing a manifest would do; changes nothing |
 | GET · DELETE | `/api/v1/extensions/{id}` | One extension / uninstall |
 | PUT | `/api/v1/extensions/{id}/config` · `/enabled` | Change settings / enable or disable |
+| POST | `/api/v1/objects/{id}/actions/{actionId}/invoke` | Run a webhook action (`{parameters}`); the result says what to show and do |
+| GET | `/api/v1/extensions/{id}/invocations` | The latest calls of an extension's actions (site admin) |
 | GET | `/api/v1/objects/{id}/actions` | Actions you see on an object, in order, with reasons for disabled ones |
 | GET | `/api/v1/actions` | Action registry: every action as declared and configured (site admin) |
 | PUT / DELETE | `/api/v1/actions/{id}/configuration` | Hide, move, reorder, relabel, restrict an action / reset it (site admin) |

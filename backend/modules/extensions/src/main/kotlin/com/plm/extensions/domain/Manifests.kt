@@ -17,6 +17,7 @@ private val ACTION_ID = Regex("^[a-z][a-z0-9-]{0,40}$")
 private val CONFIG_KEY = Regex("^[a-zA-Z][a-zA-Z0-9]{0,40}$")
 private val CONFIG_TYPES = setOf("string", "url", "secret", "number", "boolean", "choice")
 private val PLACEMENTS = setOf("object.toolbar", "object.more")
+private val FORM_TYPES = setOf("string", "integer", "number", "boolean")
 private val PLACEHOLDER = Regex("\\$\\{([a-zA-Z.]+)}")
 private val URL_VARIABLES =
     setOf("object.number", "object.id", "object.name", "object.type", "object.state", "object.version", "user.id")
@@ -92,27 +93,66 @@ internal object Manifests {
                         "$at: visibleWhen: ${it.message}"
                 }
             }
-            val url = a.handler.url
-            if (url == null) {
-                errors += "$at: needs a handler (url)"
-            } else {
-                if (!url.startsWith("https://") && !url.startsWith("http://") && !url.startsWith("\${config.")) {
-                    errors += "$at: the url must start with https:// (or a config setting)"
+            val handlers = listOfNotNull(a.handler.url, a.handler.webhook)
+            if (handlers.size != 1) errors += "$at: needs exactly one handler: url or webhook"
+            a.handler.url?.let { errors += urlProblems(m, at, "url", it) }
+            a.handler.webhook?.let { w ->
+                if ("webhooks:call" !in m.permissions) errors += "$at: a webhook needs the 'webhooks:call' permission"
+                errors += urlProblems(m, at, "webhook url", w.url)
+                if (m.config[w.secret]?.type !=
+                    "secret"
+                ) {
+                    errors += "$at: webhook secret must name a setting of type secret"
                 }
-                PLACEHOLDER.findAll(url).map { it.groupValues[1] }.forEach { name ->
-                    val key = name.removePrefix("config.")
-                    when {
-                        name.startsWith("config.") && m.config[key] == null ->
-                            errors +=
-                                "$at: url uses unknown setting '$key'"
-                        name.startsWith("config.") && m.config[key]?.type == "secret" ->
-                            errors +=
-                                "$at: url can't contain the secret '$key'"
-                        !name.startsWith("config.") && name !in URL_VARIABLES ->
-                            errors +=
-                                "$at: url can use ${URL_VARIABLES.joinToString { "\${$it}" }} and \${config.<key>}"
+                if (w.timeoutSeconds !in 1..30) errors += "$at: timeoutSeconds must be 1 to 30"
+            }
+            a.form?.let { f ->
+                f.properties.forEach { (name, field) ->
+                    if (!CONFIG_KEY.matches(name)) errors += "$at: form field '$name' must be letters and digits"
+                    if (field.type !in
+                        FORM_TYPES
+                    ) {
+                        errors +=
+                            "$at: form field '$name': type must be one of ${FORM_TYPES.joinToString()}"
+                    }
+                    if (field.enum.isNotEmpty() &&
+                        field.type != "string"
+                    ) {
+                        errors += "$at: form field '$name': enum is for strings"
                     }
                 }
+                f.required.filter { it !in f.properties }.forEach { errors += "$at: form requires unknown field '$it'" }
+                if (f.properties.isNotEmpty() &&
+                    a.handler.webhook == null
+                ) {
+                    errors += "$at: a form needs a webhook handler to send its answers to"
+                }
+            }
+        }
+        return errors
+    }
+
+    private fun urlProblems(
+        m: ExtensionManifest,
+        at: String,
+        what: String,
+        url: String,
+    ): List<String> {
+        val errors = mutableListOf<String>()
+        if (!url.startsWith("https://") && !url.startsWith("http://") && !url.startsWith("\${config.")) {
+            errors += "$at: the $what must start with https:// (or a config setting)"
+        }
+        PLACEHOLDER.findAll(url).map { it.groupValues[1] }.forEach { name ->
+            val key = name.removePrefix("config.")
+            when {
+                name.startsWith("config.") && m.config[key] == null ->
+                    errors +=
+                        "$at: $what uses unknown setting '$key'"
+                name.startsWith("config.") && m.config[key]?.type == "secret" ->
+                    errors +=
+                        "$at: $what can't contain the secret '$key'"
+                !name.startsWith("config.") && name !in URL_VARIABLES ->
+                    errors += "$at: $what can use ${URL_VARIABLES.joinToString { "\${$it}" }} and \${config.<key>}"
             }
         }
         return errors

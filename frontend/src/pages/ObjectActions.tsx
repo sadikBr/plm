@@ -53,17 +53,26 @@ export function ObjectActionBar({
   handlers,
   busy,
   stateLabel,
+  onInvoke,
 }: {
   actions: AvailableAction[];
   handlers: ActionHandlers;
   busy: boolean;
   stateLabel: (state: string) => string;
+  /** Runs server-side actions (extension webhooks). */
+  onInvoke?: (action: AvailableAction) => void;
 }) {
   const toolbar = actions.filter((a) => a.placement === "OBJECT_TOOLBAR");
   const more = actions.filter((a) => a.placement === "OBJECT_MORE");
   // Extension actions that open a web address need no page code; the others are handled here.
   const handlerOf = (a: AvailableAction) =>
-    a.handler === "URL" ? (a.url ? () => void window.open(a.url!, "_blank", "noopener,noreferrer") : undefined) : handlers[a.id];
+    a.handler === "URL"
+      ? a.url
+        ? () => void window.open(a.url!, "_blank", "noopener,noreferrer")
+        : undefined
+      : a.handler === "WEBHOOK"
+        ? onInvoke && (() => onInvoke(a))
+        : handlers[a.id];
   const unavailable = (a: AvailableAction) => !a.enabled || busy || !handlerOf(a);
   const why = (a: AvailableAction) =>
     a.reason ??
@@ -104,6 +113,7 @@ export function ObjectActionBar({
                 ) : (
                   <button
                     role="menuitem"
+                    data-action={a.id}
                     disabled={unavailable(a)}
                     title={why(a)}
                     onClick={() => {

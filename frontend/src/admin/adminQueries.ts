@@ -227,3 +227,9 @@ export const useEnableExtension = () =>
 
 export const useUninstallExtension = () =>
   useAdminMutation((id: string) => unwrap(api.DELETE("/api/v1/extensions/{id}", { params: { path: { id } } })));
+
+export const useExtensionInvocations = (id: string) =>
+  useQuery({
+    queryKey: ["extensions", id, "invocations"],
+    queryFn: () => unwrap(api.GET("/api/v1/extensions/{id}/invocations", { params: { path: { id } } })),
+  });

@@ -4,7 +4,9 @@ import com.plm.access.api.Permission
 import com.plm.extensions.api.ActionDefinition
 import com.plm.extensions.api.ActionHandler
 import com.plm.extensions.api.ActionPlacement
+import com.plm.extensions.api.ManifestAction
 import com.plm.extensions.infra.ExtensionRepository
+import com.plm.extensions.infra.ExtensionRow
 import com.plm.platform.actor.Actor
 import com.plm.platform.contract.PlatformContract
 import com.plm.platform.id.TenantId
@@ -25,7 +27,8 @@ internal class ExtensionActions(
             .all(tenant)
             .filter { it.enabled && Versions.Range.parse(it.manifest.platform).includes(PlatformContract.VERSION) }
             .flatMap { row ->
-                val m = row.manifest
+                // The source keeps the author's order (of form fields); the stored JSON sorts keys.
+                val m = Manifests.read(row.source) ?: row.manifest
                 m.actions.map { a ->
                     ActionDefinition(
                         id = "${m.id}.${a.id}",
@@ -46,15 +49,29 @@ internal class ExtensionActions(
                         states = a.appliesTo.states,
                         requires = a.requires?.let(Permission::valueOf),
                         visibleWhen = a.visibleWhen,
-                        handler = ActionHandler.URL,
+                        handler = if (a.handler.webhook != null) ActionHandler.WEBHOOK else ActionHandler.URL,
                         // Settings are filled in now; the object's details when it's shown.
                         url = a.handler.url?.let { url -> fillConfig(url, row.config) },
+                        form = a.form,
                         source = m.id,
                     )
                 }
             }
 
-    private fun fillConfig(
+    /** An active extension's action by its registry id (`<extension>.<action>`), with its extension. */
+    fun find(
+        tenant: TenantId,
+        actionId: String,
+    ): Pair<ExtensionRow, ManifestAction>? =
+        extensions
+            .all(tenant)
+            .filter { it.enabled && Versions.Range.parse(it.manifest.platform).includes(PlatformContract.VERSION) }
+            .firstNotNullOfOrNull { row ->
+                val m = Manifests.read(row.source) ?: row.manifest
+                m.actions.firstOrNull { "${m.id}.${it.id}" == actionId }?.let { row to it }
+            }
+
+    fun fillConfig(
         url: String,
         config: Map<String, Any?>,
     ) = PLACEHOLDER.replace(url) { m ->

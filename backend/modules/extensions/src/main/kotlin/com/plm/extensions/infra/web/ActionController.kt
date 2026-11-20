@@ -2,6 +2,7 @@ package com.plm.extensions.infra.web
 
 import com.plm.extensions.api.ActionConfiguration
 import com.plm.extensions.api.ActionHandler
+import com.plm.extensions.api.ActionInvocationService
 import com.plm.extensions.api.ActionOption
 import com.plm.extensions.api.ActionPlacement
 import com.plm.extensions.api.ActionService
@@ -12,6 +13,7 @@ import com.plm.versioning.api.MasterId
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
@@ -21,7 +23,27 @@ import java.util.UUID
 @RestController
 internal class ActionController(
     private val actions: ActionService,
+    private val invocations: ActionInvocationService,
 ) {
+    /**
+     * Runs an action that's carried out on the server (an extension's webhook) with the form's
+     * answers. A service that fails or doesn't answer gives `ok: false` and a message, not an error.
+     */
+    @PostMapping("/api/v1/objects/{id}/actions/{actionId}/invoke")
+    fun invoke(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @PathVariable actionId: String,
+        @RequestBody request: InvokeActionRequest,
+    ) = invocations.invoke(actor, MasterId(id), actionId, request.parameters.orEmpty())
+
+    /** The latest calls of an extension's actions, newest first. Site administrators. */
+    @GetMapping("/api/v1/extensions/{id}/invocations")
+    fun invocations(
+        actor: Actor,
+        @PathVariable id: String,
+    ) = invocations.invocations(actor, id)
+
     /** The actions you see on an object, in display order; disabled ones say why. The UI draws toolbars and menus from this. */
     @GetMapping("/api/v1/objects/{id}/actions")
     fun available(
@@ -71,6 +93,8 @@ internal data class AvailableActionResponse(
     val url: String?,
     /** `platform`, or the extension that added it. */
     val source: String,
+    /** Questions to ask before running it (WEBHOOK actions). */
+    val form: com.plm.extensions.api.ActionForm?,
 ) {
     constructor(a: AvailableAction) : this(
         a.id,
@@ -84,6 +108,7 @@ internal data class AvailableActionResponse(
         a.options.map(::ActionOptionResponse),
         a.url,
         a.source,
+        a.form,
     )
 }
 
@@ -162,3 +187,7 @@ internal data class RegisteredActionResponse(
             )
     }
 }
+
+internal data class InvokeActionRequest(
+    val parameters: Map<String, Any?>? = null,
+)

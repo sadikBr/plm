@@ -1,0 +1,213 @@
+import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from "lucide-react";
+import { useState, type FormEvent, type ReactNode } from "react";
+import { useNavigate } from "react-router";
+import { useInvokeAction, type ActionForm, type ActionResult, type AvailableAction } from "../api/queries";
+import { Dialog, ErrorBanner } from "../components/common";
+
+/**
+ * Runs actions carried out on the server (extension webhooks): asks the action's form, if it has
+ * one, then shows what the service answered and does what it asked (refresh, navigate, download).
+ */
+export function useActionRunner(objectId: string): { run: (a: AvailableAction) => void; busy: boolean; ui: ReactNode } {
+  const invoke = useInvokeAction(objectId);
+  const navigate = useNavigate();
+  const [asking, setAsking] = useState<AvailableAction | null>(null);
+  const [shown, setShown] = useState<{ label: string; result: ActionResult } | null>(null);
+
+  const start = (a: AvailableAction, parameters: Record<string, unknown>) =>
+    invoke.mutate(
+      { actionId: a.id, parameters },
+      {
+        onSuccess: (result) => {
+          setAsking(null);
+          setShown({ label: a.label, result });
+          if (result.download) save(result.download);
+          if (result.navigateToObject) navigate(`/objects/${result.navigateToObject}`);
+          else if (result.navigateToUrl) window.open(result.navigateToUrl, "_blank", "noopener,noreferrer");
+        },
+      },
+    );
+
+  const run = (a: AvailableAction) => {
+    invoke.reset();
+    setShown(null);
+    if (a.form && Object.keys(a.form.properties ?? {}).length > 0) setAsking(a);
+    else start(a, {});
+  };
+
+  const ui = (
+    <>
+      {shown && <ResultBanner label={shown.label} result={shown.result} onClose={() => setShown(null)} />}
+      {!asking && invoke.error != null && (
+        <div style={{ padding: "12px 16px 0" }}>
+          <ErrorBanner error={invoke.error} />
+        </div>
+      )}
+      {asking && (
+        <FormDialog
+          action={asking}
+          form={asking.form!}
+          busy={invoke.isPending}
+          error={invoke.error}
+          onCancel={() => {
+            setAsking(null);
+            invoke.reset();
+          }}
+          onSubmit={(answers) => start(asking, answers)}
+        />
+      )}
+    </>
+  );
+  return { run, busy: invoke.isPending, ui };
+}
+
+/** Hands a file the service returned to the browser. */
+function save(d: NonNullable<ActionResult["download"]>) {
+  const bytes = Uint8Array.from(atob(d.content), (c) => c.charCodeAt(0));
+  const url = URL.createObjectURL(new Blob([bytes], { type: d.contentType }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = d.filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+const LEVEL: Record<string, { className: string; icon: ReactNode }> = {
+  INFO: { className: "banner ok result", icon: <CircleCheck size={15} aria-hidden /> },
+  WARNING: { className: "banner warn result", icon: <TriangleAlert size={15} aria-hidden /> },
+  ERROR: { className: "banner error result", icon: <CircleAlert size={15} aria-hidden /> },
+};
+
+function ResultBanner({ label, result, onClose }: { label: string; result: ActionResult; onClose: () => void }) {
+  const level = LEVEL[result.level] ?? { className: "banner info result", icon: <Info size={15} aria-hidden /> };
+  return (
+    <div style={{ padding: "12px 16px 0" }}>
+      <div className={level.className} role={result.ok ? "status" : "alert"}>
+        {level.icon}
+        <span>
+          <strong>{label}:</strong> {result.message}
+          {result.download && <span className="muted"> · downloaded {result.download.filename}</span>}
+        </span>
+        <button className="icon-btn" aria-label="Dismiss" onClick={onClose} style={{ marginLeft: "auto" }}>
+          <X size={13} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** A form generated from the action's schema (text, number, yes/no, choice). */
+function FormDialog({
+  action,
+  form,
+  busy,
+  error,
+  onCancel,
+  onSubmit,
+}: {
+  action: AvailableAction;
+  form: ActionForm;
+  busy: boolean;
+  error: unknown;
+  onCancel: () => void;
+  onSubmit: (answers: Record<string, unknown>) => void;
+}) {
+  const fields = Object.entries(form.properties ?? {});
+  const [answers, setAnswers] = useState<Record<string, unknown>>(
+    Object.fromEntries(fields.filter(([, f]) => f.default != null).map(([k, f]) => [k, f.default])),
+  );
+  const required = new Set(form.required ?? []);
+  const missing = fields.some(([k]) => required.has(k) && (answers[k] == null || answers[k] === ""));
+  // Problems the server found, by field.
+  const problems = Object.fromEntries(
+    (
+      ((error as { problem?: { details?: { errors?: { field: string; message: string }[] } } })?.problem?.details?.errors ?? []) as {
+        field: string;
+        message: string;
+      }[]
+    ).map((e) => [e.field, e.message]),
+  );
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    onSubmit(answers);
+  };
+  const formId = "action-form";
+
+  return (
+    <Dialog
+      open
+      title={form.title ? `${action.label}: ${form.title}` : action.label}
+      onClose={onCancel}
+      footer={
+        <>
+          <button className="btn" type="button" onClick={onCancel}>
+            Cancel
+          </button>
+          <button className="btn primary" type="submit" form={formId} disabled={busy || missing}>
+            {busy ? "Running…" : action.label}
+          </button>
+        </>
+      }
+    >
+      <form id={formId} className="attr-form cols-2" onSubmit={submit} noValidate>
+        {Object.keys(problems).length === 0 && <ErrorBanner error={error} />}
+        {fields.map(([name, f]) => {
+          const id = `action-field-${name}`;
+          const value = answers[name];
+          const set = (v: unknown) => setAnswers({ ...answers, [name]: v });
+          return (
+            <div className="field" key={name}>
+              {f.type !== "boolean" && (
+                <div className="label-row">
+                  <label htmlFor={id}>{f.title ?? name}</label>
+                  {required.has(name) && (
+                    <span aria-hidden className="required">
+                      *
+                    </span>
+                  )}
+                </div>
+              )}
+              {f.type === "boolean" ? (
+                <label className="check">
+                  <input id={id} type="checkbox" checked={value === true} onChange={(e) => set(e.target.checked)} />
+                  {f.title ?? name}
+                </label>
+              ) : f.enum.length > 0 ? (
+                <select
+                  id={id}
+                  value={String(value ?? "")}
+                  required={required.has(name)}
+                  onChange={(e) => set(e.target.value || undefined)}
+                >
+                  <option value="">Choose…</option>
+                  {f.enum.map((o) => (
+                    <option key={o} value={o}>
+                      {o}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  id={id}
+                  type={f.type === "integer" || f.type === "number" ? "number" : "text"}
+                  step={f.type === "integer" ? 1 : undefined}
+                  min={f.minimum ?? undefined}
+                  max={f.maximum ?? undefined}
+                  required={required.has(name)}
+                  value={value == null ? "" : String(value)}
+                  aria-invalid={!!problems[name]}
+                  onChange={(e) => set(e.target.value === "" ? undefined : f.type === "string" ? e.target.value : Number(e.target.value))}
+                />
+              )}
+              {problems[name] ? (
+                <span className="field-error">{problems[name]}</span>
+              ) : (
+                f.description && <span className="hint">{f.description}</span>
+              )}
+            </div>
+          );
+        })}
+      </form>
+    </Dialog>
+  );
+}

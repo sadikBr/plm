@@ -1,0 +1,107 @@
+# Version 2.0 of the sample: talks to the ERP through webhooks (roadmap 2.4).
+# Try it with the mock ERP in this folder: node mock-erp.mjs (see ../../README.md).
+id: acme.erp-sync
+name: ERP sync
+version: 2.0.0
+publisher: Acme Corp
+description: Sends released parts to the ERP, reports on them, and opens them there.
+platform: ">=1.0 <2.0"
+
+permissions:
+  - ui:actions
+  - config:seed
+  - objects:read
+  - webhooks:call
+
+config:
+  erpUrl:
+    type: url
+    label: ERP address
+    description: Where the ERP's web client is, e.g. https://erp.acme.example
+    required: true
+  erpApiUrl:
+    type: url
+    label: ERP service address
+    description: "Where the ERP's PLM service listens, e.g. https://erp.acme.example/plm (the mock: http://localhost:8099)"
+    required: true
+  company:
+    type: choice
+    label: Company code
+    options: [ACME-US, ACME-EU]
+    default: ACME-US
+  apiKey:
+    type: secret
+    label: API key
+    description: Signs every call, so the ERP knows it comes from here
+    required: true
+
+actions:
+  - id: send-to-erp
+    label: Send to ERP
+    description: Creates a production order for this part in the ERP.
+    icon: send
+    placement: object.toolbar
+    order: 55
+    appliesTo:
+      types: [Part]
+      states: [RELEASED]
+    requires: READ
+    form:
+      title: Production order
+      properties:
+        plant:
+          type: string
+          title: Plant
+          enum: [P100, P200]
+        quantity:
+          type: integer
+          title: Quantity
+          minimum: 1
+          default: 1
+        urgent:
+          type: boolean
+          title: Urgent
+          description: Ask the plant to schedule it first
+      required: [plant, quantity]
+    handler:
+      webhook:
+        url: "${config.erpApiUrl}/send?company=${config.company}"
+        secret: apiKey
+        timeoutSeconds: 10
+
+  - id: erp-report
+    label: ERP cost report
+    description: Downloads the ERP's cost report for this part.
+    icon: copy
+    placement: object.more
+    appliesTo:
+      types: [Part]
+    handler:
+      webhook:
+        url: "${config.erpApiUrl}/report"
+        secret: apiKey
+
+  - id: show-in-erp
+    label: Show in ERP
+    description: Opens this part in the ERP.
+    icon: link-2
+    placement: object.more
+    appliesTo:
+      types: [Part]
+      states: [RELEASED]
+    handler:
+      url: "${config.erpUrl}/items/${object.number}?company=${config.company}"
+
+seed:
+  enumerations:
+    - name: erpPlants
+      labels: { en: ERP plants }
+      values:
+        - { key: P100, labels: { en: "P100 Detroit" } }
+        - { key: P200, labels: { en: "P200 Lyon" } }
+  globalAttributes:
+    - name: erpPlant
+      labels: { en: ERP plant }
+      description: The plant that makes this part, as the ERP knows it.
+      dataType: ENUMERATION
+      enumeration: erpPlants

@@ -56,7 +56,43 @@ data class ManifestAction(
     val requires: String? = null,
     /** A CEL condition; the action shows only where it's true. */
     val visibleWhen: String? = null,
+    /** Questions asked before the action runs (a JSON Schema subset); the answers go to the handler. */
+    val form: ActionForm? = null,
     val handler: ManifestHandler,
+)
+
+/** A parameter form: `properties` by name, in order, and which are `required`. */
+data class ActionForm(
+    val title: String? = null,
+    val properties: Map<String, FormField> = emptyMap(),
+    val required: List<String> = emptyList(),
+)
+
+data class FormField(
+    /** `string`, `integer`, `number` or `boolean`. */
+    val type: String = "string",
+    val title: String? = null,
+    val description: String? = null,
+    /** Allowed values (a choice list), for `string`. */
+    val enum: List<String> = emptyList(),
+    val default: Any? = null,
+    val minimum: Double? = null,
+    val maximum: Double? = null,
+    val maxLength: Int? = null,
+)
+
+/**
+ * A call to the extension's own service. The request is a POST of JSON (the object, the user, the
+ * form's answers), signed: `X-PLM-Signature: sha256=<hex HMAC-SHA256 of "<X-PLM-Timestamp>.<body>">`
+ * keyed with the setting named by [secret]. The answer may carry a message, refresh, navigate or
+ * download (see [ActionResult]).
+ */
+data class WebhookHandler(
+    /** `${config.<key>}` and the object placeholders are filled in, as for `url`. */
+    val url: String,
+    /** The `secret` setting the request is signed with. */
+    val secret: String,
+    val timeoutSeconds: Int = 10,
 )
 
 data class AppliesTo(
@@ -74,6 +110,8 @@ data class ManifestHandler(
      * replaced (URL-encoded).
      */
     val url: String? = null,
+    /** Calls the extension's service (needs the `webhooks:call` permission). */
+    val webhook: WebhookHandler? = null,
 )
 
 enum class ExtensionStatus {
