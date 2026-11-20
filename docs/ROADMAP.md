@@ -6,9 +6,9 @@ Each phase ends with explicit exit criteria. Don't start a phase until the previ
 
 **Goal:** a running skeleton where every foundational ADR is real code, not a slide.
 
-- [ ] 0.1 Monorepo + Gradle (Kotlin DSL) multi-module build, `.editorconfig`, ktlint/detekt
-- [ ] 0.2 `deploy/docker-compose.yml`: Postgres, MinIO, Keycloak, Redpanda, OpenSearch, Temporal
-- [ ] 0.3 CI (GitHub Actions): build, unit tests, Testcontainers integration tests, ArchUnit rules
+- [x] 0.1 Monorepo + Gradle (Kotlin DSL) multi-module build, `.editorconfig`, ktlint (detekt deferred until it supports Kotlin 2.4)
+- [x] 0.2 `deploy/docker-compose.yml`: Postgres, S3 (SeaweedFS), Keycloak, Redpanda, OpenSearch, Temporal
+- [x] 0.3 CI (GitHub Actions): build, unit tests, Testcontainers integration tests, ArchUnit rules
 - [ ] 0.4 `platform` kernel: typed IDs, error model, transaction helpers, clock abstraction
 - [ ] 0.5 Flyway baseline: `tenant`, `context`, `type_def`, `object_master`, `object_iteration`
 - [ ] 0.6 Generic versioning engine: create, check-out, check-in, undo check-out, revise (+ tests)
