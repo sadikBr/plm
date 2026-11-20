@@ -4,6 +4,7 @@ import com.plm.identity.api.TokenAuthenticator
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.convert.converter.Converter
+import org.springframework.http.HttpMethod
 import org.springframework.security.authentication.AbstractAuthenticationToken
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
@@ -44,6 +45,11 @@ internal class SecurityConfiguration(
                     // OAuth client credentials: the client authenticates with its secret, not a token.
                     .requestMatchers("/api/v1/oauth/token")
                     .permitAll()
+                    // Vault links are signed and short-lived: the URL is the permission (roadmap 3.2).
+                    .requestMatchers(HttpMethod.PUT, "/api/v1/vault/uploads/*")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/v1/vault/files")
+                    .permitAll()
                     .anyRequest()
                     .authenticated()
             }.oauth2ResourceServer { rs -> rs.authenticationManagerResolver(BearerTokenRouter(jwtDecoder, tokens)) }
@@ -51,6 +57,8 @@ internal class SecurityConfiguration(
             // Stateless bearer-token API: no sessions, so no CSRF exposure.
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .csrf { it.disable() }
+            // File previews (roadmap 3.2) are framed by our own pages.
+            .headers { h -> h.frameOptions { it.sameOrigin() } }
             .build()
 
     override fun addArgumentResolvers(resolvers: MutableList<HandlerMethodArgumentResolver>) {

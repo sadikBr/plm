@@ -289,6 +289,23 @@
         "required" : [ "lifecycleId" ],
         "type" : "object"
       },
+      "AttachContent" : {
+        "properties" : {
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "role" : {
+            "enum" : [ "PRIMARY", "ATTACHMENT" ],
+            "type" : "string"
+          },
+          "uploadId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "role", "uploadId" ],
+        "type" : "object"
+      },
       "AttributeConfig" : {
         "properties" : {
           "active" : {
@@ -755,6 +772,58 @@
           }
         },
         "required" : [ "config" ],
+        "type" : "object"
+      },
+      "ContentItem" : {
+        "properties" : {
+          "addedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "addedBy" : {
+            "type" : "string"
+          },
+          "carriedOver" : {
+            "type" : "boolean"
+          },
+          "contentType" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "iterationId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "masterId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "role" : {
+            "enum" : [ "PRIMARY", "ATTACHMENT" ],
+            "type" : "string"
+          },
+          "sha256" : {
+            "type" : "string"
+          },
+          "size" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "thumbnail" : {
+            "enum" : [ "NONE", "PENDING", "READY", "FAILED" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "addedAt", "addedBy", "carriedOver", "contentType", "fileName", "id", "iterationId", "masterId", "role", "sha256", "size", "thumbnail" ],
         "type" : "object"
       },
       "ContextPreferenceResponse" : {
@@ -1623,6 +1692,19 @@
           }
         },
         "required" : [ "auditId", "config", "enabled", "id", "installedAt", "installedBy", "manifest", "name", "permissions", "platform", "secretsSet", "source", "status", "updatedAt", "updatedBy", "version" ],
+        "type" : "object"
+      },
+      "FileLink" : {
+        "properties" : {
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "url" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "expiresAt", "url" ],
         "type" : "object"
       },
       "FormField" : {
@@ -2791,6 +2873,27 @@
         "required" : [ "label", "value" ],
         "type" : "object"
       },
+      "PreviewPage" : {
+        "properties" : {
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pages" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "url" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "expiresAt", "page", "pages", "url" ],
+        "type" : "object"
+      },
       "PreviewResponse" : {
         "properties" : {
           "actionsAdded" : {
@@ -3056,6 +3159,18 @@
         "required" : [ "declared", "effective", "hidden", "id", "source" ],
         "type" : "object"
       },
+      "RenameContentRequest" : {
+        "properties" : {
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "fileName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "fileName" ],
+        "type" : "object"
+      },
       "RenameRequest" : {
         "properties" : {
           "comment" : {
@@ -3068,6 +3183,22 @@
             "type" : [ "string", "null" ]
           }
         },
+        "type" : "object"
+      },
+      "RequestUpload" : {
+        "properties" : {
+          "contentType" : {
+            "type" : [ "string", "null" ]
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "size" : {
+            "format" : "int64",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "required" : [ "fileName" ],
         "type" : "object"
       },
       "ResolvedLayoutResponse" : {
@@ -3814,6 +3945,27 @@
         "required" : [ "attributes" ],
         "type" : "object"
       },
+      "UploadTicket" : {
+        "properties" : {
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "maxSize" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "uploadId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "uploadUrl" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "expiresAt", "maxSize", "uploadId", "uploadUrl" ],
+        "type" : "object"
+      },
       "UserPreferenceResponse" : {
         "properties" : {
           "canSet" : {
@@ -4388,6 +4540,133 @@
           }
         },
         "tags" : [ "Configuration" ]
+      }
+    },
+    "/api/v1/content/{contentId}/link" : {
+      "get" : {
+        "operationId" : "contentLink",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "inline",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FileLink"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Content" ]
+      }
+    },
+    "/api/v1/content/{contentId}/pages/{page}" : {
+      "get" : {
+        "operationId" : "contentPage",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "page",
+          "required" : true,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PreviewPage"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Content" ]
+      }
+    },
+    "/api/v1/content/{contentId}/thumbnail" : {
+      "get" : {
+        "operationId" : "contentThumbnail",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FileLink"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Content" ]
       }
     },
     "/api/v1/context-templates" : {
@@ -7483,6 +7762,198 @@
         "tags" : [ "Versioned object" ]
       }
     },
+    "/api/v1/objects/{id}/content" : {
+      "get" : {
+        "operationId" : "contentList",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "iterationId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "workingCopy",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ContentItem"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Content" ]
+      },
+      "post" : {
+        "operationId" : "contentAttach",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttachContent"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ContentItem"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Content" ]
+      }
+    },
+    "/api/v1/objects/{id}/content/{contentId}" : {
+      "delete" : {
+        "operationId" : "contentRemove",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "contentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Content" ]
+      },
+      "put" : {
+        "operationId" : "contentRename",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "contentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RenameContentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ContentItem"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Content" ]
+      }
+    },
     "/api/v1/objects/{id}/expression-model" : {
       "get" : {
         "operationId" : "expressionModel",
@@ -10004,6 +10475,168 @@
         "tags" : [ "Validation rule" ]
       }
     },
+    "/api/v1/vault/files" : {
+      "get" : {
+        "operationId" : "contentFile",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "k",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "n",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "t",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "d",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "exp",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sig",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Content" ]
+      }
+    },
+    "/api/v1/vault/uploads" : {
+      "post" : {
+        "operationId" : "contentRequestUpload",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RequestUpload"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UploadTicket"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Content" ]
+      }
+    },
+    "/api/v1/vault/uploads/{id}" : {
+      "put" : {
+        "operationId" : "contentReceive",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "exp",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sig",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "additionalProperties" : { },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Content" ]
+      }
+    },
     "/api/v1/webhook-deliveries" : {
       "get" : {
         "operationId" : "webhookDeliveries",
@@ -10108,6 +10741,8 @@
     "name" : "Audit"
   }, {
     "name" : "Configuration"
+  }, {
+    "name" : "Content"
   }, {
     "name" : "Context"
   }, {

@@ -82,6 +82,16 @@ internal class DefaultJobService(
         return jobs.find(actor.tenant, id)!!
     }
 
+    override fun enqueueSystem(
+        actor: Actor,
+        type: String,
+        payload: Map<String, Any?>,
+        title: String?,
+    ): Job {
+        val id = enqueue(actor.tenant, handlers.require(type), payload, title, SYSTEM, true, null, null)
+        return jobs.find(actor.tenant, id)!!
+    }
+
     /** Queues a job without checking who may: for schedules and other modules' own checks. */
     fun enqueue(
         tenant: TenantId,
@@ -298,6 +308,9 @@ internal class DefaultJobScheduleService(
     ) = jobs.schedule(actor.tenant, id)
         ?: throw NotFoundException("SCHEDULE_NOT_FOUND", "There's no such schedule", mapOf("scheduleId" to id))
 }
+
+/** Who system jobs run as. */
+internal const val SYSTEM = "system"
 
 internal fun requireAdmin(actor: Actor) {
     if (!actor.siteAdmin) throw ForbiddenException("ADMIN_REQUIRED", "Only site administrators manage jobs")

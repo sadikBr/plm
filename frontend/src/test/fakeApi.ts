@@ -17,14 +17,18 @@ export const problem = (status: number, code: string, detail = code) =>
  * Stubs global fetch with a tiny router: `{"GET /api/v1/objects/:id": (req, { id }) => body}`.
  * Unmatched requests fail the test loudly. Returns the list of requests made, for assertions.
  */
+/** Routes most pages call that tests rarely care about; a test's own routes come first. */
+const DEFAULTS: Record<string, Handler> = {
+  "GET /api/v1/objects/:id/content": () => [],
+  "GET /api/v1/me/profile": () => ({ profiles: [], hiddenActions: [], hiddenAreas: [] }),
+};
+
 export function fakeApi(routes: Record<string, Handler>) {
   const calls: { method: string; path: string; body?: unknown; auth: string | null }[] = [];
-  const compiled = Object.entries(routes).map(([key, handler]) => {
+  const compiled = Object.entries({ ...DEFAULTS, ...routes }).map(([key, handler]) => {
     const [method, pattern] = key.split(" ") as [string, string];
     const names: string[] = [];
-    const regex = new RegExp(
-      "^" + pattern.replace(/:([a-zA-Z]+)/g, (_, name: string) => (names.push(name), "([^/]+)")) + "$",
-    );
+    const regex = new RegExp("^" + pattern.replace(/:([a-zA-Z]+)/g, (_, name: string) => (names.push(name), "([^/]+)")) + "$");
     return { method, regex, names, handler };
   });
 

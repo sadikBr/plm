@@ -132,8 +132,11 @@ platform gets the background machinery (jobs, schedules, notifications) later ph
       schedules, an admin monitor. Mass operations, reports, indexing and long actions run on it.
       (Done: `jobs` module with a handler SPI, leased workers that recover crashed jobs, retries
       with growing waits, cron schedules with time zones, Admin → Jobs.)
-- [ ] 3.2 Vault content: primary content and attachments stored in the vault (S3), uploaded and
+- [x] 3.2 Vault content: primary content and attachments stored in the vault (S3), uploaded and
       downloaded through presigned URLs, kept per iteration; thumbnails and previews.
+      (Done: `content` module, S3 or local-disk stores, signed upload and file links, content
+      carried over at check-out and revise, thumbnails as background jobs, PDF pages rendered for
+      previews, nightly vault cleanup.)
 - [ ] 3.3 Documents: document templates (a new document starts from a template's file), Save As
       (a copy with a new number), compare two versions (attributes and content).
 - [ ] 3.4 Folders and organizing: folders in contexts, move between folders and contexts, delete

@@ -39,6 +39,7 @@ import {
   useTypeName,
 } from "../components/common";
 import { Breadcrumbs, PageHeader, Tabs, useIdParam } from "../components/Layout";
+import { ObjectFiles } from "../components/ObjectFiles";
 import { NotFoundPage } from "./NotFoundPage";
 import { useActionRunner } from "./ActionRunner";
 import { ObjectActionBar, type ActionHandlers } from "./ObjectActions";
@@ -467,58 +468,61 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
   const latest = obj.latest;
 
   return (
-    <div className="cols">
-      {mine ? (
-        workingCopy.data && definitions && editLayout ? (
-          <WorkingCopyEditor
-            key={workingCopy.data.id}
-            objectId={obj.id}
-            version={workingCopy.data.version}
-            definitions={definitions}
-            groups={editLayout.groups}
-            initial={workingCopy.data.attributes as Attributes}
-          />
-        ) : (
-          <Panel title="Working copy">
-            <ErrorBanner error={workingCopy.error} />
-            <Loading />
-          </Panel>
-        )
-      ) : (
-        <Panel title="Attributes" note={`as of ${latest.version}`}>
-          {definitions && infoLayout ? (
-            <AttributeValues definitions={definitions} groups={infoLayout.groups} values={latest.attributes as Attributes} />
+    <div className="details-stack">
+      <div className="cols">
+        {mine ? (
+          workingCopy.data && definitions && editLayout ? (
+            <WorkingCopyEditor
+              key={workingCopy.data.id}
+              objectId={obj.id}
+              version={workingCopy.data.version}
+              definitions={definitions}
+              groups={editLayout.groups}
+              initial={workingCopy.data.attributes as Attributes}
+            />
           ) : (
-            <Loading />
-          )}
+            <Panel title="Working copy">
+              <ErrorBanner error={workingCopy.error} />
+              <Loading />
+            </Panel>
+          )
+        ) : (
+          <Panel title="Attributes" note={`as of ${latest.version}`}>
+            {definitions && infoLayout ? (
+              <AttributeValues definitions={definitions} groups={infoLayout.groups} values={latest.attributes as Attributes} />
+            ) : (
+              <Loading />
+            )}
+          </Panel>
+        )}
+        <Panel title="General">
+          <Props
+            items={[
+              ["Number", obj.number],
+              ["Name", obj.name],
+              ["Type", typeName],
+              ["Version", <span className="version">{latest.version}</span>],
+              ["State", <StateBadge state={latest.state} />],
+              ["Context", context ? <Link to={`/contexts/${obj.contextId}`}>{context.name}</Link> : null],
+              ["Checked out by", obj.checkedOutBy ? <PrincipalName id={obj.checkedOutBy} /> : null],
+              [
+                "Last checked in",
+                <>
+                  {formatDate(latest.checkedInAt)} · <PrincipalName id={latest.createdBy} />
+                </>,
+              ],
+              ["Comment", latest.comment],
+              [
+                "Created",
+                <>
+                  {formatDate(obj.createdAt)} · <PrincipalName id={obj.createdBy} />
+                </>,
+              ],
+            ]}
+          />
         </Panel>
-      )}
-      <Panel title="General">
-        <Props
-          items={[
-            ["Number", obj.number],
-            ["Name", obj.name],
-            ["Type", typeName],
-            ["Version", <span className="version">{latest.version}</span>],
-            ["State", <StateBadge state={latest.state} />],
-            ["Context", context ? <Link to={`/contexts/${obj.contextId}`}>{context.name}</Link> : null],
-            ["Checked out by", obj.checkedOutBy ? <PrincipalName id={obj.checkedOutBy} /> : null],
-            [
-              "Last checked in",
-              <>
-                {formatDate(latest.checkedInAt)} · <PrincipalName id={latest.createdBy} />
-              </>,
-            ],
-            ["Comment", latest.comment],
-            [
-              "Created",
-              <>
-                {formatDate(obj.createdAt)} · <PrincipalName id={obj.createdBy} />
-              </>,
-            ],
-          ]}
-        />
-      </Panel>
+      </div>
+      <ObjectFiles objectId={obj.id} iterationKey={mine ? `wc:${workingCopy.data?.id ?? ""}` : latest.id} editable={mine} />
     </div>
   );
 }

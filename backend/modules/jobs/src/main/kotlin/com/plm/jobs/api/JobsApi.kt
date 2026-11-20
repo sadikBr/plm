@@ -170,6 +170,17 @@ interface JobService {
         id: UUID,
     ): Job
 
+    /**
+     * For modules queuing their own work (thumbnails, indexing): no permission check; runs as the
+     * system, as an administrator, in [actor]'s tenant. Joins the caller's transaction.
+     */
+    fun enqueueSystem(
+        actor: Actor,
+        type: String,
+        payload: Map<String, Any?>,
+        title: String? = null,
+    ): Job
+
     /** Counts by status, for the monitor. */
     fun stats(actor: Actor): Map<JobStatus, Int>
 }

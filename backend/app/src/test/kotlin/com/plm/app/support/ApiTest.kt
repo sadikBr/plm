@@ -12,7 +12,7 @@ import tools.jackson.databind.json.JsonMapper
 /** Base for tests that drive the API over real HTTP with bearer tokens. Kafka relay is off. */
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = ["plm.events.relay.enabled=false"],
+    properties = ["plm.events.relay.enabled=false", "plm.vault.store=file"],
 )
 @Import(PostgresTestConfiguration::class, TestJwtConfiguration::class)
 abstract class ApiTest {

@@ -593,3 +593,20 @@ tr.selected > td { background: var(--row-selected); }
 tr.clickable { cursor: pointer; }
 .job-stats .stat { text-align: left; cursor: pointer; font: inherit; color: inherit; }
 .hint.bad { color: var(--danger); }
+
+/* Files (roadmap 3.2) */
+.files { min-height: 60px; }
+.files.dragging { outline: 2px dashed var(--accent); outline-offset: -6px; background: var(--accent-soft); }
+.primary-file { display: flex; gap: 14px; align-items: flex-start; padding: 12px; border-bottom: 1px solid var(--border); }
+.file-thumb { display: inline-flex; align-items: center; justify-content: center; flex: none; border: 1px solid var(--border); border-radius: 4px; background: var(--panel-2); color: var(--text-3); overflow: hidden; }
+.file-thumb img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.file-name { display: flex; gap: 10px; align-items: center; }
+.upload-row { display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+.upload-row .job-progress { flex: 1; min-width: 120px; }
+.file-preview { display: flex; justify-content: center; max-height: 70vh; overflow: auto; }
+.file-preview img { max-width: 100%; max-height: 68vh; object-fit: contain; }
+.file-preview iframe { width: 100%; height: 68vh; border: 1px solid var(--border); }
+.file-preview pre { width: 100%; margin: 0; padding: 10px; background: var(--panel-2); border: 1px solid var(--border); font-size: 12px; white-space: pre-wrap; }
+.details-stack { display: grid; gap: 12px; }
+.pdf-pages { display: grid; gap: 10px; justify-items: center; width: 100%; }
+.pdf-pages img { max-width: 100%; max-height: 62vh; border: 1px solid var(--border); box-shadow: 0 1px 4px rgba(0,0,0,0.12); background: #fff; }

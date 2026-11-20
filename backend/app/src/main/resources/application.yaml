@@ -42,6 +42,17 @@ management:
         enabled: true
 
 plm:
+  vault:
+    # file (a local folder) or s3 (deploy/docker-compose.yml runs an S3-compatible store).
+    store: ${PLM_VAULT_STORE:s3}
+    max-size: ${PLM_VAULT_MAX_SIZE:2GB}
+    signing-key: ${PLM_VAULT_SIGNING_KEY:dev-only-vault-signing-key-change-me}
+    s3:
+      endpoint: ${PLM_VAULT_S3_ENDPOINT:http://localhost:8333}
+      region: ${PLM_VAULT_S3_REGION:us-east-1}
+      bucket: ${PLM_VAULT_S3_BUCKET:plm-vault}
+      access-key: ${PLM_VAULT_S3_ACCESS_KEY:plm}
+      secret-key: ${PLM_VAULT_S3_SECRET_KEY:plm-dev-secret}
   events:
     topic: plm.domain-events
     relay:

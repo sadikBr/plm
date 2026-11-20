@@ -5,6 +5,8 @@ ktlint-gradle = "14.2.0"
 archunit = "1.5.1"
 springdoc = "3.2.0"
 cel = "0.11.1"
+awssdk = "2.31.0"
+pdfbox = "3.0.5"
 
 [libraries]
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -40,6 +42,11 @@ junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 springdoc-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 # Common Expression Language, for conditions, validations, formulas and gates (roadmap 2.2).
 cel = { module = "dev.cel:cel", version.ref = "cel" }
+# The file vault's S3 store (roadmap 3.2).
+awssdk-s3 = { module = "software.amazon.awssdk:s3", version.ref = "awssdk" }
+awssdk-url-connection-client = { module = "software.amazon.awssdk:url-connection-client", version.ref = "awssdk" }
+# PDF thumbnails (roadmap 3.2).
+pdfbox = { module = "org.apache.pdfbox:pdfbox", version.ref = "pdfbox" }
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 
 [bundles]
