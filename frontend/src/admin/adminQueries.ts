@@ -12,6 +12,8 @@ export type CreateLifecycle = Schemas["CreateLifecycleRequest"];
 export type EnumerationRequest = Schemas["EnumerationRequest"];
 export type DefineAttribute = Schemas["DefineAttributeRequest"];
 export type AttributeSettings = Schemas["AttributeSettingsRequest"];
+export type ValidationRule = Schemas["ValidationRuleResponse"];
+export type ValidationRuleRequest = Schemas["ValidationRuleRequest"];
 
 /** Admin changes affect forms and pages everywhere: refetch every piece of reference data. */
 const ADMIN_KEYS = [
@@ -26,6 +28,7 @@ const ADMIN_KEYS = [
   "numberingSchemes",
   "lifecycles",
   "teamRoles",
+  "validationRules",
 ];
 
 function useAdminMutation<A, R>(fn: (args: A) => Promise<R>) {
@@ -76,6 +79,25 @@ export const useEnumerationList = () =>
   useQuery({ queryKey: ["enumerations", "list"], queryFn: () => unwrap(api.GET("/api/v1/enumerations")) });
 
 // ---------- Writes ----------
+
+export const useValidationRules = (typeId: string) =>
+  useQuery({
+    queryKey: ["validationRules", typeId],
+    queryFn: () => unwrap(api.GET("/api/v1/types/{id}/validation-rules", { params: { path: { id: typeId } } })),
+  });
+
+export const useDefineValidationRule = (typeId: string) =>
+  useAdminMutation((body: ValidationRuleRequest) =>
+    unwrap(api.POST("/api/v1/types/{id}/validation-rules", { params: { path: { id: typeId } }, body })),
+  );
+
+export const useUpdateValidationRule = () =>
+  useAdminMutation(({ id, body }: { id: string; body: ValidationRuleRequest }) =>
+    unwrap(api.PUT("/api/v1/validation-rules/{id}", { params: { path: { id } }, body })),
+  );
+
+export const useDeleteValidationRule = () =>
+  useAdminMutation((id: string) => unwrap(api.DELETE("/api/v1/validation-rules/{id}", { params: { path: { id } } })));
 
 export const useCreateType = () =>
   useAdminMutation((body: Schemas["CreateTypeRequest"]) => unwrap(api.POST("/api/v1/types", { body })));

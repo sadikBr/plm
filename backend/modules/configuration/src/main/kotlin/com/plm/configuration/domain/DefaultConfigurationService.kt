@@ -26,6 +26,7 @@ import com.plm.configuration.api.TeamRoleConfig
 import com.plm.configuration.api.TypeConfig
 import com.plm.configuration.api.TypeRulesConfig
 import com.plm.configuration.api.UnitConfig
+import com.plm.configuration.api.ValidationRuleConfig
 import com.plm.lifecycle.api.CreateLifecycleTemplate
 import com.plm.lifecycle.api.LifecycleService
 import com.plm.lifecycle.api.LifecycleState
@@ -58,6 +59,8 @@ import com.plm.types.api.TypeRuleService
 import com.plm.types.api.TypeRuleSettings
 import com.plm.types.api.TypeService
 import com.plm.types.api.UnitOfMeasure
+import com.plm.types.api.ValidationRuleService
+import com.plm.types.api.ValidationRuleSettings
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.TransactionDefinition
@@ -71,6 +74,7 @@ internal class DefaultConfigurationService(
     private val enumerations: EnumerationService,
     private val rules: TypeRuleService,
     private val layouts: LayoutService,
+    private val validationRules: ValidationRuleService,
     private val lifecycles: LifecycleService,
     private val roles: TeamRoleService,
     private val contextTemplates: ContextTemplateService,
@@ -193,6 +197,10 @@ internal class DefaultConfigurationService(
                                         l.hidden,
                                     )
                                 },
+                            validationRules =
+                                validationRules.rules(actor, t.id).filter { r -> r.typeId == t.id }.map { r ->
+                                    ValidationRuleConfig(r.name, r.condition, r.message, r.attribute, r.active, r.order)
+                                },
                         )
                     },
             )
@@ -258,6 +266,7 @@ internal class DefaultConfigurationService(
             for (t in bundle.types) typeIds[t.name]?.let { importRules(t, it) }
             for (t in bundle.types) typeIds[t.name]?.let { importTypeLifecycle(t, it) }
             for (t in bundle.types) typeIds[t.name]?.let { importLayouts(t, it) }
+            for (t in bundle.types) typeIds[t.name]?.let { importValidationRules(t, it) }
             importContextTemplates()
             return changes
         }
@@ -763,6 +772,41 @@ internal class DefaultConfigurationService(
                 listOf("lifecycle → $wanted"),
             ) {
                 lifecycles.assign(actor, typeId, template.id)
+            }
+        }
+
+        fun importValidationRules(
+            t: TypeConfig,
+            typeId: TypeId,
+        ) {
+            val current = validationRules.rules(actor, typeId).filter { it.typeId == typeId }.associateBy { it.name }
+            for (r in t.validationRules) {
+                val settings = ValidationRuleSettings(r.name, r.condition, r.message, r.attribute, r.active, r.order)
+                val existing = current[r.name]
+                val diff =
+                    existing?.let {
+                        diff(
+                            "condition" to (it.condition to r.condition),
+                            "message" to (it.message to r.message),
+                            "attribute" to (it.attribute to r.attribute),
+                            "active" to (it.active to r.active),
+                            "order" to (it.order to r.order),
+                        )
+                    } ?: emptyList()
+                change(
+                    "validationRule",
+                    "${t.name}/${r.name}",
+                    if (existing == null) ChangeAction.CREATE else updateOrNot(diff),
+                    diff,
+                ) {
+                    if (existing ==
+                        null
+                    ) {
+                        validationRules.define(actor, typeId, settings)
+                    } else {
+                        validationRules.update(actor, existing.id, settings)
+                    }
+                }
             }
         }
 

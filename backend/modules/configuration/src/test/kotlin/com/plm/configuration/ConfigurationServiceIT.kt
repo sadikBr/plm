@@ -23,6 +23,7 @@ import com.plm.configuration.api.NumberingSchemeConfig
 import com.plm.configuration.api.TeamRoleConfig
 import com.plm.configuration.api.TypeConfig
 import com.plm.configuration.api.TypeRulesConfig
+import com.plm.configuration.api.ValidationRuleConfig
 import com.plm.lifecycle.api.LifecycleService
 import com.plm.platform.actor.Actor
 import com.plm.platform.error.ForbiddenException
@@ -34,6 +35,7 @@ import com.plm.types.api.LayoutScreen
 import com.plm.types.api.LayoutService
 import com.plm.types.api.TypeRuleService
 import com.plm.types.api.TypeService
+import com.plm.types.api.ValidationRuleService
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
@@ -48,6 +50,7 @@ class ConfigurationServiceIT(
     @Autowired private val attributes: AttributeService,
     @Autowired private val rules: TypeRuleService,
     @Autowired private val layouts: LayoutService,
+    @Autowired private val validationRules: ValidationRuleService,
     @Autowired private val lifecycles: LifecycleService,
 ) {
     private val admin = Actor(TenantId.DEFAULT, PrincipalId("admin"), siteAdmin = true)
@@ -134,6 +137,15 @@ class ConfigurationServiceIT(
                                 listOf(LayoutGroupConfig("bolt", mapOf("en" to "Bolt"), 2, listOf("thread", "length"))),
                             ),
                         ),
+                    validationRules =
+                        listOf(
+                            ValidationRuleConfig(
+                                "Imperial bolts are short",
+                                "object.attributes.thread != 'imperial' || object.attributes.length == null",
+                                "Imperial bolts take no metric length",
+                                attribute = "length",
+                            ),
+                        ),
                 ),
             ),
         contextTemplates =
@@ -175,6 +187,7 @@ class ConfigurationServiceIT(
             "attribute",
             "attribute",
             "layout",
+            "validationRule",
             "contextTemplate",
         )
         // Rules and lifecycle of the new type are set as its own overrides.
@@ -202,6 +215,17 @@ class ConfigurationServiceIT(
                 .first()
                 .attributes,
         ).containsExactly("thread", "length")
+        assertThat(validationRules.rules(admin, boltId).map { it.name }).contains("Imperial bolts are short")
+        assertThat(
+            configuration
+                .export(admin)
+                .types
+                .single {
+                    it.name == bolt
+                }.validationRules
+                .single()
+                .attribute,
+        ).isEqualTo("length")
     }
 
     @Test

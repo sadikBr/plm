@@ -19,9 +19,10 @@ import {
   type TypeDefinition,
 } from "./adminQueries";
 import { AttributeDialog, constraintSummary, dataTypeLabel } from "./AttributeDialog";
+import { ValidationRulesPanel } from "./ValidationRulesAdmin";
 import { LayoutEditor } from "./LayoutEditor";
 
-type View = "properties" | "attributes" | "layouts" | "rules";
+type View = "properties" | "attributes" | "layouts" | "validation" | "rules";
 
 /** Types as a tree, root types first, children under their parent. */
 function useTypeTree() {
@@ -100,7 +101,8 @@ export function TypesAdmin() {
                 ["properties", "Properties"],
                 ["attributes", "Attributes"],
                 ["layouts", "Layouts"],
-                ["rules", "Rules and lifecycle"],
+                ["validation", "Validation"],
+                ["rules", "Numbering and lifecycle"],
               ] as [View, string][]
             ).map(([key, label]) => (
               <button key={key} className={view === key ? "active" : undefined} aria-pressed={view === key} onClick={() => go({ view: key })}>
@@ -111,6 +113,7 @@ export function TypesAdmin() {
           {view === "properties" && <PropertiesPanel key={selected.id} type={selected} />}
           {view === "attributes" && <AttributesPanel type={selected} typeName={(id) => tree.byId.get(id)?.displayName ?? "…"} />}
           {view === "layouts" && <LayoutEditor type={selected} typeName={(id) => tree.byId.get(id)?.displayName ?? "…"} />}
+          {view === "validation" && <ValidationRulesPanel type={selected} typeName={(id) => tree.byId.get(id)?.displayName ?? "…"} />}
           {view === "rules" && <RulesPanel type={selected} typeName={(id) => tree.byId.get(id)?.displayName ?? "…"} />}
         </div>
       ) : (

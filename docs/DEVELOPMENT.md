@@ -522,6 +522,22 @@ curl -s -X POST "$API/objects/$PART/expression-model/evaluate" -H "Authorization
   -H 'Content-Type: application/json' -d '{"expression": "object.attributes.material", "kind": "VALUE"}'
 ```
 
+### Validation rules
+
+Under **Admin → Types and attributes → (a type) → Validation**, a site administrator adds rules
+objects of that type and its subtypes must meet: a condition (**Valid when**, an expression) and
+the message users see when it isn't met, optionally shown next to one attribute. Rules are checked
+when an object is created and when it's checked in (not while a working copy is being edited); all
+failing rules are reported together, next to their fields, like attribute errors
+(`INVALID_ATTRIBUTES`, `details.errors[].code = RULE_FAILED`). A rule that can't be evaluated
+counts as failed. Rules travel in configuration bundles (`types[].validationRules`).
+
+```bash
+curl -s -X POST $API/types/$PART_TYPE/validation-rules -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d '{"name": "Bought parts are described", "attribute": "description", "message": "Describe parts you buy",
+       "condition": "object.attributes.source != '"'"'buy'"'"' || object.attributes.description != null"}'
+```
+
 ### Actions
 
 Every action on an object (check out, check in, revise, set state, copy link, rename…) is an entry
@@ -643,6 +659,8 @@ Rules of the game (see [ADR 0019](adr/0019-configuration-as-code.md)):
 | POST | `/api/v1/contexts/{id}/save-as-template` | Save a context as a template (site admin) |
 | POST | `/api/v1/expressions/check` | Check an expression (`{expression, kind: CONDITION\|VALUE}`) |
 | GET · POST | `/api/v1/objects/{id}/expression-model` · `/evaluate` | Variables expressions see for an object / evaluate one there |
+| GET · POST | `/api/v1/types/{id}/validation-rules` | A type's validation rules, inherited first / add one (site admin) |
+| PUT / DELETE | `/api/v1/validation-rules/{id}` | Change / delete a rule (site admin) |
 | GET | `/api/v1/objects/{id}/actions` | Actions you see on an object, in order, with reasons for disabled ones |
 | GET | `/api/v1/actions` | Action registry: every action as declared and configured (site admin) |
 | PUT / DELETE | `/api/v1/actions/{id}/configuration` | Hide, move, reorder, relabel, restrict an action / reset it (site admin) |

@@ -2272,9 +2272,15 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "validationRules" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ValidationRuleConfig"
+            },
+            "type" : "array"
           }
         },
-        "required" : [ "attributes", "baseClass", "displayName", "globalAttributes", "instantiable", "labels", "layouts", "name" ],
+        "required" : [ "attributes", "baseClass", "displayName", "globalAttributes", "instantiable", "labels", "layouts", "name", "validationRules" ],
         "type" : "object"
       },
       "TypePropertiesRequest" : {
@@ -2513,6 +2519,99 @@
           }
         },
         "required" : [ "canSet", "definition", "effective" ],
+        "type" : "object"
+      },
+      "ValidationRuleConfig" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "attribute" : {
+            "type" : [ "string", "null" ]
+          },
+          "condition" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "order" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "active", "condition", "message", "name", "order" ],
+        "type" : "object"
+      },
+      "ValidationRuleRequest" : {
+        "properties" : {
+          "active" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "attribute" : {
+            "type" : [ "string", "null" ]
+          },
+          "condition" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "order" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "required" : [ "condition", "message", "name" ],
+        "type" : "object"
+      },
+      "ValidationRuleResponse" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "attribute" : {
+            "type" : [ "string", "null" ]
+          },
+          "condition" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "inherited" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "order" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "updatedBy" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "condition", "id", "inherited", "message", "name", "order", "typeId", "updatedAt", "updatedBy" ],
         "type" : "object"
       }
     },
@@ -5985,6 +6084,91 @@
         "tags" : [ "Type" ]
       }
     },
+    "/api/v1/types/{id}/validation-rules" : {
+      "get" : {
+        "operationId" : "validationRuleList",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ValidationRuleResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Validation rule" ]
+      },
+      "post" : {
+        "operationId" : "validationRuleDefine",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ValidationRuleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ValidationRuleResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Validation rule" ]
+      }
+    },
     "/api/v1/types/{typeId}/attributes" : {
       "get" : {
         "operationId" : "attributeList",
@@ -6611,6 +6795,81 @@
         },
         "tags" : [ "Reference data" ]
       }
+    },
+    "/api/v1/validation-rules/{id}" : {
+      "delete" : {
+        "operationId" : "validationRuleDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Validation rule" ]
+      },
+      "put" : {
+        "operationId" : "validationRuleUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ValidationRuleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ValidationRuleResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Validation rule" ]
+      }
     }
   },
   "security" : [ {
@@ -6654,6 +6913,8 @@
     "name" : "Type"
   }, {
     "name" : "Type rule"
+  }, {
+    "name" : "Validation rule"
   }, {
     "name" : "Versioned object"
   } ]

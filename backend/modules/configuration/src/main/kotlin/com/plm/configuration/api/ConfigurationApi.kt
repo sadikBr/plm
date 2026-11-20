@@ -119,6 +119,18 @@ data class TypeConfig(
     val lifecycle: String? = null,
     /** This type's own layouts. */
     val layouts: List<LayoutConfig> = emptyList(),
+    /** This type's own validation rules (its ancestors' are on them). */
+    val validationRules: List<ValidationRuleConfig> = emptyList(),
+)
+
+/** A validation rule, identified by its name within its type. */
+data class ValidationRuleConfig(
+    val name: String,
+    val condition: String,
+    val message: String,
+    val attribute: String? = null,
+    val active: Boolean = true,
+    val order: Int = 0,
 )
 
 data class AttributeConfig(

@@ -302,4 +302,50 @@ describe("Administration", () => {
       }),
     );
   });
+
+  it("defines a validation rule with a checked condition", async () => {
+    const calls = api(true, {
+      "GET /api/v1/types/:id/validation-rules": () => [
+        {
+          id: "r0",
+          typeId: "root",
+          name: "Inherited rule",
+          condition: "true",
+          message: "Never fails",
+          attribute: null,
+          active: true,
+          order: 0,
+          inherited: true,
+          updatedAt: "2026-11-20T09:00:00Z",
+          updatedBy: ALICE,
+        },
+      ],
+      "POST /api/v1/expressions/check": () => ({ valid: true, problems: [] }),
+      "POST /api/v1/types/:id/validation-rules": () => ({}),
+    });
+    renderAt(`/admin?tab=types&type=${PART_TYPE}&view=validation`);
+
+    const table = await screen.findByRole("table", { name: "Validation rules" });
+    expect(within(table).getByText("Inherited rule")).toBeInTheDocument();
+    expect(within(table).queryByRole("button", { name: "Edit Inherited rule" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "New rule" }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.type(within(dialog).getByLabelText("Name"), "Bought parts are described");
+    await userEvent.type(within(dialog).getByLabelText("Valid when"), "object.attributes.material != null");
+    await userEvent.type(within(dialog).getByLabelText("Message when it isn't"), "Pick a material");
+    await userEvent.selectOptions(within(dialog).getByLabelText("Show the message at"), "material");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(posted(calls, "POST", `/api/v1/types/${PART_TYPE}/validation-rules`)).toEqual({
+        name: "Bought parts are described",
+        condition: "object.attributes.material != null",
+        message: "Pick a material",
+        attribute: "material",
+        active: true,
+        order: 0,
+      }),
+    );
+  });
 });

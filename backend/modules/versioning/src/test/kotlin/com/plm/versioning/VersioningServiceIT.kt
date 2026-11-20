@@ -35,6 +35,8 @@ import com.plm.types.api.TypeProperties
 import com.plm.types.api.TypeRuleService
 import com.plm.types.api.TypeRuleSettings
 import com.plm.types.api.TypeService
+import com.plm.types.api.ValidationRuleService
+import com.plm.types.api.ValidationRuleSettings
 import com.plm.versioning.api.ChangeLifecycle
 import com.plm.versioning.api.CreateVersionedObject
 import com.plm.versioning.api.IterationStatus
@@ -73,6 +75,7 @@ class VersioningServiceIT(
     @Autowired private val jdbc: JdbcClient,
     @Autowired private val clock: MutableClock,
     @Autowired private val preferences: PreferenceService,
+    @Autowired private val validationRules: ValidationRuleService,
 ) {
     private val admin = Actor(TenantId.DEFAULT, PrincipalId("site-admin"), siteAdmin = true)
     private val alice = Actor(TenantId.DEFAULT, PrincipalId("alice"))
@@ -1093,5 +1096,111 @@ class VersioningServiceIT(
             NotFoundException::class.java,
             "OBJECT_NOT_FOUND",
         ) { versioning.get(alice, MasterId(UUID.randomUUID())) }
+    }
+
+    @Nested
+    inner class ValidationRules {
+        private val bracket by lazy {
+            types
+                .createSubtype(
+                    admin,
+                    CreateSubtype(TypeId.PART, "Ruled${UUID.randomUUID().toString().take(8)}", "Ruled bracket"),
+                ).id
+        }
+
+        private fun create(attributes: Map<String, Any?>) =
+            versioning.create(alice, CreateVersionedObject(bracket, product, "Bracket", attributes = attributes))
+
+        @Test
+        fun `rules of the type and its parents are checked on create, all failures at once`() {
+            validationRules.define(
+                admin,
+                bracket,
+                ValidationRuleSettings(
+                    "Bought parts are described",
+                    "object.attributes.source != 'buy' || object.attributes.description != null",
+                    "Describe parts you buy",
+                    attribute = "description",
+                ),
+            )
+            validationRules.define(
+                admin,
+                bracket,
+                ValidationRuleSettings("Named sensibly", "size(object.name) > 3", "Give it a longer name"),
+            )
+
+            val error =
+                catchThrowableOfType(ValidationException::class.java) {
+                    versioning.create(
+                        alice,
+                        CreateVersionedObject(
+                            bracket,
+                            product,
+                            "Br",
+                            attributes =
+                                mapOf(
+                                    "source" to "buy",
+                                ),
+                        ),
+                    )
+                }
+            assertThat(error.code).isEqualTo("INVALID_ATTRIBUTES")
+            @Suppress("UNCHECKED_CAST")
+            val errors = error.details["errors"] as List<Map<String, Any?>>
+            assertThat(errors.map { it["attribute"] }).containsExactly("description", "Named sensibly")
+
+            assertThat(create(mapOf("source" to "buy", "description" to "M8 hex")).latest.version).isEqualTo("A.1")
+            assertThat(create(mapOf("source" to "make")).latest.version).isEqualTo("A.1")
+        }
+
+        @Test
+        fun `rules are checked on check-in, not while editing, and inactive ones are skipped`() {
+            val rule =
+                validationRules.define(
+                    admin,
+                    bracket,
+                    ValidationRuleSettings(
+                        "Material set",
+                        "object.attributes.material != null",
+                        "Pick a material",
+                        "material",
+                    ),
+                )
+            val part = create(mapOf("material" to "AL6061"))
+            versioning.checkOut(alice, part.id)
+            versioning.updateWorkingCopy(alice, part.id, mapOf("material" to null)) // a draft may break it
+            assertCode(ValidationException::class.java, "INVALID_ATTRIBUTES") { versioning.checkIn(alice, part.id) }
+
+            validationRules.update(
+                admin,
+                rule.id,
+                ValidationRuleSettings("Material set", rule.condition, rule.message, "material", active = false),
+            )
+            assertThat(versioning.checkIn(alice, part.id).latest.version).isEqualTo("A.2")
+        }
+
+        @Test
+        fun `a rule that can't be evaluated fails closed, and bad rules are refused`() {
+            validationRules.define(
+                admin,
+                bracket,
+                ValidationRuleSettings("Broken", "object.attributes.nosuch == 1", "Never"),
+            )
+            assertCode(ValidationException::class.java, "INVALID_ATTRIBUTES") { create(emptyMap()) }
+
+            assertCode(ValidationException::class.java, "INVALID_EXPRESSION") {
+                validationRules.define(admin, bracket, ValidationRuleSettings("Bad", "object.name ==", "x"))
+            }
+            assertCode(ValidationException::class.java, "UNKNOWN_ATTRIBUTE") {
+                validationRules.define(
+                    admin,
+                    bracket,
+                    ValidationRuleSettings("Field", "true", "x", attribute = "nosuch"),
+                )
+            }
+            assertCode(ForbiddenException::class.java, "ADMIN_REQUIRED") {
+                validationRules.define(alice, bracket, ValidationRuleSettings("Mine", "true", "x"))
+            }
+        }
     }
 }

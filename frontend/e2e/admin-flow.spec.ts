@@ -56,7 +56,7 @@ test("alice models a Bolt type in the admin UI, then creates one", async ({ brow
   await attr.getByRole("button", { name: "Add attribute" }).click();
   await expect(alice.getByRole("table", { name: "Attributes" }).getByRole("cell", { name: "threadStandard" })).toBeVisible();
 
-  await alice.getByRole("button", { name: "Rules and lifecycle" }).click();
+  await alice.getByRole("button", { name: "Numbering and lifecycle" }).click();
   await alice.getByLabel("Numbering").selectOption({ label: `Bolts ${suffix} — next ${prefix}0001` });
   await expect(alice.getByText("Set on this type")).toBeVisible();
 

@@ -15,6 +15,8 @@ import com.plm.platform.error.ForbiddenException
 import com.plm.platform.error.NotFoundException
 import com.plm.platform.error.ValidationException
 import com.plm.platform.events.DomainEvents
+import com.plm.platform.expression.ExpressionException
+import com.plm.platform.expression.Expressions
 import com.plm.platform.id.PrincipalId
 import com.plm.platform.id.UuidV7
 import com.plm.preferences.api.PreferenceService
@@ -22,6 +24,7 @@ import com.plm.types.api.AttributeValidator
 import com.plm.types.api.NumberingSchemeId
 import com.plm.types.api.TypeRuleService
 import com.plm.types.api.TypeService
+import com.plm.types.api.ValidationRuleService
 import com.plm.versioning.api.ChangeLifecycle
 import com.plm.versioning.api.CheckOutUndone
 import com.plm.versioning.api.CreateVersionedObject
@@ -73,6 +76,7 @@ internal class DefaultVersioningService(
     private val lifecycles: LifecycleService,
     private val preferences: PreferenceService,
     private val models: ObjectModels,
+    private val validationRules: ValidationRuleService,
     private val clock: Clock,
 ) : VersioningService {
     override fun create(
@@ -113,6 +117,20 @@ internal class DefaultVersioningService(
                 ?: contextScheme(actor, context.id)?.let { typeRules.nextNumber(actor, it) }
                 ?: repository.nextNumber()
 
+        enforceRules(
+            actor,
+            ObjectFacts(
+                typeId = type.id,
+                contextId = context.id,
+                number = number,
+                name = name,
+                state = lifecycle.initialState,
+                revision = rules.revisionScheme.first,
+                iteration = 1,
+                checkedOut = false,
+                attributes = attributes,
+            ),
+        )
         val now = clock.instant()
         val masterId = MasterId(UuidV7.generate(clock))
         val first =
@@ -296,6 +314,10 @@ internal class DefaultVersioningService(
         }
         // Re-validate: definitions may have changed since check-out (e.g. a newly required attribute).
         val attributes = attributeValidator.validate(actor, master.typeId, workingCopy.attributes, basedOn(workingCopy))
+        enforceRules(
+            actor,
+            master.facts(workingCopy, attributes).copy(checkedOut = false),
+        )
         if (attributes != workingCopy.attributes) repository.updateAttributes(workingCopy.id, attributes)
         val checkedIn =
             workingCopy.copy(
@@ -537,6 +559,45 @@ internal class DefaultVersioningService(
     ): Map<String, Any?> {
         val master = findMaster(actor, id, forUpdate = false)
         return models.build(actor, master.facts(readable(actor, master)))
+    }
+
+    /**
+     * The type's validation rules (and its ancestors'), on the object as it would be stored. All
+     * failures are reported together, keyed by the attribute each is about (or the rule's name),
+     * like attribute errors, so forms show them next to their fields. A rule that can't be
+     * evaluated counts as failed: rules fail closed.
+     */
+    private fun enforceRules(
+        actor: Actor,
+        facts: ObjectFacts,
+    ) {
+        val active = validationRules.rules(actor, facts.typeId).filter { it.active }
+        if (active.isEmpty()) return
+        val model = models.build(actor, facts)
+        val failed =
+            active.mapNotNull { rule ->
+                try {
+                    if (Expressions.test(rule.condition, model)) null else rule to rule.message
+                } catch (e: ExpressionException) {
+                    rule to "${rule.message} (the rule “${rule.name}” couldn't be checked: ${e.message})"
+                }
+            }
+        if (failed.isEmpty()) return
+        throw ValidationException(
+            "INVALID_ATTRIBUTES",
+            failed.joinToString(" · ") { it.second },
+            mapOf(
+                "errors" to
+                    failed.map { (rule, message) ->
+                        mapOf(
+                            "attribute" to (rule.attribute ?: rule.name),
+                            "code" to "RULE_FAILED",
+                            "message" to message,
+                            "rule" to rule.name,
+                        )
+                    },
+            ),
+        )
     }
 
     private fun MasterRow.facts(

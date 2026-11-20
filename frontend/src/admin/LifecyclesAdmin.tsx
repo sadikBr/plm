@@ -296,7 +296,7 @@ function LifecycleEditor({ from, editing = false, onDone }: { from?: Lifecycle; 
         <span className="note">
           {editing
             ? "Saving creates a new version. Types move to it; existing objects keep their version until moved."
-            : "Assign it to types under Types and attributes → Rules and lifecycle"}
+            : "Assign it to types under Types and attributes → Numbering and lifecycle"}
         </span>
       </div>
       <div className="panel-body" style={{ display: "grid", gap: 12 }}>
