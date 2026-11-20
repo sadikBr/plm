@@ -35,19 +35,19 @@ systems (Windchill is the reference point), and do better on UI, configurability
 
 | Capability | Status | Notes |
 |---|---|---|
-| Type hierarchy with admin-defined subtypes | 🟡 | Exists; no attributes, layouts or rules yet |
-| Attribute definitions on types, inherited by subtypes | ⬜ [1] | |
-| Data types: text, long text, integer, real, **real with units**, boolean, date, timestamp, URL, enumeration, reference | ⬜ [1] | |
-| Units of measure and quantities (conversion, display unit) | ⬜ [1] | |
+| Type hierarchy with admin-defined subtypes | ✅ | Layouts and rules still to come |
+| Attribute definitions on types, inherited by subtypes | ✅ | Names unique along the hierarchy |
+| Data types: text, long text, integer, real, **real with units**, boolean, date, timestamp, URL, enumeration, reference | 🟡 | All but reference (needs object links, Phase 3) |
+| Units of measure and quantities (conversion, display unit) | ✅ | ~60 units, 17 dimensions; admin-defined units later |
 | Reusable attributes shared across types (global attributes) | ⬜ [1] | |
-| Enumerations / legal value lists, localized labels | ⬜ [1] | |
-| Constraints: required, range, length, regex, immutable after creation, unique | ⬜ [1] | Enforced in the API, not only the UI |
+| Enumerations / legal value lists, localized labels | ✅ | Values deactivated, never removed |
+| Constraints: required, range, length, regex, immutable after creation, unique | 🟡 | All but unique; enforced by the server on create, edit and check-in |
 | Calculated / derived attributes | ⬜ [1] | Expression language |
-| Multi-valued attributes | ⬜ [1] | |
+| Multi-valued attributes | ✅ | |
 | Classification (class hierarchy with class-specific attributes) | ⬜ [6] | |
 | Layouts: which attributes, groups and order per type, for create / edit / info / table | ⬜ [1] | UI renders from layouts. No code |
 | Initialization rules per type: numbering scheme, revision scheme, default values, default lifecycle, default folder | ⬜ [1] | |
-| Localization of type and attribute labels | ⬜ [1] | |
+| Localization of type and attribute labels | 🟡 | Attribute and value labels per language; type labels later |
 | Admin UI for all of the above | ⬜ [1] | Live preview of layouts |
 | Import/export type definitions between environments (dev → test → prod) | ⬜ [1] | Configuration as code (JSON/YAML) |
 
@@ -57,8 +57,8 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 
 | Type | Status | OOTB attributes (beyond number, name, version, state, created/modified) |
 |---|---|---|
-| **Part** | 🟡 | source (make/buy/…), default unit, assembly mode (separable/inseparable/component), end item, phantom, trace code (serial/lot/none), gathering part, view (design/manufacturing), description |
-| **Document** | 🟡 | title, description, document category, department, primary content, secondary attachments |
+| **Part** | ✅ | source (make/buy/…), default unit, assembly mode (separable/inseparable/component), end item, phantom, trace code (serial/lot/none), gathering part, view (design/manufacturing), description |
+| **Document** | 🟡 | title, description, document category, department ✅ · primary content, secondary attachments (Phase 2) |
 | **CAD Document** | ⬜ [5] | authoring application, file name, CAD type (part/assembly/drawing), generic/instance (family tables) |
 | **Problem Report** | ⬜ [4] | category, priority, need date, steps to reproduce, affected objects |
 | **Change Request** | ⬜ [4] | category, priority, complexity, recurring cost, non-recurring cost, need date, affected objects |
