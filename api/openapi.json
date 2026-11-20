@@ -502,6 +502,75 @@
         "required" : [ "attributes", "createdAt", "createdBy", "id", "iteration", "revision", "state", "status", "version" ],
         "type" : "object"
       },
+      "LayoutGroupDto" : {
+        "properties" : {
+          "attributes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "columns" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          }
+        },
+        "required" : [ "attributes", "columns", "key", "labels" ],
+        "type" : "object"
+      },
+      "LayoutResponse" : {
+        "properties" : {
+          "groups" : {
+            "items" : {
+              "$ref" : "#/components/schemas/LayoutGroupDto"
+            },
+            "type" : "array"
+          },
+          "hidden" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "screen" : {
+            "enum" : [ "DEFAULT", "CREATE", "EDIT", "INFO" ],
+            "type" : "string"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "groups", "hidden", "screen", "typeId", "updatedAt" ],
+        "type" : "object"
+      },
+      "LayoutSourceDto" : {
+        "properties" : {
+          "screen" : {
+            "enum" : [ "DEFAULT", "CREATE", "EDIT", "INFO" ],
+            "type" : "string"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "screen", "typeId" ],
+        "type" : "object"
+      },
       "LifecycleResponse" : {
         "properties" : {
           "id" : {
@@ -767,6 +836,51 @@
           }
         },
         "required" : [ "role" ],
+        "type" : "object"
+      },
+      "ResolvedLayoutResponse" : {
+        "properties" : {
+          "groups" : {
+            "items" : {
+              "$ref" : "#/components/schemas/LayoutGroupDto"
+            },
+            "type" : "array"
+          },
+          "screen" : {
+            "enum" : [ "DEFAULT", "CREATE", "EDIT", "INFO" ],
+            "type" : "string"
+          },
+          "source" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/LayoutSourceDto"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "groups", "screen", "typeId" ],
+        "type" : "object"
+      },
+      "SaveLayoutRequest" : {
+        "properties" : {
+          "groups" : {
+            "items" : {
+              "$ref" : "#/components/schemas/LayoutGroupDto"
+            },
+            "type" : "array"
+          },
+          "hidden" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : [ "array", "null" ]
+          }
+        },
+        "required" : [ "groups" ],
         "type" : "object"
       },
       "SetStateRequest" : {
@@ -2488,6 +2602,180 @@
         "tags" : [ "Attribute" ]
       }
     },
+    "/api/v1/types/{typeId}/layouts" : {
+      "get" : {
+        "operationId" : "layoutOwn",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "typeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/LayoutResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Layout" ]
+      }
+    },
+    "/api/v1/types/{typeId}/layouts/{screen}" : {
+      "delete" : {
+        "operationId" : "layoutRemove",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "typeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "screen",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "DEFAULT", "CREATE", "EDIT", "INFO" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Layout" ]
+      },
+      "get" : {
+        "operationId" : "layoutResolve",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "typeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "screen",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "DEFAULT", "CREATE", "EDIT", "INFO" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResolvedLayoutResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Layout" ]
+      },
+      "put" : {
+        "operationId" : "layoutSave",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "typeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "screen",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "DEFAULT", "CREATE", "EDIT", "INFO" ],
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveLayoutRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LayoutResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Layout" ]
+      }
+    },
     "/api/v1/types/{typeId}/lifecycle" : {
       "get" : {
         "operationId" : "lifecycleForType",
@@ -2693,6 +2981,8 @@
     "name" : "Audit"
   }, {
     "name" : "Context"
+  }, {
+    "name" : "Layout"
   }, {
     "name" : "Lifecycle"
   }, {

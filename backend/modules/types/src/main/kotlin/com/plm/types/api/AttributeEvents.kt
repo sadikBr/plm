@@ -47,3 +47,16 @@ data class TypeRulesChanged(
     override val aggregateType = "type"
     override val aggregateId = typeId
 }
+
+data class LayoutChanged(
+    val typeId: UUID,
+    val screen: String,
+    /** Group keys with their attributes, in order; empty when the layout was removed. */
+    val groups: Map<String, List<String>>,
+    val hidden: List<String>,
+    val removed: Boolean,
+) : DomainEvent {
+    override val eventType = "types.LayoutChanged.v1"
+    override val aggregateType = "type"
+    override val aggregateId = typeId
+}

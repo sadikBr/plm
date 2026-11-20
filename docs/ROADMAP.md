@@ -41,8 +41,10 @@ code**. Every later phase builds on this. See [PARITY.md](PARITY.md) §2–§5.
 - [x] 1.6 Lifecycle templates: states, transitions (promote, demote, revise, set state), per-type
       assignment. **Revise allowed only from configured states (Released by default).** Default
       state-based policies: Released is read-only.
-- [ ] 1.7 Layouts per type (create / edit / info / table): attribute groups and order. The UI
-      renders forms and pages from layouts.
+- [x] 1.7 Layouts per type and screen (create / edit / info, plus a default): attribute groups,
+      order, one or two columns, hidden attributes; inherited along the type hierarchy. The UI
+      renders forms and the attributes panel from them. (Table and search columns come with saved
+      table views in Phase 3.)
 - [ ] 1.8 Custom team roles; policy admin; policies apply to subtypes.
 - [ ] 1.9 Admin UI: types, attributes, enumerations, units, rules, layouts, lifecycles (state diagram).
 - [ ] 1.10 Configuration as code: export/import all of the above as versioned files.

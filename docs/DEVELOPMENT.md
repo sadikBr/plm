@@ -271,6 +271,35 @@ Attributes can be multi-valued (a JSON list), required, immutable after creation
 length, pattern or min/max (for quantities, in the dimension's base unit). Attributes and
 enumeration values are never deleted, only deactivated: existing data stays valid.
 
+### Layouts
+
+A **layout** decides which attributes a screen shows, in which groups and order, in one or two
+columns. Screens are `CREATE` (new object form), `EDIT` (working copy form) and `INFO` (attributes
+panel), plus `DEFAULT` for any screen without its own. Part and Document come with a default
+layout. Subtypes inherit their parent's layouts. Attributes a layout doesn't place (like the
+Fastener's *Thread size*) show up in a trailing *More attributes* group, so nothing disappears.
+
+See what the create form of a Fastener will look like, and where the layout comes from:
+
+```bash
+curl -s $API/types/$FASTENER/layouts/CREATE -H "Authorization: Bearer $BOB" \
+  | jq '{source, groups: [.groups[] | {key, attributes}]}'
+```
+
+Give the Fastener create form its own layout: thread first, and no *Gathering part* checkbox
+(hidden attributes keep their default value):
+
+```bash
+curl -s -X PUT $API/types/$FASTENER/layouts/CREATE -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d '{"groups":[{"key":"fastener","labels":{"en":"Fastener"},"columns":2,"attributes":["threadSize","material","mass"]},
+                 {"key":"general","labels":{"en":"General"},"columns":2,"attributes":["description","source","defaultUnit"]}],
+       "hidden":["gatheringPart"]}' | jq '{screen, groups: [.groups[].key], hidden}'
+```
+
+The other screens still use the Part layout. `DELETE $API/types/$FASTENER/layouts/CREATE` goes
+back to inheriting it. Invalid layouts are refused with every problem listed (`INVALID_LAYOUT`),
+for example an unknown attribute, or hiding a required attribute that has no default.
+
 ### Lifecycles, numbering and revisions
 
 Parts and documents follow the out-of-the-box **Basic** lifecycle:
@@ -335,6 +364,9 @@ rules never changes existing objects.
 | GET / POST | `/api/v1/lifecycles` | Lifecycle templates / create one (site admin) |
 | GET / PUT | `/api/v1/types/{typeId}/lifecycle` | Lifecycle a type uses (inherited) / assign one (site admin) |
 | GET / PUT | `/api/v1/types/{typeId}/rules` | Numbering scheme, revision scheme, manual numbers (inherited) / set (site admin) |
+| GET | `/api/v1/types/{id}/layouts/{screen}` | Layout to render for `CREATE`, `EDIT`, `INFO` or `DEFAULT`, resolved through the type hierarchy |
+| GET | `/api/v1/types/{id}/layouts` | Layouts saved on the type itself |
+| PUT / DELETE | `/api/v1/types/{id}/layouts/{screen}` | Save / remove the type's own layout for a screen (site admin) |
 | GET / POST | `/api/v1/numbering-schemes` | Numbering schemes, e.g. `PRT-000123` / create one (site admin) |
 | GET | `/api/v1/audit[?aggregateId=&limit=&before=]` | Audit trail, newest first (site admin) |
 | GET / POST | `/api/v1/types/{typeId}/attributes` | Effective attributes (incl. inherited) / define one (site admin) |

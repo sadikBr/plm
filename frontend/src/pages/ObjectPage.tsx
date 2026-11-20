@@ -11,9 +11,11 @@ import {
   useObject,
   useObjectActions,
   usePermissions,
+  useLayout,
   useTypeAttributes,
   useWorkingCopy,
   type AttributeDefinition,
+  type LayoutGroup,
   type Attributes,
   type ObjectLifecycle,
   type VersionedObject,
@@ -369,6 +371,8 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
   const mine = !!myId && obj.checkedOutBy === myId;
   const workingCopy = useWorkingCopy(obj.id, mine);
   const { data: definitions } = useTypeAttributes(obj.typeId);
+  const { data: infoLayout } = useLayout(obj.typeId, "INFO");
+  const { data: editLayout } = useLayout(obj.typeId, "EDIT");
   const { data: context } = useContextById(obj.contextId);
   const typeName = useTypeName(obj.typeId);
   const latest = obj.latest;
@@ -376,12 +380,13 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
   return (
     <div className="cols">
       {mine ? (
-        workingCopy.data && definitions ? (
+        workingCopy.data && definitions && editLayout ? (
           <WorkingCopyEditor
             key={workingCopy.data.id}
             objectId={obj.id}
             version={workingCopy.data.version}
             definitions={definitions}
+            groups={editLayout.groups}
             initial={workingCopy.data.attributes as Attributes}
           />
         ) : (
@@ -392,7 +397,11 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
         )
       ) : (
         <Panel title="Attributes" note={`as of ${latest.version}`}>
-          {definitions ? <AttributeValues definitions={definitions} values={latest.attributes as Attributes} /> : <Loading />}
+          {definitions && infoLayout ? (
+            <AttributeValues definitions={definitions} groups={infoLayout.groups} values={latest.attributes as Attributes} />
+          ) : (
+            <Loading />
+          )}
         </Panel>
       )}
       <Panel title="General">
@@ -419,11 +428,13 @@ function WorkingCopyEditor({
   objectId,
   version,
   definitions,
+  groups,
   initial,
 }: {
   objectId: string;
   version: string;
   definitions: AttributeDefinition[];
+  groups: LayoutGroup[];
   initial: Attributes;
 }) {
   const { updateAttributes } = useObjectActions(objectId);
@@ -452,6 +463,7 @@ function WorkingCopyEditor({
         <AttributeForm
           idPrefix="wc"
           definitions={definitions}
+          groups={groups}
           values={values}
           onChange={(next) => {
             setValues(next);
