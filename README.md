@@ -28,6 +28,7 @@ Then open http://localhost:5173, or follow the [UI tour](docs/DEVELOPMENT.md#4-r
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | How to build, run and test locally |
 | [docs/PLAN.md](docs/PLAN.md) | Product scope, architecture, data model, pitfalls |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Phased delivery plan with exit criteria |
+| [docs/PARITY.md](docs/PARITY.md) | Capability matrix against established enterprise PLM: what's done, what's planned, where we aim to be better |
 | [docs/adr/](docs/adr/) | Architecture Decision Records — the *why* behind every foundational choice |
 
 ## Core principles

@@ -18,6 +18,8 @@ recorded individually in [`adr/`](adr/); changes to them require a new ADR.
 | Configuration | Effectivity, options & variants, EBOM/MBOM views | v3 |
 | Enterprise | ERP integration, file replication, reporting, bulk import/export | v3 |
 
+The detailed, capability-by-capability view lives in [PARITY.md](PARITY.md).
+
 ## 2. Foundational decisions
 
 | # | Decision | ADR |
