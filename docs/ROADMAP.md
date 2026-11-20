@@ -124,15 +124,33 @@ platform code changes, and it survives a platform upgrade. (Met: the `erp-sync` 
 `quality-rules` samples in `extensions/samples`, covered by the e2e suite.)
 
 ## Phase 3 — Documents, content, search and collaboration
-User interface translations (all screens, per-user language) · primary content and attachments through the vault · document templates · thumbnails/previews ·
-folders · Save As · move · delete rules · ownership/reservation · compare · clipboard · mass
-operations as background jobs · OpenSearch indexing via events · full-text and attribute search
-with facets, saved and shared searches · table views (columns, filters, saved views, Excel export) ·
-report definitions, scheduled reports and alerts, dashboards and configurable home page · favorites,
-recent items, subscriptions and digests · discussions · ad hoc access · audit reports ·
-job queue and scheduler with admin monitoring · long-running extension actions: a webhook action
-can start a background job that reports progress, and the user is notified when it's done (e.g. a
-document generated from a long query).
+
+**Goal:** teams manage real documents (files, folders, permissions) and find anything fast; the
+platform gets the background machinery (jobs, schedules, notifications) later phases rely on.
+
+- [ ] 3.1 Job queue and scheduler: background jobs with progress, retries and cancel, recurring
+      schedules, an admin monitor. Mass operations, reports, indexing and long actions run on it.
+- [ ] 3.2 Vault content: primary content and attachments stored in the vault (S3), uploaded and
+      downloaded through presigned URLs, kept per iteration; thumbnails and previews.
+- [ ] 3.3 Documents: document templates (a new document starts from a template's file), Save As
+      (a copy with a new number), compare two versions (attributes and content).
+- [ ] 3.4 Folders and organizing: folders in contexts, move between folders and contexts, delete
+      rules (what may be deleted, by whom, in which states), ownership and reservation, a clipboard.
+- [ ] 3.5 Mass operations: select many objects and set state, move, delete or change an
+      attribute in one background job, with a per-object result.
+- [ ] 3.6 Search: OpenSearch indexing fed by events, full-text and attribute search with facets
+      and access filtering, saved and shared searches.
+- [ ] 3.7 Table views: choose columns, filter and sort, save and share views, export to Excel.
+- [ ] 3.8 Reports and home page: report definitions (a query and columns), scheduled reports and
+      alerts by email, dashboards, a home page each user arranges.
+- [ ] 3.9 Personal tracking: favorites, recent items, subscriptions to objects and folders,
+      notifications and digests.
+- [ ] 3.10 Collaboration and access: discussions on objects, ad hoc access (share one object with
+      someone), audit reports.
+- [ ] 3.11 Long-running extension actions: a webhook action can start a background job that
+      reports progress; the user is notified when it's done (e.g. a document generated from a long
+      query).
+- [ ] 3.12 Interface translations: every screen translated, each user picks a language.
 
 **Exit:** a team manages real documents end-to-end with files, permissions and fast search.
 
