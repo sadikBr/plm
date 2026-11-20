@@ -573,3 +573,23 @@ tr.selected > td { background: var(--row-selected); }
 .member-add input { width: 220px; flex: none; }
 .member-add select { width: auto; flex: none; }
 .member-add .btn { flex: none; }
+
+/* Jobs */
+.job-progress { display: grid; gap: 3px; min-width: 180px; }
+.job-progress .bar { height: 6px; border-radius: 3px; background: var(--panel-2); border: 1px solid var(--border); overflow: hidden; }
+.job-progress .bar > span { display: block; height: 100%; background: var(--accent); transition: width 0.4s; }
+.job-progress .bar.succeeded > span { background: var(--ok); }
+.job-progress .bar.failed > span { background: var(--danger); }
+.job-progress .bar.cancelled > span { background: var(--warn); }
+.job-progress .bar.indeterminate > span { animation: job-slide 1.2s ease-in-out infinite; }
+@keyframes job-slide { from { margin-left: -30%; } to { margin-left: 100%; } }
+.job-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.job-stats .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 14px; min-width: 110px; }
+.job-stats .stat strong { display: block; font-size: 20px; }
+.job-stats .stat.active { border-color: var(--accent); }
+.job-log { margin: 0; padding: 8px 10px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px; max-height: 260px; overflow: auto; font-size: 12px; }
+.job-log .WARN { color: var(--warn); }
+.job-log .ERROR { color: var(--danger); }
+tr.clickable { cursor: pointer; }
+.job-stats .stat { text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.hint.bad { color: var(--danger); }

@@ -18,7 +18,8 @@ Three layers enforce this:
 
 | Module | Responsibility | Depends on |
 |---|---|---|
-| identity | User directory (from OIDC sign-ins) | — |
+| identity | User directory (from OIDC sign-ins), service accounts and API tokens | jobs |
+| jobs | Background jobs: queue, workers, schedules (handlers live in the modules that own the work) | — |
 | audit | Append-only audit log, fed by every domain event | — |
 | types | Type definitions, attribute schemas | — |
 | integration | ERP and external connectors (event consumers) | — |
@@ -34,8 +35,8 @@ Three layers enforce this:
 | change | PR / CR / CN / change tasks | versioning, lifecycle, workflow |
 | search | OpenSearch indexing (event consumer) | access |
 | configuration | Export/import of the whole configuration as one bundle (config as code) | types, lifecycle, access |
-| preferences | Typed preferences set per site / organization / context / user, with locking | access, types |
-| extensions | Extensibility platform: action registry, extension packages (later rules, webhooks) | types, access, lifecycle, versioning, configuration |
+| preferences | Typed preferences set per site / organization / context / user, with locking; profiles | access, types |
+| extensions | Extensibility platform: action registry, extension packages, rules, webhooks | types, access, lifecycle, versioning, configuration, identity, preferences |
 
 Every module also depends on `backend/platform` (the shared kernel).
 To add a dependency, edit the module's `build.gradle.kts` and update this table in the same PR.

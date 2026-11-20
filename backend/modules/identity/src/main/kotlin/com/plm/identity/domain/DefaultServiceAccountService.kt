@@ -20,7 +20,6 @@ import com.plm.platform.events.DomainEvents
 import com.plm.platform.id.PrincipalId
 import com.plm.platform.id.TenantId
 import com.plm.platform.id.UuidV7
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.security.MessageDigest
@@ -271,11 +270,8 @@ internal class DefaultServiceAccountService(
             user.principal.value,
         )
 
-    @Scheduled(
-        fixedDelayString = "\${plm.tokens.purge-interval:1h}",
-        initialDelayString = "\${plm.tokens.purge-delay:10m}",
-    )
-    fun purge() = accounts.purgeExpired(clock.instant().minus(Duration.ofDays(1)))
+    /** Removes tokens that expired over a day ago; run by the `identity.purge-tokens` job. */
+    fun purge(): Int = accounts.purgeExpired(clock.instant().minus(Duration.ofDays(1)))
 
     // ---------- Helpers ----------
 

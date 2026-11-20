@@ -251,10 +251,9 @@ internal class ServiceAccountRepository(
     }
 
     /** Short-lived tokens past their time are of no use: remove them. */
-    fun purgeExpired(before: Instant) {
+    fun purgeExpired(before: Instant): Int =
         jdbc
             .sql("delete from api_token where kind in ('ACCESS', 'DELEGATED') and expires_at < :before")
             .param("before", Timestamp.from(before))
             .update()
-    }
 }

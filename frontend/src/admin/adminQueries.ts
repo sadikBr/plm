@@ -24,6 +24,9 @@ export type ApiToken = Schemas["ApiTokenResponse"];
 export type IssuedToken = Schemas["IssuedTokenResponse"];
 export type IssueTokenRequest = Schemas["IssueTokenRequest"];
 export type Profile = Schemas["Profile"];
+export type Job = Schemas["Job"];
+export type JobSchedule = Schemas["JobSchedule"];
+export type JobStatus = Job["status"];
 export type ProfileMember = Schemas["ProfileMember"];
 export type ExtensionPreview = Schemas["PreviewResponse"];
 export type ExtensionManifest = Schemas["ExtensionManifest"];
@@ -49,6 +52,8 @@ const ADMIN_KEYS = [
   "serviceAccounts",
   "apiTokens",
   "profiles",
+  "jobs",
+  "jobSchedules",
   "myProfile",
   "extensions",
   "actionRegistry",
@@ -350,3 +355,53 @@ export const useUpdateProfile = () =>
 
 export const useDeleteProfile = () =>
   useAdminMutation((id: string) => unwrap(api.DELETE("/api/v1/profiles/{id}", { params: { path: { id } } })));
+
+// ---------- Jobs (3.1) ----------
+
+export const useJobs = (status: string, type: string) =>
+  useQuery({
+    queryKey: ["jobs", status, type],
+    queryFn: () =>
+      unwrap(
+        api.GET("/api/v1/jobs", {
+          params: { query: { status: (status || undefined) as JobStatus | undefined, type: type || undefined, limit: 100 } },
+        }),
+      ),
+    refetchInterval: 2000,
+  });
+
+export const useJobStats = () =>
+  useQuery({ queryKey: ["jobs", "stats"], queryFn: () => unwrap(api.GET("/api/v1/jobs/stats")), refetchInterval: 2000 });
+
+export const useJobTypes = () => useQuery({ queryKey: ["jobTypes"], queryFn: () => unwrap(api.GET("/api/v1/job-types")) });
+
+export const useJobLog = (id: string, live: boolean) =>
+  useQuery({
+    queryKey: ["jobs", id, "log"],
+    queryFn: () => unwrap(api.GET("/api/v1/jobs/{id}/log", { params: { path: { id } } })),
+    refetchInterval: live ? 2000 : false,
+  });
+
+export const useSubmitJob = () => useAdminMutation((body: Schemas["SubmitJob"]) => unwrap(api.POST("/api/v1/jobs", { body })));
+
+export const useCancelJob = () =>
+  useAdminMutation((id: string) => unwrap(api.POST("/api/v1/jobs/{id}/cancel", { params: { path: { id } } })));
+
+export const useRetryJob = () =>
+  useAdminMutation((id: string) => unwrap(api.POST("/api/v1/jobs/{id}/retry", { params: { path: { id } } })));
+
+export const useJobSchedules = () =>
+  useQuery({ queryKey: ["jobSchedules"], queryFn: () => unwrap(api.GET("/api/v1/job-schedules")), refetchInterval: 5000 });
+
+export const useSaveSchedule = () =>
+  useAdminMutation(({ id, body }: { id?: string; body: Schemas["ScheduleSettings"] }) =>
+    id
+      ? unwrap(api.PUT("/api/v1/job-schedules/{id}", { params: { path: { id } }, body }))
+      : unwrap(api.POST("/api/v1/job-schedules", { body })),
+  );
+
+export const useDeleteSchedule = () =>
+  useAdminMutation((id: string) => unwrap(api.DELETE("/api/v1/job-schedules/{id}", { params: { path: { id } } })));
+
+export const useRunSchedule = () =>
+  useAdminMutation((id: string) => unwrap(api.POST("/api/v1/job-schedules/{id}/run", { params: { path: { id } } })));

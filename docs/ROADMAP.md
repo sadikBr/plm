@@ -128,8 +128,10 @@ platform code changes, and it survives a platform upgrade. (Met: the `erp-sync` 
 **Goal:** teams manage real documents (files, folders, permissions) and find anything fast; the
 platform gets the background machinery (jobs, schedules, notifications) later phases rely on.
 
-- [ ] 3.1 Job queue and scheduler: background jobs with progress, retries and cancel, recurring
+- [x] 3.1 Job queue and scheduler: background jobs with progress, retries and cancel, recurring
       schedules, an admin monitor. Mass operations, reports, indexing and long actions run on it.
+      (Done: `jobs` module with a handler SPI, leased workers that recover crashed jobs, retries
+      with growing waits, cron schedules with time zones, Admin → Jobs.)
 - [ ] 3.2 Vault content: primary content and attachments stored in the vault (S3), uploaded and
       downloaded through presigned URLs, kept per iteration; thumbnails and previews.
 - [ ] 3.3 Documents: document templates (a new document starts from a template's file), Save As
