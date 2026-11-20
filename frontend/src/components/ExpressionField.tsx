@@ -30,6 +30,7 @@ export function ExpressionField({
   placeholder,
   hint,
   rows = 2,
+  tryable = true,
 }: {
   id: string;
   label: string;
@@ -39,6 +40,8 @@ export function ExpressionField({
   placeholder?: string;
   hint?: string;
   rows?: number;
+  /** Offer "try on an object" (not for expressions about events, which have no object). */
+  tryable?: boolean;
 }) {
   const text = useDebounced(value.trim());
   const { data: check } = useQuery({
@@ -108,7 +111,7 @@ export function ExpressionField({
           </li>
         </ul>
       </details>
-      <TryOnObject expression={text} kind={kind} disabled={!text || !!problem} />
+      {tryable && <TryOnObject expression={text} kind={kind} disabled={!text || !!problem} />}
     </div>
   );
 }

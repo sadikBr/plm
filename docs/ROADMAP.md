@@ -104,7 +104,7 @@ our own later features are built on the same mechanisms. See [EXTENSIBILITY.md](
       workflow engine in Phase 5, panels with UI extension slots in Phase 5.)
 - [x] 2.5 Pre-operation rules: synchronous validation hooks that can refuse an operation with a
       message (expressions first; scripts in Phase 5).
-- [ ] 2.6 Event subscriptions and webhooks: filters, signing, retries with backoff, dead letters,
+- [x] 2.6 Event subscriptions and webhooks: filters, signing, retries with backoff, dead letters,
       delivery log in the admin UI.
 - [ ] 2.7 Service accounts and OAuth client credentials, scoped API tokens for extensions. Webhook
       calls carry a short-lived token that acts as the user who clicked (their access rules, their

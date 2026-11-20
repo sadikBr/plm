@@ -29,6 +29,14 @@ createServer((req, res) => {
     if (req.method !== "POST") return send(res, 405, { message: "POST only" });
     if (!verify(req, body)) return send(res, 401, { message: "The signature doesn't match: check the API key in the extension's settings" });
     const call = JSON.parse(body);
+    if (req.url.startsWith("/events-down")) return send(res, 503, { message: "The ERP is down for maintenance" });
+    if (req.url.startsWith("/events")) {
+      // Event webhooks (roadmap 2.6): deduplicate on the delivery id, then process.
+      const e = call.event;
+      console.log(`${new Date().toISOString()} event ${e.type} ${e.payload.number ?? ""} ${e.payload.from ?? ""}→${e.payload.to ?? ""} (delivery ${req.headers["x-plm-delivery"]})`);
+      res.writeHead(204);
+      return res.end();
+    }
     const part = call.object;
     console.log(`${new Date().toISOString()} ${call.action} ${part.number} by ${call.user.id}`, call.parameters);
 

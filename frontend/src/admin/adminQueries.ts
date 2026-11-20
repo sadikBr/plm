@@ -14,6 +14,9 @@ export type DefineAttribute = Schemas["DefineAttributeRequest"];
 export type AttributeSettings = Schemas["AttributeSettingsRequest"];
 export type ValidationRule = Schemas["ValidationRuleResponse"];
 export type OperationRule = Schemas["OperationRule"];
+export type EventSubscription = Schemas["EventSubscription"];
+export type EventSubscriptionSettings = Schemas["EventSubscriptionSettings"];
+export type WebhookDelivery = Schemas["WebhookDelivery"];
 export type OperationRuleSettings = Schemas["OperationRuleSettings"];
 export type Extension = Schemas["ExtensionResponse"];
 export type ExtensionPreview = Schemas["PreviewResponse"];
@@ -35,6 +38,8 @@ const ADMIN_KEYS = [
   "teamRoles",
   "validationRules",
   "operationRules",
+  "eventSubscriptions",
+  "webhookDeliveries",
   "extensions",
   "actionRegistry",
   "availableActions",
@@ -252,3 +257,45 @@ export const useUpdateOperationRule = () =>
 
 export const useDeleteOperationRule = () =>
   useAdminMutation((id: string) => unwrap(api.DELETE("/api/v1/operation-rules/{id}", { params: { path: { id } } })));
+
+// ---------- Event subscriptions and webhooks ----------
+
+export const useEventTypes = () =>
+  useQuery({ queryKey: ["eventTypes"], queryFn: () => unwrap(api.GET("/api/v1/event-types")), staleTime: Infinity });
+
+export const useEventSubscriptions = () =>
+  useQuery({ queryKey: ["eventSubscriptions"], queryFn: () => unwrap(api.GET("/api/v1/event-subscriptions")) });
+
+export const useSubscriptionHealth = () =>
+  useQuery({
+    queryKey: ["eventSubscriptions", "health"],
+    queryFn: () => unwrap(api.GET("/api/v1/event-subscriptions/health")),
+    refetchInterval: 5000,
+  });
+
+export const useWebhookDeliveries = (subscriptionId: string, status: string) =>
+  useQuery({
+    queryKey: ["webhookDeliveries", subscriptionId, status],
+    queryFn: () =>
+      unwrap(
+        api.GET("/api/v1/webhook-deliveries", {
+          params: { query: { ...(subscriptionId ? { subscriptionId } : {}), ...(status ? { status } : {}), limit: 100 } },
+        }),
+      ),
+    // A live log: deliveries move on by themselves (sent, retried, dead).
+    refetchInterval: 5000,
+  });
+
+export const useDefineSubscription = () =>
+  useAdminMutation((body: EventSubscriptionSettings) => unwrap(api.POST("/api/v1/event-subscriptions", { body })));
+
+export const useUpdateSubscription = () =>
+  useAdminMutation(({ id, body }: { id: string; body: EventSubscriptionSettings }) =>
+    unwrap(api.PUT("/api/v1/event-subscriptions/{id}", { params: { path: { id } }, body })),
+  );
+
+export const useDeleteSubscription = () =>
+  useAdminMutation((id: string) => unwrap(api.DELETE("/api/v1/event-subscriptions/{id}", { params: { path: { id } } })));
+
+export const useRedeliver = () =>
+  useAdminMutation((id: string) => unwrap(api.POST("/api/v1/webhook-deliveries/{id}/redeliver", { params: { path: { id } } })));

@@ -31,9 +31,6 @@ import java.net.http.HttpTimeoutException
 import java.time.Clock
 import java.time.Duration
 import java.util.Base64
-import java.util.HexFormat
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
 
 private val log = LoggerFactory.getLogger(DefaultActionInvocationService::class.java)
 private const val MAX_ANSWER = 5 * 1024 * 1024
@@ -127,7 +124,7 @@ internal class DefaultActionInvocationService(
                         .header("X-PLM-Invocation", invocationId.toString())
                         .header("X-PLM-Action", actionId)
                         .header("X-PLM-Timestamp", timestamp)
-                        .header("X-PLM-Signature", "sha256=" + sign(secret, "$timestamp.$body"))
+                        .header("X-PLM-Signature", Signatures.sign(secret, timestamp, body))
                         .POST(HttpRequest.BodyPublishers.ofString(body))
                         .build()
                 val response = http.send(request, HttpResponse.BodyHandlers.ofByteArray())
@@ -238,15 +235,6 @@ internal class DefaultActionInvocationService(
     }
 
     private fun failure(message: String) = ActionResult(ok = false, level = "ERROR", message = message)
-
-    private fun sign(
-        secret: String,
-        data: String,
-    ): String {
-        val mac = Mac.getInstance("HmacSHA256")
-        mac.init(SecretKeySpec(secret.toByteArray(), "HmacSHA256"))
-        return HexFormat.of().formatHex(mac.doFinal(data.toByteArray()))
-    }
 
     /** The form's answers, typed and checked; every problem at once (`INVALID_PARAMETERS`). */
     private fun validate(

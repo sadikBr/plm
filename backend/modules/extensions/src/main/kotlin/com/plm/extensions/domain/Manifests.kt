@@ -18,6 +18,9 @@ private val ACTION_ID = Regex("^[a-z][a-z0-9-]{0,40}$")
 private val CONFIG_KEY = Regex("^[a-zA-Z][a-zA-Z0-9]{0,40}$")
 private val CONFIG_TYPES = setOf("string", "url", "secret", "number", "boolean", "choice")
 private val PLACEMENTS = setOf("object.toolbar", "object.more")
+
+/** `versioning.ObjectStateChanged.v1`, `versioning.*` or `*`. */
+internal val EVENT_PATTERN = Regex("^(\\*|[a-z]+\\.(\\*|[A-Z][A-Za-z]+\\.v\\d+))$")
 private val FORM_TYPES = setOf("string", "integer", "number", "boolean")
 private val PLACEHOLDER = Regex("\\$\\{([a-zA-Z.]+)}")
 private val URL_VARIABLES =
@@ -157,6 +160,33 @@ internal object Manifests {
             ) {
                 errors += "$at: reject must be a message of 1-300 characters"
             }
+        }
+        if (m.subscriptions.isNotEmpty() &&
+            "events:subscribe" !in m.permissions
+        ) {
+            errors += "Subscriptions need the 'events:subscribe' permission"
+        }
+        m.subscriptions.groupBy { it.id }.filterValues { it.size > 1 }.keys.forEach {
+            errors +=
+                "Subscription '$it' is declared twice"
+        }
+        for (sub in m.subscriptions) {
+            val at = "subscription '${sub.id}'"
+            if (!ACTION_ID.matches(sub.id)) errors += "$at: id must be lower case letters, digits and dashes"
+            if (sub.events.isEmpty()) errors += "$at: events: name the events it wants"
+            sub.events.filterNot { EVENT_PATTERN.matches(it) }.forEach {
+                errors += "$at: '$it' isn't an event type (e.g. versioning.ObjectStateChanged.v1, versioning.* or *)"
+            }
+            sub.filter?.let { f ->
+                Expressions.check(f, ExpressionKind.CONDITION).firstOrNull()?.let {
+                    errors +=
+                        "$at: filter: ${it.message}"
+                }
+            }
+            val w = sub.deliver.webhook
+            errors += urlProblems(m, at, "webhook url", w.url)
+            if (m.config[w.secret]?.type != "secret") errors += "$at: webhook secret must name a setting of type secret"
+            if (w.retries !in 1..20) errors += "$at: retries must be 1 to 20"
         }
         return errors
     }

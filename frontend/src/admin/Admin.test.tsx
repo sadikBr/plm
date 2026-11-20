@@ -486,4 +486,79 @@ describe("Administration", () => {
       }),
     );
   });
+
+  it("subscribes to events, and redelivers a dead delivery", async () => {
+    const sub = {
+      id: "s1",
+      name: "ERP releases",
+      events: ["versioning.ObjectStateChanged.v1"],
+      filter: "event.to == 'RELEASED'",
+      url: "https://erp.example/plm-events",
+      maxAttempts: 8,
+      active: true,
+      source: "site",
+      updatedAt: null,
+      updatedBy: null,
+    };
+    const calls = api(true, {
+      "GET /api/v1/event-types": () => [
+        { type: "versioning.ObjectStateChanged.v1", description: "An object moved to another lifecycle state (from, to)" },
+        { type: "versioning.ObjectCreated.v1", description: "An object was created" },
+      ],
+      "GET /api/v1/event-subscriptions": () => [sub],
+      "GET /api/v1/event-subscriptions/health": () => [{ subscriptionId: "s1", delivered: 12, pending: 0, dead: 1 }],
+      "GET /api/v1/webhook-deliveries": () => [
+        {
+          id: "d1",
+          subscriptionId: "s1",
+          subscriptionName: "ERP releases",
+          source: "site",
+          eventId: "e1",
+          eventType: "versioning.ObjectStateChanged.v1",
+          aggregateId: "o1",
+          url: sub.url,
+          status: "DEAD",
+          attempts: 8,
+          maxAttempts: 8,
+          nextAttemptAt: null,
+          lastHttpStatus: 503,
+          lastError: "The receiver answered 503",
+          durationMs: 40,
+          createdAt: "2026-11-20T09:00:00Z",
+          deliveredAt: null,
+        },
+      ],
+      "POST /api/v1/webhook-deliveries/:id/redeliver": () => ({}),
+      "POST /api/v1/expressions/check": () => ({ valid: true, problems: [] }),
+      "POST /api/v1/event-subscriptions": () => ({}),
+    });
+    renderAt("/admin?tab=webhooks");
+
+    const subs = await screen.findByRole("table", { name: "Event subscriptions" });
+    expect(await within(subs).findByText("1 dead")).toBeInTheDocument();
+    const log = await screen.findByRole("table", { name: "Deliveries" });
+    expect(within(log).getByText("The receiver answered 503")).toBeInTheDocument();
+    await userEvent.click(within(log).getByRole("button", { name: "Redeliver" }));
+    await waitFor(() => expect(calls.some((c) => c.path === "/api/v1/webhook-deliveries/d1/redeliver")).toBe(true));
+
+    await userEvent.click(screen.getByRole("button", { name: "New subscription" }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.type(within(dialog).getByLabelText("Name"), "New parts");
+    await userEvent.type(within(dialog).getByLabelText("Send to"), "https://erp.example/new");
+    await userEvent.click(within(dialog).getByRole("checkbox", { name: "An object moved to another lifecycle state (from, to)" }));
+    await userEvent.click(within(dialog).getByRole("checkbox", { name: "An object was created" }));
+    await userEvent.type(within(dialog).getByLabelText("Signing secret"), "s3cret");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(posted(calls, "POST", "/api/v1/event-subscriptions")).toEqual({
+        name: "New parts",
+        events: ["versioning.ObjectCreated.v1"],
+        filter: null,
+        url: "https://erp.example/new",
+        secret: "s3cret",
+        maxAttempts: 8,
+        active: true,
+      }),
+    );
+  });
 });

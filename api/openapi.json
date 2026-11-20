@@ -1246,6 +1246,106 @@
         "required" : [ "problems" ],
         "type" : "object"
       },
+      "EventSubscription" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "events" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "filter" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "maxAttempts" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "updatedBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "url" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "events", "id", "maxAttempts", "name", "source", "url" ],
+        "type" : "object"
+      },
+      "EventSubscriptionSettings" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "events" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "filter" : {
+            "type" : [ "string", "null" ]
+          },
+          "maxAttempts" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "secret" : {
+            "type" : [ "string", "null" ]
+          },
+          "url" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "events", "maxAttempts", "name", "url" ],
+        "type" : "object"
+      },
+      "EventTypeResponse" : {
+        "properties" : {
+          "description" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "description", "type" ],
+        "type" : "object"
+      },
+      "EventWebhook" : {
+        "properties" : {
+          "retries" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "secret" : {
+            "type" : "string"
+          },
+          "url" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "retries", "secret", "url" ],
+        "type" : "object"
+      },
       "ExplanationResponse" : {
         "properties" : {
           "contextId" : {
@@ -1346,11 +1446,17 @@
               "type" : "null"
             } ]
           },
+          "subscriptions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ManifestSubscription"
+            },
+            "type" : "array"
+          },
           "version" : {
             "type" : "string"
           }
         },
-        "required" : [ "actions", "config", "id", "name", "permissions", "platform", "rules", "version" ],
+        "required" : [ "actions", "config", "id", "name", "permissions", "platform", "rules", "subscriptions", "version" ],
         "type" : "object"
       },
       "ExtensionResponse" : {
@@ -1923,6 +2029,30 @@
           }
         },
         "required" : [ "appliesTo", "id", "on", "reject", "when" ],
+        "type" : "object"
+      },
+      "ManifestSubscription" : {
+        "properties" : {
+          "deliver" : {
+            "$ref" : "#/components/schemas/SubscriptionDelivery"
+          },
+          "events" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "filter" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "deliver", "events", "id" ],
         "type" : "object"
       },
       "MeResponse" : {
@@ -2742,6 +2872,36 @@
         "required" : [ "key", "labels" ],
         "type" : "object"
       },
+      "SubscriptionDelivery" : {
+        "properties" : {
+          "webhook" : {
+            "$ref" : "#/components/schemas/EventWebhook"
+          }
+        },
+        "required" : [ "webhook" ],
+        "type" : "object"
+      },
+      "SubscriptionHealth" : {
+        "properties" : {
+          "dead" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "delivered" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pending" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "subscriptionId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "dead", "delivered", "pending", "subscriptionId" ],
+        "type" : "object"
+      },
       "TeamRoleConfig" : {
         "properties" : {
           "active" : {
@@ -3266,6 +3426,73 @@
           }
         },
         "required" : [ "active", "condition", "id", "inherited", "message", "name", "order", "typeId", "updatedAt", "updatedBy" ],
+        "type" : "object"
+      },
+      "WebhookDelivery" : {
+        "properties" : {
+          "aggregateId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "attempts" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "deliveredAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "durationMs" : {
+            "format" : "int64",
+            "type" : [ "integer", "null" ]
+          },
+          "eventId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "eventType" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "lastError" : {
+            "type" : [ "string", "null" ]
+          },
+          "lastHttpStatus" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "maxAttempts" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "nextAttemptAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "subscriptionId" : {
+            "type" : "string"
+          },
+          "subscriptionName" : {
+            "type" : "string"
+          },
+          "url" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "aggregateId", "attempts", "createdAt", "eventId", "eventType", "id", "maxAttempts", "source", "status", "subscriptionId", "subscriptionName", "url" ],
         "type" : "object"
       },
       "WebhookHandler" : {
@@ -4932,6 +5159,210 @@
           }
         },
         "tags" : [ "Reference data" ]
+      }
+    },
+    "/api/v1/event-subscriptions" : {
+      "get" : {
+        "operationId" : "webhookList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/EventSubscription"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Webhook" ]
+      },
+      "post" : {
+        "operationId" : "webhookDefine",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventSubscriptionSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventSubscription"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Webhook" ]
+      }
+    },
+    "/api/v1/event-subscriptions/health" : {
+      "get" : {
+        "operationId" : "webhookHealth",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/SubscriptionHealth"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Webhook" ]
+      }
+    },
+    "/api/v1/event-subscriptions/{id}" : {
+      "delete" : {
+        "operationId" : "webhookDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Webhook" ]
+      },
+      "put" : {
+        "operationId" : "webhookUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventSubscriptionSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventSubscription"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Webhook" ]
+      }
+    },
+    "/api/v1/event-types" : {
+      "get" : {
+        "operationId" : "webhookEventTypes",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/EventTypeResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Webhook" ]
       }
     },
     "/api/v1/expressions/check" : {
@@ -8094,6 +8525,98 @@
         },
         "tags" : [ "Validation rule" ]
       }
+    },
+    "/api/v1/webhook-deliveries" : {
+      "get" : {
+        "operationId" : "webhookDeliveries",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "subscriptionId",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 100,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/WebhookDelivery"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Webhook" ]
+      }
+    },
+    "/api/v1/webhook-deliveries/{id}/redeliver" : {
+      "post" : {
+        "operationId" : "webhookRedeliver",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebhookDelivery"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Webhook" ]
+      }
     }
   },
   "security" : [ {
@@ -8145,5 +8668,7 @@
     "name" : "Validation rule"
   }, {
     "name" : "Versioned object"
+  }, {
+    "name" : "Webhook"
   } ]
 }

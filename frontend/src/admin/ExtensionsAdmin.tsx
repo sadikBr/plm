@@ -181,6 +181,12 @@ function ExtensionDetail({ extension: e }: { extension: Extension }) {
         </Panel>
       )}
 
+      {(e.manifest.subscriptions?.length ?? 0) > 0 && (
+        <Panel title="Events it's told about" note="Deliveries are under Admin → Webhooks" flush>
+          <ManifestSubscriptions manifest={e.manifest} />
+        </Panel>
+      )}
+
       {(e.manifest.rules?.length ?? 0) > 0 && (
         <Panel title="Rules it adds" note="Listed with the site's under Admin → Rules" flush>
           <ManifestRules manifest={e.manifest} />
@@ -316,6 +322,42 @@ function ManifestRules({ manifest, highlight }: { manifest: ExtensionManifest; h
               <code className="wrap-code">{r.when}</code>
             </td>
             <td>{r.reject}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function ManifestSubscriptions({ manifest }: { manifest: ExtensionManifest }) {
+  if (!manifest.subscriptions?.length) return null;
+  return (
+    <table className="grid" aria-label="Extension subscriptions">
+      <thead>
+        <tr>
+          <th>Subscription</th>
+          <th>Events</th>
+          <th>Only when</th>
+          <th>Sends to</th>
+        </tr>
+      </thead>
+      <tbody>
+        {manifest.subscriptions.map((sub) => (
+          <tr key={sub.id}>
+            <td>
+              <strong>{sub.name ?? sub.id}</strong>
+            </td>
+            <td>
+              {sub.events.map((e) => (
+                <code key={e} className="tag" style={{ marginRight: 4 }}>
+                  {e}
+                </code>
+              ))}
+            </td>
+            <td>{sub.filter ? <code className="wrap-code">{sub.filter}</code> : <span className="muted">Always</span>}</td>
+            <td>
+              <code className="wrap-code">{sub.deliver.webhook.url}</code>
+            </td>
           </tr>
         ))}
       </tbody>
@@ -589,6 +631,12 @@ function InstallDialog({ onClose }: { onClose: (installedId?: string) => void })
                 <div className="section-label">Actions</div>
                 <ManifestActions manifest={p.manifest} highlight={p.mode === "UPGRADE" ? p : undefined} />
                 {p.actionsRemoved.length > 0 && <p className="muted small">Removed: {p.actionsRemoved.join(", ")}</p>}
+              </section>
+            )}
+            {(p.manifest.subscriptions?.length ?? 0) > 0 && (
+              <section>
+                <div className="section-label">Events it's told about</div>
+                <ManifestSubscriptions manifest={p.manifest} />
               </section>
             )}
             {(p.manifest.rules?.length ?? 0) > 0 && (

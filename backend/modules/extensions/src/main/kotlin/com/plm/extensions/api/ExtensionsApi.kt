@@ -28,6 +28,8 @@ data class ExtensionManifest(
     val actions: List<ManifestAction> = emptyList(),
     /** Rules that refuse operations (check-in, set state...) when their condition holds. */
     val rules: List<ManifestRule> = emptyList(),
+    /** Events it wants delivered to its service. */
+    val subscriptions: List<ManifestSubscription> = emptyList(),
     /** Configuration it needs (types, attributes, value lists, rules...), imported at install and upgrade. */
     val seed: ConfigBundle? = null,
 )

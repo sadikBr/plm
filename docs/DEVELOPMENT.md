@@ -519,6 +519,26 @@ curl -s -X POST $API/extensions/preview -H "Authorization: Bearer $ALICE" -H 'Co
 curl -s -X POST $API/extensions -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' -d @/tmp/ext.json | jq '{id, version, status}'
 ```
 
+### Event webhooks
+
+Under **Admin → Webhooks**, a site administrator subscribes a web address to events (roadmap 2.6):
+event types (`versioning.ObjectStateChanged.v1`, or wildcards such as `versioning.*` and `*`), an
+optional **Only when** filter (an expression over `event`: its fields such as `event.to`,
+`event.number`, `event.typeId`, plus `event.type`, `event.actor`), a signing secret and how many
+attempts to make. Extensions declare subscriptions in their manifest (`subscriptions:`, with
+`events:subscribe`), delivered to their service with their secret.
+
+A delivery is queued in the same transaction as the event, so none is lost or sent for a change
+that didn't happen. It's POSTed as JSON (`deliveryId`, `subscription`, `event` with `payload`),
+signed like actions (`X-PLM-Signature`), with `X-PLM-Delivery` to deduplicate on: delivery is at
+least once. Failures are retried after 10 s, 20 s, 40 s… (at most an hour); after the last attempt
+the delivery is **dead**, and **Redeliver** sends it again once the receiver is fixed. The log
+shows every delivery with its attempts and last answer. The mock ERP accepts events at
+`http://localhost:8099/events` (and refuses them at `/events-down`, to see retries).
+
+Settings: `plm.webhooks.poll-interval` (1s), `plm.webhooks.backoff` (10s), `plm.webhooks.timeout` (10s),
+`plm.webhooks.sender.enabled`.
+
 ### Operation rules
 
 Rules that refuse an operation before it happens (roadmap 2.5): create, check out, check in,
@@ -755,6 +775,12 @@ Rules of the game (see [ADR 0019](adr/0019-configuration-as-code.md)):
 | POST | `/api/v1/extensions/preview` | What installing a manifest would do; changes nothing |
 | GET · DELETE | `/api/v1/extensions/{id}` | One extension / uninstall |
 | PUT | `/api/v1/extensions/{id}/config` · `/enabled` | Change settings / enable or disable |
+| GET | `/api/v1/event-types` | Event types to subscribe to, with what they mean |
+| GET · POST | `/api/v1/event-subscriptions` | Subscriptions (site's and extensions') / add one (site admin) |
+| GET | `/api/v1/event-subscriptions/health` | Delivered, pending and dead per subscription |
+| PUT / DELETE | `/api/v1/event-subscriptions/{id}` | Change / delete a site subscription |
+| GET | `/api/v1/webhook-deliveries?subscriptionId=&status=` | The delivery log, newest first |
+| POST | `/api/v1/webhook-deliveries/{id}/redeliver` | Send a delivery again from scratch |
 | GET · POST | `/api/v1/operation-rules` | The site's and extensions' operation rules / add one (site admin) |
 | PUT / DELETE | `/api/v1/operation-rules/{id}` | Change / delete a site rule |
 | POST | `/api/v1/objects/{id}/actions/{actionId}/invoke` | Run a webhook action (`{parameters}`); the result says what to show and do |
