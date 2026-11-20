@@ -127,7 +127,9 @@ internal class OpenApiConfiguration {
             it.uppercase()
         }
 
-    private fun Schema<*>.isNullable(): Boolean = nullable == true || types?.contains("null") == true
+    /** Nullable, or untyped (`{}` accepts any JSON value, null included, e.g. an attribute's default value). */
+    private fun Schema<*>.isNullable(): Boolean =
+        nullable == true || types?.contains("null") == true || (types.isNullOrEmpty() && type == null && `$ref` == null)
 
     private fun problemSchema(): Schema<*> =
         ObjectSchema()

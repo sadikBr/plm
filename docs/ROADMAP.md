@@ -29,12 +29,12 @@ cannot see it (proven by an integration test). CI is green and blocks boundary v
 administrators can extend everything (types, attributes, rules, layouts, lifecycles) **without
 code**. Every later phase builds on this. See [PARITY.md](PARITY.md) §2–§5.
 
-- [ ] 1.1 Attribute definitions: data types (text, long text, integer, real, real with units,
+- [x] 1.1 Attribute definitions: data types (text, long text, integer, real, real with units,
       boolean, date, timestamp, URL, enumeration, reference), multi-valued, inherited by subtypes,
       reusable across types. Validated on every write (API, not just UI).
-- [ ] 1.2 Units of measure and quantities; enumerations (legal value lists) with localized labels.
-- [ ] 1.3 Constraints: required, range, length, regex, immutable, unique. Clear per-field errors.
-- [ ] 1.4 OOTB types and attributes seeded: Part (source, default unit, assembly mode, end item,
+- [x] 1.2 Units of measure and quantities; enumerations (legal value lists) with localized labels.
+- [x] 1.3 Constraints: required, range, length, regex, immutable, unique. Clear per-field errors.
+- [x] 1.4 OOTB types and attributes seeded: Part (source, default unit, assembly mode, end item,
       phantom, trace code, description…) and Document (title, description, category, department…).
 - [ ] 1.5 Initialization rules per type: numbering schemes (prefix, sequence, padding), revision
       schemes, default values, default lifecycle.

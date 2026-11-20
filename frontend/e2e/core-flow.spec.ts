@@ -63,15 +63,19 @@ test("alice sets up a product, bob works on a part, carol sees nothing", async (
   await bob.getByRole("button", { name: "New object" }).click();
   await bob.getByLabel("Type").selectOption({ label: "Part" });
   await bob.getByLabel("Name", { exact: true }).fill("Motor mount");
-  await bob.getByLabel("Attribute 1 name").fill("material");
-  await bob.getByLabel("Attribute 1 value").fill("AL6061");
+  const create = bob.getByRole("dialog");
+  await create.getByLabel("Material").fill("AL6061");
+  await expect(create.getByLabel("Source")).toHaveValue("make"); // out-of-the-box default
   await bob.getByRole("button", { name: "Create" }).click();
   await expect(bob.getByTestId("version")).toHaveText("A.1");
   const objectUrl = bob.url();
 
   await bob.getByRole("button", { name: "Check out" }).click();
   await expect(bob.getByTestId("checked-out")).toHaveText("Checked out by you");
-  await bob.getByLabel("Attribute 1 value").fill("Ti-6Al-4V");
+  await bob.getByLabel("Material").fill("Ti-6Al-4V");
+  await bob.getByLabel("Source").selectOption({ label: "Buy" });
+  await bob.getByLabel("Mass", { exact: true }).fill("250");
+  await bob.getByLabel("Mass unit").selectOption("g");
   await bob.getByRole("button", { name: "Save attributes" }).click();
   await expect(bob.getByText("Saved.")).toBeVisible();
 
@@ -86,6 +90,8 @@ test("alice sets up a product, bob works on a part, carol sees nothing", async (
   await dialog.getByRole("button", { name: "Check in" }).click();
   await expect(bob.getByTestId("version")).toHaveText("A.2");
   await expect(bob.getByText("Ti-6Al-4V")).toBeVisible();
+  await expect(bob.getByText("250 g")).toBeVisible();
+  await expect(bob.getByText("Buy", { exact: true })).toBeVisible();
 
   await bob.getByRole("button", { name: "Revise" }).click();
   await expect(bob.getByTestId("version")).toHaveText("B.1");

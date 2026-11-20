@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { VersionedObject } from "../api/queries";
 import { Reply, fakeApi, problem } from "../test/fakeApi";
-import { ALICE, BOB, iteration, me, object, principal, product, types } from "../test/fixtures";
+import { ALICE, BOB, attributeRoutes, iteration, me, object, principal, product, types } from "../test/fixtures";
 import { renderAt } from "../test/render";
 
 /** The API as seen by bob, with [obj] and the given permissions on its context. */
@@ -16,6 +16,7 @@ function apiFor(obj: VersionedObject, permissions: string[], extra: Parameters<t
     "GET /api/v1/types": () => types,
     "GET /api/v1/principals/:id": (_, { id }) => principal(id!),
     "GET /api/v1/objects/:id": () => obj,
+    ...attributeRoutes,
     ...extra,
   });
 }
@@ -46,25 +47,59 @@ describe("ObjectPage", () => {
     expect(screen.queryByRole("button", { name: "Check in" })).not.toBeInTheDocument();
   });
 
-  it("lets the owner edit the working copy and check in with a comment", async () => {
+  it("lets the owner edit the working copy with typed fields and check in", async () => {
     const obj = object({ checkedOutBy: BOB });
     const calls = apiFor(obj, ["MODIFY", "READ"], {
       "GET /api/v1/objects/:id/working-copy": () =>
-        iteration({ id: "wc", version: "A.2", status: "WORKING", checkedOutBy: BOB }),
+        iteration({ id: "wc", version: "A.2", status: "WORKING", checkedOutBy: BOB, attributes: { source: "make", material: "AL6061" } }),
+      "PATCH /api/v1/objects/:id/working-copy": (req) => req.json().then((b: { attributes: Record<string, unknown> }) => iteration({ attributes: b.attributes })),
       "POST /api/v1/objects/:id/checkin": () => object({ latest: iteration({ version: "A.2" }) }),
     });
     renderAt(`/objects/${obj.id}`);
 
-    expect(await screen.findByText("Only you see these edits until you check in.")).toBeInTheDocument();
-    await userEvent.click(await screen.findByRole("button", { name: "Check in" }));
+    const material = await screen.findByLabelText("Material");
+    await userEvent.clear(material);
+    await userEvent.type(material, "Ti-6Al-4V");
+    await userEvent.selectOptions(screen.getByLabelText("Source"), "buy");
+    await userEvent.type(screen.getByLabelText("Mass"), "0.25");
+    await userEvent.selectOptions(screen.getByLabelText("Mass unit"), "g");
+    await userEvent.click(screen.getByRole("checkbox", { name: "End item" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save attributes" }));
+
+    await waitFor(() =>
+      expect(calls.find((c) => c.method === "PATCH")?.body).toEqual({
+        attributes: { source: "buy", material: "Ti-6Al-4V", mass: { value: 0.25, unit: "g" }, endItem: true },
+      }),
+    );
+    // Inactive attributes are not offered for editing.
+    expect(screen.queryByLabelText("Legacy code")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Check in" }));
     const dialog = await screen.findByRole("dialog");
     await userEvent.type(within(dialog).getByLabelText("Comment"), "Titanium");
     await userEvent.click(within(dialog).getByRole("button", { name: "Check in" }));
+    await waitFor(() => expect(calls.find((c) => c.path.endsWith("/checkin"))?.body).toEqual({ comment: "Titanium" }));
+  });
 
-    await waitFor(() => {
-      const checkin = calls.find((c) => c.path.endsWith("/checkin"));
-      expect(checkin?.body).toEqual({ comment: "Titanium" });
+  it("shows server-side attribute errors next to the field", async () => {
+    const obj = object({ checkedOutBy: BOB });
+    apiFor(obj, ["MODIFY", "READ"], {
+      "GET /api/v1/objects/:id/working-copy": () => iteration({ id: "wc", status: "WORKING", checkedOutBy: BOB, attributes: {} }),
+      "PATCH /api/v1/objects/:id/working-copy": () =>
+        new Reply(422, {
+          status: 422,
+          code: "INVALID_ATTRIBUTES",
+          detail: "Material must be at most 200 characters",
+          details: { errors: [{ attribute: "material", code: "TOO_LONG", message: "Material must be at most 200 characters" }] },
+        }),
     });
+    renderAt(`/objects/${obj.id}`);
+
+    await userEvent.type(await screen.findByLabelText("Material"), "x");
+    await userEvent.click(screen.getByRole("button", { name: "Save attributes" }));
+
+    expect(await screen.findByText("Material must be at most 200 characters")).toBeInTheDocument();
+    expect(screen.getByLabelText("Material")).toHaveAttribute("aria-invalid", "true");
   });
 
   it("is read-only for viewers", async () => {
@@ -73,6 +108,7 @@ describe("ObjectPage", () => {
     renderAt(`/objects/${obj.id}`);
 
     expect(await screen.findByText("AL6061")).toBeInTheDocument();
+    expect(await screen.findByText("Make")).toBeInTheDocument(); // enumeration label, not the key
     expect(screen.queryByRole("button", { name: "Check out" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Revise" })).not.toBeInTheDocument();
   });

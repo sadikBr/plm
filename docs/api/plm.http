@@ -75,7 +75,7 @@ Content-Type: application/json
   "typeId": "{{partType}}",
   "contextId": "{{product.response.body.id}}",
   "name": "Motor mount",
-  "attributes": { "material": "AL6061", "massKg": 0.12 }
+  "attributes": { "material": "AL6061", "mass": { "value": 0.12, "unit": "kg" } }
 }
 
 ### 8. Bob checks it out -> working copy A.2
@@ -95,7 +95,7 @@ PATCH {{api}}/objects/{{part.response.body.id}}/working-copy
 Authorization: Bearer {{bob.response.body.access_token}}
 Content-Type: application/json
 
-{ "attributes": { "material": "Ti-6Al-4V", "massKg": 0.09 } }
+{ "attributes": { "material": "Ti-6Al-4V", "source": "buy", "mass": { "value": 90, "unit": "g" } } }
 
 ### 12. Bob checks in -> A.2 is now the latest, immutable iteration
 POST {{api}}/objects/{{part.response.body.id}}/checkin
@@ -115,6 +115,18 @@ Authorization: Bearer {{bob.response.body.access_token}}
 ### 15. Everything bob can read in the product
 GET {{api}}/objects?contextId={{product.response.body.id}}
 Authorization: Bearer {{bob.response.body.access_token}}
+
+### 15b. The attribute model of Part (forms are rendered from this)
+GET {{api}}/types/{{partType}}/attributes
+Authorization: Bearer {{bob.response.body.access_token}}
+
+### 15c. Invalid values -> 422 INVALID_ATTRIBUTES with one error per field
+POST {{api}}/objects
+Authorization: Bearer {{bob.response.body.access_token}}
+Content-Type: application/json
+
+{ "typeId": "{{partType}}", "contextId": "{{product.response.body.id}}", "name": "Bad",
+  "attributes": { "source": "steal", "mass": { "value": 3, "unit": "mm" } } }
 
 ### 16. Alice reads the audit trail for the part
 GET {{api}}/audit?aggregateId={{part.response.body.id}}

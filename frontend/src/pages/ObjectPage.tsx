@@ -8,11 +8,14 @@ import {
   useObject,
   useObjectActions,
   usePermissions,
+  useTypeAttributes,
   useTypes,
   useWorkingCopy,
+  type AttributeDefinition,
+  type Attributes,
   type VersionedObject,
 } from "../api/queries";
-import { AttributesEditor, AttributesView } from "../components/AttributesEditor";
+import { AttributeForm, AttributeValues, fieldErrors } from "../components/AttributeForm";
 import { Dialog, ErrorBanner, Loading, PrincipalName, formatDate } from "../components/common";
 import { Breadcrumbs, useIdParam } from "../components/Layout";
 import { NotFoundPage } from "./NotFoundPage";
@@ -166,7 +169,7 @@ function ObjectHeader({ obj, myId }: { obj: VersionedObject; myId?: string }) {
 function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
   const mine = !!myId && obj.checkedOutBy === myId;
   const workingCopy = useWorkingCopy(obj.id, mine);
-  const actions = useObjectActions(obj.id);
+  const { data: definitions } = useTypeAttributes(obj.typeId);
   const latest = obj.latest;
 
   return (
@@ -180,20 +183,19 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
             Only you see these edits until you check in.
           </p>
           <ErrorBanner error={workingCopy.error} />
-          {workingCopy.data && (
-            <AttributesEditor
+          {workingCopy.data && definitions && (
+            <WorkingCopyEditor
               key={workingCopy.data.id}
-              initial={workingCopy.data.attributes as Record<string, unknown>}
-              saving={actions.updateAttributes.isPending}
-              onSave={(attributes) => actions.updateAttributes.mutate(attributes)}
+              objectId={obj.id}
+              definitions={definitions}
+              initial={workingCopy.data.attributes as Attributes}
             />
           )}
-          {actions.updateAttributes.isSuccess && <p className="muted">Saved.</p>}
         </div>
       ) : (
         <div className="card">
           <h2>Attributes</h2>
-          <AttributesView attributes={latest.attributes as Record<string, unknown>} />
+          {definitions && <AttributeValues definitions={definitions} values={latest.attributes as Attributes} />}
         </div>
       )}
       <div className="card">
@@ -222,6 +224,50 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
         </dl>
       </div>
     </div>
+  );
+}
+
+function WorkingCopyEditor({
+  objectId,
+  definitions,
+  initial,
+}: {
+  objectId: string;
+  definitions: AttributeDefinition[];
+  initial: Attributes;
+}) {
+  const { updateAttributes } = useObjectActions(objectId);
+  const [values, setValues] = useState(initial);
+  const [dirty, setDirty] = useState(false);
+
+  return (
+    <form
+      noValidate
+      onSubmit={(e) => {
+        e.preventDefault();
+        updateAttributes.mutate(values, { onSuccess: () => setDirty(false) });
+      }}
+    >
+      {updateAttributes.error && !Object.keys(fieldErrors(updateAttributes.error)).length && (
+        <ErrorBanner error={updateAttributes.error} />
+      )}
+      <AttributeForm
+        idPrefix="wc"
+        definitions={definitions}
+        values={values}
+        onChange={(next) => {
+          setValues(next);
+          setDirty(true);
+        }}
+        errors={fieldErrors(updateAttributes.error)}
+      />
+      <div className="row">
+        <button className="btn primary" type="submit" disabled={updateAttributes.isPending || !dirty}>
+          Save attributes
+        </button>
+        {!dirty && updateAttributes.isSuccess && <span className="muted">Saved.</span>}
+      </div>
+    </form>
   );
 }
 

@@ -213,6 +213,43 @@ curl -s -o /dev/null -w "bob reads audit: %{http_code}\n" "$API/audit" -H "Autho
 make events
 ```
 
+### Types and attributes
+
+Every type has typed attributes, inherited by its subtypes. Part and Document come with
+out-of-the-box attributes (Part: description, source, default unit, assembly mode, end item,
+phantom, gathering part, trace code, material, mass. Document: title, description, category,
+department). Values are validated by the server on every write, and defaults are applied:
+
+```bash
+curl -s $API/types/00000000-0000-7000-8000-000000000102/attributes -H "Authorization: Bearer $BOB" \
+  | jq '.[] | {name, dataType, defaultValue}'
+```
+
+Site admins extend the model without code. For example, a *Fastener* part subtype with a
+required, pattern-checked thread size:
+
+```bash
+FASTENER=$(curl -s -X POST $API/types -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d '{"parentId":"00000000-0000-7000-8000-000000000102","name":"Fastener","displayName":"Fastener"}' | jq -r .id)
+curl -s -X POST $API/types/$FASTENER/attributes -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d '{"name":"threadSize","dataType":"STRING","labels":{"en":"Thread size"},"required":true,"pattern":"M\\d+(x[\\d.]+)?"}' | jq '{name, required, pattern}'
+```
+
+The **New object** form in the UI now offers *Fastener*, with *Thread size* as a required field.
+
+| Data type | Value format |
+|---|---|
+| STRING, TEXT, URL | `"text"` |
+| INTEGER, REAL | `42`, `1.5` |
+| QUANTITY | `{"value": 12.5, "unit": "mm"}`. Units: `GET /api/v1/units` |
+| BOOLEAN | `true` |
+| DATE / TIMESTAMP | `"2026-11-20"` / `"2026-11-20T10:15:30Z"` |
+| ENUMERATION | a value key, e.g. `"buy"`. Lists: `GET /api/v1/enumerations` |
+
+Attributes can be multi-valued (a JSON list), required, immutable after creation, and limited by
+length, pattern or min/max (for quantities, in the dimension's base unit). Attributes and
+enumeration values are never deleted, only deactivated: existing data stays valid.
+
 ### How access works
 
 - **Contexts** form a tree: Site → Organization → Product / Library / Project.
@@ -250,6 +287,10 @@ make events
 | POST | `/api/v1/objects/{id}/undo-checkout` | Discard your working copy |
 | POST | `/api/v1/objects/{id}/revise` | Next revision (A.3 → B.1) |
 | GET | `/api/v1/audit[?aggregateId=&limit=&before=]` | Audit trail, newest first (site admin) |
+| GET / POST | `/api/v1/types/{typeId}/attributes` | Effective attributes (incl. inherited) / define one (site admin) |
+| PUT | `/api/v1/types/{typeId}/attributes/{id}` | Change an attribute's settings: labels, constraints, default, active (site admin) |
+| GET / POST / PUT | `/api/v1/enumerations[/{id}]` | Value lists. Values can be added or deactivated, never removed |
+| GET | `/api/v1/units` | Units of measure by dimension |
 
 Errors are [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) problem details with a stable `code`,
 e.g. `{"status":409,"code":"ALREADY_CHECKED_OUT","details":{"checkedOutBy":"<user id>"}}`.

@@ -56,7 +56,7 @@ class VersioningApiIT : ApiTest() {
                     "typeId" to partType,
                     "contextId" to product,
                     "name" to "Motor mount",
-                    "attributes" to mapOf("material" to "AL6061", "massKg" to 0.12),
+                    "attributes" to mapOf("material" to "AL6061", "mass" to mapOf("value" to 0.12, "unit" to "kg")),
                 ),
                 as_ = bob,
             )

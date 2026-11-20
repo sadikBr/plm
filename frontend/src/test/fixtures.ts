@@ -26,7 +26,7 @@ export function iteration(overrides: Partial<Iteration> = {}): Iteration {
     iteration: 1,
     status: "CHECKED_IN",
     state: "IN_WORK",
-    attributes: { material: "AL6061" },
+    attributes: { source: "make", material: "AL6061" },
     basedOnId: null,
     comment: null,
     createdAt: "2026-11-20T10:00:00Z",
@@ -67,3 +67,63 @@ export const types = [
   { id: "00000000-0000-7000-8000-000000000101", parentId: null, name: "Document", displayName: "Document", baseClass: "DOCUMENT" },
   { id: PART_TYPE, parentId: null, name: "Part", displayName: "Part", baseClass: "PART" },
 ];
+
+// ---------- Attribute model (a trimmed copy of the out-of-the-box Part) ----------
+
+const SOURCE_ENUM = "4e6c5a8f-0000-4000-8000-0000000000e1";
+
+export const enumerations = [
+  {
+    id: SOURCE_ENUM,
+    name: "partSource",
+    labels: { en: "Part source" },
+    system: true,
+    values: [
+      { key: "make", labels: { en: "Make" }, active: true },
+      { key: "buy", labels: { en: "Buy" }, active: true },
+      { key: "legacy", labels: { en: "Legacy" }, active: false },
+    ],
+  },
+];
+
+export const units = [
+  { code: "kg", dimension: "MASS", labels: { en: "kilogram" }, factor: 1, offset: 0 },
+  { code: "g", dimension: "MASS", labels: { en: "gram" }, factor: 0.001, offset: 0 },
+  { code: "m", dimension: "LENGTH", labels: { en: "metre" }, factor: 1, offset: 0 },
+];
+
+const base = {
+  typeId: PART_TYPE,
+  inherited: false,
+  description: null,
+  multiValued: false,
+  required: false,
+  immutable: false,
+  minLength: null,
+  maxLength: null,
+  pattern: null,
+  minValue: null,
+  maxValue: null,
+  enumerationId: null,
+  dimension: null,
+  displayUnit: null,
+  defaultValue: null,
+  active: true,
+  system: true,
+};
+
+export const partAttributes = [
+  { ...base, id: "a1", name: "source", labels: { en: "Source" }, dataType: "ENUMERATION" as const, enumerationId: SOURCE_ENUM, defaultValue: "make", sortOrder: 20 },
+  { ...base, id: "a2", name: "endItem", labels: { en: "End item" }, dataType: "BOOLEAN" as const, defaultValue: false, sortOrder: 50 },
+  { ...base, id: "a3", name: "material", labels: { en: "Material", fr: "Matériau" }, dataType: "STRING" as const, maxLength: 200, sortOrder: 90 },
+  { ...base, id: "a4", name: "mass", labels: { en: "Mass" }, dataType: "QUANTITY" as const, dimension: "MASS", displayUnit: "kg", sortOrder: 100 },
+  { ...base, id: "a5", name: "releasedAt", labels: { en: "Released at" }, dataType: "TIMESTAMP" as const, sortOrder: 110 },
+  { ...base, id: "a6", name: "legacyCode", labels: { en: "Legacy code" }, dataType: "STRING" as const, active: false, sortOrder: 120 },
+];
+
+/** Routes every page needs for rendering attributes. */
+export const attributeRoutes = {
+  "GET /api/v1/types/:id/attributes": () => partAttributes,
+  "GET /api/v1/enumerations": () => enumerations,
+  "GET /api/v1/units": () => units,
+};

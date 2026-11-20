@@ -15,13 +15,14 @@ import {
   usePermissions,
   usePutMember,
   useRemoveMember,
+  useTypeAttributes,
   useTypes,
   type Attributes,
   type Context,
   type ContextKind,
   type TeamRole,
 } from "../api/queries";
-import { AttributesEditor } from "../components/AttributesEditor";
+import { AttributeForm, defaultValues, fieldErrors } from "../components/AttributeForm";
 import {
   Dialog,
   ErrorBanner,
@@ -162,15 +163,18 @@ function NewObjectDialog({ context, open, onClose }: { context: Context; open: b
   const [typeId, setTypeId] = useState("");
   const [name, setName] = useState("");
   const [number, setNumber] = useState("");
-  const [attributes, setAttributes] = useState<{ attributes: Attributes } | { error: string }>({ attributes: {} });
+  const chosenType = typeId || types?.[0]?.id;
+  const { data: definitions } = useTypeAttributes(chosenType);
+  // Edits belong to the type they were made for; switching type starts again from its defaults.
+  const [edits, setEdits] = useState<{ typeId: string; values: Attributes }>();
+  const values = edits && edits.typeId === chosenType ? edits.values : defaultValues(definitions ?? []);
   const formId = "new-object-form";
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const chosenType = typeId || types?.[0]?.id;
-    if (!chosenType || "error" in attributes) return;
+    if (!chosenType) return;
     create.mutate(
-      { typeId: chosenType, contextId: context.id, name, number: number.trim() || null, attributes: attributes.attributes },
+      { typeId: chosenType, contextId: context.id, name, number: number.trim() || null, attributes: values },
       { onSuccess: (obj) => navigate(`/objects/${obj.id}`) },
     );
   };
@@ -185,37 +189,46 @@ function NewObjectDialog({ context, open, onClose }: { context: Context; open: b
           <button className="btn" type="button" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn primary" type="submit" form={formId} disabled={create.isPending || !name.trim() || "error" in attributes}>
+          <button className="btn primary" type="submit" form={formId} disabled={create.isPending || !name.trim()}>
             Create
           </button>
         </>
       }
     >
-      <form id={formId} onSubmit={submit}>
+      <form id={formId} onSubmit={submit} noValidate>
         <ErrorBanner error={create.error} />
-        <div className="field">
-          <label htmlFor="obj-type">Type</label>
-          <select id="obj-type" value={typeId || types?.[0]?.id || ""} onChange={(e) => setTypeId(e.target.value)}>
-            {types?.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.displayName}
-              </option>
-            ))}
-          </select>
+        <div className="attr-form">
+          <div className="field">
+            <label htmlFor="obj-type">Type</label>
+            <select id="obj-type" value={chosenType ?? ""} onChange={(e) => setTypeId(e.target.value)}>
+              {types?.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.displayName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="obj-number">Number</label>
+            <input id="obj-number" value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Assigned automatically" />
+          </div>
+          <div className="field" style={{ gridColumn: "1 / -1" }}>
+            <div className="label-row">
+              <label htmlFor="obj-name">Name</label>
+              <span aria-hidden className="required">*</span>
+            </div>
+            <input id="obj-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+          </div>
         </div>
-        <div className="field">
-          <label htmlFor="obj-name">Name</label>
-          <input id="obj-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
-        </div>
-        <div className="field">
-          <label htmlFor="obj-number">Number</label>
-          <input id="obj-number" value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Assigned automatically" />
-        </div>
-        <div className="field">
-          <label>Attributes</label>
-          <AttributesEditor initial={{}} onChange={setAttributes} />
-          {"error" in attributes && <span className="hint" style={{ color: "var(--danger)" }}>{attributes.error}</span>}
-        </div>
+        {definitions && chosenType && (
+          <AttributeForm
+            idPrefix="new"
+            definitions={definitions}
+            values={values}
+            onChange={(next) => setEdits({ typeId: chosenType, values: next })}
+            errors={fieldErrors(create.error)}
+          />
+        )}
       </form>
     </Dialog>
   );

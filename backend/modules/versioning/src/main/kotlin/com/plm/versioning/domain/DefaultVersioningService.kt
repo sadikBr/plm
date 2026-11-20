@@ -15,6 +15,7 @@ import com.plm.platform.error.ValidationException
 import com.plm.platform.events.DomainEvents
 import com.plm.platform.id.PrincipalId
 import com.plm.platform.id.UuidV7
+import com.plm.types.api.AttributeValidator
 import com.plm.types.api.TypeService
 import com.plm.versioning.api.CheckOutUndone
 import com.plm.versioning.api.CreateVersionedObject
@@ -53,6 +54,7 @@ internal class DefaultVersioningService(
     private val access: AccessService,
     private val events: DomainEvents,
     private val directory: PrincipalDirectory,
+    private val attributeValidator: AttributeValidator,
     private val clock: Clock,
 ) : VersioningService {
     override fun create(
@@ -61,7 +63,6 @@ internal class DefaultVersioningService(
     ): VersionedObject {
         val name = validName(command.name)
         command.number?.let(::validateNumber)
-        validateAttributes(command.attributes)
         val type = types.get(actor, command.typeId)
         val context = contexts.get(actor, command.contextId)
         if (!context.kind.holdsObjects) {
@@ -72,6 +73,7 @@ internal class DefaultVersioningService(
             )
         }
         access.require(actor, AccessTarget(context.id, type.id, INITIAL_STATE), Permission.CREATE)
+        val attributes = attributeValidator.validate(actor, type.id, command.attributes, previous = null)
 
         val now = clock.instant()
         val masterId = MasterId(UuidV7.generate(clock))
@@ -83,7 +85,7 @@ internal class DefaultVersioningService(
                 iteration = 1,
                 status = IterationStatus.CHECKED_IN,
                 state = INITIAL_STATE,
-                attributes = command.attributes,
+                attributes = attributes,
                 basedOnId = null,
                 comment = null,
                 createdAt = now,
@@ -200,12 +202,12 @@ internal class DefaultVersioningService(
         id: MasterId,
         attributes: Map<String, Any?>,
     ): Iteration {
-        validateAttributes(attributes)
         val master = findMaster(actor, id, forUpdate = true)
         authorize(actor, master, Permission.MODIFY)
         val workingCopy = ownWorkingCopy(actor, master)
-        repository.updateAttributes(workingCopy.id, attributes)
-        val updated = workingCopy.copy(attributes = attributes)
+        val normalized = attributeValidator.validate(actor, master.typeId, attributes, basedOn(workingCopy))
+        repository.updateAttributes(workingCopy.id, normalized)
+        val updated = workingCopy.copy(attributes = normalized)
         events.publish(
             actor,
             WorkingCopyUpdated(
@@ -216,7 +218,7 @@ internal class DefaultVersioningService(
                 updated.id.value,
                 updated.version,
                 workingCopy.attributes,
-                attributes,
+                normalized,
             ),
         )
         return updated
@@ -234,8 +236,12 @@ internal class DefaultVersioningService(
         val master = findMaster(actor, id, forUpdate = true)
         authorize(actor, master, Permission.MODIFY)
         val workingCopy = ownWorkingCopy(actor, master)
+        // Re-validate: definitions may have changed since check-out (e.g. a newly required attribute).
+        val attributes = attributeValidator.validate(actor, master.typeId, workingCopy.attributes, basedOn(workingCopy))
+        if (attributes != workingCopy.attributes) repository.updateAttributes(workingCopy.id, attributes)
         val checkedIn =
             workingCopy.copy(
+                attributes = attributes,
                 status = IterationStatus.CHECKED_IN,
                 comment = trimmed,
                 checkedInAt = clock.instant(),
@@ -386,11 +392,9 @@ internal class DefaultVersioningService(
         }
     }
 
-    private fun validateAttributes(attributes: Map<String, Any?>) {
-        if (attributes.keys.any { it.isBlank() }) {
-            throw ValidationException("INVALID_ATTRIBUTES", "Attribute names must not be blank")
-        }
-    }
+    /** Values of the checked-in iteration a working copy was made from: the baseline for immutable attributes. */
+    private fun basedOn(workingCopy: Iteration): Map<String, Any?> =
+        workingCopy.basedOnId?.let { repository.iteration(it).attributes } ?: emptyMap()
 
     private fun <E> MasterRow.event(
         iteration: Iteration,
