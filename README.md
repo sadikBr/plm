@@ -3,12 +3,23 @@
 An open Product Lifecycle Management (PLM) platform: documents, parts, multi-level BOMs,
 lifecycles, workflows and change management, built to scale to millions of objects.
 
-> Status: **Phase 0 — Foundation** (not started). See the [roadmap](docs/ROADMAP.md).
+> Status: **Phase 0: Foundation**, steps 0.1–0.3 done. See the [roadmap](docs/ROADMAP.md).
+
+## Quick start
+
+Requires JDK 21 and Docker. Full guide: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
+```bash
+./gradlew build      # compile, lint, all tests (uses Testcontainers)
+make up              # start postgres, s3, keycloak
+make run             # backend on http://localhost:8080
+```
 
 ## Documentation
 
 | Doc | Purpose |
 |---|---|
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | How to build, run and test locally |
 | [docs/PLAN.md](docs/PLAN.md) | Product scope, architecture, data model, pitfalls |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Phased delivery plan with exit criteria |
 | [docs/adr/](docs/adr/) | Architecture Decision Records — the *why* behind every foundational choice |
@@ -26,4 +37,4 @@ lifecycles, workflows and change management, built to scale to millions of objec
 ## Planned stack
 
 Kotlin + Spring Boot 3 · PostgreSQL · Flyway · Temporal · Redpanda/Kafka · OpenSearch ·
-MinIO/S3 · Keycloak (OIDC) · React + TypeScript + AG Grid · three.js · OpenCascade
+S3 (SeaweedFS in dev) · Keycloak (OIDC) · React + TypeScript + AG Grid · three.js · OpenCascade

@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: plm
+  datasource:
+    url: ${PLM_DB_URL:jdbc:postgresql://localhost:5432/plm}
+    username: ${PLM_DB_USER:plm}
+    password: ${PLM_DB_PASSWORD:plm}
+  flyway:
+    # Each module owns a subfolder: db/migration/<module>/V<yyyyMMddHHmm>__<desc>.sql
+    # Timestamp versions keep modules from colliding on version numbers.
+    locations: classpath:db/migration
+
+server:
+  port: ${PLM_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

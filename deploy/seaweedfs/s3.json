@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "plm-dev",
+      "credentials": [{ "accessKey": "plm", "secretKey": "plm-dev-secret" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}
