@@ -472,6 +472,18 @@ export function useRenameObject(id: string) {
   });
 }
 
+/** Moves an object to another lifecycle or a newer version of its own (site admins). */
+export function useChangeLifecycle(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Schemas["ChangeLifecycleRequest"]) =>
+      unwrap(api.POST("/api/v1/objects/{id}/lifecycle", { params: { path: { id } }, body })),
+    onSuccess: () => {
+      for (const key of [keys.object(id), keys.lifecycle(id), keys.audit(id), keys.history(id)]) void qc.invalidateQueries({ queryKey: key });
+    },
+  });
+}
+
 /** Context kinds that hold objects directly, and what each kind may contain. */
 export const HOLDS_OBJECTS: ReadonlySet<ContextKind> = new Set(["PRODUCT", "LIBRARY", "PROJECT"]);
 export const ALLOWED_CHILDREN: Record<ContextKind, ContextKind[]> = {

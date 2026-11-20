@@ -408,26 +408,18 @@ internal class DefaultConfigurationService(
                 val current = existing[l.name]
                 if (current == null) {
                     change("lifecycle", l.name, ChangeAction.CREATE) {
-                        lifecycles.create(
-                            actor,
-                            CreateLifecycleTemplate(
-                                l.name,
-                                l.labels,
-                                l.initialState,
-                                l.states.map { LifecycleState(it.key, it.labels, it.editable, it.revisable) },
-                                l.transitions.map { LifecycleTransition(it.from, it.to) },
-                            ),
-                        )
+                        lifecycles.create(actor, l.toCommand())
                     }
                 } else if (current.toConfig().normalized() != l.normalized()) {
+                    // A changed lifecycle becomes a new version; objects keep the version they have.
                     change(
                         "lifecycle",
                         l.name,
-                        ChangeAction.CONFLICT,
-                        listOf(
-                            "exists with different states or transitions; lifecycle templates can't be changed yet (roadmap 1.15)",
-                        ),
-                    )
+                        ChangeAction.UPDATE,
+                        listOf("new version ${current.version + 1} (objects keep version ${current.version})"),
+                    ) {
+                        lifecycles.update(actor, current.id, l.toCommand())
+                    }
                 } else {
                     change("lifecycle", l.name, ChangeAction.UNCHANGED)
                 }
@@ -776,12 +768,40 @@ private fun AttributeDefinition.toConfig(enumNames: Map<com.plm.types.api.Enumer
         active = active,
     )
 
+private fun LifecycleConfig.toCommand() =
+    CreateLifecycleTemplate(
+        name,
+        labels,
+        initialState,
+        states.map {
+            LifecycleState(
+                it.key,
+                it.labels,
+                it.editable,
+                it.revisable,
+                it.requiredAttributes,
+                it.revisionScheme?.let(RevisionScheme::valueOf),
+            )
+        },
+        transitions.map { LifecycleTransition(it.from, it.to) },
+    )
+
 private fun LifecycleTemplate.toConfig() =
     LifecycleConfig(
         name = name,
         labels = labels.toSortedMap(),
         initialState = initialState,
-        states = states.map { LifecycleStateConfig(it.key, it.labels.toSortedMap(), it.editable, it.revisable) },
+        states =
+            states.map {
+                LifecycleStateConfig(
+                    it.key,
+                    it.labels.toSortedMap(),
+                    it.editable,
+                    it.revisable,
+                    it.requiredAttributes,
+                    it.revisionScheme?.name,
+                )
+            },
         transitions = transitions.map { LifecycleTransitionConfig(it.from, it.to) },
     )
 

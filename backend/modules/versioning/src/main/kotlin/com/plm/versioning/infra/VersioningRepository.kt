@@ -302,6 +302,30 @@ internal class VersioningRepository(
         }
     }
 
+    fun setRevisionScheme(
+        master: MasterId,
+        scheme: RevisionScheme,
+    ) {
+        jdbc
+            .sql(
+                "update object_master set revision_scheme = :scheme where id = :id",
+            ).param("scheme", scheme.name)
+            .param("id", master.value)
+            .update()
+    }
+
+    fun setLifecycle(
+        master: MasterId,
+        lifecycle: LifecycleTemplateId,
+    ) {
+        jdbc
+            .sql(
+                "update object_master set lifecycle_id = :lifecycle where id = :id",
+            ).param("lifecycle", lifecycle.value)
+            .param("id", master.value)
+            .update()
+    }
+
     fun setState(
         iteration: IterationId,
         state: String,

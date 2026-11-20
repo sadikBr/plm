@@ -1,16 +1,26 @@
-import { Copy, Plus, Save, Trash2 } from "lucide-react";
+import { Copy, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { useLifecycles } from "../api/queries";
 import { pickLabel } from "../components/AttributeForm";
 import { ErrorBanner, Loading, Panel } from "../components/common";
-import { useCreateLifecycle, type Lifecycle } from "./adminQueries";
+import { useCreateLifecycle, useLifecycleVersions, useUpdateLifecycle, type Lifecycle } from "./adminQueries";
 
 interface StateDraft {
   key: string;
   label: string;
   editable: boolean;
   revisable: boolean;
+  /** Comma-separated attribute names, as typed. */
+  required?: string;
+  revisionScheme?: string | null;
 }
+
+const SERIES: { key: string; label: string }[] = [
+  { key: "ALPHABETIC_ASME", label: "Letters (ASME)" },
+  { key: "ALPHABETIC", label: "Letters" },
+  { key: "NUMERIC_FROM_1", label: "Numbers from 1" },
+  { key: "NUMERIC_FROM_0", label: "Numbers from 0" },
+];
 
 interface Diagram {
   states: StateDraft[];
@@ -41,7 +51,7 @@ export function StateDiagram({ states, transitions, initial }: Diagram) {
   const height = rowY + NODE_H + below + 14;
 
   return (
-    <svg className="state-diagram" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="State diagram">
+    <svg className="state-diagram" viewBox={`0 0 ${width} ${height}`} style={{ maxWidth: width }} role="img" aria-label="State diagram">
       <defs>
         <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
           <path d="M0,0 L10,5 L0,10 z" className="arrow-head" />
@@ -86,6 +96,7 @@ export function LifecyclesAdmin() {
   const { data: lifecycles, isLoading } = useLifecycles();
   const [selected, setSelected] = useState<string | null>(null);
   const [draftFrom, setDraftFrom] = useState<Lifecycle | "blank" | null>(null);
+  const [editing, setEditing] = useState(false);
   const current = lifecycles?.find((l) => l.id === selected) ?? lifecycles?.[0];
 
   if (isLoading) return <Loading />;
@@ -112,7 +123,10 @@ export function LifecyclesAdmin() {
                 }}
               >
                 {pickLabel(l.labels, l.name)}
-                {l.system && <span className="muted" style={{ marginLeft: "auto" }}>out of the box</span>}
+                <span className="muted" style={{ marginLeft: "auto" }}>
+                  v{l.version}
+                  {l.system && " · out of the box"}
+                </span>
               </button>
             </li>
           ))}
@@ -120,22 +134,36 @@ export function LifecyclesAdmin() {
       </Panel>
       {draftFrom ? (
         <LifecycleEditor
-          key={draftFrom === "blank" ? "blank" : draftFrom.id}
+          key={draftFrom === "blank" ? "blank" : `${draftFrom.id}-${editing}`}
           from={draftFrom === "blank" ? undefined : draftFrom}
+          editing={editing}
           onDone={(id) => {
             setDraftFrom(null);
+            setEditing(false);
             if (id) setSelected(id);
           }}
         />
       ) : current ? (
         <Panel
           title={pickLabel(current.labels, current.name)}
-          note="Templates in use can't be edited yet (versioned editing comes in roadmap 1.15): copy one to make a variant"
+          note={`Version ${current.version}. Editing saves a new version; objects keep theirs until an administrator moves them.`}
           actions={
-            <button className="btn small" onClick={() => setDraftFrom(current)}>
-              <Copy size={13} aria-hidden />
-              Copy as new
-            </button>
+            <>
+              <button
+                className="btn small primary"
+                onClick={() => {
+                  setEditing(true);
+                  setDraftFrom(current);
+                }}
+              >
+                <Pencil size={13} aria-hidden />
+                Edit
+              </button>
+              <button className="btn small" onClick={() => setDraftFrom(current)}>
+                <Copy size={13} aria-hidden />
+                Copy as new
+              </button>
+            </>
           }
         >
           <StateDiagram
@@ -150,6 +178,8 @@ export function LifecyclesAdmin() {
                 <th>Key</th>
                 <th>Can be edited</th>
                 <th>Can be revised from</th>
+                <th>Required to enter</th>
+                <th>Revision series</th>
                 <th>Can move to</th>
               </tr>
             </thead>
@@ -165,6 +195,8 @@ export function LifecyclesAdmin() {
                   </td>
                   <td>{s.editable ? "Yes" : "No"}</td>
                   <td>{s.revisable ? "Yes" : "No"}</td>
+                  <td className="muted">{s.requiredAttributes?.join(", ") || "—"}</td>
+                  <td className="muted">{SERIES.find((x) => x.key === s.revisionScheme)?.label ?? "—"}</td>
                   <td className="muted">
                     {current.transitions
                       .filter((t) => t.from === s.key)
@@ -175,6 +207,7 @@ export function LifecyclesAdmin() {
               ))}
             </tbody>
           </table>
+          <Versions id={current.id} />
         </Panel>
       ) : null}
     </div>
@@ -186,12 +219,22 @@ const BLANK: StateDraft[] = [
   { key: "RELEASED", label: "Released", editable: false, revisable: true },
 ];
 
-function LifecycleEditor({ from, onDone }: { from?: Lifecycle; onDone: (createdId?: string) => void }) {
+/** Creates a lifecycle (new, or a copy of [from]), or with [editing] saves a new version of [from]. */
+function LifecycleEditor({ from, editing = false, onDone }: { from?: Lifecycle; editing?: boolean; onDone: (createdId?: string) => void }) {
   const create = useCreateLifecycle();
-  const [name, setName] = useState(from ? `${from.name}Copy` : "");
-  const [label, setLabel] = useState(from ? `${pickLabel(from.labels, from.name)} (copy)` : "");
+  const update = useUpdateLifecycle();
+  const mutation = editing ? update : create;
+  const [name, setName] = useState(from ? (editing ? from.name : `${from.name}Copy`) : "");
+  const [label, setLabel] = useState(from ? (editing ? pickLabel(from.labels, from.name) : `${pickLabel(from.labels, from.name)} (copy)`) : "");
   const [states, setStates] = useState<StateDraft[]>(
-    from?.states.map((s) => ({ key: s.key, label: pickLabel(s.labels, s.key), editable: !!s.editable, revisable: !!s.revisable })) ?? BLANK,
+    from?.states.map((s) => ({
+      key: s.key,
+      label: pickLabel(s.labels, s.key),
+      editable: !!s.editable,
+      revisable: !!s.revisable,
+      required: (s.requiredAttributes ?? []).join(", "),
+      revisionScheme: s.revisionScheme ?? null,
+    })) ?? BLANK,
   );
   const [transitions, setTransitions] = useState(from?.transitions ?? [{ from: "IN_WORK", to: "RELEASED" }]);
   const [initial, setInitial] = useState(from?.initialState ?? "IN_WORK");
@@ -217,24 +260,44 @@ function LifecycleEditor({ from, onDone }: { from?: Lifecycle; onDone: (createdI
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    create.mutate(
-      {
-        name: name.trim(),
-        labels: { en: label.trim() },
-        initialState: initial,
-        states: states.map((s) => ({ key: s.key.trim(), labels: { en: s.label.trim() || s.key }, editable: !!s.editable, revisable: !!s.revisable })),
-        transitions: transitions.filter((t) => keys.includes(t.from) && keys.includes(t.to)),
-      },
-      { onSuccess: (lc) => onDone(lc.id) },
-    );
+    const body = {
+      name: name.trim(),
+      labels: { en: label.trim() },
+      initialState: initial,
+      states: states.map((s) => ({
+        key: s.key.trim(),
+        labels: { en: s.label.trim() || s.key },
+        editable: !!s.editable,
+        revisable: !!s.revisable,
+        requiredAttributes: (s.required ?? "")
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean),
+        revisionScheme: (s.revisable ? (s.revisionScheme ?? null) : null) as Lifecycle["states"][number]["revisionScheme"],
+      })),
+      transitions: transitions.filter((t) => keys.includes(t.from) && keys.includes(t.to)),
+    };
+    const done = { onSuccess: (lc: Lifecycle) => onDone(lc.id) };
+    if (editing && from) update.mutate({ id: from.id, body }, done);
+    else create.mutate(body, done);
   };
-  const problems = (create.error as { problem?: { details?: { errors?: unknown } } } | null)?.problem?.details?.errors;
+  const problems = (mutation.error as { problem?: { details?: { errors?: unknown } } } | null)?.problem?.details?.errors;
 
   return (
-    <form className="panel" aria-label="New lifecycle" onSubmit={submit} noValidate>
+    <form className="panel" aria-label={editing ? "Edit lifecycle" : "New lifecycle"} onSubmit={submit} noValidate>
       <div className="panel-head">
-        <h2>{from ? `Copy of ${pickLabel(from.labels, from.name)}` : "New lifecycle"}</h2>
-        <span className="note">Assign it to types under Types and attributes → Rules and lifecycle</span>
+        <h2>
+          {editing && from
+            ? `${pickLabel(from.labels, from.name)}: version ${from.version + 1}`
+            : from
+              ? `Copy of ${pickLabel(from.labels, from.name)}`
+              : "New lifecycle"}
+        </h2>
+        <span className="note">
+          {editing
+            ? "Saving creates a new version. Types move to it; existing objects keep their version until moved."
+            : "Assign it to types under Types and attributes → Rules and lifecycle"}
+        </span>
       </div>
       <div className="panel-body" style={{ display: "grid", gap: 12 }}>
         {Array.isArray(problems) ? (
@@ -246,7 +309,7 @@ function LifecycleEditor({ from, onDone }: { from?: Lifecycle; onDone: (createdI
             </ul>
           </div>
         ) : (
-          <ErrorBanner error={create.error} />
+          <ErrorBanner error={mutation.error} />
         )}
         <div className="attr-form cols-2">
           <div className="field">
@@ -255,7 +318,7 @@ function LifecycleEditor({ from, onDone }: { from?: Lifecycle; onDone: (createdI
           </div>
           <div className="field">
             <label htmlFor="lc-name">Name</label>
-            <input id="lc-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. FastTrack" />
+            <input id="lc-name" value={name} disabled={editing} onChange={(e) => setName(e.target.value)} placeholder="e.g. FastTrack" />
           </div>
         </div>
 
@@ -270,6 +333,8 @@ function LifecycleEditor({ from, onDone }: { from?: Lifecycle; onDone: (createdI
               <th>Initial</th>
               <th title="Objects in this state can be checked out and edited">Editable</th>
               <th title="A new revision can be started from this state">Revisable</th>
+              <th title="Attributes that must have a value before an object may enter this state">Required to enter</th>
+              <th title="Revisions started from this state continue in this series">Revision series</th>
               <th aria-label="Remove" />
             </tr>
           </thead>
@@ -290,6 +355,29 @@ function LifecycleEditor({ from, onDone }: { from?: Lifecycle; onDone: (createdI
                 </td>
                 <td style={{ width: 80 }}>
                   <input type="checkbox" aria-label={`${s.label || s.key} is revisable`} checked={s.revisable} onChange={(e) => setState(i, { revisable: e.target.checked })} style={{ width: "auto" }} />
+                </td>
+                <td>
+                  <input
+                    aria-label={`Attributes required to enter ${s.label || s.key}`}
+                    placeholder="e.g. material, mass"
+                    value={s.required ?? ""}
+                    onChange={(e) => setState(i, { required: e.target.value })}
+                  />
+                </td>
+                <td style={{ width: 150 }}>
+                  <select
+                    aria-label={`Revision series from ${s.label || s.key}`}
+                    value={s.revisionScheme ?? ""}
+                    disabled={!s.revisable}
+                    onChange={(e) => setState(i, { revisionScheme: e.target.value || null })}
+                  >
+                    <option value="">Unchanged</option>
+                    {SERIES.map((x) => (
+                      <option key={x.key} value={x.key}>
+                        {x.label}
+                      </option>
+                    ))}
+                  </select>
                 </td>
                 <td style={{ width: 40 }}>
                   <button type="button" className="btn small ghost icon" aria-label={`Remove state ${s.label || s.key}`} disabled={states.length <= 1} onClick={() => removeState(i)}>
@@ -342,14 +430,25 @@ function LifecycleEditor({ from, onDone }: { from?: Lifecycle; onDone: (createdI
         </div>
       </div>
       <div className="panel-foot">
-        <button className="btn primary" type="submit" disabled={create.isPending || !label.trim() || !name.trim()}>
+        <button className="btn primary" type="submit" disabled={mutation.isPending || !label.trim() || !name.trim()}>
           <Save size={14} aria-hidden />
-          Create lifecycle
+          {editing ? "Save new version" : "Create lifecycle"}
         </button>
         <button type="button" className="btn" onClick={() => onDone()}>
           Cancel
         </button>
       </div>
     </form>
+  );
+}
+
+function Versions({ id }: { id: string }) {
+  const { data } = useLifecycleVersions(id);
+  if (!data || data.length < 2) return null;
+  return (
+    <p className="muted" style={{ margin: "12px 0 0" }}>
+      Versions: {data.map((v) => `v${v.version}${v.latest ? " (current)" : ""}`).join(" · ")}. Objects created earlier keep the version
+      they started with.
+    </p>
   );
 }

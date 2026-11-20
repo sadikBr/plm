@@ -22,6 +22,7 @@ import com.plm.types.api.AttributeValidator
 import com.plm.types.api.NumberingSchemeId
 import com.plm.types.api.TypeRuleService
 import com.plm.types.api.TypeService
+import com.plm.versioning.api.ChangeLifecycle
 import com.plm.versioning.api.CheckOutUndone
 import com.plm.versioning.api.CreateVersionedObject
 import com.plm.versioning.api.Iteration
@@ -32,6 +33,7 @@ import com.plm.versioning.api.ObjectCheckedIn
 import com.plm.versioning.api.ObjectCheckedOut
 import com.plm.versioning.api.ObjectCreated
 import com.plm.versioning.api.ObjectLifecycle
+import com.plm.versioning.api.ObjectLifecycleChanged
 import com.plm.versioning.api.ObjectQuery
 import com.plm.versioning.api.ObjectRenamed
 import com.plm.versioning.api.ObjectRevised
@@ -350,11 +352,20 @@ internal class DefaultVersioningService(
                 mapOf("state" to latest.state),
             )
         }
+        // State-based series: the state revised from may switch the series (e.g. 1, 2, 3 then A, B).
+        val series = lifecycle.state(latest.state)?.revisionScheme ?: master.revisionScheme
+        val nextRevision =
+            if (series == master.revisionScheme && series.isValid(latest.revision)) {
+                series.next(latest.revision)
+            } else {
+                series.first
+            }
+        if (series != master.revisionScheme) repository.setRevisionScheme(master.id, series)
         val now = clock.instant()
         val revised =
             latest.copy(
                 id = IterationId(UuidV7.generate(clock)),
-                revision = master.revisionScheme.next(latest.revision),
+                revision = nextRevision,
                 iteration = 1,
                 state = lifecycle.initialState,
                 basedOnId = latest.id,
@@ -419,6 +430,18 @@ internal class DefaultVersioningService(
                 )
         if (target.key == latest.state) {
             throw ValidationException("SAME_STATE", "${master.number} is already ${stateName(lifecycle, latest.state)}")
+        }
+        // Entry criteria: the state's required attributes must have values (an admin override skips them).
+        val missing = target.requiredAttributes.filter { isBlank(latest.attributes[it]) }
+        if (!command.override && missing.isNotEmpty()) {
+            throw ValidationException(
+                "ENTRY_CRITERIA_NOT_MET",
+                "${master.number} can't become ${stateName(
+                    lifecycle,
+                    target.key,
+                )} yet: fill in ${missing.joinToString()}",
+                mapOf("missing" to missing, "state" to target.key),
+            )
         }
         if (!command.override && !lifecycle.canTransition(latest.state, target.key)) {
             throw ConflictException(
@@ -517,6 +540,79 @@ internal class DefaultVersioningService(
             nextStates = if (canPromote) lifecycle.nextStates(latest.state).map { it.key } else emptyList(),
             canOverride = actor.siteAdmin,
         )
+    }
+
+    private fun isBlank(value: Any?) =
+        value == null || (value is String && value.isBlank()) || (value is Collection<*> && value.isEmpty())
+
+    override fun changeLifecycle(
+        actor: Actor,
+        id: MasterId,
+        command: ChangeLifecycle,
+    ): VersionedObject {
+        if (!actor.siteAdmin) {
+            throw ForbiddenException(
+                "ADMIN_REQUIRED",
+                "Only site administrators can move objects to another lifecycle",
+            )
+        }
+        val master = findMaster(actor, id, forUpdate = true)
+        val latest = readable(actor, master)
+        if (master.checkedOutBy != null) {
+            throw ConflictException(
+                "CHECKED_OUT",
+                "${master.number} is checked out by ${nameOf(actor, master.checkedOutBy)}; check it in first",
+                mapOf("checkedOutBy" to master.checkedOutBy),
+            )
+        }
+        val from = lifecycleOf(actor, master)
+        val to = lifecycles.get(actor, command.lifecycleId)
+        // Keep the state when the new lifecycle has it; otherwise the caller says where it goes.
+        val state =
+            command.state ?: latest.state.takeIf { to.state(it) != null }
+                ?: throw ValidationException(
+                    "STATE_MAPPING_REQUIRED",
+                    "${to.name} v${to.version} has no state ${stateName(
+                        from,
+                        latest.state,
+                    )}: choose the state ${master.number} should be in",
+                    mapOf("states" to to.states.map { it.key }),
+                )
+        if (to.state(state) == null) {
+            throw ValidationException(
+                "UNKNOWN_STATE",
+                "'$state' is not a state of ${to.name}",
+                mapOf(
+                    "states" to to.states.map { it.key },
+                ),
+            )
+        }
+        if (to.id == from.id &&
+            state == latest.state
+        ) {
+            throw ValidationException("NO_CHANGE", "${master.number} already uses this lifecycle")
+        }
+        repository.setLifecycle(master.id, to.id)
+        if (state != latest.state) repository.setState(latest.id, state)
+        events.publish(
+            actor,
+            master.event(latest) { objectId, n, typeId, contextId, iterationId, version ->
+                ObjectLifecycleChanged(
+                    objectId,
+                    n,
+                    typeId,
+                    contextId,
+                    iterationId,
+                    version,
+                    from.id.value,
+                    to.id.value,
+                    "${to.name} v${to.version}",
+                    latest.state,
+                    state,
+                )
+            },
+        )
+        return master.copy(lifecycleId = to.id).toObject(latest.copy(state = state))
     }
 
     /** The numbering scheme the context's preferences choose for types without their own, if any. */

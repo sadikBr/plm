@@ -435,6 +435,26 @@ it: on the organization's page they get **Shared teams** and **Templates** tabs 
 organization's own teams and templates, which are usable only inside it. **Save as template** on
 one of their products makes an organization template; site admins can choose to make it site-wide.
 
+### Lifecycle versions, entry criteria and revision series
+
+Lifecycle templates are versioned: **Admin → Lifecycles → Edit** saves a new version. Types move to
+it; objects keep the version they were created with until a site admin moves them (**More →
+Change lifecycle** on the object, choosing a state if the old one no longer exists). Each state can
+list attributes **required to enter** it, and a **revision series**: revisions started from that
+state continue in it, e.g. prototype revisions 1, 2, 3, then A once approved.
+
+```bash
+LC=$(curl -s -X POST $API/lifecycles -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' -d '{
+  "name":"Prototype","labels":{"en":"Prototype"},"initialState":"DRAFT",
+  "states":[{"key":"DRAFT","labels":{"en":"Draft"},"editable":true},
+            {"key":"APPROVED","labels":{"en":"Approved"},"revisable":true,"requiredAttributes":["material"],"revisionScheme":"ALPHABETIC_ASME"}],
+  "transitions":[{"from":"DRAFT","to":"APPROVED"}]}')
+curl -s -X PUT $API/lifecycles/$(echo "$LC" | jq -r .id) -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d "$(echo "$LC" | jq '{name, labels, initialState, states, transitions} | .states[0].labels.en = "Drafting"')" | jq -c '{version, latest}'
+```
+
+Approving an object without a material is refused with `ENTRY_CRITERIA_NOT_MET`.
+
 ### Preferences
 
 Preferences are settings each module declares (type, default, where they may be set). A value set
@@ -534,6 +554,9 @@ Rules of the game (see [ADR 0019](adr/0019-configuration-as-code.md)):
 | GET | `/api/v1/contexts/{id}/preferences` | Preferences settable on a context, with where values come from |
 | PUT / DELETE | `/api/v1/contexts/{id}/preferences/{key}` | Set (`{value, locked}`) / clear (MANAGE; site: site admin) |
 | GET · PUT / DELETE | `/api/v1/me/preferences` · `/{key}` | Your own preferences |
+| PUT | `/api/v1/lifecycles/{id}` | Save a new version of a lifecycle (site admin) |
+| GET | `/api/v1/lifecycles/{id}/versions` | Every version of a lifecycle |
+| POST | `/api/v1/objects/{id}/lifecycle` | Move an object to another lifecycle or version (`{lifecycleId, state}`, site admin) |
 | GET | `/api/v1/configuration/export` | The whole configuration as one bundle (site admin) |
 | POST | `/api/v1/configuration/import?dryRun=true\|false` | Plan an import, or apply it (site admin) |
 | GET / POST | `/api/v1/team-roles` | Team roles / define one (site admin) |

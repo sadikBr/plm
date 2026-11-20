@@ -77,6 +77,8 @@ data class LifecycleStateConfig(
     val labels: Map<String, String>,
     val editable: Boolean = false,
     val revisable: Boolean = false,
+    val requiredAttributes: List<String> = emptyList(),
+    val revisionScheme: String? = null,
 )
 
 data class LifecycleTransitionConfig(

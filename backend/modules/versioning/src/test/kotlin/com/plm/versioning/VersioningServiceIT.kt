@@ -11,6 +11,7 @@ import com.plm.identity.api.SignIn
 import com.plm.lifecycle.api.CreateLifecycleTemplate
 import com.plm.lifecycle.api.LifecycleService
 import com.plm.lifecycle.api.LifecycleState
+import com.plm.lifecycle.api.LifecycleTemplate
 import com.plm.lifecycle.api.LifecycleTemplateId
 import com.plm.lifecycle.api.LifecycleTransition
 import com.plm.platform.actor.Actor
@@ -33,6 +34,7 @@ import com.plm.types.api.TypeId
 import com.plm.types.api.TypeRuleService
 import com.plm.types.api.TypeRuleSettings
 import com.plm.types.api.TypeService
+import com.plm.versioning.api.ChangeLifecycle
 import com.plm.versioning.api.CreateVersionedObject
 import com.plm.versioning.api.IterationStatus
 import com.plm.versioning.api.MasterId
@@ -815,6 +817,141 @@ class VersioningServiceIT(
                 .update()
 
             assertThat(versioning.get(alice, obj.id).latest.state).isEqualTo("RELEASED")
+        }
+    }
+
+    @Nested
+    inner class LifecycleRules {
+        /** Prototype numbers while in work, letters once approved; approving needs a material. */
+        private fun setup(): Pair<TypeId, LifecycleTemplate> {
+            val type =
+                types
+                    .createSubtype(
+                        admin,
+                        CreateSubtype(
+                            TypeId.PART,
+                            "Lc" +
+                                UUID
+                                    .randomUUID()
+                                    .toString()
+                                    .take(8)
+                                    .replace("-", ""),
+                            "Lc",
+                        ),
+                    ).id
+            typeRules.updateRules(admin, type, TypeRuleSettings(revisionScheme = RevisionScheme.NUMERIC_FROM_1))
+            val lc =
+                lifecycles.create(
+                    admin,
+                    CreateLifecycleTemplate(
+                        "Gated ${UUID.randomUUID()}",
+                        mapOf("en" to "Gated"),
+                        "DRAFT",
+                        listOf(
+                            LifecycleState("DRAFT", mapOf("en" to "Draft"), editable = true, revisable = true),
+                            LifecycleState(
+                                "APPROVED",
+                                mapOf("en" to "Approved"),
+                                editable = false,
+                                revisable = true,
+                                requiredAttributes = listOf("material"),
+                                revisionScheme = RevisionScheme.ALPHABETIC_ASME,
+                            ),
+                        ),
+                        listOf(LifecycleTransition("DRAFT", "APPROVED")),
+                    ),
+                )
+            lifecycles.assign(admin, type, lc.id)
+            return type to lc
+        }
+
+        @Test
+        fun `a state's entry criteria must be met, unless an admin overrides`() {
+            val (type) = setup()
+            val obj = versioning.create(alice, CreateVersionedObject(type, product, "Gated part"))
+
+            assertThatThrownBy { versioning.setState(manager, obj.id, SetState("APPROVED")) }
+                .isInstanceOfSatisfying(ValidationException::class.java) {
+                    assertThat(it.code).isEqualTo("ENTRY_CRITERIA_NOT_MET")
+                    assertThat(it.details["missing"]).isEqualTo(listOf("material"))
+                }
+            versioning.checkOut(bob, obj.id)
+            versioning.updateWorkingCopy(bob, obj.id, mapOf("material" to "Ti"))
+            versioning.checkIn(bob, obj.id)
+            assertThat(versioning.setState(manager, obj.id, SetState("APPROVED")).latest.state).isEqualTo("APPROVED")
+
+            val other = versioning.create(alice, CreateVersionedObject(type, product, "Other"))
+            assertThat(
+                versioning.setState(admin, other.id, SetState("APPROVED", override = true)).latest.state,
+            ).isEqualTo("APPROVED")
+        }
+
+        @Test
+        fun `revisions switch series when the state says so`() {
+            val (type) = setup()
+            val obj =
+                versioning.create(
+                    alice,
+                    CreateVersionedObject(
+                        type,
+                        product,
+                        "Series",
+                        attributes =
+                            mapOf(
+                                "material" to "Al",
+                            ),
+                    ),
+                )
+            assertThat(obj.latest.version).isEqualTo("1.1")
+
+            assertThat(versioning.revise(alice, obj.id).latest.version).isEqualTo("2.1") // from Draft: same series
+            versioning.setState(manager, obj.id, SetState("APPROVED"))
+            assertThat(versioning.revise(alice, obj.id).latest.version).isEqualTo("A.1") // from Approved: letters start
+            versioning.setState(manager, obj.id, SetState("APPROVED"))
+            assertThat(versioning.revise(alice, obj.id).latest.version).isEqualTo("B.1")
+            assertThat(versioning.revise(alice, obj.id).latest.version).isEqualTo("C.1") // stays in letters
+        }
+
+        @Test
+        fun `objects keep their lifecycle version until an admin moves them`() {
+            val (type, v1) = setup()
+            val old = versioning.create(alice, CreateVersionedObject(type, product, "Old"))
+            val v2 =
+                lifecycles.update(
+                    admin,
+                    v1.id,
+                    CreateLifecycleTemplate(
+                        v1.name,
+                        v1.labels,
+                        "WIP",
+                        listOf(
+                            LifecycleState("WIP", mapOf("en" to "Work"), editable = true, revisable = false),
+                            LifecycleState(
+                                "DONE",
+                                mapOf(
+                                    "en" to "Done",
+                                ),
+                                false,
+                                true,
+                            ),
+                        ),
+                        listOf(LifecycleTransition("WIP", "DONE")),
+                    ),
+                )
+
+            assertThat(versioning.lifecycle(alice, old.id).template.id).isEqualTo(v1.id)
+            assertThat(
+                versioning.create(alice, CreateVersionedObject(type, product, "New")).latest.state,
+            ).isEqualTo("WIP")
+            assertCode(ValidationException::class.java, "STATE_MAPPING_REQUIRED") {
+                versioning.changeLifecycle(admin, old.id, ChangeLifecycle(v2.id))
+            }
+            assertCode(ForbiddenException::class.java, "ADMIN_REQUIRED") {
+                versioning.changeLifecycle(manager, old.id, ChangeLifecycle(v2.id, "WIP"))
+            }
+            val moved = versioning.changeLifecycle(admin, old.id, ChangeLifecycle(v2.id, "WIP"))
+            assertThat(moved.latest.state).isEqualTo("WIP")
+            assertThat(versioning.lifecycle(alice, old.id).template.id).isEqualTo(v2.id)
         }
     }
 

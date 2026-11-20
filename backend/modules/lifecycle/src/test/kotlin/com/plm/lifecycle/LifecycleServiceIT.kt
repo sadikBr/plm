@@ -134,4 +134,81 @@ class LifecycleServiceIT(
             lifecycles.assign(alice, TypeId.PART, LifecycleTemplateId.BASIC)
         }.isInstanceOf(ForbiddenException::class.java)
     }
+
+    @Test
+    fun `editing a lifecycle saves a new version that types move to`() {
+        val v1 =
+            lifecycles.create(
+                admin,
+                template(
+                    "DRAFT",
+                    listOf(state("DRAFT", editable = true), state("DONE", revisable = true)),
+                    listOf(LifecycleTransition("DRAFT", "DONE")),
+                ),
+            )
+        val type =
+            types
+                .createSubtype(
+                    admin,
+                    CreateSubtype(
+                        TypeId.PART,
+                        "V" +
+                            UUID
+                                .randomUUID()
+                                .toString()
+                                .take(8)
+                                .replace("-", ""),
+                        "Versioned",
+                    ),
+                ).id
+        lifecycles.assign(admin, type, v1.id)
+
+        val v2 =
+            lifecycles.update(
+                admin,
+                v1.id,
+                template(
+                    "DRAFT",
+                    listOf(state("DRAFT", editable = true), state("REVIEW"), state("DONE", revisable = true)),
+                    listOf(LifecycleTransition("DRAFT", "REVIEW"), LifecycleTransition("REVIEW", "DONE")),
+                ),
+            )
+
+        assertThat(v2.version).isEqualTo(2)
+        assertThat(v2.name).isEqualTo(v1.name) // the name stays
+        assertThat(lifecycles.forType(alice, type).id).isEqualTo(v2.id)
+        assertThat(lifecycles.list(alice).map { it.id }).contains(v2.id).doesNotContain(v1.id)
+        assertThat(lifecycles.get(alice, v1.id).latest).isFalse() // old versions stay readable
+        assertThat(lifecycles.versions(alice, v1.id).map { it.version }).containsExactly(2, 1)
+        // Assigning an old version means its current one.
+        lifecycles.assign(admin, type, v1.id)
+        assertThat(lifecycles.forType(alice, type).id).isEqualTo(v2.id)
+        assertThatThrownBy {
+            lifecycles.update(admin, v1.id, template("DRAFT", listOf(state("DRAFT", editable = true)), emptyList()))
+        }.isInstanceOfSatisfying(com.plm.platform.error.ConflictException::class.java) {
+            assertThat(it.code).isEqualTo("NOT_LATEST_VERSION")
+        }
+        assertThatThrownBy {
+            lifecycles.update(alice, v2.id, template("DRAFT", listOf(state("DRAFT", editable = true)), emptyList()))
+        }.isInstanceOf(ForbiddenException::class.java)
+    }
+
+    @Test
+    fun `entry criteria and revision series are validated`() {
+        val bad =
+            template(
+                "DRAFT",
+                listOf(
+                    state("DRAFT", editable = true).copy(requiredAttributes = listOf("Not a name")),
+                    state("DONE").copy(revisionScheme = com.plm.types.api.RevisionScheme.NUMERIC_FROM_1),
+                ),
+                listOf(LifecycleTransition("DRAFT", "DONE")),
+            )
+        assertThatThrownBy { lifecycles.create(admin, bad) }.isInstanceOfSatisfying(ValidationException::class.java) {
+            assertThat(it.details["errors"] as List<*>).containsExactly(
+                "State 'DRAFT': 'Not a name' is not an attribute name",
+                "State 'DONE' sets a revision series but can't be revised from",
+            )
+        }
+    }
 }

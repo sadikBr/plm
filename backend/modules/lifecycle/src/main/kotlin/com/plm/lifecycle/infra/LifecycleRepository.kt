@@ -6,6 +6,7 @@ import com.plm.lifecycle.api.LifecycleTemplateId
 import com.plm.lifecycle.api.LifecycleTransition
 import com.plm.platform.error.ConflictException
 import com.plm.platform.id.TenantId
+import com.plm.types.api.RevisionScheme
 import com.plm.types.api.TypeId
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.jdbc.core.simple.JdbcClient
@@ -20,6 +21,7 @@ internal class LifecycleRepository(
 ) {
     private val json = JsonMapper.builder().build()
     private val labels = object : TypeReference<Map<String, String>>() {}
+    private val names = object : TypeReference<List<String>>() {}
 
     fun templates(
         tenant: TenantId,
@@ -33,13 +35,15 @@ internal class LifecycleRepository(
             val labels: Map<String, String>,
             val initial: String,
             val system: Boolean,
+            val version: Int,
+            val latest: Boolean,
         )
         val heads =
             jdbc
                 .sql(
                     "select * from lifecycle_template where tenant_id = :tenant" +
                         (if (ids != null) " and id in (:ids)" else "") +
-                        " order by name",
+                        " order by name, version desc",
                 ).param("tenant", tenant.value)
                 .let { q -> if (ids != null) q.param("ids", ids.map { it.value }) else q }
                 .query { rs, _ ->
@@ -49,6 +53,8 @@ internal class LifecycleRepository(
                         json.readValue(rs.getString("labels"), labels),
                         rs.getString("initial_state"),
                         rs.getBoolean("system"),
+                        rs.getInt("version"),
+                        rs.getBoolean("latest"),
                     )
                 }.list()
         if (heads.isEmpty()) return emptyList()
@@ -64,6 +70,8 @@ internal class LifecycleRepository(
                             json.readValue(rs.getString("labels"), labels),
                             rs.getBoolean("editable"),
                             rs.getBoolean("revisable"),
+                            json.readValue(rs.getString("required_attributes"), names),
+                            rs.getString("revision_scheme")?.let(RevisionScheme::valueOf),
                         )
                 }.list()
                 .groupBy({ it.first }, { it.second })
@@ -85,6 +93,8 @@ internal class LifecycleRepository(
                 states[it.id.value].orEmpty(),
                 transitions[it.id.value].orEmpty(),
                 it.system,
+                it.version,
+                it.latest,
             )
         }
     }
@@ -92,15 +102,19 @@ internal class LifecycleRepository(
     fun insert(
         tenant: TenantId,
         t: LifecycleTemplate,
+        previous: LifecycleTemplateId? = null,
     ) {
         try {
             jdbc
                 .sql(
                     """
-                    insert into lifecycle_template (id, tenant_id, name, labels, initial_state)
-                    values (:id, :tenant, :name, cast(:labels as jsonb), :initial)
+                    insert into lifecycle_template (id, tenant_id, name, labels, initial_state, system, version, latest, previous_id)
+                    values (:id, :tenant, :name, cast(:labels as jsonb), :initial, :system, :version, true, :previous)
                     """,
                 ).param("id", t.id.value)
+                .param("system", t.system)
+                .param("version", t.version)
+                .param("previous", previous?.value)
                 .param("tenant", tenant.value)
                 .param("name", t.name)
                 .param("labels", json.writeValueAsString(t.labels))
@@ -115,8 +129,9 @@ internal class LifecycleRepository(
             jdbc
                 .sql(
                     """
-                    insert into lifecycle_state (template_id, key, labels, editable, revisable, sort_order)
-                    values (:id, :key, cast(:labels as jsonb), :editable, :revisable, :order)
+                    insert into lifecycle_state
+                        (template_id, key, labels, editable, revisable, sort_order, required_attributes, revision_scheme)
+                    values (:id, :key, cast(:labels as jsonb), :editable, :revisable, :order, cast(:required as jsonb), :scheme)
                     """,
                 ).param("id", t.id.value)
                 .param("key", s.key)
@@ -124,6 +139,8 @@ internal class LifecycleRepository(
                 .param("editable", s.editable)
                 .param("revisable", s.revisable)
                 .param("order", i + 1)
+                .param("required", json.writeValueAsString(s.requiredAttributes))
+                .param("scheme", s.revisionScheme?.name)
                 .update()
         }
         t.transitions.forEach { tr ->
@@ -135,6 +152,43 @@ internal class LifecycleRepository(
                 .update()
         }
     }
+
+    /** Marks [old] as no longer the current version (before its successor is inserted). */
+    fun markSuperseded(old: LifecycleTemplateId) {
+        jdbc.sql("update lifecycle_template set latest = false where id = :old").param("old", old.value).update()
+    }
+
+    /** Moves every type that used [old] to [new]. */
+    fun moveTypes(
+        old: LifecycleTemplateId,
+        new: LifecycleTemplateId,
+    ) {
+        jdbc
+            .sql("update type_lifecycle set template_id = :new where template_id = :old")
+            .param("old", old.value)
+            .param("new", new.value)
+            .update()
+    }
+
+    /** The ids of every version of the template [id] belongs to (following previous_id both ways). */
+    fun family(id: LifecycleTemplateId): List<LifecycleTemplateId> =
+        jdbc
+            .sql(
+                """
+                with recursive up (id, previous_id) as (
+                    select id, previous_id from lifecycle_template where id = :id
+                    union all
+                    select t.id, t.previous_id from lifecycle_template t join up on t.id = up.previous_id
+                ), down (id) as (
+                    select id from lifecycle_template where id = :id
+                    union all
+                    select t.id from lifecycle_template t join down on t.previous_id = down.id
+                )
+                select id from up union select id from down
+                """,
+            ).param("id", id.value)
+            .query { rs, _ -> LifecycleTemplateId(rs.getObject("id", UUID::class.java)) }
+            .list()
 
     fun assignments(types: List<TypeId>): Map<TypeId, LifecycleTemplateId> {
         if (types.isEmpty()) return emptyMap()

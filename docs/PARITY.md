@@ -108,13 +108,13 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | Check out / check in / undo check-out | ✅ | |
 | Revise (single and bulk), with options for which related objects follow | 🟡 | Single ✅ · bulk and "collect related" [4] |
 | Revision schemes per type (letters, numbers, custom series) | ✅ | ASME letters, A–Z, 1…, 0…; kept per object |
-| State-based revision series (e.g. numbers while In Work, letters once Released) | ⬜ [1.15] | *(to confirm details)* |
+| State-based revision series (e.g. numbers while In Work, letters once Released) | ✅ | Per state: revisions started there continue in its series |
 | Set state, promote through lifecycle, admin override | ✅ | PROMOTE permission; override audited |
 | Rename / renumber (with audit, master-level, all versions) | ✅ | Managers; More → Rename or renumber |
 | Save As (copy to a new number), with or without structure and related objects | ⬜ [3] | |
 | Move between contexts / folders (with access re-check) | ⬜ [3] | |
 | Delete: working iteration, latest iteration, revision, whole object (reference checks) | ⬜ [3] | |
-| Reassign lifecycle, reset team, change type (admin) | ⬜ [1.15] | |
+| Reassign lifecycle, reset team, change type (admin) | 🟡 | Change lifecycle (with state mapping) ✅ · reset team, change type [5] |
 | New view version (design → manufacturing / service) | ⬜ [10] | |
 | One-off version (a variant of a released revision for one order) | ⬜ [7] | *(to confirm)* |
 | Ownership and reservation for long edits | ⬜ [3] | |
@@ -132,11 +132,11 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | Transitions: promote, demote, revise, set state | ✅ | Revise only from revisable states |
 | Lifecycle per type, inherited, kept per object | ✅ | |
 | State-based access (e.g. Released is read-only) | ✅ | |
-| **User-defined lifecycle templates**: create, edit, copy, version; in-use objects keep their version | 🟡 | Create via API ✅ · edit, copy, versions, admin UI [1.15] |
-| Phases and gates: criteria to pass a gate, roles per phase | ⬜ [1.15] | Gate criteria are rules (expressions) |
+| **User-defined lifecycle templates**: create, edit, copy, version; in-use objects keep their version | ✅ | Admin → Lifecycles; objects move to a newer version on request |
+| Phases and gates: criteria to pass a gate, roles per phase | 🟡 | Entry criteria (required attributes) ✅ · expression gates [2] · roles per phase [5] |
 | Workflow per phase / per transition | ⬜ [5] | |
-| Lifecycle templates scoped to a context (org or product) | ⬜ [1.15] | |
-| Admin editor with a state diagram | 🟡 | Diagram, create and copy ✅ · editing templates in use [1.15] |
+| Lifecycle templates scoped to a context (org or product) | ⬜ [5] | With per-organization workflows |
+| Admin editor with a state diagram | ✅ | Diagram, transition matrix, versions |
 
 ## 6. Content, documents and visualization
 

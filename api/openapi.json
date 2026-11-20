@@ -239,6 +239,19 @@
         "required" : [ "action", "actor", "aggregateId", "aggregateType", "details", "eventId", "occurredAt", "seq" ],
         "type" : "object"
       },
+      "ChangeLifecycleRequest" : {
+        "properties" : {
+          "lifecycleId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "lifecycleId" ],
+        "type" : "object"
+      },
       "CheckInRequest" : {
         "properties" : {
           "comment" : {
@@ -1045,6 +1058,9 @@
             },
             "type" : "object"
           },
+          "latest" : {
+            "type" : "boolean"
+          },
           "name" : {
             "type" : "string"
           },
@@ -1062,9 +1078,13 @@
               "$ref" : "#/components/schemas/TransitionDto"
             },
             "type" : "array"
+          },
+          "version" : {
+            "format" : "int32",
+            "type" : "integer"
           }
         },
-        "required" : [ "id", "initialState", "labels", "name", "states", "system", "transitions" ],
+        "required" : [ "id", "initialState", "labels", "latest", "name", "states", "system", "transitions", "version" ],
         "type" : "object"
       },
       "LifecycleStateConfig" : {
@@ -1081,11 +1101,20 @@
             },
             "type" : "object"
           },
+          "requiredAttributes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "revisable" : {
             "type" : "boolean"
+          },
+          "revisionScheme" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "editable", "key", "labels", "revisable" ],
+        "required" : [ "editable", "key", "labels", "requiredAttributes", "revisable" ],
         "type" : "object"
       },
       "LifecycleStateResponse" : {
@@ -1221,8 +1250,15 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "lifecycleLatest" : {
+            "type" : "boolean"
+          },
           "lifecycleName" : {
             "type" : "string"
+          },
+          "lifecycleVersion" : {
+            "format" : "int32",
+            "type" : "integer"
           },
           "nextStates" : {
             "items" : {
@@ -1246,7 +1282,7 @@
             "type" : "array"
           }
         },
-        "required" : [ "canOverride", "editable", "lifecycleId", "lifecycleName", "nextStates", "revisable", "revisionScheme", "state", "states" ],
+        "required" : [ "canOverride", "editable", "lifecycleId", "lifecycleLatest", "lifecycleName", "lifecycleVersion", "nextStates", "revisable", "revisionScheme", "state", "states" ],
         "type" : "object"
       },
       "ObjectResponse" : {
@@ -1701,8 +1737,18 @@
             },
             "type" : "object"
           },
+          "requiredAttributes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : [ "array", "null" ]
+          },
           "revisable" : {
             "type" : [ "boolean", "null" ]
+          },
+          "revisionScheme" : {
+            "enum" : [ "ALPHABETIC_ASME", "ALPHABETIC", "NUMERIC_FROM_1", "NUMERIC_FROM_0" ],
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "key", "labels" ],
@@ -3566,6 +3612,91 @@
           }
         },
         "tags" : [ "Lifecycle" ]
+      },
+      "put" : {
+        "operationId" : "lifecycleUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateLifecycleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LifecycleResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Lifecycle" ]
+      }
+    },
+    "/api/v1/lifecycles/{id}/versions" : {
+      "get" : {
+        "operationId" : "lifecycleVersions",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/LifecycleResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Lifecycle" ]
       }
     },
     "/api/v1/me" : {
@@ -4045,6 +4176,51 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ObjectLifecycleResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Versioned object" ]
+      },
+      "post" : {
+        "operationId" : "versionedObjectChangeLifecycle",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChangeLifecycleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ObjectResponse"
                 }
               }
             },

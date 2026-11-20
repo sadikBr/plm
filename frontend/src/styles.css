@@ -491,3 +491,4 @@ tr.inactive td { color: var(--text-3); }
   .kind-library { color: #6fd6c9; background: #153430; }
   .kind-project { color: #f0b45c; background: #3a2a12; }
 }
+input:disabled, select:disabled, textarea:disabled { background: var(--panel-2); color: var(--text-3); cursor: not-allowed; }

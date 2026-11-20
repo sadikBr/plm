@@ -1,8 +1,10 @@
 package com.plm.versioning.infra.web
 
 import com.plm.access.api.ContextId
+import com.plm.lifecycle.api.LifecycleTemplateId
 import com.plm.platform.actor.Actor
 import com.plm.types.api.TypeId
+import com.plm.versioning.api.ChangeLifecycle
 import com.plm.versioning.api.CreateVersionedObject
 import com.plm.versioning.api.Iteration
 import com.plm.versioning.api.MasterId
@@ -136,6 +138,20 @@ internal class VersionedObjectController(
         ),
     )
 
+    /** Moves the object to another lifecycle or a newer version of its own (site admins). */
+    @PostMapping("/{id}/lifecycle")
+    fun changeLifecycle(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: ChangeLifecycleRequest,
+    ) = ObjectResponse(
+        versioning.changeLifecycle(
+            actor,
+            MasterId(id),
+            ChangeLifecycle(LifecycleTemplateId(request.lifecycleId), request.state),
+        ),
+    )
+
     /** Changes the number and/or name (all versions). Needs MANAGE; not while checked out. */
     @PostMapping("/{id}/rename")
     fun rename(
@@ -242,6 +258,10 @@ internal data class LifecycleStateResponse(
 internal data class ObjectLifecycleResponse(
     val lifecycleId: UUID,
     val lifecycleName: String,
+    /** The lifecycle version this object follows. */
+    val lifecycleVersion: Int,
+    /** False when a newer version of the lifecycle exists (an admin can move the object to it). */
+    val lifecycleLatest: Boolean,
     val states: List<LifecycleStateResponse>,
     val state: String,
     val editable: Boolean,
@@ -254,6 +274,8 @@ internal data class ObjectLifecycleResponse(
     constructor(l: ObjectLifecycle) : this(
         l.template.id.value,
         l.template.name,
+        l.template.version,
+        l.template.latest,
         l.template.states.map { LifecycleStateResponse(it.key, it.labels, it.editable, it.revisable) },
         l.state,
         l.editable,
@@ -270,4 +292,10 @@ internal data class RenameRequest(
     /** New name; null keeps the current one. */
     val name: String? = null,
     val comment: String? = null,
+)
+
+internal data class ChangeLifecycleRequest(
+    val lifecycleId: UUID,
+    /** The state in the new lifecycle; omit to keep the current one. */
+    val state: String? = null,
 )

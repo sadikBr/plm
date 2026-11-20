@@ -123,6 +123,17 @@ export const useUpdateEnumeration = () =>
 export const useCreateLifecycle = () =>
   useAdminMutation((body: CreateLifecycle) => unwrap(api.POST("/api/v1/lifecycles", { body })));
 
+export const useUpdateLifecycle = () =>
+  useAdminMutation(({ id, body }: { id: string; body: CreateLifecycle }) =>
+    unwrap(api.PUT("/api/v1/lifecycles/{id}", { params: { path: { id } }, body })),
+  );
+
+export const useLifecycleVersions = (id: string) =>
+  useQuery({
+    queryKey: ["lifecycles", "versions", id],
+    queryFn: () => unwrap(api.GET("/api/v1/lifecycles/{id}/versions", { params: { path: { id } } })),
+  });
+
 export const useCreateRole = () =>
   useAdminMutation((body: Schemas["CreateTeamRoleRequest"]) => unwrap(api.POST("/api/v1/team-roles", { body })));
 

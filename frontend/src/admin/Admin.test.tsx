@@ -14,6 +14,8 @@ const basic = (() => {
     initialState: "IN_WORK",
     system: true,
     states: lc.states,
+    version: 1,
+    latest: true,
     transitions: [
       { from: "IN_WORK", to: "UNDER_REVIEW" },
       { from: "UNDER_REVIEW", to: "RELEASED" },
@@ -180,5 +182,26 @@ describe("Administration", () => {
     renderAt("/admin?tab=configuration");
     await userEvent.upload(await screen.findByLabelText("Configuration file"), new File(["not json"], "notes.json", { type: "application/json" }));
     expect(await screen.findByText("notes.json is not a JSON configuration file.")).toBeInTheDocument();
+  });
+
+  it("edits a lifecycle as a new version, with entry criteria and a revision series", async () => {
+    const calls = api(true, {
+      "PUT /api/v1/lifecycles/:id": () => ({ ...basic, id: "v2", version: 2 }),
+      "GET /api/v1/lifecycles/:id/versions": () => [basic],
+    });
+    renderAt("/admin?tab=lifecycles");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Edit" }));
+    const form = screen.getByRole("form", { name: "Edit lifecycle" });
+    expect(within(form).getByLabelText("Name")).toBeDisabled();
+    await userEvent.type(within(form).getByLabelText("Attributes required to enter Released"), "material, mass");
+    await userEvent.selectOptions(within(form).getByLabelText("Revision series from Released"), "NUMERIC_FROM_1");
+    await userEvent.click(within(form).getByRole("button", { name: "Save new version" }));
+
+    await waitFor(() => {
+      const body = posted(calls, "PUT", `/api/v1/lifecycles/${basic.id}`);
+      const released = (body?.states as { key: string }[]).find((x) => x.key === "RELEASED");
+      expect(released).toMatchObject({ requiredAttributes: ["material", "mass"], revisionScheme: "NUMERIC_FROM_1" });
+    });
   });
 });

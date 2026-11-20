@@ -12,3 +12,14 @@ data class LifecycleAssigned(
     override val aggregateType = "type"
     override val aggregateId = typeId
 }
+
+data class LifecycleVersioned(
+    val templateId: java.util.UUID,
+    val previousId: java.util.UUID,
+    val name: String,
+    val version: Int,
+) : com.plm.platform.events.DomainEvent {
+    override val eventType = "lifecycle.LifecycleVersioned.v1"
+    override val aggregateType = "lifecycle-template"
+    override val aggregateId = templateId
+}

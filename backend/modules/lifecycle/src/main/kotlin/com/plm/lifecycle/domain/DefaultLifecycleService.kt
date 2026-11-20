@@ -5,8 +5,10 @@ import com.plm.lifecycle.api.LifecycleAssigned
 import com.plm.lifecycle.api.LifecycleService
 import com.plm.lifecycle.api.LifecycleTemplate
 import com.plm.lifecycle.api.LifecycleTemplateId
+import com.plm.lifecycle.api.LifecycleVersioned
 import com.plm.lifecycle.infra.LifecycleRepository
 import com.plm.platform.actor.Actor
+import com.plm.platform.error.ConflictException
 import com.plm.platform.error.ForbiddenException
 import com.plm.platform.error.NotFoundException
 import com.plm.platform.error.ValidationException
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 private val STATE_KEY = Regex("^[A-Z][A-Z0-9_]{0,39}$")
+private val ATTRIBUTE_NAME = Regex("^[a-z][A-Za-z0-9]{0,62}$")
 
 @Service
 @Transactional
@@ -27,7 +30,7 @@ internal class DefaultLifecycleService(
     private val events: DomainEvents,
 ) : LifecycleService {
     @Transactional(readOnly = true)
-    override fun list(actor: Actor): List<LifecycleTemplate> = repository.templates(actor.tenant)
+    override fun list(actor: Actor): List<LifecycleTemplate> = repository.templates(actor.tenant).filter { it.latest }
 
     @Transactional(readOnly = true)
     override fun get(
@@ -51,7 +54,7 @@ internal class DefaultLifecycleService(
         val lineage = types.lineage(actor, typeId)
         val assigned = repository.assignments(lineage)
         val nearest = lineage.reversed().firstNotNullOfOrNull { assigned[it] } ?: LifecycleTemplateId.BASIC
-        return get(actor, nearest)
+        return latestOf(actor, nearest)
     }
 
     @Transactional(readOnly = true)
@@ -65,9 +68,10 @@ internal class DefaultLifecycleService(
     ): LifecycleTemplate {
         requireAdmin(actor)
         types.lineage(actor, typeId) // 404 for unknown types
-        val template = get(actor, templateId)
-        repository.assign(actor.tenant, typeId, templateId)
-        events.publish(actor, LifecycleAssigned(typeId.value, templateId.value, template.name))
+        // Types always use the current version.
+        val template = latestOf(actor, templateId)
+        repository.assign(actor.tenant, typeId, template.id)
+        events.publish(actor, LifecycleAssigned(typeId.value, template.id.value, template.name))
         return template
     }
 
@@ -100,6 +104,56 @@ internal class DefaultLifecycleService(
         return template
     }
 
+    override fun update(
+        actor: Actor,
+        id: LifecycleTemplateId,
+        command: CreateLifecycleTemplate,
+    ): LifecycleTemplate {
+        requireAdmin(actor)
+        val current = get(actor, id)
+        if (!current.latest) {
+            throw ConflictException(
+                "NOT_LATEST_VERSION",
+                "Version ${current.version} of ${current.name} has been superseded; edit the latest version",
+            )
+        }
+        val next =
+            LifecycleTemplate(
+                LifecycleTemplateId(UuidV7.generate()),
+                current.name,
+                command.labels,
+                command.initialState,
+                command.states,
+                command.transitions,
+                system = current.system,
+                version = current.version + 1,
+            )
+        val errors = validate(next)
+        if (errors.isNotEmpty()) {
+            throw ValidationException("INVALID_LIFECYCLE", errors.joinToString("; "), mapOf("errors" to errors))
+        }
+        repository.markSuperseded(current.id)
+        repository.insert(actor.tenant, next, previous = current.id)
+        repository.moveTypes(current.id, next.id)
+        events.publish(actor, LifecycleVersioned(next.id.value, current.id.value, next.name, next.version))
+        return next
+    }
+
+    @Transactional(readOnly = true)
+    override fun versions(
+        actor: Actor,
+        id: LifecycleTemplateId,
+    ): List<LifecycleTemplate> {
+        get(actor, id)
+        return repository.templates(actor.tenant, repository.family(id)).sortedByDescending { it.version }
+    }
+
+    private fun latestOf(
+        actor: Actor,
+        id: LifecycleTemplateId,
+    ): LifecycleTemplate =
+        repository.templates(actor.tenant, repository.family(id)).firstOrNull { it.latest } ?: get(actor, id)
+
     private fun validate(t: LifecycleTemplate): List<String> {
         val errors = mutableListOf<String>()
         if (t.name.isEmpty() || t.name.length > 100) errors += "Name must be 1-100 characters"
@@ -121,6 +175,14 @@ internal class DefaultLifecycleService(
             true
         ) {
             errors += "The initial state must be editable, or new objects could never be edited"
+        }
+        t.states.forEach { s ->
+            s.requiredAttributes.filterNot { ATTRIBUTE_NAME.matches(it) }.forEach {
+                errors += "State '${s.key}': '$it' is not an attribute name"
+            }
+            if (s.revisionScheme != null && !s.revisable) {
+                errors += "State '${s.key}' sets a revision series but can't be revised from"
+            }
         }
         t.transitions.forEach { tr ->
             if (tr.from !in keys || tr.to !in keys) errors += "Transition ${tr.from} -> ${tr.to} uses an unknown state"

@@ -181,6 +181,41 @@ describe("ObjectPage", () => {
     expect(screen.getByRole("menuitem", { name: /Rename or renumber/ })).toBeDisabled();
   });
 
+  it("lets site administrators move an object to another lifecycle, choosing the state when needed", async () => {
+    const obj = object();
+    const quick = {
+      id: "quick",
+      name: "Quick",
+      labels: { en: "Quick" },
+      initialState: "DRAFT",
+      system: false,
+      version: 1,
+      latest: true,
+      states: [
+        { key: "DRAFT", labels: { en: "Draft" }, editable: true, revisable: false },
+        { key: "DONE", labels: { en: "Done" }, editable: false, revisable: true },
+      ],
+      transitions: [],
+    };
+    const calls = apiFor(obj, ["READ", "MODIFY"], {
+      "GET /api/v1/me": () => me(ALICE, true),
+      "GET /api/v1/objects/:id/lifecycle": () => ({ ...lifecycle(obj.latest.state), lifecycleVersion: 1, lifecycleLatest: false }),
+      "GET /api/v1/lifecycles": () => [quick],
+      "POST /api/v1/objects/:id/lifecycle": () => obj,
+    });
+    renderAt(`/objects/${obj.id}`);
+
+    await userEvent.click(await screen.findByRole("button", { name: "More" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /Change lifecycle/ }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText(/a newer version exists/)).toBeInTheDocument();
+    expect(await within(dialog).findByText(/has no In Work state/)).toBeInTheDocument();
+    await userEvent.selectOptions(within(dialog).getByLabelText("State"), "DRAFT");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Move" }));
+
+    await waitFor(() => expect(calls.find((c) => c.path.endsWith("/lifecycle") && c.method === "POST")?.body).toEqual({ lifecycleId: "quick", state: "DRAFT" }));
+  });
+
   it("is read-only for viewers", async () => {
     const obj = object();
     apiFor(obj, ["READ"]);

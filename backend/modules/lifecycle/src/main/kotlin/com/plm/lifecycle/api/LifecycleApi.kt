@@ -1,6 +1,7 @@
 package com.plm.lifecycle.api
 
 import com.plm.platform.actor.Actor
+import com.plm.types.api.RevisionScheme
 import com.plm.types.api.TypeId
 import java.util.UUID
 
@@ -24,6 +25,13 @@ data class LifecycleState(
     val editable: Boolean,
     /** Objects in this state may be revised (A.3 -> B.1). */
     val revisable: Boolean,
+    /** Entry criteria: attributes that must have a value before an object may enter this state. */
+    val requiredAttributes: List<String> = emptyList(),
+    /**
+     * State-based revision series: revisions started from this state continue in this scheme (e.g.
+     * numbers while prototyping, letters once released). Null: the object's current series.
+     */
+    val revisionScheme: RevisionScheme? = null,
 )
 
 data class LifecycleTransition(
@@ -40,6 +48,10 @@ data class LifecycleTemplate(
     val states: List<LifecycleState>,
     val transitions: List<LifecycleTransition>,
     val system: Boolean,
+    /** 1 for a new template; editing creates version + 1. Objects keep the version they were created with. */
+    val version: Int = 1,
+    /** Whether this is the current version (new objects get it). */
+    val latest: Boolean = true,
 ) {
     fun state(key: String): LifecycleState? = states.find { it.key == key }
 
@@ -99,4 +111,21 @@ interface LifecycleService {
         actor: Actor,
         command: CreateLifecycleTemplate,
     ): LifecycleTemplate
+
+    /**
+     * Saves a new version of the template whose current version is [id] (`NOT_LATEST_VERSION`
+     * otherwise). The name stays. Types using it move to the new version; existing objects keep
+     * theirs until moved explicitly. Site administrators only.
+     */
+    fun update(
+        actor: Actor,
+        id: LifecycleTemplateId,
+        command: CreateLifecycleTemplate,
+    ): LifecycleTemplate
+
+    /** Every version of the template [id] belongs to, newest first. */
+    fun versions(
+        actor: Actor,
+        id: LifecycleTemplateId,
+    ): List<LifecycleTemplate>
 }

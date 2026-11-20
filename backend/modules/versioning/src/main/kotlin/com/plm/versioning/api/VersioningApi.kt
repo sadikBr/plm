@@ -94,6 +94,13 @@ data class ObjectLifecycle(
     val canOverride: Boolean,
 )
 
+/** Moves an object to another lifecycle (or another version of its own). */
+data class ChangeLifecycle(
+    val lifecycleId: com.plm.lifecycle.api.LifecycleTemplateId,
+    /** Where it goes in the new lifecycle; null keeps the current state (it must exist there). */
+    val state: String? = null,
+)
+
 /** A new identity for an object: number and/or name. Null keeps the current value. */
 data class Rename(
     val number: String? = null,
@@ -212,6 +219,17 @@ interface VersioningService {
         actor: Actor,
         id: MasterId,
         command: Rename,
+    ): VersionedObject
+
+    /**
+     * Moves the object to another lifecycle or to a newer version of its own, keeping its state when
+     * that exists there (`STATE_MAPPING_REQUIRED` otherwise). Site administrators only; not while
+     * checked out.
+     */
+    fun changeLifecycle(
+        actor: Actor,
+        id: MasterId,
+        command: ChangeLifecycle,
     ): VersionedObject
 
     /** Lifecycle, current state and what the actor can do next. Lets the UI explain disabled actions. */

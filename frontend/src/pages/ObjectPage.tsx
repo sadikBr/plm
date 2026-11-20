@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Copy, GitBranchPlus, Link2, Lock, LockOpen, MoreHorizontal, Pencil, PencilLine, ShieldAlert, Undo2, Upload } from "lucide-react";
+import { ArrowRightLeft, Copy, GitBranchPlus, Link2, Lock, LockOpen, MoreHorizontal, Pencil, PencilLine, ShieldAlert, Undo2, Upload, Workflow } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { isApiError } from "../api/client";
@@ -11,6 +11,8 @@ import {
   useObject,
   useObjectActions,
   useRenameObject,
+  useChangeLifecycle,
+  useLifecycles,
   useEffectivePreferences,
   usePermissions,
   useLayout,
@@ -22,7 +24,7 @@ import {
   type ObjectLifecycle,
   type VersionedObject,
 } from "../api/queries";
-import { AttributeForm, AttributeValues, fieldErrors } from "../components/AttributeForm";
+import { AttributeForm, AttributeValues, fieldErrors, pickLabel } from "../components/AttributeForm";
 import {
   Dialog,
   ErrorBanner,
@@ -85,6 +87,8 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
   const [comment, setComment] = useState("");
   const [stateChange, setStateChange] = useState<{ to: string; override: boolean } | null>(null);
   const [renaming, setRenaming] = useState(false);
+  const [changingLifecycle, setChangingLifecycle] = useState(false);
+  const { data: me } = useMe();
   const { data: prefs } = useEffectivePreferences(obj.contextId);
   const commentRequired = prefs?.get("versioning.checkInCommentRequired") === true;
 
@@ -259,6 +263,19 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
                   >
                     <PencilLine size={14} aria-hidden /> Rename or renumber…
                   </button>
+                  {me?.siteAdmin && (
+                    <button
+                      role="menuitem"
+                      disabled={!free}
+                      title={!free ? "Check it in first" : undefined}
+                      onClick={() => {
+                        setChangingLifecycle(true);
+                        close();
+                      }}
+                    >
+                      <Workflow size={14} aria-hidden /> Change lifecycle…
+                    </button>
+                  )}
                 </>
               )}
             </MenuButton>
@@ -272,6 +289,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
         </div>
       )}
       {renaming && <RenameDialog obj={obj} onClose={() => setRenaming(false)} />}
+      {changingLifecycle && lifecycle && <ChangeLifecycleDialog obj={obj} current={lifecycle} onClose={() => setChangingLifecycle(false)} />}
       <StateChangeDialog
         objectNumber={obj.number}
         from={current}
@@ -336,6 +354,85 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
 function stateName(lifecycle: ObjectLifecycle | undefined, state: string): string {
   const labels = lifecycle?.states.find((s) => s.key === state)?.labels;
   return labels?.en ?? state.charAt(0) + state.slice(1).toLowerCase().replace(/_/g, " ");
+}
+
+function ChangeLifecycleDialog({ obj, current, onClose }: { obj: VersionedObject; current: ObjectLifecycle; onClose: () => void }) {
+  const { data: lifecycles } = useLifecycles();
+  const change = useChangeLifecycle(obj.id);
+  // Default: the current version of the object's own lifecycle.
+  const latestOfOwn = lifecycles?.find((l) => l.name === current.lifecycleName);
+  const [lifecycleId, setLifecycleId] = useState("");
+  const chosen = lifecycles?.find((l) => l.id === (lifecycleId || latestOfOwn?.id)) ?? lifecycles?.[0];
+  const keeps = !!chosen?.states.some((s) => s.key === obj.latest.state);
+  const [state, setState] = useState("");
+  const target = state || (keeps ? obj.latest.state : "");
+  return (
+    <Dialog
+      open
+      title={`Change the lifecycle of ${obj.number}`}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn" type="button" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn primary"
+            type="submit"
+            form="lifecycle-form"
+            disabled={change.isPending || !chosen || !target || (chosen.id === current.lifecycleId && target === obj.latest.state)}
+          >
+            Move
+          </button>
+        </>
+      }
+    >
+      <form
+        id="lifecycle-form"
+        style={{ display: "grid", gap: 12 }}
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (chosen) change.mutate({ lifecycleId: chosen.id, state: target }, { onSuccess: onClose });
+        }}
+      >
+        <ErrorBanner error={change.error} />
+        <p className="muted" style={{ margin: 0 }}>
+          Now: {current.lifecycleName} version {current.lifecycleVersion}
+          {!current.lifecycleLatest && " (a newer version exists)"}, {stateName(current, obj.latest.state)}. Recorded in the audit trail.
+        </p>
+        <div className="field">
+          <label htmlFor="lc-target">Lifecycle</label>
+          <select
+            id="lc-target"
+            value={chosen?.id ?? ""}
+            onChange={(e) => {
+              setLifecycleId(e.target.value);
+              setState("");
+            }}
+          >
+            {lifecycles?.map((l) => (
+              <option key={l.id} value={l.id}>
+                {pickLabel(l.labels, l.name)} (version {l.version})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="field">
+          <label htmlFor="lc-state">State</label>
+          <select id="lc-state" value={target} onChange={(e) => setState(e.target.value)}>
+            {!target && <option value="">Choose…</option>}
+            {chosen?.states.map((s) => (
+              <option key={s.key} value={s.key}>
+                {pickLabel(s.labels, s.key)}
+              </option>
+            ))}
+          </select>
+          {!keeps && chosen && <span className="hint">This lifecycle has no {stateName(current, obj.latest.state)} state: choose one.</span>}
+        </div>
+      </form>
+    </Dialog>
+  );
 }
 
 function RenameDialog({ obj, onClose }: { obj: VersionedObject; onClose: () => void }) {

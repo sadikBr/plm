@@ -7,6 +7,7 @@ import com.plm.lifecycle.api.LifecycleTemplate
 import com.plm.lifecycle.api.LifecycleTemplateId
 import com.plm.lifecycle.api.LifecycleTransition
 import com.plm.platform.actor.Actor
+import com.plm.types.api.RevisionScheme
 import com.plm.types.api.TypeId
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
@@ -36,18 +37,25 @@ internal class LifecycleController(
     fun create(
         actor: Actor,
         @RequestBody request: CreateLifecycleRequest,
-    ) = LifecycleResponse(
-        lifecycles.create(
-            actor,
-            CreateLifecycleTemplate(
-                request.name,
-                request.labels,
-                request.initialState,
-                request.states.map { LifecycleState(it.key, it.labels, it.editable ?: false, it.revisable ?: false) },
-                request.transitions.map { LifecycleTransition(it.from, it.to) },
-            ),
-        ),
-    )
+    ) = LifecycleResponse(lifecycles.create(actor, request.command()))
+
+    /**
+     * Saves a new version of this lifecycle (it must be the latest version). Types using it move to
+     * the new version; existing objects keep theirs. Site admins only.
+     */
+    @PutMapping("/api/v1/lifecycles/{id}")
+    fun update(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: CreateLifecycleRequest,
+    ) = LifecycleResponse(lifecycles.update(actor, LifecycleTemplateId(id), request.command()))
+
+    /** Every version of this lifecycle, newest first. */
+    @GetMapping("/api/v1/lifecycles/{id}/versions")
+    fun versions(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = lifecycles.versions(actor, LifecycleTemplateId(id)).map(::LifecycleResponse)
 
     /** The lifecycle objects of this type get (inherited from the nearest ancestor if not set). */
     @GetMapping("/api/v1/types/{typeId}/lifecycle")
@@ -70,6 +78,10 @@ internal data class StateDto(
     val labels: Map<String, String>,
     val editable: Boolean? = null,
     val revisable: Boolean? = null,
+    /** Entry criteria: attributes that must have a value to enter this state. */
+    val requiredAttributes: List<String>? = null,
+    /** Revisions started from this state continue in this series. */
+    val revisionScheme: RevisionScheme? = null,
 )
 
 internal data class TransitionDto(
@@ -83,7 +95,25 @@ internal data class CreateLifecycleRequest(
     val initialState: String,
     val states: List<StateDto>,
     val transitions: List<TransitionDto>,
-)
+) {
+    fun command() =
+        CreateLifecycleTemplate(
+            name,
+            labels,
+            initialState,
+            states.map {
+                LifecycleState(
+                    it.key,
+                    it.labels,
+                    it.editable ?: false,
+                    it.revisable ?: false,
+                    it.requiredAttributes.orEmpty(),
+                    it.revisionScheme,
+                )
+            },
+            transitions.map { LifecycleTransition(it.from, it.to) },
+        )
+}
 
 internal data class AssignLifecycleRequest(
     val lifecycleId: UUID,
@@ -97,14 +127,28 @@ internal data class LifecycleResponse(
     val states: List<StateDto>,
     val transitions: List<TransitionDto>,
     val system: Boolean,
+    val version: Int,
+    /** Whether this is the current version, the one new objects get. */
+    val latest: Boolean,
 ) {
     constructor(t: LifecycleTemplate) : this(
         t.id.value,
         t.name,
         t.labels,
         t.initialState,
-        t.states.map { StateDto(it.key, it.labels, it.editable, it.revisable) },
+        t.states.map {
+            StateDto(
+                it.key,
+                it.labels,
+                it.editable,
+                it.revisable,
+                it.requiredAttributes,
+                it.revisionScheme,
+            )
+        },
         t.transitions.map { TransitionDto(it.from, it.to) },
         t.system,
+        t.version,
+        t.latest,
     )
 }

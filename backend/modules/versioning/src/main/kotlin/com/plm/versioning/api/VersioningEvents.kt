@@ -123,3 +123,20 @@ data class ObjectRenamed(
 ) : VersioningEvent {
     override val eventType = "versioning.ObjectRenamed.v1"
 }
+
+data class ObjectLifecycleChanged(
+    override val objectId: UUID,
+    override val number: String,
+    override val typeId: UUID,
+    override val contextId: UUID,
+    override val iterationId: UUID,
+    override val version: String,
+    val fromLifecycleId: UUID,
+    val toLifecycleId: UUID,
+    /** e.g. `Basic v2`. */
+    val lifecycle: String,
+    val from: String,
+    val to: String,
+) : VersioningEvent {
+    override val eventType = "versioning.ObjectLifecycleChanged.v1"
+}
