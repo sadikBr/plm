@@ -46,3 +46,18 @@ plm:
     topic: plm.domain-events
     relay:
       enabled: ${PLM_EVENTS_RELAY_ENABLED:true}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  # Only the product API, not actuator.
+  paths-to-match: /api/**
+  writer-with-order-by-keys: true
+  default-produces-media-type: application/json
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+    oauth:
+      client-id: plm-web
+      use-pkce-with-authorization-code-grant: true

@@ -35,6 +35,7 @@ recorded individually in [`adr/`](adr/); changes to them require a new ADR.
 | 11 | Build layout, migrations, dev object storage | [0011](adr/0011-build-and-module-layout.md) |
 | 12 | Core implementation conventions (SQL, IDs, errors, actors) | [0012](adr/0012-core-implementation-conventions.md) |
 | 13 | Events, audit, identity and access implementation | [0013](adr/0013-events-identity-access.md) |
+| 14 | API contract and web frontend | [0014](adr/0014-api-contract-and-frontend.md) |
 
 ### 2.1 Architecture: modular monolith
 One deployable, strictly separated modules: `identity`, `access`, `types`, `content`, `versioning`,

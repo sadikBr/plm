@@ -3,6 +3,7 @@ kotlin = "2.4.21"
 spring-boot = "4.1.2"
 ktlint-gradle = "14.2.0"
 archunit = "1.5.1"
+springdoc = "3.2.0"
 
 [libraries]
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -33,6 +34,7 @@ testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgr
 testcontainers-redpanda = { module = "org.testcontainers:testcontainers-redpanda" }
 testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupiter" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+springdoc-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 
 [bundles]

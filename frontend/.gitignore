@@ -1,0 +1,7 @@
+node_modules/
+dist/
+# Generated from ../api/openapi.json by `npm run gen:api` (runs before dev, build, test).
+src/api/schema.d.ts
+playwright-report/
+test-results/
+*.local

@@ -6,6 +6,7 @@
 |---|---|---|
 | JDK | 21 (Temurin recommended) | `java -version` |
 | Docker | Docker Desktop, OrbStack or Docker Engine with Compose v2 | `docker compose version` |
+| Node.js | 22 LTS (for the web UI) | `node --version` |
 | jq | any (for the curl walkthrough) | `jq --version` |
 | make | optional, every target is a one-line command | `make --version` |
 
@@ -78,7 +79,60 @@ Expected output: `{"groups":["liveness","readiness"],"status":"UP"}`
 Override settings with environment variables: `PLM_DB_URL`, `PLM_DB_USER`, `PLM_DB_PASSWORD`,
 `PLM_PORT`, `PLM_OIDC_ISSUER`, `PLM_OIDC_AUDIENCE`, `PLM_KAFKA_BOOTSTRAP`, `PLM_EVENTS_RELAY_ENABLED`.
 
-## 4. Walkthrough: login, teams, versioning, audit
+## 4. Run the web UI
+
+```bash
+make ui-install    # once: cd frontend && npm ci
+make ui            # cd frontend && npm run dev
+```
+
+Open http://localhost:5173 and sign in as `alice`, `bob` or `carol` (password = username).
+The dev server proxies `/api` to the backend on :8080, so `make up` and `make run` must be running.
+
+Try this:
+
+1. As **alice**: on the Site page, click **New organization**. Inside it, create a **Product**.
+   Open its **Team** tab and add `bob` as MEMBER. (bob must have signed in once first.)
+2. As **bob** (use a private window): open the product, click **New object**, then **Check out**,
+   edit attributes, **Check in** with a comment, and **Revise**. See the **History** tab.
+3. As **alice**, open the same object: it shows "Checked out by Bob Builder" while bob has it.
+   The **Audit** tab lists every change.
+4. As **carol**: there's nothing to see, and the object's URL says *Not found*.
+
+![Product page](images/ui-product.png)
+
+### API explorer
+
+Swagger UI is at http://localhost:8080/swagger-ui.html. Click **Authorize**, choose the
+`plm-web` client, sign in, and every request is sent with your token.
+
+### Frontend checks
+
+```bash
+make ui-test       # lint, typecheck, unit tests (Vitest)
+```
+
+The browser end-to-end test drives the real UI, backend and Keycloak, so the whole stack must be
+running (`make up`, `make run`, `make ui`):
+
+```bash
+make e2e           # Playwright; first time: cd frontend && npx playwright install chromium
+```
+
+### Changing the API
+
+The API contract is committed at [`api/openapi.json`](../api/openapi.json). The frontend generates
+its typed client from it (`npm run gen:api`, run automatically before dev, build and test).
+After changing a controller or DTO:
+
+```bash
+make api-contract  # regenerate api/openapi.json
+```
+
+`OpenApiContractIT` fails the backend build if you forget. The frontend typecheck then shows every
+place your change affects. Review the `api/openapi.json` diff in the PR as the API change.
+
+## 5. Walkthrough with curl: login, teams, versioning, audit
 
 Everything under `/api` needs a Keycloak access token. `scripts/token.sh <user>` prints one (it
 uses the dev-only password grant). Tokens last an hour in dev.
@@ -203,7 +257,7 @@ e.g. `{"status":409,"code":"ALREADY_CHECKED_OUT","details":{"checkedOutBy":"<use
 Prefer an editor? [`docs/api/plm.http`](api/plm.http) runs the same flow in VS Code's
 *REST Client* extension.
 
-## 5. Look under the hood
+## 6. Look under the hood
 
 Open a SQL shell:
 
@@ -220,11 +274,13 @@ select action, actor, occurred_at from audit_log order by seq desc limit 20;
 select c.name, m.principal_id, m.role from context_member m join context c on c.id = m.context_id;
 ```
 
-## 6. Everyday commands
+## 7. Everyday commands
 
 | Command | What it does |
 |---|---|
 | `make fmt` / `./gradlew ktlintFormat` | Auto-fix code style |
+| `make ui` / `make ui-test` / `make e2e` | Web UI dev server / its checks / browser end-to-end test |
+| `make api-contract` | Regenerate `api/openapi.json` after an API change |
 | `./gradlew :backend:app:test --tests '*SecurityIT'` | Run one test class |
 | `scripts/token.sh bob` | Print an access token for a dev user |
 | `make events` | Tail the domain-event topic |
@@ -248,4 +304,8 @@ select c.name, m.principal_id, m.role from context_member m join context c on c.
   fresh, empty database.
 - **Port already in use**: another local Postgres or Keycloak is running. Stop it, or change the
   left side of the port mapping in `deploy/docker-compose.yml`.
+- **UI shows "Sign-in failed"** or loops back to Keycloak: Keycloak was restarted (it keeps no
+  state), so your session is gone. Sign in again. If it persists, clear the site data for
+  localhost:5173.
+- **UI loads but every panel errors**: the backend isn't running on :8080 (`make run`).
 - **Apple Silicon**: all images are multi-arch. No extra flags needed.

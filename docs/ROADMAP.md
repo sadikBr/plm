@@ -15,8 +15,8 @@ Each phase ends with explicit exit criteria. Don't start a phase until the previ
 - [x] 0.7 Outbox table + relay to Redpanda; audit log writer
 - [x] 0.8 OIDC login via Keycloak; `identity` module maps tokens → principals
 - [x] 0.9 `AccessService` with SQL-predicate filtering (minimal policy model)
-- [ ] 0.10 OpenAPI spec + generated TypeScript client
-- [ ] 0.11 React shell: login, context browser, object info page stub
+- [x] 0.10 OpenAPI spec + generated TypeScript client
+- [x] 0.11 React shell: login, context browser, object info page stub
 - [ ] 0.12 OpenTelemetry tracing + Prometheus metrics wired
 
 **Exit criteria:** `docker compose up` + one command boots the stack; a logged-in user can create a
