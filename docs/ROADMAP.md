@@ -106,7 +106,10 @@ our own later features are built on the same mechanisms. See [EXTENSIBILITY.md](
       message (expressions first; scripts in Phase 5).
 - [ ] 2.6 Event subscriptions and webhooks: filters, signing, retries with backoff, dead letters,
       delivery log in the admin UI.
-- [ ] 2.7 Service accounts and OAuth client credentials, scoped API tokens for extensions.
+- [ ] 2.7 Service accounts and OAuth client credentials, scoped API tokens for extensions. Webhook
+      calls carry a short-lived token that acts as the user who clicked (their access rules, their
+      name in the audit trail), limited to the extension's permissions, so a service can read and
+      write through the API on the user's behalf (e.g. build a document from a query and attach it).
 - [ ] 2.8 Profiles: which actions and UI areas a group of users sees.
 
 **Exit:** a sample extension, installed from a manifest, adds an "Send to ERP" action on Released
@@ -120,7 +123,9 @@ operations as background jobs · OpenSearch indexing via events · full-text and
 with facets, saved and shared searches · table views (columns, filters, saved views, Excel export) ·
 report definitions, scheduled reports and alerts, dashboards and configurable home page · favorites,
 recent items, subscriptions and digests · discussions · ad hoc access · audit reports ·
-job queue and scheduler with admin monitoring.
+job queue and scheduler with admin monitoring · long-running extension actions: a webhook action
+can start a background job that reports progress, and the user is notified when it's done (e.g. a
+document generated from a long query).
 
 **Exit:** a team manages real documents end-to-end with files, permissions and fast search.
 
