@@ -12,6 +12,7 @@ import com.plm.extensions.api.InstallMode
 import com.plm.extensions.api.InstalledExtension
 import com.plm.extensions.infra.ExtensionRepository
 import com.plm.extensions.infra.ExtensionRow
+import com.plm.identity.api.ServiceAccountService
 import com.plm.platform.actor.Actor
 import com.plm.platform.contract.PlatformContract
 import com.plm.platform.error.ConflictException
@@ -32,6 +33,7 @@ import java.time.Clock
 internal class DefaultExtensionService(
     private val extensions: ExtensionRepository,
     private val configuration: ConfigurationService,
+    private val serviceAccounts: ServiceAccountService,
     private val events: DomainEvents,
     private val tx: TransactionTemplate,
     private val clock: Clock,
@@ -150,6 +152,12 @@ internal class DefaultExtensionService(
                     updatedBy = actor.principal.value,
                 )
             extensions.save(actor.tenant, row)
+            if ("api:account" in manifest.permissions) {
+                serviceAccounts.forExtension(actor, manifest.id, manifest.name)
+                serviceAccounts.setExtensionActive(actor, manifest.id, row.enabled)
+            } else {
+                serviceAccounts.setExtensionActive(actor, manifest.id, false)
+            }
             events.publish(
                 actor,
                 ExtensionChanged(
@@ -205,6 +213,7 @@ internal class DefaultExtensionService(
             val existing = find(actor, id)
             val row = existing.copy(enabled = enabled, updatedAt = clock.instant(), updatedBy = actor.principal.value)
             extensions.save(actor.tenant, row)
+            serviceAccounts.setExtensionActive(actor, id, enabled && "api:account" in row.manifest.permissions)
             events.publish(actor, ExtensionChanged(id, if (enabled) "ENABLED" else "DISABLED", row.manifest.version))
             toInstalled(row)
         }
@@ -218,6 +227,8 @@ internal class DefaultExtensionService(
         tx.executeWithoutResult {
             val existing = find(actor, id)
             extensions.delete(actor.tenant, id)
+            // Its account stays (the audit trail names it) but can't sign in any more.
+            serviceAccounts.setExtensionActive(actor, id, false)
             events.publish(actor, ExtensionChanged(id, "UNINSTALLED", existing.manifest.version))
         }
     }

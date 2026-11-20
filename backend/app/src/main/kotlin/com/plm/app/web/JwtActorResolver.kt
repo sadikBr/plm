@@ -42,8 +42,14 @@ internal class JwtActorResolver(
         webRequest: NativeWebRequest,
         binderFactory: WebDataBinderFactory?,
     ): Actor {
+        val authentication = SecurityContextHolder.getContext().authentication
+        // An API token (service account, or a user's delegated to an extension): no profile to record.
+        if (authentication is PlmTokenAuthenticationToken) {
+            val d = authentication.details
+            return Actor(tenant = d.tenant, principal = d.principal, siteAdmin = d.siteAdmin)
+        }
         val auth =
-            SecurityContextHolder.getContext().authentication as? JwtAuthenticationToken
+            authentication as? JwtAuthenticationToken
                 ?: error("Actor requested on an unauthenticated request; check SecurityConfiguration")
         val jwt = auth.token
         val subject = auth.name // the converter guarantees a non-blank `sub`

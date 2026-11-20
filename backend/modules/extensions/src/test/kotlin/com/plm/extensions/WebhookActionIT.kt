@@ -10,6 +10,9 @@ import com.plm.extensions.api.ActionHandler
 import com.plm.extensions.api.ActionInvocationService
 import com.plm.extensions.api.ActionService
 import com.plm.extensions.api.ExtensionService
+import com.plm.identity.api.ServiceAccountService
+import com.plm.identity.api.TokenAuthenticator
+import com.plm.identity.api.TokenKind
 import com.plm.platform.actor.Actor
 import com.plm.platform.error.PlmException
 import com.plm.platform.id.PrincipalId
@@ -30,6 +33,7 @@ import plm.testing.PlmIntegrationTest
 import tools.jackson.databind.json.JsonMapper
 import java.io.File
 import java.net.InetSocketAddress
+import java.time.Instant
 import java.util.Base64
 import java.util.HexFormat
 import java.util.UUID
@@ -46,6 +50,8 @@ class WebhookActionIT(
     @Autowired private val versioning: VersioningService,
     @Autowired private val contexts: ContextService,
     @Autowired private val teams: TeamService,
+    @Autowired private val tokens: TokenAuthenticator,
+    @Autowired private val serviceAccounts: ServiceAccountService,
 ) {
     private val admin = Actor(TenantId.DEFAULT, PrincipalId("site-admin"), siteAdmin = true)
     private val alice = Actor(TenantId.DEFAULT, PrincipalId("alice"))
@@ -166,6 +172,17 @@ class WebhookActionIT(
         assertThat((sent["object"] as Map<*, *>)["number"]).isEqualTo(part.number)
         assertThat((sent["user"] as Map<*, *>)["id"]).isEqualTo("alice")
 
+        // api:read: a token acting as alice, read-only, never administration, for a few minutes.
+        val api = sent["api"] as Map<*, *>
+        assertThat(api["scopes"]).isEqualTo(listOf("read"))
+        assertThat(api["baseUrl"]).isEqualTo("http://localhost:8080")
+        val delegated = tokens.authenticate(api["token"] as String)!!
+        assertThat(delegated.principal).isEqualTo(alice.principal)
+        assertThat(delegated.kind).isEqualTo(TokenKind.DELEGATED)
+        assertThat(delegated.extensionId).isEqualTo(id)
+        assertThat(delegated.siteAdmin).isFalse()
+        assertThat(Instant.parse(api["expiresAt"] as String)).isBefore(Instant.now().plusSeconds(16 * 60))
+
         val logged = invocations.invocations(admin, id).single()
         assertThat(logged.status).isEqualTo("OK")
         assertThat(logged.objectNumber).isEqualTo(part.number)
@@ -243,6 +260,20 @@ class WebhookActionIT(
                 invocations.invoke(alice, part.id, "$id.send-to-erp", mapOf("plant" to "P100"))
             },
         ).isEqualTo("ACTION_NOT_FOUND")
+    }
+
+    @Test
+    fun `api account gives the extension a service account, off while it's disabled or uninstalled`() {
+        val account = serviceAccounts.list(admin).single { it.extensionId == id }
+        assertThat(account.active).isTrue()
+        assertThat(account.username).startsWith("svc-ext-")
+
+        extensions.setEnabled(admin, id, false)
+        assertThat(serviceAccounts.list(admin).single { it.extensionId == id }.active).isFalse()
+        extensions.setEnabled(admin, id, true)
+        assertThat(serviceAccounts.list(admin).single { it.extensionId == id }.active).isTrue()
+        extensions.uninstall(admin, id)
+        assertThat(serviceAccounts.list(admin).single { it.extensionId == id }.active).isFalse()
     }
 
     @Test

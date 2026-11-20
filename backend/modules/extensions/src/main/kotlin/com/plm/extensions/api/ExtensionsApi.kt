@@ -177,6 +177,10 @@ val EXTENSION_PERMISSIONS: Map<String, String> =
         "rules:refuse" to "Refuse operations (check-in, set state, revise...) that don't meet its rules",
         "events:subscribe" to "Be told about events (object created, state changed...)",
         "webhooks:call" to "Call its own web services",
+        "api:read" to "Read through the PLM API as the person running its actions (a token valid 15 minutes)",
+        "api:write" to "Make changes through the PLM API as the person running its actions (a token valid 15 minutes)",
+        "api:account" to
+            "Have a service account of its own, for calls no person starts (tokens issued by an administrator)",
     )
 
 /**

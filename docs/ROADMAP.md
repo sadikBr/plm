@@ -106,10 +106,13 @@ our own later features are built on the same mechanisms. See [EXTENSIBILITY.md](
       message (expressions first; scripts in Phase 5).
 - [x] 2.6 Event subscriptions and webhooks: filters, signing, retries with backoff, dead letters,
       delivery log in the admin UI.
-- [ ] 2.7 Service accounts and OAuth client credentials, scoped API tokens for extensions. Webhook
+- [x] 2.7 Service accounts and OAuth client credentials, scoped API tokens for extensions. Webhook
       calls carry a short-lived token that acts as the user who clicked (their access rules, their
       name in the audit trail), limited to the extension's permissions, so a service can read and
       write through the API on the user's behalf (e.g. build a document from a query and attach it).
+      (Done: service accounts, API tokens and client secrets with scopes and expiry, the OAuth
+      token endpoint, `api:read` / `api:write` delegated tokens in webhook calls, an `api:account`
+      service account per extension, admin screen.)
 - [ ] 2.8 Profiles: which actions and UI areas a group of users sees.
 
 **Exit:** a sample extension, installed from a manifest, adds an "Send to ERP" action on Released

@@ -6,6 +6,7 @@ import { PageHeader, Tabs } from "../components/Layout";
 import { ActionsAdmin } from "./ActionsAdmin";
 import { ExtensionsAdmin } from "./ExtensionsAdmin";
 import { RulesAdmin } from "./RulesAdmin";
+import { ServiceAccountsAdmin } from "./ServiceAccountsAdmin";
 import { WebhooksAdmin } from "./WebhooksAdmin";
 import { ConfigurationAdmin } from "./ConfigurationAdmin";
 import { GlobalAttributesAdmin } from "./GlobalAttributesAdmin";
@@ -14,7 +15,22 @@ import { NumberingAdmin, RolesAdmin, UnitsAdmin, ValueListsAdmin } from "./Refer
 import { ContextTemplatesAdmin, SharedTeamsAdmin } from "./TeamsAndTemplatesAdmin";
 import { TypesAdmin } from "./TypesAdmin";
 
-type Section = "types" | "globals" | "lists" | "units" | "numbering" | "lifecycles" | "roles" | "teams" | "templates" | "actions" | "rules" | "webhooks" | "extensions" | "configuration";
+type Section =
+  | "types"
+  | "globals"
+  | "lists"
+  | "units"
+  | "numbering"
+  | "lifecycles"
+  | "roles"
+  | "teams"
+  | "templates"
+  | "actions"
+  | "rules"
+  | "webhooks"
+  | "service-accounts"
+  | "extensions"
+  | "configuration";
 
 const SECTIONS: [Section, string][] = [
   ["types", "Types and attributes"],
@@ -29,6 +45,7 @@ const SECTIONS: [Section, string][] = [
   ["actions", "Actions"],
   ["rules", "Rules"],
   ["webhooks", "Webhooks"],
+  ["service-accounts", "Service accounts"],
   ["extensions", "Extensions"],
   ["configuration", "Export / import"],
 ];
@@ -69,6 +86,7 @@ export function AdminPage() {
         {tab === "actions" && <ActionsAdmin />}
         {tab === "rules" && <RulesAdmin />}
         {tab === "webhooks" && <WebhooksAdmin />}
+        {tab === "service-accounts" && <ServiceAccountsAdmin />}
         {tab === "extensions" && <ExtensionsAdmin />}
         {tab === "configuration" && <ConfigurationAdmin />}
       </div>

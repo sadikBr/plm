@@ -210,6 +210,57 @@
         "required" : [ "level", "ok", "refresh" ],
         "type" : "object"
       },
+      "ApiTokenResponse" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "extensionId" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "API_TOKEN", "CLIENT_SECRET", "ACCESS", "DELEGATED" ],
+            "type" : "string"
+          },
+          "lastUsedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "prefix" : {
+            "type" : "string"
+          },
+          "principalId" : {
+            "type" : "string"
+          },
+          "revokedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "scopes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "createdAt", "createdBy", "id", "kind", "name", "prefix", "principalId", "scopes" ],
+        "type" : "object"
+      },
       "AppliesTo" : {
         "properties" : {
           "states" : {
@@ -937,6 +988,24 @@
         "required" : [ "permissions", "role" ],
         "type" : "object"
       },
+      "CreateServiceAccount" : {
+        "properties" : {
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "siteAdmin" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "displayName", "name", "siteAdmin" ],
+        "type" : "object"
+      },
       "CreateSharedTeamRequest" : {
         "properties" : {
           "description" : {
@@ -1631,6 +1700,41 @@
             "type" : [ "object", "null" ]
           }
         },
+        "type" : "object"
+      },
+      "IssueTokenRequest" : {
+        "properties" : {
+          "expiresInDays" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "kind" : {
+            "enum" : [ "API_TOKEN", "CLIENT_SECRET", "ACCESS", "DELEGATED" ],
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "scopes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "name", "scopes" ],
+        "type" : "object"
+      },
+      "IssuedTokenResponse" : {
+        "properties" : {
+          "secret" : {
+            "type" : "string"
+          },
+          "token" : {
+            "$ref" : "#/components/schemas/ApiTokenResponse"
+          }
+        },
+        "required" : [ "secret", "token" ],
         "type" : "object"
       },
       "IterationResponse" : {
@@ -2765,6 +2869,40 @@
         "required" : [ "groups" ],
         "type" : "object"
       },
+      "ServiceAccountResponse" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "extensionId" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "siteAdmin" : {
+            "type" : "boolean"
+          },
+          "username" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "createdAt", "createdBy", "displayName", "id", "siteAdmin", "username" ],
+        "type" : "object"
+      },
       "SetPreferenceRequest" : {
         "properties" : {
           "locked" : {
@@ -3279,6 +3417,24 @@
           }
         },
         "required" : [ "permissions" ],
+        "type" : "object"
+      },
+      "UpdateServiceAccount" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "siteAdmin" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "active", "displayName", "siteAdmin" ],
         "type" : "object"
       },
       "UpdateTeamRoleRequest" : {
@@ -6090,6 +6246,63 @@
         "tags" : [ "Type rule" ]
       }
     },
+    "/api/v1/oauth/token" : {
+      "post" : {
+        "operationId" : "serviceAccountToken",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Authorization",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/x-www-form-urlencoded" : {
+              "schema" : {
+                "properties" : {
+                  "client_id" : {
+                    "type" : "string"
+                  },
+                  "client_secret" : {
+                    "type" : "string"
+                  },
+                  "grant_type" : {
+                    "type" : "string"
+                  }
+                },
+                "required" : [ "grant_type" ],
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Service account" ]
+      }
+    },
     "/api/v1/objects" : {
       "get" : {
         "operationId" : "versionedObjectList",
@@ -7249,6 +7462,202 @@
         "tags" : [ "Principal" ]
       }
     },
+    "/api/v1/service-accounts" : {
+      "get" : {
+        "operationId" : "serviceAccountList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ServiceAccountResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Service account" ]
+      },
+      "post" : {
+        "operationId" : "serviceAccountCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateServiceAccount"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceAccountResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Service account" ]
+      }
+    },
+    "/api/v1/service-accounts/{id}" : {
+      "put" : {
+        "operationId" : "serviceAccountUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateServiceAccount"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceAccountResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Service account" ]
+      }
+    },
+    "/api/v1/service-accounts/{id}/tokens" : {
+      "get" : {
+        "operationId" : "serviceAccountTokens",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ApiTokenResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Service account" ]
+      },
+      "post" : {
+        "operationId" : "serviceAccountIssue",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/IssueTokenRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IssuedTokenResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Service account" ]
+      }
+    },
     "/api/v1/shared-teams" : {
       "get" : {
         "operationId" : "sharedTeamList",
@@ -7588,6 +7997,36 @@
           }
         },
         "tags" : [ "Team role" ]
+      }
+    },
+    "/api/v1/tokens/{id}" : {
+      "delete" : {
+        "operationId" : "serviceAccountRevoke",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Service account" ]
       }
     },
     "/api/v1/types" : {
@@ -8654,6 +9093,8 @@
     "name" : "Principal"
   }, {
     "name" : "Reference data"
+  }, {
+    "name" : "Service account"
   }, {
     "name" : "Shared team"
   }, {

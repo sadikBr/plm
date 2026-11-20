@@ -9,6 +9,8 @@ import com.plm.extensions.api.ActionResult
 import com.plm.extensions.api.ActionService
 import com.plm.extensions.api.ExtensionActionInvoked
 import com.plm.extensions.infra.InvocationRepository
+import com.plm.identity.api.TokenAuthenticator
+import com.plm.identity.api.TokenScopes
 import com.plm.platform.actor.Actor
 import com.plm.platform.error.ConflictException
 import com.plm.platform.error.ForbiddenException
@@ -19,6 +21,7 @@ import com.plm.platform.id.UuidV7
 import com.plm.versioning.api.MasterId
 import com.plm.versioning.api.VersioningService
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
 import tools.jackson.core.JacksonException
@@ -34,6 +37,7 @@ import java.util.Base64
 
 private val log = LoggerFactory.getLogger(DefaultActionInvocationService::class.java)
 private const val MAX_ANSWER = 5 * 1024 * 1024
+private val DELEGATION_TTL = Duration.ofMinutes(15)
 
 /**
  * Runs extension actions on the server: a signed POST to the extension's service, then its answer
@@ -49,6 +53,8 @@ internal class DefaultActionInvocationService(
     private val events: DomainEvents,
     private val tx: TransactionTemplate,
     private val clock: Clock,
+    private val tokens: TokenAuthenticator,
+    @param:Value("\${plm.public-url:http://localhost:8080}") private val publicUrl: String,
 ) : ActionInvocationService {
     private val http: HttpClient =
         HttpClient
@@ -56,6 +62,34 @@ internal class DefaultActionInvocationService(
             .connectTimeout(Duration.ofSeconds(5))
             .followRedirects(HttpClient.Redirect.NEVER)
             .build()
+
+    /**
+     * With `api:read` or `api:write`, the call carries a token acting as the person who ran the
+     * action (their access rules; never administration), so the service can read or change more
+     * than the object it was given: `api.token`, valid until `api.expiresAt`, at `api.baseUrl`.
+     */
+    private fun delegation(
+        actor: Actor,
+        extensionId: String,
+        permissions: List<String>,
+    ): Map<String, Any?> {
+        val scopes =
+            buildList {
+                if ("api:read" in permissions || "api:write" in permissions) add(TokenScopes.READ)
+                if ("api:write" in permissions) add(TokenScopes.WRITE)
+            }
+        if (scopes.isEmpty()) return emptyMap()
+        val issued = tokens.delegate(actor, extensionId, scopes, DELEGATION_TTL)
+        return mapOf(
+            "api" to
+                mapOf(
+                    "baseUrl" to publicUrl.trimEnd('/'),
+                    "token" to issued.secret,
+                    "expiresAt" to issued.token.expiresAt.toString(),
+                    "scopes" to issued.token.scopes,
+                ),
+        )
+    }
 
     override fun invoke(
         actor: Actor,
@@ -107,7 +141,10 @@ internal class DefaultActionInvocationService(
                 "user" to model["user"],
                 "parameters" to answers,
             )
-        val body = Manifests.json.writeValueAsString(payload)
+        val body =
+            Manifests.json.writeValueAsString(
+                payload + delegation(actor, row.manifest.id, row.manifest.permissions),
+            )
         val url = extensionActions.fill(extensionActions.fillConfig(webhook.url, row.config), obj, model, actor)
         val secret = row.secrets[webhook.secret].orEmpty()
 

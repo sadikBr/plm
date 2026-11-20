@@ -51,11 +51,28 @@ createServer((req, res) => {
       });
     }
     if (req.url.startsWith("/report")) {
-      const csv = `part,name,version,state,unit cost\n${part.number},"${part.name}",${part.version},${part.state},42.50\n`;
-      return send(res, 200, {
-        message: `Cost report for ${part.number}`,
-        download: { filename: `cost-${part.number}.csv`, contentType: "text/csv", content: Buffer.from(csv).toString("base64") },
-      });
+      // api:read (roadmap 2.7): the call carries a 15-minute token acting as the user, so the
+      // service can read more than the object it was sent: here, every iteration of it.
+      const rows = (iterations) =>
+        iterations.map((i) => `${part.number},"${part.name}",${i.version ?? part.version},${i.state ?? part.state},42.50`).join("\n");
+      const report = async () => {
+        let iterations = [part];
+        let who = call.user.id;
+        if (call.api) {
+          const auth = { headers: { Authorization: `Bearer ${call.api.token}` } };
+          const me = await fetch(`${call.api.baseUrl}/api/v1/me`, auth);
+          if (me.ok) who = (await me.json()).user.displayName;
+          const r = await fetch(`${call.api.baseUrl}/api/v1/objects/${part.id}/iterations`, auth);
+          if (r.ok) iterations = await r.json();
+          else console.log(`Reading iterations as ${call.user.id} failed: ${r.status}`);
+        }
+        const csv = `part,name,version,state,unit cost\n${rows(iterations)}\n`;
+        send(res, 200, {
+          message: `Cost report for ${part.number}${call.api ? ` (${iterations.length} iterations, read as ${who})` : ""}`,
+          download: { filename: `cost-${part.number}.csv`, contentType: "text/csv", content: Buffer.from(csv).toString("base64") },
+        });
+      };
+      return void report().catch((e) => send(res, 502, { message: `The report failed: ${e.message}` }));
     }
     send(res, 404, { message: `No such service: ${req.url}` });
   });

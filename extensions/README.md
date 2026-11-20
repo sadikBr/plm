@@ -46,3 +46,39 @@ the action's `timeoutSeconds` (default 10, at most 30) with a 2xx and, optionall
 `navigate` may instead be `{ "url": "https://…" }`. A non-2xx answer is shown as an error, with its
 `message` if it has one. Redirects aren't followed.
 
+
+## Calling the PLM API
+
+Webhook services often need more than the object they were sent. Two permissions give them a way:
+
+- **`api:read` / `api:write`**: every action call carries a token that acts as the person who ran
+  the action. It has their access rules and their name in the audit trail, never administration,
+  and expires after 15 minutes. `api:read` allows GET requests; `api:write` allows changes too.
+
+  ```json
+  "api": {
+    "baseUrl": "https://plm.example.com",
+    "token": "plm_…",
+    "expiresAt": "2026-11-20T10:15:00Z",
+    "scopes": ["read"]
+  }
+  ```
+
+  Send it as `Authorization: Bearer <token>`. The sample ERP's cost report uses it to read every
+  iteration of the part (`GET /api/v1/objects/{id}/iterations`).
+
+- **`api:account`**: the extension gets a service account of its own (`svc-ext-<id>`), for work
+  that no person starts, such as a nightly sync. An administrator issues its tokens or client
+  secrets in *Admin → Service accounts*. The account is turned off while the extension is disabled
+  or uninstalled.
+
+Service accounts for other integrations are created in the same place. A client secret is
+exchanged for a one-hour access token (OAuth 2.0 client credentials):
+
+```bash
+curl -X POST https://plm.example.com/api/v1/oauth/token \
+  -d grant_type=client_credentials -d client_id=<account id> -d client_secret=<secret>
+```
+
+Tokens act within their scopes (`read`, `write`, and `admin` for accounts allowed to administer)
+and their account's access rules. They can never manage service accounts, tokens or extensions.

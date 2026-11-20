@@ -12,6 +12,10 @@ permissions:
   - config:seed
   - objects:read
   - webhooks:call
+  # Its service reads the BOM through the API as the person sending (a 15-minute token in the call),
+  - api:read
+  # and pushes ERP costs back nightly with a service account of its own.
+  - api:account
 
 config:
   erpUrl:

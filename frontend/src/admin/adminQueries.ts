@@ -19,6 +19,10 @@ export type EventSubscriptionSettings = Schemas["EventSubscriptionSettings"];
 export type WebhookDelivery = Schemas["WebhookDelivery"];
 export type OperationRuleSettings = Schemas["OperationRuleSettings"];
 export type Extension = Schemas["ExtensionResponse"];
+export type ServiceAccount = Schemas["ServiceAccountResponse"];
+export type ApiToken = Schemas["ApiTokenResponse"];
+export type IssuedToken = Schemas["IssuedTokenResponse"];
+export type IssueTokenRequest = Schemas["IssueTokenRequest"];
 export type ExtensionPreview = Schemas["PreviewResponse"];
 export type ExtensionManifest = Schemas["ExtensionManifest"];
 export type ValidationRuleRequest = Schemas["ValidationRuleRequest"];
@@ -40,6 +44,8 @@ const ADMIN_KEYS = [
   "operationRules",
   "eventSubscriptions",
   "webhookDeliveries",
+  "serviceAccounts",
+  "apiTokens",
   "extensions",
   "actionRegistry",
   "availableActions",
@@ -62,8 +68,7 @@ function useAdminMutation<A, R>(fn: (args: A) => Promise<R>) {
 export const useAllAttributes = (typeId: string) =>
   useQuery({
     queryKey: ["typeAttributes", typeId, "all"],
-    queryFn: () =>
-      unwrap(api.GET("/api/v1/types/{typeId}/attributes", { params: { path: { typeId }, query: { includeInactive: true } } })),
+    queryFn: () => unwrap(api.GET("/api/v1/types/{typeId}/attributes", { params: { path: { typeId }, query: { includeInactive: true } } })),
     enabled: !!typeId,
   });
 
@@ -114,8 +119,7 @@ export const useUpdateValidationRule = () =>
 export const useDeleteValidationRule = () =>
   useAdminMutation((id: string) => unwrap(api.DELETE("/api/v1/validation-rules/{id}", { params: { path: { id } } })));
 
-export const useCreateType = () =>
-  useAdminMutation((body: Schemas["CreateTypeRequest"]) => unwrap(api.POST("/api/v1/types", { body })));
+export const useCreateType = () => useAdminMutation((body: Schemas["CreateTypeRequest"]) => unwrap(api.POST("/api/v1/types", { body })));
 
 export const useDefineAttribute = (typeId: string) =>
   useAdminMutation((body: DefineAttribute) =>
@@ -158,8 +162,7 @@ export const useUpdateEnumeration = () =>
     unwrap(api.PUT("/api/v1/enumerations/{id}", { params: { path: { id } }, body })),
   );
 
-export const useCreateLifecycle = () =>
-  useAdminMutation((body: CreateLifecycle) => unwrap(api.POST("/api/v1/lifecycles", { body })));
+export const useCreateLifecycle = () => useAdminMutation((body: CreateLifecycle) => unwrap(api.POST("/api/v1/lifecycles", { body })));
 
 export const useUpdateLifecycle = () =>
   useAdminMutation(({ id, body }: { id: string; body: CreateLifecycle }) =>
@@ -177,16 +180,14 @@ export const useUpdateType = (typeId: string) =>
     unwrap(api.PUT("/api/v1/types/{id}", { params: { path: { id: typeId } }, body })),
   );
 
-export const useCreateUnit = () =>
-  useAdminMutation((body: Schemas["CreateUnitRequest"]) => unwrap(api.POST("/api/v1/units", { body })));
+export const useCreateUnit = () => useAdminMutation((body: Schemas["CreateUnitRequest"]) => unwrap(api.POST("/api/v1/units", { body })));
 
 export type GlobalAttribute = Schemas["GlobalAttributeResponse"];
 
 export const useGlobalAttributes = () =>
   useQuery({ queryKey: ["typeAttributes", "globals"], queryFn: () => unwrap(api.GET("/api/v1/attributes/global")) });
 
-export const useDefineGlobal = () =>
-  useAdminMutation((body: DefineAttribute) => unwrap(api.POST("/api/v1/attributes/global", { body })));
+export const useDefineGlobal = () => useAdminMutation((body: DefineAttribute) => unwrap(api.POST("/api/v1/attributes/global", { body })));
 
 export const useUpdateGlobal = () =>
   useAdminMutation(({ attributeId, body }: { attributeId: string; body: AttributeSettings }) =>
@@ -299,3 +300,31 @@ export const useDeleteSubscription = () =>
 
 export const useRedeliver = () =>
   useAdminMutation((id: string) => unwrap(api.POST("/api/v1/webhook-deliveries/{id}/redeliver", { params: { path: { id } } })));
+
+// ---------- Service accounts (2.7) ----------
+
+export const useServiceAccounts = () =>
+  useQuery({ queryKey: ["serviceAccounts"], queryFn: () => unwrap(api.GET("/api/v1/service-accounts")) });
+
+export const useApiTokens = (id: string) =>
+  useQuery({
+    queryKey: ["apiTokens", id],
+    queryFn: () => unwrap(api.GET("/api/v1/service-accounts/{id}/tokens", { params: { path: { id } } })),
+    enabled: !!id,
+  });
+
+export const useCreateServiceAccount = () =>
+  useAdminMutation((body: Schemas["CreateServiceAccount"]) => unwrap(api.POST("/api/v1/service-accounts", { body })));
+
+export const useUpdateServiceAccount = () =>
+  useAdminMutation(({ id, body }: { id: string; body: Schemas["UpdateServiceAccount"] }) =>
+    unwrap(api.PUT("/api/v1/service-accounts/{id}", { params: { path: { id } }, body })),
+  );
+
+export const useIssueToken = () =>
+  useAdminMutation(({ id, body }: { id: string; body: IssueTokenRequest }) =>
+    unwrap(api.POST("/api/v1/service-accounts/{id}/tokens", { params: { path: { id } }, body })),
+  );
+
+export const useRevokeToken = () =>
+  useAdminMutation((id: string) => unwrap(api.DELETE("/api/v1/tokens/{id}", { params: { path: { id } } })));

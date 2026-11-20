@@ -1,5 +1,6 @@
 package com.plm.app.web
 
+import com.plm.identity.api.TokenAuthenticator
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.convert.converter.Converter
@@ -9,8 +10,10 @@ import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.oauth2.jwt.Jwt
+import org.springframework.security.oauth2.jwt.JwtDecoder
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.web.method.support.HandlerMethodArgumentResolver
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
@@ -25,7 +28,11 @@ internal class SecurityConfiguration(
     private val actorResolver: JwtActorResolver,
 ) : WebMvcConfigurer {
     @Bean
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain =
+    fun securityFilterChain(
+        http: HttpSecurity,
+        jwtDecoder: JwtDecoder,
+        tokens: TokenAuthenticator,
+    ): SecurityFilterChain =
         http
             .authorizeHttpRequests {
                 it
@@ -34,9 +41,13 @@ internal class SecurityConfiguration(
                     // The API contract and its browser are public; calling the API still needs a token.
                     .requestMatchers("/v3/api-docs/**", "/v3/api-docs", "/swagger-ui/**", "/swagger-ui.html")
                     .permitAll()
+                    // OAuth client credentials: the client authenticates with its secret, not a token.
+                    .requestMatchers("/api/v1/oauth/token")
+                    .permitAll()
                     .anyRequest()
                     .authenticated()
-            }.oauth2ResourceServer { rs -> rs.jwt { it.jwtAuthenticationConverter(KeycloakJwtConverter()) } }
+            }.oauth2ResourceServer { rs -> rs.authenticationManagerResolver(BearerTokenRouter(jwtDecoder, tokens)) }
+            .addFilterAfter(TokenScopeFilter(), BearerTokenAuthenticationFilter::class.java)
             // Stateless bearer-token API: no sessions, so no CSRF exposure.
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .csrf { it.disable() }
