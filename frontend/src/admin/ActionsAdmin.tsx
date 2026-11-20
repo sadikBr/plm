@@ -101,6 +101,7 @@ export function ActionsAdmin() {
                       </td>
                       <td>
                         <select
+                          className="placement-select"
                           aria-label={`Where ${a.effective.label} shows`}
                           value={a.hidden ? "HIDDEN" : a.effective.placement}
                           disabled={busy}

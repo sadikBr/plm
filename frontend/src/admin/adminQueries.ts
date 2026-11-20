@@ -13,6 +13,9 @@ export type EnumerationRequest = Schemas["EnumerationRequest"];
 export type DefineAttribute = Schemas["DefineAttributeRequest"];
 export type AttributeSettings = Schemas["AttributeSettingsRequest"];
 export type ValidationRule = Schemas["ValidationRuleResponse"];
+export type Extension = Schemas["ExtensionResponse"];
+export type ExtensionPreview = Schemas["PreviewResponse"];
+export type ExtensionManifest = Schemas["ExtensionManifest"];
 export type ValidationRuleRequest = Schemas["ValidationRuleRequest"];
 
 /** Admin changes affect forms and pages everywhere: refetch every piece of reference data. */
@@ -29,6 +32,10 @@ const ADMIN_KEYS = [
   "lifecycles",
   "teamRoles",
   "validationRules",
+  "extensions",
+  "actionRegistry",
+  "availableActions",
+  "attributes",
 ];
 
 function useAdminMutation<A, R>(fn: (args: A) => Promise<R>) {
@@ -192,3 +199,31 @@ export const useUpdateRole = () =>
   useAdminMutation(({ key, body }: { key: string; body: Schemas["UpdateTeamRoleRequest"] }) =>
     unwrap(api.PUT("/api/v1/team-roles/{key}", { params: { path: { key } }, body })),
   );
+
+// ---------- Extensions ----------
+
+export const useExtensions = () => useQuery({ queryKey: ["extensions"], queryFn: () => unwrap(api.GET("/api/v1/extensions")) });
+
+export const usePlatform = () =>
+  useQuery({ queryKey: ["platform"], queryFn: () => unwrap(api.GET("/api/v1/platform")), staleTime: Infinity });
+
+export const usePreviewExtension = () =>
+  useMutation({
+    mutationFn: (body: { manifest: string; config: Record<string, unknown> }) => unwrap(api.POST("/api/v1/extensions/preview", { body })),
+  });
+
+export const useInstallExtension = () =>
+  useAdminMutation((body: { manifest: string; config: Record<string, unknown> }) => unwrap(api.POST("/api/v1/extensions", { body })));
+
+export const useConfigureExtension = () =>
+  useAdminMutation(({ id, config }: { id: string; config: Record<string, unknown> }) =>
+    unwrap(api.PUT("/api/v1/extensions/{id}/config", { params: { path: { id } }, body: { config } })),
+  );
+
+export const useEnableExtension = () =>
+  useAdminMutation(({ id, enabled }: { id: string; enabled: boolean }) =>
+    unwrap(api.PUT("/api/v1/extensions/{id}/enabled", { params: { path: { id } }, body: { enabled } })),
+  );
+
+export const useUninstallExtension = () =>
+  useAdminMutation((id: string) => unwrap(api.DELETE("/api/v1/extensions/{id}", { params: { path: { id } } })));

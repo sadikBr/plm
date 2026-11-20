@@ -41,8 +41,9 @@ internal class DefaultActionService(
     private val lifecycles: LifecycleService,
     private val events: DomainEvents,
     private val clock: Clock,
+    private val extensionActions: ExtensionActions,
 ) : ActionService {
-    private val declared: Map<String, ActionDefinition> =
+    private val builtins: Map<String, ActionDefinition> =
         declarations.flatMap { it.actions() }.let { all ->
             val duplicates = all.groupBy { it.id }.filterValues { it.size > 1 }.keys
             require(duplicates.isEmpty()) { "Actions declared twice: $duplicates" }
@@ -61,7 +62,7 @@ internal class DefaultActionService(
         configuration: ActionConfiguration,
     ): RegisteredAction {
         requireAdmin(actor)
-        val action = declared[id] ?: throw notFound(id)
+        val action = declared(actor)[id] ?: throw notFound(id)
         val clean = validate(actor, configuration)
         configs.put(actor.tenant, action.id, clean, clock.instant(), actor.principal.value)
         events.publish(actor, ActionConfigured(action.id, clean))
@@ -73,7 +74,7 @@ internal class DefaultActionService(
         id: String,
     ): RegisteredAction {
         requireAdmin(actor)
-        if (id !in declared) throw notFound(id)
+        if (id !in declared(actor)) throw notFound(id)
         configs.delete(actor.tenant, id)
         events.publish(actor, ActionConfigured(id, null))
         return registered(actor).first { it.declared.id == id }
@@ -122,6 +123,8 @@ internal class DefaultActionService(
                             enabled = reason == null,
                             reason = reason,
                             options = availability.options,
+                            url = action.url?.let { extensionActions.fill(it, obj, model, actor) },
+                            source = action.source,
                         )
                     }
                 }
@@ -140,9 +143,14 @@ internal class DefaultActionService(
             false
         }
 
+    /** Built-in actions and those of the tenant's active extensions. */
+    private fun declared(actor: Actor): Map<String, ActionDefinition> =
+        builtins + extensionActions.of(actor.tenant).associateBy { it.id }
+
     private fun registered(actor: Actor): List<RegisteredAction> {
         val stored = configs.all(actor.tenant).associateBy { it.actionId }
-        return declared.values
+        return declared(actor)
+            .values
             .map {
                 RegisteredAction(
                     it,

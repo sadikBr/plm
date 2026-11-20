@@ -61,8 +61,13 @@ export function ObjectActionBar({
 }) {
   const toolbar = actions.filter((a) => a.placement === "OBJECT_TOOLBAR");
   const more = actions.filter((a) => a.placement === "OBJECT_MORE");
-  const unavailable = (a: AvailableAction) => !a.enabled || busy || !handlers[a.id];
-  const why = (a: AvailableAction) => a.reason ?? (handlers[a.id] ? undefined : "This action isn't available in this version of the app");
+  // Extension actions that open a web address need no page code; the others are handled here.
+  const handlerOf = (a: AvailableAction) =>
+    a.handler === "URL" ? (a.url ? () => void window.open(a.url!, "_blank", "noopener,noreferrer") : undefined) : handlers[a.id];
+  const unavailable = (a: AvailableAction) => !a.enabled || busy || !handlerOf(a);
+  const why = (a: AvailableAction) =>
+    a.reason ??
+    (handlerOf(a) ? (a.handler === "URL" ? `Opens ${a.url}` : undefined) : "This action isn't available in this version of the app");
 
   const toolbarItem = (a: AvailableAction) =>
     a.options.length > 0 && !unavailable(a) ? (
@@ -70,7 +75,7 @@ export function ObjectActionBar({
         {(close) => <Options action={a} onPick={(o) => (handlers[a.id]?.(o), close())} stateLabel={stateLabel} />}
       </MenuButton>
     ) : (
-      <button key={a.id} className="btn ghost" disabled={unavailable(a)} title={why(a)} onClick={() => handlers[a.id]?.()}>
+      <button key={a.id} className="btn ghost" data-action={a.id} disabled={unavailable(a)} title={why(a)} onClick={() => handlerOf(a)?.()}>
         <ActionIcon name={a.icon} size={15} />
         {a.label}
       </button>
@@ -102,7 +107,7 @@ export function ObjectActionBar({
                     disabled={unavailable(a)}
                     title={why(a)}
                     onClick={() => {
-                      handlers[a.id]?.();
+                      handlerOf(a)?.();
                       close();
                     }}
                   >

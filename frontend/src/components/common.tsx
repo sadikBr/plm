@@ -282,12 +282,15 @@ export function Dialog({
   onClose,
   children,
   footer,
+  wide = false,
 }: {
   open: boolean;
   title: string;
   onClose: () => void;
   children: ReactNode;
   footer: ReactNode;
+  /** For dialogs with tables (e.g. an extension's preview). */
+  wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -297,7 +300,7 @@ export function Dialog({
     if (!open && dialog.open) dialog.close?.();
   }, [open]);
   return (
-    <dialog ref={ref} onClose={onClose} aria-labelledby="dialog-title">
+    <dialog ref={ref} onClose={onClose} aria-labelledby="dialog-title" className={wide ? "wide" : undefined}>
       {open && (
         <>
           <header>

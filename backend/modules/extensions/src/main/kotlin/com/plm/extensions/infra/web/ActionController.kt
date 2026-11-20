@@ -67,6 +67,10 @@ internal data class AvailableActionResponse(
     val enabled: Boolean,
     val reason: String?,
     val options: List<ActionOptionResponse>,
+    /** For URL actions: the address to open. */
+    val url: String?,
+    /** `platform`, or the extension that added it. */
+    val source: String,
 ) {
     constructor(a: AvailableAction) : this(
         a.id,
@@ -78,6 +82,8 @@ internal data class AvailableActionResponse(
         a.enabled,
         a.reason,
         a.options.map(::ActionOptionResponse),
+        a.url,
+        a.source,
     )
 }
 

@@ -231,7 +231,8 @@ svg { flex: none; }
 }
 .toolbar .divider { width: 1px; height: 18px; background: var(--border); margin: 0 6px; }
 .toolbar .grow { flex: 1; }
-.tabs { display: flex; gap: 0; margin: 0 -16px; padding: 0 12px; border-top: 1px solid var(--border); }
+.tabs { display: flex; gap: 0; margin: 0 -16px; padding: 0 12px; border-top: 1px solid var(--border); overflow-x: auto; scrollbar-width: thin; }
+.tabs a { white-space: nowrap; flex: none; }
 .tabs a {
   height: 32px; display: inline-flex; align-items: center; padding: 0 12px; color: var(--text-2);
   border-bottom: 2px solid transparent; font-weight: 500;
@@ -396,6 +397,10 @@ textarea { min-height: 56px; resize: vertical; }
 .banner { border-radius: 3px; padding: 7px 10px; font-size: 12.5px; }
 .banner.error { background: var(--danger-soft); color: var(--danger); }
 .banner.warn { background: var(--warn-soft); color: var(--warn); }
+.banner.ok { background: var(--ok-soft); color: var(--ok); display: flex; align-items: center; gap: 6px; }
+.banner.error[role="status"] { display: flex; align-items: center; gap: 6px; }
+.perm-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.perm-items li { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
 .banner code { color: inherit; opacity: 0.8; }
 
 /* ---------- Dialog ---------- */
@@ -403,6 +408,7 @@ dialog {
   border: 1px solid var(--border); border-radius: 6px; padding: 0; width: min(760px, calc(100vw - 32px));
   max-height: calc(100vh - 48px); background: var(--panel); color: var(--text); box-shadow: var(--shadow-pop);
 }
+dialog.wide { width: min(980px, calc(100vw - 32px)); }
 dialog::backdrop { background: rgb(10 14 20 / 45%); }
 dialog header { display: flex; align-items: center; height: 42px; padding: 0 16px; border-bottom: 1px solid var(--border); }
 dialog header h2 { font-size: 14px; }
@@ -469,6 +475,7 @@ tr.inherited .perm { opacity: 0.8; }
 .subtabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
 tr.inactive td { color: var(--text-3); }
 .small { font-size: 12px; }
+select.placement-select { min-width: 130px; }
 .calc-value { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 0 2px; color: var(--text); }
 .calc-value .tag { font-size: 11px; }
 .wrap-code { white-space: pre-wrap; word-break: break-word; font-size: 12px; }

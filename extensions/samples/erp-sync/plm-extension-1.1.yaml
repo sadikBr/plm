@@ -1,0 +1,65 @@
+# A sample extension: links released parts to an ERP system.
+id: acme.erp-sync
+name: ERP sync
+version: 1.1.0
+publisher: Acme Corp
+description: Opens released parts in the ERP and adds the plant they're made in.
+platform: ">=1.0 <2.0"
+
+permissions:
+  - ui:actions
+  - config:seed
+  - objects:read
+
+config:
+  erpUrl:
+    type: url
+    label: ERP address
+    description: Where the ERP's web client is, e.g. https://erp.acme.example
+    required: true
+  company:
+    type: choice
+    label: Company code
+    options: [ACME-US, ACME-EU]
+    default: ACME-US
+  apiKey:
+    type: secret
+    label: API key
+    description: Used to call the ERP (from version 2.0, with webhooks)
+
+actions:
+  - id: show-in-erp
+    label: Show in ERP
+    description: Opens this part in the ERP.
+    icon: send
+    placement: object.toolbar
+    order: 60
+    appliesTo:
+      types: [Part]
+      states: [RELEASED]
+    requires: READ
+    handler:
+      url: "${config.erpUrl}/items/${object.number}?company=${config.company}"
+
+  - id: erp-stock
+    label: ERP stock
+    description: Shows how many are in stock, in the ERP.
+    placement: object.more
+    appliesTo:
+      types: [Part]
+    handler:
+      url: "${config.erpUrl}/stock/${object.number}"
+
+seed:
+  enumerations:
+    - name: erpPlants
+      labels: { en: ERP plants }
+      values:
+        - { key: P100, labels: { en: "P100 Detroit" } }
+        - { key: P200, labels: { en: "P200 Lyon" } }
+  globalAttributes:
+    - name: erpPlant
+      labels: { en: ERP plant }
+      description: The plant that makes this part, as the ERP knows it.
+      dataType: ENUMERATION
+      enumeration: erpPlants

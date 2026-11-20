@@ -496,6 +496,29 @@ curl -s $API/types/00000000-0000-7000-8000-000000000101/attributes -H "Authoriza
   | jq -c '[.[] | select(.global) | .name]'
 ```
 
+### Extensions
+
+An extension package is a manifest, `plm-extension.yaml` (format in
+[EXTENSIBILITY.md](EXTENSIBILITY.md), samples in `extensions/samples`). Under **Admin → Extensions →
+Install or upgrade**, choose the file (or paste it) and **Preview**: it says whether the extension is
+compatible with this platform (contract version `1.0`), the permissions it asks for, the actions it
+adds, the configuration its seed would create or change (a dry run), and the settings to fill in.
+**Install** then applies the seed, stores the settings (secrets are never shown again) and adds its
+actions to the action registry, where they can be adjusted like any other. Installing a newer
+version of an installed extension is an **upgrade**: the preview marks new permissions and new or
+changed actions, and the settings carry over. An older or equal version is refused.
+
+Each extension can be **disabled** (its actions disappear), reconfigured or **uninstalled**
+(configuration its seed added stays, since data may use it). An extension whose platform range no
+longer includes this platform's version is shown as *Incompatible* and switched off. Everything is
+in the extension's **History** (the audit log).
+
+```bash
+jq -Rs '{manifest: ., config: {erpUrl: "https://erp.acme.example"}}' extensions/samples/erp-sync/plm-extension.yaml > /tmp/ext.json
+curl -s -X POST $API/extensions/preview -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' -d @/tmp/ext.json | jq '{mode, compatible, actionsAdded, configProblems}'
+curl -s -X POST $API/extensions -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' -d @/tmp/ext.json | jq '{id, version, status}'
+```
+
 ### Expressions
 
 Conditions and formulas that administrators write (action visibility, validation rules, calculated
@@ -685,6 +708,11 @@ Rules of the game (see [ADR 0019](adr/0019-configuration-as-code.md)):
 | GET · POST | `/api/v1/objects/{id}/expression-model` · `/evaluate` | Variables expressions see for an object / evaluate one there |
 | GET · POST | `/api/v1/types/{id}/validation-rules` | A type's validation rules, inherited first / add one (site admin) |
 | PUT / DELETE | `/api/v1/validation-rules/{id}` | Change / delete a rule (site admin) |
+| GET | `/api/v1/platform` | Platform contract version and the permissions extensions may ask for |
+| GET · POST | `/api/v1/extensions` | Installed extensions / install or upgrade (`{manifest, config}`) (site admin) |
+| POST | `/api/v1/extensions/preview` | What installing a manifest would do; changes nothing |
+| GET · DELETE | `/api/v1/extensions/{id}` | One extension / uninstall |
+| PUT | `/api/v1/extensions/{id}/config` · `/enabled` | Change settings / enable or disable |
 | GET | `/api/v1/objects/{id}/actions` | Actions you see on an object, in order, with reasons for disabled ones |
 | GET | `/api/v1/actions` | Action registry: every action as declared and configured (site admin) |
 | PUT / DELETE | `/api/v1/actions/{id}/configuration` | Hide, move, reorder, relabel, restrict an action / reset it (site admin) |

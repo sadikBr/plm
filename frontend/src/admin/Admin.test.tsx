@@ -374,4 +374,71 @@ describe("Administration", () => {
       });
     });
   });
+
+  it("previews an extension before installing it, with its settings", async () => {
+    const manifest = {
+      id: "acme.erp-sync",
+      name: "ERP sync",
+      version: "1.0.0",
+      platform: ">=1.0 <2.0",
+      permissions: ["ui:actions"],
+      config: { erpUrl: { type: "url", label: "ERP address", required: true, options: [] } },
+      actions: [
+        {
+          id: "show-in-erp",
+          label: "Show in ERP",
+          placement: "object.toolbar",
+          order: 60,
+          appliesTo: { types: ["Part"], states: ["RELEASED"] },
+          handler: { url: "${config.erpUrl}/items/${object.number}" },
+        },
+      ],
+    };
+    const preview = {
+      manifest,
+      mode: "INSTALL",
+      installedVersion: null,
+      compatible: true,
+      platformVersion: "1.0",
+      permissionsAdded: ["ui:actions"],
+      permissionsRemoved: [],
+      actionsAdded: ["show-in-erp"],
+      actionsChanged: [],
+      actionsRemoved: [],
+      seedChanges: [{ kind: "enumeration", key: "erpPlants", action: "CREATE", details: [] }],
+      configProblems: ["ERP address is required"],
+      canInstall: false,
+    };
+    const calls = api(true, {
+      "GET /api/v1/extensions": () => [],
+      "GET /api/v1/platform": () => ({
+        contractVersion: "1.0",
+        extensionPermissions: { "ui:actions": "Add actions to toolbars and menus" },
+      }),
+      "POST /api/v1/extensions/preview": () => preview,
+      "POST /api/v1/extensions": () => ({ id: "acme.erp-sync" }),
+    });
+    renderAt("/admin?tab=extensions");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Install or upgrade" }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.type(within(dialog).getByLabelText("Or paste the manifest"), "id: acme.erp-sync");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Preview" }));
+
+    expect(await within(dialog).findByText(/Compatible: it supports platform/)).toBeInTheDocument();
+    expect(within(dialog).getByText("Add actions to toolbars and menus")).toBeInTheDocument();
+    expect(within(dialog).getByRole("table", { name: "Extension actions" })).toHaveTextContent("Show in ERP");
+    expect(within(dialog).getByRole("list", { name: "Seed changes" })).toHaveTextContent("erpPlants");
+    expect(within(dialog).getByText("Required: ERP address")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Install" })).toBeDisabled();
+
+    await userEvent.type(within(dialog).getByLabelText("ERP address"), "https://erp.example");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Install" }));
+    await waitFor(() =>
+      expect(posted(calls, "POST", "/api/v1/extensions")).toEqual({
+        manifest: "id: acme.erp-sync",
+        config: { erpUrl: "https://erp.example" },
+      }),
+    );
+  });
 });

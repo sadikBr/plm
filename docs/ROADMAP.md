@@ -96,7 +96,7 @@ our own later features are built on the same mechanisms. See [EXTENSIBILITY.md](
       condition. The UI renders toolbars and menus from the registry. (Done: registry, placement,
       order, types, states, permission, admin screen. Visibility conditions use expressions, 2.2.)
 - [x] 2.2 Expression language (CEL) for conditions, validations, calculated attributes and gates.
-- [ ] 2.3 Extension packages: manifest (`plm-extension.yaml`), install / upgrade / disable per
+- [x] 2.3 Extension packages: manifest (`plm-extension.yaml`), install / upgrade / disable per
       tenant, compatibility check against the platform contract version, audit.
 - [ ] 2.4 Custom actions with handlers: webhook (signed), start a workflow (Phase 5), open a URL or
       panel. Parameter forms generated from a schema; results (message, refresh, navigate, download).

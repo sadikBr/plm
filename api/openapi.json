@@ -44,7 +44,7 @@
             "type" : "string"
           },
           "handler" : {
-            "enum" : [ "BUILTIN", "CLIENT" ],
+            "enum" : [ "BUILTIN", "CLIENT", "URL" ],
             "type" : "string"
           },
           "icon" : {
@@ -96,6 +96,24 @@
           }
         },
         "required" : [ "label", "override", "value" ],
+        "type" : "object"
+      },
+      "AppliesTo" : {
+        "properties" : {
+          "states" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "types" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "states", "types" ],
         "type" : "object"
       },
       "AssignLifecycleRequest" : {
@@ -393,7 +411,7 @@
             "type" : "string"
           },
           "handler" : {
-            "enum" : [ "BUILTIN", "CLIENT" ],
+            "enum" : [ "BUILTIN", "CLIENT", "URL" ],
             "type" : "string"
           },
           "icon" : {
@@ -417,9 +435,15 @@
           },
           "reason" : {
             "type" : [ "string", "null" ]
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "url" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "enabled", "group", "handler", "id", "label", "options", "placement" ],
+        "required" : [ "enabled", "group", "handler", "id", "label", "options", "placement", "source" ],
         "type" : "object"
       },
       "ChangeLifecycleRequest" : {
@@ -526,6 +550,41 @@
           }
         },
         "required" : [ "contextTemplates", "enumerations", "format", "globalAttributes", "lifecycles", "numberingSchemes", "teamRoles", "types", "units" ],
+        "type" : "object"
+      },
+      "ConfigField" : {
+        "properties" : {
+          "default" : { },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "label" : {
+            "type" : [ "string", "null" ]
+          },
+          "options" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "type" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "options", "required", "type" ],
+        "type" : "object"
+      },
+      "ConfigureExtensionRequest" : {
+        "properties" : {
+          "config" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          }
+        },
+        "required" : [ "config" ],
         "type" : "object"
       },
       "ContextPreferenceResponse" : {
@@ -937,6 +996,15 @@
         "required" : [ "key", "source" ],
         "type" : "object"
       },
+      "EnableExtensionRequest" : {
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "enabled" ],
+        "type" : "object"
+      },
       "EnumerationConfig" : {
         "properties" : {
           "labels" : {
@@ -1111,6 +1179,126 @@
         "required" : [ "message" ],
         "type" : "object"
       },
+      "ExtensionManifest" : {
+        "properties" : {
+          "actions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ManifestAction"
+            },
+            "type" : "array"
+          },
+          "config" : {
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/ConfigField"
+            },
+            "type" : "object"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "permissions" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "platform" : {
+            "type" : "string"
+          },
+          "publisher" : {
+            "type" : [ "string", "null" ]
+          },
+          "seed" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ConfigBundle"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "actions", "config", "id", "name", "permissions", "platform", "version" ],
+        "type" : "object"
+      },
+      "ExtensionResponse" : {
+        "properties" : {
+          "auditId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "config" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "installedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "installedBy" : {
+            "type" : "string"
+          },
+          "manifest" : {
+            "$ref" : "#/components/schemas/ExtensionManifest"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "permissions" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "platform" : {
+            "type" : "string"
+          },
+          "publisher" : {
+            "type" : [ "string", "null" ]
+          },
+          "secretsSet" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array",
+            "uniqueItems" : true
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "updatedBy" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "auditId", "config", "enabled", "id", "installedAt", "installedBy", "manifest", "name", "permissions", "platform", "secretsSet", "source", "status", "updatedAt", "updatedBy", "version" ],
+        "type" : "object"
+      },
       "GlobalAttributeResponse" : {
         "properties" : {
           "attribute" : {
@@ -1156,6 +1344,19 @@
           }
         },
         "required" : [ "applied", "changes", "conflicts", "creates", "unchanged", "updates" ],
+        "type" : "object"
+      },
+      "InstallExtensionRequest" : {
+        "properties" : {
+          "config" : {
+            "additionalProperties" : { },
+            "type" : [ "object", "null" ]
+          },
+          "manifest" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "manifest" ],
         "type" : "object"
       },
       "IterationResponse" : {
@@ -1467,6 +1668,54 @@
         "required" : [ "from", "to" ],
         "type" : "object"
       },
+      "ManifestAction" : {
+        "properties" : {
+          "appliesTo" : {
+            "$ref" : "#/components/schemas/AppliesTo"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "group" : {
+            "type" : [ "string", "null" ]
+          },
+          "handler" : {
+            "$ref" : "#/components/schemas/ManifestHandler"
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "order" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "placement" : {
+            "type" : "string"
+          },
+          "requires" : {
+            "type" : [ "string", "null" ]
+          },
+          "visibleWhen" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "appliesTo", "handler", "id", "label", "order", "placement" ],
+        "type" : "object"
+      },
+      "ManifestHandler" : {
+        "properties" : {
+          "url" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
       "MeResponse" : {
         "properties" : {
           "siteAdmin" : {
@@ -1706,6 +1955,21 @@
         "required" : [ "action", "details", "key", "kind" ],
         "type" : "object"
       },
+      "PlatformResponse" : {
+        "properties" : {
+          "contractVersion" : {
+            "type" : "string"
+          },
+          "extensionPermissions" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          }
+        },
+        "required" : [ "contractVersion", "extensionPermissions" ],
+        "type" : "object"
+      },
       "PolicyResponse" : {
         "properties" : {
           "contextId" : {
@@ -1805,6 +2069,72 @@
           }
         },
         "required" : [ "label", "value" ],
+        "type" : "object"
+      },
+      "PreviewResponse" : {
+        "properties" : {
+          "actionsAdded" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "actionsChanged" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "actionsRemoved" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "canInstall" : {
+            "type" : "boolean"
+          },
+          "compatible" : {
+            "type" : "boolean"
+          },
+          "configProblems" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "installedVersion" : {
+            "type" : [ "string", "null" ]
+          },
+          "manifest" : {
+            "$ref" : "#/components/schemas/ExtensionManifest"
+          },
+          "mode" : {
+            "type" : "string"
+          },
+          "permissionsAdded" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "permissionsRemoved" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "platformVersion" : {
+            "type" : "string"
+          },
+          "seedChanges" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PlannedChange"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "actionsAdded", "actionsChanged", "actionsRemoved", "canInstall", "compatible", "configProblems", "manifest", "mode", "permissionsAdded", "permissionsRemoved", "platformVersion", "seedChanges" ],
         "type" : "object"
       },
       "PrincipalResponse" : {
@@ -4326,6 +4656,266 @@
         "tags" : [ "Expression" ]
       }
     },
+    "/api/v1/extensions" : {
+      "get" : {
+        "operationId" : "extensionList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExtensionResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Extension" ]
+      },
+      "post" : {
+        "operationId" : "extensionInstall",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InstallExtensionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExtensionResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Extension" ]
+      }
+    },
+    "/api/v1/extensions/preview" : {
+      "post" : {
+        "operationId" : "extensionPreview",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InstallExtensionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PreviewResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Extension" ]
+      }
+    },
+    "/api/v1/extensions/{id}" : {
+      "delete" : {
+        "operationId" : "extensionUninstall",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Extension" ]
+      },
+      "get" : {
+        "operationId" : "extensionGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExtensionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Extension" ]
+      }
+    },
+    "/api/v1/extensions/{id}/config" : {
+      "put" : {
+        "operationId" : "extensionConfigure",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConfigureExtensionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExtensionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Extension" ]
+      }
+    },
+    "/api/v1/extensions/{id}/enabled" : {
+      "put" : {
+        "operationId" : "extensionSetEnabled",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EnableExtensionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExtensionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Extension" ]
+      }
+    },
     "/api/v1/lifecycles" : {
       "get" : {
         "operationId" : "lifecycleList",
@@ -5429,6 +6019,34 @@
           }
         },
         "tags" : [ "Versioned object" ]
+      }
+    },
+    "/api/v1/platform" : {
+      "get" : {
+        "operationId" : "extensionPlatform",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlatformResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Extension" ]
       }
     },
     "/api/v1/policies/{policyId}" : {
@@ -6913,6 +7531,8 @@
     "name" : "Context template"
   }, {
     "name" : "Expression"
+  }, {
+    "name" : "Extension"
   }, {
     "name" : "Global attribute"
   }, {

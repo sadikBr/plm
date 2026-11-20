@@ -14,7 +14,13 @@ enum class ActionPlacement { OBJECT_TOOLBAR, OBJECT_MORE }
  * Who carries an action out. BUILTIN: a platform operation the UI knows (check out, revise...).
  * CLIENT: done in the browser (copy a link). Webhooks and workflows come with custom actions (2.4).
  */
-enum class ActionHandler { BUILTIN, CLIENT }
+enum class ActionHandler {
+    BUILTIN,
+    CLIENT,
+
+    /** Opens a web address (from an extension), with the object's details filled in. */
+    URL,
+}
 
 /**
  * An action as declared: by the platform (see [ActionDeclarations]) or, later, by an extension.
@@ -39,6 +45,8 @@ data class ActionDefinition(
     /** A CEL condition over `object` and `user`; the action shows only where it's true. */
     val visibleWhen: String? = null,
     val handler: ActionHandler = ActionHandler.BUILTIN,
+    /** For [ActionHandler.URL]: the address, with `${object.number}`-style placeholders. */
+    val url: String? = null,
     /** `platform`, or the extension that declared it. */
     val source: String = "platform",
 )
@@ -103,6 +111,10 @@ data class AvailableAction(
     val enabled: Boolean,
     val reason: String?,
     val options: List<ActionOption> = emptyList(),
+    /** For [ActionHandler.URL]: the address to open, placeholders filled in for this object. */
+    val url: String? = null,
+    /** `platform`, or the extension that declared it. */
+    val source: String = "platform",
 )
 
 interface ActionService {

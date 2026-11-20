@@ -32,6 +32,7 @@ postgresql = { module = "org.postgresql:postgresql" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect" }
 slf4j-api = { module = "org.slf4j:slf4j-api" }
 jackson-kotlin = { module = "tools.jackson.module:jackson-module-kotlin" }
+jackson-yaml = { module = "tools.jackson.dataformat:jackson-dataformat-yaml" }
 testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }
 testcontainers-redpanda = { module = "org.testcontainers:testcontainers-redpanda" }
 testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupiter" }

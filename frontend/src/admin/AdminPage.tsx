@@ -4,6 +4,7 @@ import { useMe } from "../api/queries";
 import { Loading } from "../components/common";
 import { PageHeader, Tabs } from "../components/Layout";
 import { ActionsAdmin } from "./ActionsAdmin";
+import { ExtensionsAdmin } from "./ExtensionsAdmin";
 import { ConfigurationAdmin } from "./ConfigurationAdmin";
 import { GlobalAttributesAdmin } from "./GlobalAttributesAdmin";
 import { LifecyclesAdmin } from "./LifecyclesAdmin";
@@ -11,7 +12,7 @@ import { NumberingAdmin, RolesAdmin, UnitsAdmin, ValueListsAdmin } from "./Refer
 import { ContextTemplatesAdmin, SharedTeamsAdmin } from "./TeamsAndTemplatesAdmin";
 import { TypesAdmin } from "./TypesAdmin";
 
-type Section = "types" | "globals" | "lists" | "units" | "numbering" | "lifecycles" | "roles" | "teams" | "templates" | "actions" | "configuration";
+type Section = "types" | "globals" | "lists" | "units" | "numbering" | "lifecycles" | "roles" | "teams" | "templates" | "actions" | "extensions" | "configuration";
 
 const SECTIONS: [Section, string][] = [
   ["types", "Types and attributes"],
@@ -24,6 +25,7 @@ const SECTIONS: [Section, string][] = [
   ["teams", "Shared teams"],
   ["templates", "Context templates"],
   ["actions", "Actions"],
+  ["extensions", "Extensions"],
   ["configuration", "Export / import"],
 ];
 
@@ -61,6 +63,7 @@ export function AdminPage() {
         {tab === "teams" && <SharedTeamsAdmin />}
         {tab === "templates" && <ContextTemplatesAdmin />}
         {tab === "actions" && <ActionsAdmin />}
+        {tab === "extensions" && <ExtensionsAdmin />}
         {tab === "configuration" && <ConfigurationAdmin />}
       </div>
     </>

@@ -35,7 +35,7 @@ Three layers enforce this:
 | search | OpenSearch indexing (event consumer) | access |
 | configuration | Export/import of the whole configuration as one bundle (config as code) | types, lifecycle, access |
 | preferences | Typed preferences set per site / organization / context / user, with locking | access, types |
-| extensions | Extensibility platform: action registry (later rules, extension packages, webhooks) | types, access, lifecycle, versioning |
+| extensions | Extensibility platform: action registry, extension packages (later rules, webhooks) | types, access, lifecycle, versioning, configuration |
 
 Every module also depends on `backend/platform` (the shared kernel).
 To add a dependency, edit the module's `build.gradle.kts` and update this table in the same PR.
