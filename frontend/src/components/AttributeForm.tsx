@@ -144,6 +144,20 @@ interface Section {
 // ---------- Editable form ----------
 
 /**
+ * For a dependent value list, only the values allowed with the parent's current value (the server
+ * checks the same rule). A value already chosen stays listed, so it can be seen and changed.
+ */
+function allowedValues(def: AttributeDefinition, enumeration: Enumeration | undefined, values: Attributes): Enumeration | undefined {
+  if (!enumeration || !def.dependsOn || !def.valueFilter) return enumeration;
+  const parent = values[def.dependsOn];
+  const allowed = typeof parent === "string" ? def.valueFilter[parent] : undefined;
+  if (!allowed) return enumeration;
+  const current = values[def.name];
+  const keep = new Set([...allowed, ...(Array.isArray(current) ? current : [current])]);
+  return { ...enumeration, values: enumeration.values.filter((v) => keep.has(v.key)) };
+}
+
+/**
  * One input per attribute, chosen by data type. With [groups] (a resolved layout) the fields are
  * grouped and ordered by it, and attributes it hides are not shown (their values, such as defaults,
  * are kept). Without, every active attribute is shown in the type's order.
@@ -203,7 +217,7 @@ export function AttributeForm({
           def={def}
           value={values[def.name]}
           onChange={(v) => set(def.name, v)}
-          enumeration={def.enumerationId ? enumerations?.get(def.enumerationId) : undefined}
+          enumeration={def.enumerationId ? allowedValues(def, enumerations?.get(def.enumerationId), values) : undefined}
           units={units ?? []}
           invalid={!!error}
         />

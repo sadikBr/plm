@@ -7,6 +7,7 @@ import {
   useCreateEnumeration,
   useCreateNumberingScheme,
   useCreateRole,
+  useCreateUnit,
   useEnumerationList,
   useNumberingSchemes,
   useUnitList,
@@ -209,6 +210,7 @@ export function UnitsAdmin() {
   }, [units]);
   if (isLoading) return <Loading />;
   return (
+    <div className="cols">
     <Panel title="Units of measure" note="Values are stored with their unit and compared in the base unit (factor 1)" flush>
       <div className="grid-wrap">
         <table className="grid" aria-label="Units">
@@ -233,6 +235,7 @@ export function UnitsAdmin() {
                     {Number(u.factor) === 1 && Number(u.offset) === 0
                       ? "Base unit"
                       : `× ${Number(u.factor)}${Number(u.offset) ? ` + ${Number(u.offset)}` : ""}`}
+                    {!u.system && <span className="tag" style={{ marginLeft: 6 }}>Added</span>}
                   </td>
                 </tr>
               )),
@@ -241,6 +244,98 @@ export function UnitsAdmin() {
         </table>
       </div>
     </Panel>
+    <NewUnitPanel dimensions={groups.map(([d, list]) => [d, list.find((u) => Number(u.factor) === 1 && Number(u.offset) === 0)?.code ?? ""])} />
+    </div>
+  );
+}
+
+function NewUnitPanel({ dimensions }: { dimensions: [string, string][] }) {
+  const create = useCreateUnit();
+  const [code, setCode] = useState("");
+  const [label, setLabel] = useState("");
+  const [dimension, setDimension] = useState(dimensions[0]?.[0] ?? "");
+  const [newDimension, setNewDimension] = useState("");
+  const [factor, setFactor] = useState("1");
+  const [offset, setOffset] = useState("0");
+  const isNew = dimension === "__new";
+  const base = dimensions.find(([d]) => d === dimension)?.[1];
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    create.mutate(
+      {
+        code: code.trim(),
+        dimension: isNew ? newDimension.trim().toUpperCase() : dimension,
+        labels: { en: label.trim() },
+        factor: isNew ? 1 : Number(factor),
+        offset: isNew ? 0 : Number(offset),
+      },
+      {
+        onSuccess: () => {
+          setCode("");
+          setLabel("");
+        },
+      },
+    );
+  };
+
+  return (
+    <form className="panel" aria-labelledby="new-unit-title" onSubmit={submit} noValidate>
+      <div className="panel-head">
+        <h2 id="new-unit-title">Add a unit</h2>
+      </div>
+      <div className="panel-body" style={{ display: "grid", gap: 10 }}>
+        <Problems error={create.error} />
+        <div className="attr-form cols-2">
+          <div className="field">
+            <label htmlFor="unit-code">Symbol</label>
+            <input id="unit-code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. kN·m" />
+          </div>
+          <div className="field">
+            <label htmlFor="unit-label">Name</label>
+            <input id="unit-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="kilonewton metre" />
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="unit-dimension">Measures</label>
+          <select id="unit-dimension" value={dimension} onChange={(e) => setDimension(e.target.value)}>
+            {dimensions.map(([d]) => (
+              <option key={d} value={d}>
+                {d.charAt(0) + d.slice(1).toLowerCase().replace(/_/g, " ")}
+              </option>
+            ))}
+            <option value="__new">A new dimension…</option>
+          </select>
+        </div>
+        {isNew ? (
+          <div className="field">
+            <label htmlFor="unit-new-dimension">New dimension</label>
+            <input id="unit-new-dimension" value={newDimension} onChange={(e) => setNewDimension(e.target.value)} placeholder="TORQUE" />
+            <span className="hint">This unit becomes its base unit; add others relative to it.</span>
+          </div>
+        ) : (
+          <div className="attr-form cols-2">
+            <div className="field">
+              <label htmlFor="unit-factor">1 {code || "unit"} = … {base}</label>
+              <input id="unit-factor" inputMode="decimal" value={factor} onChange={(e) => setFactor(e.target.value)} />
+            </div>
+            <div className="field">
+              <label htmlFor="unit-offset">Plus (offset)</label>
+              <input id="unit-offset" inputMode="decimal" value={offset} onChange={(e) => setOffset(e.target.value)} />
+            </div>
+          </div>
+        )}
+        <p className="muted" style={{ margin: 0 }}>
+          Units can't be changed or removed later: stored values may use them.
+        </p>
+      </div>
+      <div className="panel-foot">
+        <button className="btn primary" type="submit" disabled={create.isPending || !code.trim() || !label.trim() || (isNew && !newDimension.trim())}>
+          <Plus size={14} aria-hidden />
+          Add unit
+        </button>
+      </div>
+    </form>
   );
 }
 

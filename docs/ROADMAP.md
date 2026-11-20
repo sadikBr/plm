@@ -76,9 +76,10 @@ code**. Every later phase builds on this. See [PARITY.md](PARITY.md) §2–§5.
       (e.g. 1, 2, 3 then A, B). (Expression-based gate criteria come with the rule language in
       Phase 2; per-organization lifecycle assignments in Phase 5 with workflows; "reset team" applies
       once objects have teams, with workflows.)
-- [ ] 1.16 Attribute model extras: global (shared) attributes, dependent value lists,
-      admin-defined units, type properties (icon, instantiable, hidden from create menus),
-      translations of UI strings and type labels.
+- [x] 1.16 Attribute model extras: global attributes (defined once, used by several types), dependent
+      value lists (allowed values per parent value, enforced on every write), units added by
+      administrators, type properties (description, icon, translated names, abstract types that
+      can't be created). (Translating the user interface itself moves to Phase 3.)
 
 **Exit:** an admin creates a "Fastener" part subtype with a required enumerated `thread` attribute
 and a numbering rule, entirely in the UI. A user creates one and sees the right form. Revising an
@@ -110,7 +111,7 @@ parts that calls a webhook, plus a rule that refuses check-in when a description
 platform code changes, and it survives a platform upgrade.
 
 ## Phase 3 — Documents, content, search and collaboration
-Primary content and attachments through the vault · document templates · thumbnails/previews ·
+User interface translations (all screens, per-user language) · primary content and attachments through the vault · document templates · thumbnails/previews ·
 folders · Save As · move · delete rules · ownership/reservation · compare · clipboard · mass
 operations as background jobs · OpenSearch indexing via events · full-text and attribute search
 with facets, saved and shared searches · table views (columns, filters, saved views, Excel export) ·

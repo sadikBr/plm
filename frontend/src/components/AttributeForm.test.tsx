@@ -176,3 +176,30 @@ describe("AttributeValues", () => {
     expect(screen.queryByRole("region")).not.toBeInTheDocument();
   });
 });
+
+describe("Dependent value lists", () => {
+  it("offer only the values allowed with the parent's value", async () => {
+    fakeApi(attributeRoutes);
+    const source = defs.find((d) => d.name === "source")!;
+    const child = {
+      ...source,
+      id: "dep",
+      name: "supplierClass",
+      labels: { en: "Supplier class" },
+      defaultValue: null,
+      dependsOn: "source",
+      // The fixture list is reused for the child: only "buy" may follow "make".
+      valueFilter: { make: ["buy"] },
+    } as AttributeDefinition;
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <AttributeForm definitions={[source, child]} values={{ source: "make" }} onChange={() => {}} />
+      </QueryClientProvider>,
+    );
+
+    const select = await screen.findByLabelText("Supplier class");
+    await screen.findAllByRole("option", { name: "Buy" });
+    expect(within(select).getByRole("option", { name: "Buy" })).toBeInTheDocument();
+    expect(within(select).queryByRole("option", { name: "Make" })).not.toBeInTheDocument();
+  });
+});

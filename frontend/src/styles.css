@@ -492,3 +492,13 @@ tr.inactive td { color: var(--text-3); }
   .kind-project { color: #f0b45c; background: #3a2a12; }
 }
 input:disabled, select:disabled, textarea:disabled { background: var(--panel-2); color: var(--text-3); cursor: not-allowed; }
+.type-row .abstract { font-style: italic; }
+.icon-picker { display: flex; flex-wrap: wrap; gap: 4px; }
+.icon-picker label { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 5px; cursor: pointer; color: var(--text-2); background: var(--panel); }
+.icon-picker label:hover { border-color: var(--text-3); }
+.icon-picker label.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.icon-picker label:has(input:focus-visible) { outline: 2px solid var(--focus); }
+.icon-picker input { position: absolute; opacity: 0; pointer-events: none; }
+.chip-x { display: inline-flex; align-items: center; gap: 3px; }
+.chip-x button { border: 0; background: none; padding: 0; display: grid; place-items: center; color: var(--text-3); cursor: pointer; }
+.chip-x button:hover { color: var(--danger); }

@@ -4,15 +4,17 @@ import { useMe } from "../api/queries";
 import { Loading } from "../components/common";
 import { PageHeader, Tabs } from "../components/Layout";
 import { ConfigurationAdmin } from "./ConfigurationAdmin";
+import { GlobalAttributesAdmin } from "./GlobalAttributesAdmin";
 import { LifecyclesAdmin } from "./LifecyclesAdmin";
 import { NumberingAdmin, RolesAdmin, UnitsAdmin, ValueListsAdmin } from "./ReferenceAdmin";
 import { ContextTemplatesAdmin, SharedTeamsAdmin } from "./TeamsAndTemplatesAdmin";
 import { TypesAdmin } from "./TypesAdmin";
 
-type Section = "types" | "lists" | "units" | "numbering" | "lifecycles" | "roles" | "teams" | "templates" | "configuration";
+type Section = "types" | "globals" | "lists" | "units" | "numbering" | "lifecycles" | "roles" | "teams" | "templates" | "configuration";
 
 const SECTIONS: [Section, string][] = [
   ["types", "Types and attributes"],
+  ["globals", "Global attributes"],
   ["lists", "Value lists"],
   ["units", "Units"],
   ["numbering", "Numbering"],
@@ -48,6 +50,7 @@ export function AdminPage() {
       />
       <div className="content">
         {tab === "types" && <TypesAdmin />}
+        {tab === "globals" && <GlobalAttributesAdmin />}
         {tab === "lists" && <ValueListsAdmin />}
         {tab === "units" && <UnitsAdmin />}
         {tab === "numbering" && <NumberingAdmin />}

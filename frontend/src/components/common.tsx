@@ -1,12 +1,24 @@
 import {
+  Bolt,
   Box,
   Building2,
+  Cable,
   ChevronDown,
+  CircuitBoard,
+  Cog,
+  Cpu,
+  Drill,
   FileText,
+  FlaskConical,
   FolderKanban,
+  Gauge,
   Globe,
+  Layers,
   Library,
   Package,
+  Ruler,
+  Shield,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -92,17 +104,44 @@ export function ContextIcon({ kind, size = 15 }: { kind: ContextKind; size?: num
   return <Icon size={size} className="icon-muted" aria-hidden />;
 }
 
-/** Part, document… icon for a type, from its base class. */
+/** Icons an administrator can give a type (Admin → Types → Properties). */
+export const TYPE_ICONS: Record<string, LucideIcon> = {
+  box: Box,
+  "file-text": FileText,
+  bolt: Bolt,
+  cog: Cog,
+  cpu: Cpu,
+  "circuit-board": CircuitBoard,
+  cable: Cable,
+  layers: Layers,
+  package: Package,
+  wrench: Wrench,
+  drill: Drill,
+  ruler: Ruler,
+  gauge: Gauge,
+  flask: FlaskConical,
+  shield: Shield,
+};
+
+/** A type's icon: its own if an administrator chose one, else its base class's. */
 export function TypeIcon({ typeId, size = 15 }: { typeId: string; size?: number }) {
   const { data: types } = useTypes();
-  const base = types?.find((t) => t.id === typeId)?.baseClass;
-  const Icon = base === "DOCUMENT" ? FileText : Box;
+  const type = types?.find((t) => t.id === typeId);
+  const Icon = (type?.icon && TYPE_ICONS[type.icon]) || (type?.baseClass === "DOCUMENT" ? FileText : Box);
   return <Icon size={size} className="type-icon" aria-hidden />;
+}
+
+/** A type's name in the user's language when translated, else its display name. */
+export function typeLabel(type: { displayName: string; labels?: Record<string, string> } | undefined): string {
+  if (!type) return "";
+  const lang = (typeof navigator !== "undefined" ? navigator.language : "en").toLowerCase();
+  const labels = type.labels ?? {};
+  return labels[lang] ?? labels[lang.split("-")[0]!] ?? type.displayName;
 }
 
 export function useTypeName(typeId: string): string {
   const { data: types } = useTypes();
-  return types?.find((t) => t.id === typeId)?.displayName ?? "";
+  return typeLabel(types?.find((t) => t.id === typeId));
 }
 
 /** `IN_WORK` → `In Work`. */

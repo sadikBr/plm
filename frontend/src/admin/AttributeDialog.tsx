@@ -2,7 +2,17 @@ import { useMemo, useState, type FormEvent } from "react";
 import type { AttributeDefinition, Attributes, DataType } from "../api/queries";
 import { AttributeForm, pickLabel } from "../components/AttributeForm";
 import { Dialog, ErrorBanner } from "../components/common";
-import { useDefineAttribute, useEnumerationList, useUnitList, useUpdateAttribute, type TypeDefinition } from "./adminQueries";
+import {
+  useAllAttributes,
+  useDefineAttribute,
+  useDefineGlobal,
+  useEnumerationList,
+  useGlobalAttributes,
+  useUnitList,
+  useUpdateAttribute,
+  useUpdateGlobal,
+  type TypeDefinition,
+} from "./adminQueries";
 
 const DATA_TYPES: { key: DataType; label: string }[] = [
   { key: "STRING", label: "Text" },
@@ -41,22 +51,33 @@ const numberOrNull = (s: string) => (s.trim() === "" || Number.isNaN(Number(s)) 
 const intOrNull = (s: string) => (s.trim() === "" ? null : Math.trunc(Number(s)));
 const str = (v: unknown) => (v === null || v === undefined ? "" : String(v));
 
-/** Define a new attribute on [type], or edit [attribute] (on whichever type defines it). */
+/**
+ * Define a new attribute on [type], or edit [attribute] (on whichever type defines it). With
+ * [global], defines or edits a global attribute (shared by several types) instead.
+ */
 export function AttributeDialog({
   type,
   attribute,
   definedOn,
+  global = false,
   onClose,
 }: {
-  type: TypeDefinition;
+  type?: TypeDefinition;
   attribute?: AttributeDefinition;
   definedOn: string;
+  global?: boolean;
   onClose: () => void;
 }) {
   const editing = !!attribute;
-  const define = useDefineAttribute(type.id);
-  const update = useUpdateAttribute(attribute?.typeId ?? type.id);
-  const mutation = editing ? update : define;
+  const isGlobal = global || !!attribute?.global;
+  const typeId = type?.id ?? "";
+  const define = useDefineAttribute(typeId);
+  const update = useUpdateAttribute(attribute?.typeId ?? typeId);
+  const defineGlobal = useDefineGlobal();
+  const updateGlobal = useUpdateGlobal();
+  const mutation = isGlobal ? (editing ? updateGlobal : defineGlobal) : editing ? update : define;
+  const { data: typeAttributes } = useAllAttributes(typeId);
+  const { data: globals } = useGlobalAttributes();
   const { data: units } = useUnitList();
   const { data: lists } = useEnumerationList();
 
@@ -77,6 +98,13 @@ export function AttributeDialog({
   const [maxValue, setMaxValue] = useState(str(attribute?.maxValue));
   const [defaultValue, setDefaultValue] = useState<unknown>(attribute?.defaultValue ?? null);
   const [active, setActive] = useState(attribute?.active ?? true);
+  const [dependsOn, setDependsOn] = useState(attribute?.dependsOn ?? "");
+  const [valueFilter, setValueFilter] = useState<Record<string, string[]>>(attribute?.valueFilter ?? {});
+  // Value lists it may depend on: single-value list attributes it lives with.
+  const siblings = (isGlobal ? (globals ?? []).map((g) => g.attribute) : (typeAttributes ?? [])).filter(
+    (a) => a.dataType === "ENUMERATION" && !a.multiValued && a.name !== (attribute?.name ?? "") && a.active,
+  );
+  const parent = siblings.find((a) => a.name === dependsOn);
 
   // While creating, the name follows the label (camelCase) until edited.
   const [nameEdited, setNameEdited] = useState(editing);
@@ -94,7 +122,7 @@ export function AttributeDialog({
   const preview: AttributeDefinition = {
     ...(attribute ?? {
       id: "preview",
-      typeId: type.id,
+      typeId,
       inherited: false,
       system: false,
       sortOrder: 0,
@@ -131,26 +159,25 @@ export function AttributeDialog({
     displayUnit: dataType === "QUANTITY" ? displayUnit || null : null,
     defaultValue: defaultValue ?? null,
     sortOrder: attribute?.sortOrder ?? 0,
+    dependsOn: dataType === "ENUMERATION" && dependsOn ? dependsOn : null,
+    valueFilter: dataType === "ENUMERATION" && dependsOn ? Object.fromEntries(Object.entries(valueFilter).filter(([, v]) => v.length > 0)) : null,
   };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const done = { onSuccess: onClose };
-    if (attribute) {
-      update.mutate({ attributeId: attribute.id, body: { ...settings, active } }, done);
-    } else {
-      define.mutate(
-        {
-          ...settings,
-          name: effectiveName,
-          dataType,
-          multiValued,
-          enumerationId: dataType === "ENUMERATION" ? enumerationId || null : null,
-          dimension: dataType === "QUANTITY" ? dimension || null : null,
-        },
-        done,
-      );
-    }
+    const newAttribute = {
+      ...settings,
+      name: effectiveName,
+      dataType,
+      multiValued,
+      enumerationId: dataType === "ENUMERATION" ? enumerationId || null : null,
+      dimension: dataType === "QUANTITY" ? dimension || null : null,
+    };
+    if (attribute && isGlobal) updateGlobal.mutate({ attributeId: attribute.id, body: { ...settings, active } }, done);
+    else if (attribute) update.mutate({ attributeId: attribute.id, body: { ...settings, active } }, done);
+    else if (isGlobal) defineGlobal.mutate(newAttribute, done);
+    else define.mutate(newAttribute, done);
   };
 
   const problems = (mutation.error as { problem?: { details?: { errors?: string[] } } } | null)?.problem?.details?.errors;
@@ -158,7 +185,13 @@ export function AttributeDialog({
   return (
     <Dialog
       open
-      title={editing ? `Edit attribute: ${pickLabel(attribute.labels, attribute.name)}` : `New attribute on ${type.displayName}`}
+      title={
+        editing
+          ? `Edit ${isGlobal ? "global " : ""}attribute: ${pickLabel(attribute.labels, attribute.name)}`
+          : isGlobal
+            ? "New global attribute"
+            : `New attribute on ${type?.displayName}`
+      }
       onClose={onClose}
       footer={
         <>
@@ -183,7 +216,8 @@ export function AttributeDialog({
         ) : (
           <ErrorBanner error={mutation.error} />
         )}
-        {editing && attribute.typeId !== type.id && (
+        {isGlobal && editing && <div className="banner info">A global attribute: changes apply to every type that uses it.</div>}
+        {!isGlobal && editing && attribute.typeId !== typeId && (
           <div className="banner info">Defined on {definedOn}: changes apply to it and all its subtypes.</div>
         )}
         <div className="attr-form cols-2">
@@ -277,6 +311,24 @@ export function AttributeDialog({
           )}
         </div>
 
+        {dataType === "ENUMERATION" && enumerationId && siblings.length > 0 && (
+          <fieldset className="attr-group">
+            <legend className="section-label">Depends on</legend>
+            <div className="field">
+              <label htmlFor="attr-depends">Allowed values depend on</label>
+              <select id="attr-depends" value={dependsOn} onChange={(e) => (setDependsOn(e.target.value), setValueFilter({}))}>
+                <option value="">Nothing: every value is always allowed</option>
+                {siblings.map((a) => (
+                  <option key={a.id} value={a.name}>
+                    {pickLabel(a.labels, a.name)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {parent && <DependencyMatrix parent={parent} childListId={enumerationId} value={valueFilter} onChange={setValueFilter} lists={lists ?? []} />}
+          </fieldset>
+        )}
+
         <fieldset className="attr-group">
           <legend className="section-label">Rules</legend>
           <div className="attr-form cols-2">
@@ -341,5 +393,64 @@ export function AttributeDialog({
         )}
       </form>
     </Dialog>
+  );
+}
+
+/** Rows: the parent's values; columns: this list's values. A row with nothing ticked allows everything. */
+function DependencyMatrix({
+  parent,
+  childListId,
+  value,
+  onChange,
+  lists,
+}: {
+  parent: AttributeDefinition;
+  childListId: string;
+  value: Record<string, string[]>;
+  onChange: (v: Record<string, string[]>) => void;
+  lists: { id: string; values: { key: string; labels: Record<string, string>; active?: boolean | null }[] }[];
+}) {
+  const parentValues = lists.find((l) => l.id === parent.enumerationId)?.values.filter((v) => v.active !== false) ?? [];
+  const childValues = lists.find((l) => l.id === childListId)?.values.filter((v) => v.active !== false) ?? [];
+  const toggle = (p: string, c: string) => {
+    const row = new Set(value[p] ?? []);
+    if (row.has(c)) row.delete(c);
+    else row.add(c);
+    onChange({ ...value, [p]: childValues.map((v) => v.key).filter((k) => row.has(k)) });
+  };
+  return (
+    <div className="grid-wrap">
+      <table className="grid matrix" aria-label="Allowed values">
+        <thead>
+          <tr>
+            <th>{pickLabel(parent.labels, parent.name)} \ allows</th>
+            {childValues.map((v) => (
+              <th key={v.key}>{pickLabel(v.labels, v.key)}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {parentValues.map((p) => (
+            <tr key={p.key}>
+              <th scope="row">
+                {pickLabel(p.labels, p.key)}
+                {!(value[p.key]?.length) && <span className="muted"> · all</span>}
+              </th>
+              {childValues.map((c) => (
+                <td key={c.key}>
+                  <input
+                    type="checkbox"
+                    aria-label={`${pickLabel(c.labels, c.key)} with ${pickLabel(p.labels, p.key)}`}
+                    checked={!!value[p.key]?.includes(c.key)}
+                    onChange={() => toggle(p.key, c.key)}
+                    style={{ width: "auto" }}
+                  />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

@@ -46,6 +46,7 @@ export const useAllAttributes = (typeId: string) =>
     queryKey: ["typeAttributes", typeId, "all"],
     queryFn: () =>
       unwrap(api.GET("/api/v1/types/{typeId}/attributes", { params: { path: { typeId }, query: { includeInactive: true } } })),
+    enabled: !!typeId,
   });
 
 export const useOwnLayouts = (typeId: string) =>
@@ -133,6 +134,34 @@ export const useLifecycleVersions = (id: string) =>
     queryKey: ["lifecycles", "versions", id],
     queryFn: () => unwrap(api.GET("/api/v1/lifecycles/{id}/versions", { params: { path: { id } } })),
   });
+
+export const useUpdateType = (typeId: string) =>
+  useAdminMutation((body: Schemas["TypePropertiesRequest"]) =>
+    unwrap(api.PUT("/api/v1/types/{id}", { params: { path: { id: typeId } }, body })),
+  );
+
+export const useCreateUnit = () =>
+  useAdminMutation((body: Schemas["CreateUnitRequest"]) => unwrap(api.POST("/api/v1/units", { body })));
+
+export type GlobalAttribute = Schemas["GlobalAttributeResponse"];
+
+export const useGlobalAttributes = () =>
+  useQuery({ queryKey: ["typeAttributes", "globals"], queryFn: () => unwrap(api.GET("/api/v1/attributes/global")) });
+
+export const useDefineGlobal = () =>
+  useAdminMutation((body: DefineAttribute) => unwrap(api.POST("/api/v1/attributes/global", { body })));
+
+export const useUpdateGlobal = () =>
+  useAdminMutation(({ attributeId, body }: { attributeId: string; body: AttributeSettings }) =>
+    unwrap(api.PUT("/api/v1/attributes/global/{attributeId}", { params: { path: { attributeId } }, body })),
+  );
+
+export const useGlobalUse = () =>
+  useAdminMutation(({ typeId, attributeId, use }: { typeId: string; attributeId: string; use: boolean }) =>
+    use
+      ? unwrap(api.PUT("/api/v1/types/{typeId}/global-attributes/{attributeId}", { params: { path: { typeId, attributeId } } }))
+      : unwrap(api.DELETE("/api/v1/types/{typeId}/global-attributes/{attributeId}", { params: { path: { typeId, attributeId } } })),
+  );
 
 export const useCreateRole = () =>
   useAdminMutation((body: Schemas["CreateTeamRoleRequest"]) => unwrap(api.POST("/api/v1/team-roles", { body })));

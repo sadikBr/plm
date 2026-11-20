@@ -455,6 +455,26 @@ curl -s -X PUT $API/lifecycles/$(echo "$LC" | jq -r .id) -H "Authorization: Bear
 
 Approving an object without a material is refused with `ENTRY_CRITERIA_NOT_MET`.
 
+### Global attributes, dependent lists, units and type properties
+
+- **Global attributes** (**Admin → Global attributes**) are defined once and used by any number of
+  types, e.g. an *Export class* on both parts and documents. Changing one changes it everywhere.
+- **Dependent value lists**: in a value-list attribute's dialog, *Allowed values depend on* another
+  value list, with a grid of which values go with which. Forms only offer the allowed values, and
+  the server refuses others (`NOT_ALLOWED_FOR_PARENT`).
+- **Units**: **Admin → Units → Add a unit**, in an existing dimension or a new one.
+- **Type properties** (**Admin → Types → Properties**): icon, translated names, description, and
+  *Abstract*: a type that only groups subtypes and can't be created itself.
+
+```bash
+G=$(curl -s -X POST $API/attributes/global -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d '{"name":"exportClass","dataType":"STRING","labels":{"en":"Export class"}}' | jq -r .id)
+curl -s -o /dev/null -w "%{http_code}\n" -X PUT $API/types/00000000-0000-7000-8000-000000000101/global-attributes/$G \
+  -H "Authorization: Bearer $ALICE"
+curl -s $API/types/00000000-0000-7000-8000-000000000101/attributes -H "Authorization: Bearer $BOB" \
+  | jq -c '[.[] | select(.global) | .name]'
+```
+
 ### Preferences
 
 Preferences are settings each module declares (type, default, where they may be set). A value set
@@ -557,6 +577,10 @@ Rules of the game (see [ADR 0019](adr/0019-configuration-as-code.md)):
 | PUT | `/api/v1/lifecycles/{id}` | Save a new version of a lifecycle (site admin) |
 | GET | `/api/v1/lifecycles/{id}/versions` | Every version of a lifecycle |
 | POST | `/api/v1/objects/{id}/lifecycle` | Move an object to another lifecycle or version (`{lifecycleId, state}`, site admin) |
+| PUT | `/api/v1/types/{id}` | Type properties: display name, translations, description, icon, abstract (site admin) |
+| POST | `/api/v1/units` | Add a unit (site admin) |
+| GET / POST | `/api/v1/attributes/global` | Global attributes / define one (site admin) |
+| PUT / DELETE | `/api/v1/types/{id}/global-attributes/{attributeId}` | Use / stop using a global attribute on a type |
 | GET | `/api/v1/configuration/export` | The whole configuration as one bundle (site admin) |
 | POST | `/api/v1/configuration/import?dryRun=true\|false` | Plan an import, or apply it (site admin) |
 | GET / POST | `/api/v1/team-roles` | Team roles / define one (site admin) |

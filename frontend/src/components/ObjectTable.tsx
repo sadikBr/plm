@@ -2,7 +2,7 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { useContextById, useTypes, type VersionedObject } from "../api/queries";
-import { formatDate, PrincipalName, StateBadge, stateLabel, TypeIcon } from "./common";
+import { formatDate, PrincipalName, StateBadge, stateLabel, TypeIcon, typeLabel } from "./common";
 
 type Column = "number" | "name" | "type" | "version" | "state" | "context" | "checkedOutBy" | "modified";
 
@@ -43,7 +43,7 @@ export function ObjectTable({
   ];
 
   const sorted = useMemo(() => {
-    const typeName = (o: VersionedObject) => types?.find((t) => t.id === o.typeId)?.displayName ?? "";
+    const typeName = (o: VersionedObject) => typeLabel(types?.find((t) => t.id === o.typeId));
     const key = (o: VersionedObject): string => {
       switch (sort.column) {
         case "number":
@@ -104,7 +104,7 @@ export function ObjectTable({
                     {o.name}
                   </Link>
                 </td>
-                <td className="nowrap">{types?.find((t) => t.id === o.typeId)?.displayName}</td>
+                <td className="nowrap">{typeLabel(types?.find((t) => t.id === o.typeId))}</td>
                 <td className="nowrap version">{o.version}</td>
                 <td>
                   <StateBadge state={o.latest.state} />

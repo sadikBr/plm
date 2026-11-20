@@ -29,7 +29,8 @@ function api(admin = true, extra: Parameters<typeof fakeApi>[0] = {}) {
     "GET /api/v1/contexts/site": () => ({ id: "site", parentId: null, kind: "SITE", name: "Site", createdAt: "2026-11-20T09:00:00Z", createdBy: "system" }),
     "GET /api/v1/contexts/:id/children": () => [],
     "GET /api/v1/principals/:id": (_, { id }) => principal(id!),
-    "GET /api/v1/types": () => types,
+    "GET /api/v1/types": () => types.map((t) => ({ ...t, description: null, labels: {}, icon: null, instantiable: true })),
+    "GET /api/v1/attributes/global": () => [],
     "GET /api/v1/types/:id/attributes": () => partAttributes.map((a) => ({ ...a, typeId: PART_TYPE, inherited: false })),
     "GET /api/v1/types/:id/layouts": () => [],
     "GET /api/v1/types/:id/layouts/:screen": (_, { screen }) => partLayout(screen),
@@ -203,5 +204,28 @@ describe("Administration", () => {
       const released = (body?.states as { key: string }[]).find((x) => x.key === "RELEASED");
       expect(released).toMatchObject({ requiredAttributes: ["material", "mass"], revisionScheme: "NUMERIC_FROM_1" });
     });
+  });
+
+  it("saves type properties: icon, translations and abstract", async () => {
+    const calls = api(true, { "PUT /api/v1/types/:id": () => types[1] });
+    renderAt(`/admin?tab=types&type=${PART_TYPE}&view=properties`);
+
+    const form = await screen.findByRole("form", { name: "Type properties" });
+    await userEvent.click(within(form).getByTitle("bolt"));
+    await userEvent.click(within(form).getByRole("button", { name: "Add a translation" }));
+    await userEvent.type(within(form).getByLabelText("Language 1"), "fr");
+    await userEvent.type(within(form).getByLabelText("Translation 1"), "Pièce");
+    await userEvent.click(within(form).getByLabelText(/Abstract/));
+    await userEvent.click(within(form).getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(posted(calls, "PUT", `/api/v1/types/${PART_TYPE}`)).toEqual({
+        displayName: "Part",
+        description: null,
+        icon: "bolt",
+        instantiable: false,
+        labels: { fr: "Pièce" },
+      }),
+    );
   });
 });

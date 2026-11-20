@@ -45,7 +45,7 @@ search summaries; those are marked *(to confirm)*. The list is about **what** us
 | Security labels (e.g. export control, proprietary) with clearance, and agreements that grant temporary access | ⬜ [9] | Combined with policy checks in the SQL predicate |
 | Audit trail of every change; configurable audit events and reports | 🟡 | Append-only log ✅ · admin reports and filters [3] |
 | Domain events for integrations | ✅ | Transactional outbox → Kafka |
-| Localization of the UI and of admin-defined labels | 🟡 | Attribute and value labels ✅ · UI strings, type labels [1.16] |
+| Localization of the UI and of admin-defined labels | 🟡 | Attribute, value and type labels ✅ · UI strings [3] |
 | Multi-tenancy (SaaS) and single-tenant installs | 🟡 | `tenant_id` everywhere ✅ · tenant admin [9] |
 
 ## 2. Types and attributes (the foundation for customization)
@@ -53,14 +53,14 @@ search summaries; those are marked *(to confirm)*. The list is about **what** us
 | Capability | Status | Notes |
 |---|---|---|
 | Type hierarchy with admin-defined subtypes | ✅ | |
-| Type properties: icon, display name, description, instantiable flag, hidden from create menus | 🟡 | Name ✅ · icon, instantiable, hidden [1.16] |
+| Type properties: icon, display name, description, instantiable flag, hidden from create menus | ✅ | Abstract types group subtypes and are hidden from New object |
 | Attribute definitions on types, inherited by subtypes | ✅ | Names unique along the hierarchy |
 | Data types: text, long text, integer, real, **real with units**, boolean, date, timestamp, URL, enumeration, reference | 🟡 | All but reference (needs object links, [4]) |
-| Units of measure and quantities (conversion, display unit) | ✅ | ~60 units, 17 dimensions; admin-defined units [1.16] |
-| Reusable attributes shared across types (global attributes) | ⬜ [1.16] | |
+| Units of measure and quantities (conversion, display unit) | ✅ | ~60 units out of the box; admins add units and dimensions |
+| Reusable attributes shared across types (global attributes) | ✅ | Admin → Global attributes; a change applies to every type using it |
 | Alias attributes (show a value from a related object, e.g. the part's source on a CAD document) | ⬜ [4] | Needs links |
 | Calculated attributes (expression over other attributes) | ⬜ [2] | Same expression language as rules |
-| Enumerations / legal value lists, localized labels, dependent (cascading) lists | 🟡 | Lists ✅ · dependent lists [1.16] |
+| Enumerations / legal value lists, localized labels, dependent (cascading) lists | ✅ | Dependent lists: allowed values per parent value, enforced by the server |
 | Constraints: required, range, length, regex, immutable, unique, state-dependent required | 🟡 | All but unique and state-dependent; server-enforced |
 | Multi-valued attributes | ✅ | |
 | Layouts: attribute groups and order per type, for create / edit / info / table / search | 🟡 | Create, edit, info ✅ (inherited, hidden attributes, 1–2 columns) · admin editor with live preview ✅ · table/search columns [3] |

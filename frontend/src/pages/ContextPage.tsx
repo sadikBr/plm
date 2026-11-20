@@ -32,6 +32,7 @@ import {
   PrincipalName,
   formatDate,
   kindLabel,
+  typeLabel,
 } from "../components/common";
 import { Breadcrumbs, PageHeader, Tabs, useIdParam } from "../components/Layout";
 import { rememberVisit } from "../components/Navigator";
@@ -197,7 +198,9 @@ function ObjectsTab({ context }: { context: Context }) {
 }
 
 function NewObjectDialog({ context, open, onClose }: { context: Context; open: boolean; onClose: () => void }) {
-  const { data: types } = useTypes();
+  const { data: allTypes } = useTypes();
+  // Abstract types only group subtypes: they can't be created.
+  const types = allTypes?.filter((t) => t.instantiable);
   const create = useCreateObject();
   const navigate = useNavigate();
   const [typeId, setTypeId] = useState("");
@@ -250,7 +253,7 @@ function NewObjectDialog({ context, open, onClose }: { context: Context; open: b
             <select id="obj-type" value={chosenType ?? ""} onChange={(e) => setTypeId(e.target.value)}>
               {types?.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.displayName}
+                  {typeLabel(t)}
                 </option>
               ))}
             </select>
