@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, LogOut } from "lucide-react";
+import { ChevronDown, ChevronRight, LogOut, Settings } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useParams } from "react-router";
 import { HOLDS_OBJECTS, useChildren, useContextById, useMe, useSite, type Context } from "../api/queries";
@@ -19,6 +19,12 @@ export function Layout() {
         <GlobalSearch />
         <div className="spacer" />
         <div className="who">
+          {me?.siteAdmin && (
+            <NavLink to="/admin" className="topbar-link">
+              <Settings size={14} aria-hidden />
+              Admin
+            </NavLink>
+          )}
           {me?.siteAdmin && <span className="chip-admin">Site admin</span>}
           <span className="avatar" aria-hidden>
             {initials(me?.user.displayName)}

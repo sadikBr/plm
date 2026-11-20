@@ -1,22 +1,5 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
-
-const KEYCLOAK = process.env.PLM_OIDC_ISSUER ?? "http://localhost:8180/realms/plm";
-const API = process.env.PLM_API_URL ?? "http://localhost:8080";
-
-async function signIn(page: Page, user: string) {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await page.locator("#username").fill(user);
-  await page.locator("#password").fill(user);
-  await page.locator("#kc-login").click();
-  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
-}
-
-async function asUser(browser: Browser, user: string) {
-  const page = await (await browser.newContext()).newPage();
-  await signIn(page, user);
-  return page;
-}
+import { expect, test } from "@playwright/test";
+import { API, KEYCLOAK, asUser } from "./support";
 
 /** Users appear in the directory after their first sign-in; do that for bob and carol via the API. */
 test.beforeAll(async ({ request }) => {
@@ -127,7 +110,9 @@ test("alice sets up a product, bob works on a part, carol sees nothing", async (
 
   // ---- carol (not on the team) ----
   const carol = await asUser(browser, "carol");
-  await expect(carol.getByRole("main").getByText(/not on any team yet/)).toBeVisible();
+  // Not on this product's team, so neither the product nor its part exist for her.
+  await carol.goto(productUrl);
+  await expect(carol.getByRole("heading", { name: "Not found" })).toBeVisible();
   await carol.goto(objectUrl);
   await expect(carol.getByRole("heading", { name: "Not found" })).toBeVisible();
 });

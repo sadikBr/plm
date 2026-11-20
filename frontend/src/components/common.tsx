@@ -15,10 +15,14 @@ import { usePrincipal, useTypes, type ContextKind } from "../api/queries";
 
 // ---------- People ----------
 
+const SYSTEM = "system";
+
 /** A user's display name, resolved from their id (cached). */
 export function PrincipalName({ id }: { id: string | null | undefined }) {
-  const { data } = usePrincipal(id);
+  // Seed data and automatic changes are by "system", which isn't a user to look up.
+  const { data } = usePrincipal(id === SYSTEM ? undefined : id);
   if (!id) return <span className="muted">—</span>;
+  if (id === SYSTEM) return <span className="muted">System</span>;
   return <span title={id}>{data?.displayName ?? shortId(id)}</span>;
 }
 

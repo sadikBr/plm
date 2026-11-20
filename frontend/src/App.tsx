@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { BrowserRouter, Route, Routes } from "react-router";
 import { isApiError } from "./api/client";
+import { AdminPage } from "./admin/AdminPage";
 import { Layout } from "./components/Layout";
 import { ContextPage } from "./pages/ContextPage";
 import { HomePage } from "./pages/HomePage";
@@ -36,6 +37,7 @@ export function AppRoutes() {
         <Route path="contexts/:id" element={<ContextPage />} />
         <Route path="objects/:id" element={<ObjectPage />} />
         <Route path="search" element={<SearchPage />} />
+        <Route path="admin" element={<AdminPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

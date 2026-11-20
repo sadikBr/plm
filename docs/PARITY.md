@@ -31,7 +31,7 @@ search summaries; those are marked *(to confirm)*. The list is about **what** us
 | Context hierarchy: Site → Organization → Product / Library / Project | ✅ | Closure table, inherited teams and policies |
 | **Context templates** (product, library, project, organization): team roles, folders, policies, preferences, seed objects. Create a context from a template; export a context as a template | ⬜ [1.12] | Templates are versioned config bundles |
 | Teams with roles per context, inherited down the tree | ✅ | Inherited members shown on each context |
-| Custom team roles (e.g. Design Engineer, Change Admin) | ✅ | Roles are data; admin UI for defining them [1.9] |
+| Custom team roles (e.g. Design Engineer, Change Admin) | ✅ | Roles are data, managed in the admin UI |
 | Shared teams (one team reused by several contexts) | ⬜ [1.12] | With context templates |
 | Access policies by role × type × lifecycle state | ✅ | Managed per context by its managers |
 | Policy admin UI, policies that apply to subtypes | ✅ | Access tab on each context |
@@ -45,7 +45,7 @@ search summaries; those are marked *(to confirm)*. The list is about **what** us
 | Security labels (e.g. export control, proprietary) with clearance, and agreements that grant temporary access | ⬜ [9] | Combined with policy checks in the SQL predicate |
 | Audit trail of every change; configurable audit events and reports | 🟡 | Append-only log ✅ · admin reports and filters [3] |
 | Domain events for integrations | ✅ | Transactional outbox → Kafka |
-| Localization of the UI and of admin-defined labels | 🟡 | Attribute and value labels ✅ · UI strings, type labels [1.9] |
+| Localization of the UI and of admin-defined labels | 🟡 | Attribute and value labels ✅ · UI strings, type labels [1.16] |
 | Multi-tenancy (SaaS) and single-tenant installs | 🟡 | `tenant_id` everywhere ✅ · tenant admin [9] |
 
 ## 2. Types and attributes (the foundation for customization)
@@ -53,21 +53,21 @@ search summaries; those are marked *(to confirm)*. The list is about **what** us
 | Capability | Status | Notes |
 |---|---|---|
 | Type hierarchy with admin-defined subtypes | ✅ | |
-| Type properties: icon, display name, description, instantiable flag, hidden from create menus | 🟡 | Name ✅ · icon, instantiable, hidden [1.9] |
+| Type properties: icon, display name, description, instantiable flag, hidden from create menus | 🟡 | Name ✅ · icon, instantiable, hidden [1.16] |
 | Attribute definitions on types, inherited by subtypes | ✅ | Names unique along the hierarchy |
 | Data types: text, long text, integer, real, **real with units**, boolean, date, timestamp, URL, enumeration, reference | 🟡 | All but reference (needs object links, [4]) |
-| Units of measure and quantities (conversion, display unit) | ✅ | ~60 units, 17 dimensions; admin-defined units [1.9] |
-| Reusable attributes shared across types (global attributes) | ⬜ [1.9] | |
+| Units of measure and quantities (conversion, display unit) | ✅ | ~60 units, 17 dimensions; admin-defined units [1.16] |
+| Reusable attributes shared across types (global attributes) | ⬜ [1.16] | |
 | Alias attributes (show a value from a related object, e.g. the part's source on a CAD document) | ⬜ [4] | Needs links |
 | Calculated attributes (expression over other attributes) | ⬜ [2] | Same expression language as rules |
-| Enumerations / legal value lists, localized labels, dependent (cascading) lists | 🟡 | Lists ✅ · dependent lists [1.9] |
+| Enumerations / legal value lists, localized labels, dependent (cascading) lists | 🟡 | Lists ✅ · dependent lists [1.16] |
 | Constraints: required, range, length, regex, immutable, unique, state-dependent required | 🟡 | All but unique and state-dependent; server-enforced |
 | Multi-valued attributes | ✅ | |
-| Layouts: attribute groups and order per type, for create / edit / info / table / search | 🟡 | Create, edit, info ✅ (inherited, hidden attributes, 1–2 columns) · table/search columns [3] · admin editor [1.9] |
+| Layouts: attribute groups and order per type, for create / edit / info / table / search | 🟡 | Create, edit, info ✅ (inherited, hidden attributes, 1–2 columns) · admin editor with live preview ✅ · table/search columns [3] |
 | Initialization rules per type: numbering, revision scheme, defaults, lifecycle, folder, team | 🟡 | Numbering, revision, lifecycle, defaults ✅ · folder [3], team [1.12] |
 | Numbering per context or per subtype; pluggable numbering strategies | 🟡 | Per type ✅ · per context [1.12] · scripted [5] |
 | Classification (class hierarchy with class-specific attributes) | ⬜ [7] | |
-| Admin UI for all of the above, with live form preview | ⬜ [1.9] | |
+| Admin UI for all of the above, with live form preview | ✅ | Administration page for site admins |
 | Move configuration between environments (dev → test → prod) | ⬜ [1.10] | Configuration as code: diff, validate, apply |
 
 ## 3. Out-of-the-box object types
@@ -136,7 +136,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | Phases and gates: criteria to pass a gate, roles per phase | ⬜ [1.15] | Gate criteria are rules (expressions) |
 | Workflow per phase / per transition | ⬜ [5] | |
 | Lifecycle templates scoped to a context (org or product) | ⬜ [1.15] | |
-| Admin editor with a state diagram | ⬜ [1.9] | |
+| Admin editor with a state diagram | 🟡 | Diagram, create and copy ✅ · editing templates in use [1.15] |
 
 ## 6. Content, documents and visualization
 
@@ -351,7 +351,7 @@ Full design: [EXTENSIBILITY.md](EXTENSIBILITY.md) and [ADR 0018](adr/0018-extens
 
 | What customers customize in the reference system | Our equivalent | Status |
 |---|---|---|
-| Types, attributes, constraints, enumerations, layouts | Admin configuration (no code) | 🟡 Types, attributes, layouts ✅ · admin UI [1.9] |
+| Types, attributes, constraints, enumerations, layouts | Admin configuration (no code) | ✅ Types, attributes, layouts, all in the admin UI |
 | Object initialization rules, numbering | Type rules + numbering strategies (scripts for edge cases) | 🟡 [1.5 ✅, 5] |
 | Lifecycle and workflow templates | Admin editors, versioned templates | 🟡 [1.15, 5] |
 | Preferences | Typed preference registry with levels and locks | ⬜ [1.13] |

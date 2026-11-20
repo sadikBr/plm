@@ -1,0 +1,355 @@
+import { Copy, Plus, Save, Trash2 } from "lucide-react";
+import { useState, type FormEvent } from "react";
+import { useLifecycles } from "../api/queries";
+import { pickLabel } from "../components/AttributeForm";
+import { ErrorBanner, Loading, Panel } from "../components/common";
+import { useCreateLifecycle, type Lifecycle } from "./adminQueries";
+
+interface StateDraft {
+  key: string;
+  label: string;
+  editable: boolean;
+  revisable: boolean;
+}
+
+interface Diagram {
+  states: StateDraft[];
+  transitions: { from: string; to: string }[];
+  initial: string;
+}
+
+const NODE_W = 118;
+const NODE_H = 36;
+const GAP = 46;
+
+/**
+ * States left to right in template order; transitions to a later state arc above the row, back to
+ * an earlier state arc below it. Editable states are tinted, revisable ones get a marker.
+ */
+export function StateDiagram({ states, transitions, initial }: Diagram) {
+  const index = new Map(states.map((s, i) => [s.key, i]));
+  const x = (i: number) => 24 + i * (NODE_W + GAP);
+  const bendOf = (span: number) => 26 + span * 16;
+  // Room above for forward arcs, below for backward ones. A cubic curve peaks at 3/4 of its control offset.
+  const spans = transitions
+    .map((t) => ({ a: index.get(t.from), b: index.get(t.to) }))
+    .filter((e): e is { a: number; b: number } => e.a !== undefined && e.b !== undefined && e.a !== e.b);
+  const above = Math.max(0, ...spans.filter((e) => e.b - e.a > 1).map((e) => bendOf(e.b - e.a) * 0.75));
+  const below = Math.max(0, ...spans.filter((e) => e.b < e.a).map((e) => bendOf(e.a - e.b) * 0.75));
+  const rowY = 14 + above;
+  const width = Math.max(320, x(states.length) - GAP + 24);
+  const height = rowY + NODE_H + below + 14;
+
+  return (
+    <svg className="state-diagram" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="State diagram">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" className="arrow-head" />
+        </marker>
+      </defs>
+      {transitions.map((t) => {
+        const a = index.get(t.from);
+        const b = index.get(t.to);
+        if (a === undefined || b === undefined || a === b) return null;
+        const forward = b > a;
+        const span = Math.abs(b - a);
+        const x1 = x(a) + NODE_W / 2 + (forward ? 12 : -12);
+        const x2 = x(b) + NODE_W / 2 + (forward ? -12 : 12);
+        const y = forward ? rowY : rowY + NODE_H;
+        // Adjacent forward steps are straight; everything else bends further the further it goes.
+        if (forward && span === 1) {
+          return <line key={`${t.from}-${t.to}`} x1={x(a) + NODE_W} y1={rowY + NODE_H / 2} x2={x(b) - 2} y2={rowY + NODE_H / 2} className="edge" markerEnd="url(#arrow)" />;
+        }
+        const bend = bendOf(span);
+        const cy = forward ? y - bend : y + bend;
+        return <path key={`${t.from}-${t.to}`} d={`M${x1},${y} C${x1},${cy} ${x2},${cy} ${x2},${y}`} className={forward ? "edge" : "edge back"} markerEnd="url(#arrow)" />;
+      })}
+      {states.map((s, i) => (
+        <g key={s.key || i}>
+          {s.key === initial && <circle cx={x(i) - 10} cy={rowY + NODE_H / 2} r={4} className="initial" />}
+          <rect x={x(i)} y={rowY} width={NODE_W} height={NODE_H} rx={5} className={s.editable ? "node editable" : "node"} />
+          <text x={x(i) + NODE_W / 2} y={rowY + NODE_H / 2 + 4} textAnchor="middle" className="node-label">
+            {s.label || s.key || "?"}
+          </text>
+          {s.revisable && (
+            <text x={x(i) + NODE_W - 6} y={rowY + 11} textAnchor="end" className="node-flag">
+              rev
+            </text>
+          )}
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+export function LifecyclesAdmin() {
+  const { data: lifecycles, isLoading } = useLifecycles();
+  const [selected, setSelected] = useState<string | null>(null);
+  const [draftFrom, setDraftFrom] = useState<Lifecycle | "blank" | null>(null);
+  const current = lifecycles?.find((l) => l.id === selected) ?? lifecycles?.[0];
+
+  if (isLoading) return <Loading />;
+  return (
+    <div className="admin-split">
+      <Panel
+        title="Lifecycles"
+        flush
+        actions={
+          <button className="btn small" onClick={() => setDraftFrom("blank")}>
+            <Plus size={13} aria-hidden />
+            New lifecycle
+          </button>
+        }
+      >
+        <ul className="type-tree" aria-label="Lifecycles">
+          {lifecycles?.map((l) => (
+            <li key={l.id}>
+              <button
+                className={!draftFrom && current?.id === l.id ? "type-row active" : "type-row"}
+                onClick={() => {
+                  setDraftFrom(null);
+                  setSelected(l.id);
+                }}
+              >
+                {pickLabel(l.labels, l.name)}
+                {l.system && <span className="muted" style={{ marginLeft: "auto" }}>out of the box</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </Panel>
+      {draftFrom ? (
+        <LifecycleEditor
+          key={draftFrom === "blank" ? "blank" : draftFrom.id}
+          from={draftFrom === "blank" ? undefined : draftFrom}
+          onDone={(id) => {
+            setDraftFrom(null);
+            if (id) setSelected(id);
+          }}
+        />
+      ) : current ? (
+        <Panel
+          title={pickLabel(current.labels, current.name)}
+          note="Templates in use can't be edited yet (versioned editing comes in roadmap 1.15): copy one to make a variant"
+          actions={
+            <button className="btn small" onClick={() => setDraftFrom(current)}>
+              <Copy size={13} aria-hidden />
+              Copy as new
+            </button>
+          }
+        >
+          <StateDiagram
+            states={current.states.map((s) => ({ key: s.key, label: pickLabel(s.labels, s.key), editable: !!s.editable, revisable: !!s.revisable }))}
+            transitions={current.transitions}
+            initial={current.initialState}
+          />
+          <table className="grid" aria-label="States" style={{ marginTop: 12 }}>
+            <thead>
+              <tr>
+                <th>State</th>
+                <th>Key</th>
+                <th>Can be edited</th>
+                <th>Can be revised from</th>
+                <th>Can move to</th>
+              </tr>
+            </thead>
+            <tbody>
+              {current.states.map((s) => (
+                <tr key={s.key}>
+                  <td className="nowrap">
+                    {pickLabel(s.labels, s.key)}
+                    {s.key === current.initialState && <span className="tag" style={{ marginLeft: 6 }}>Initial</span>}
+                  </td>
+                  <td>
+                    <code>{s.key}</code>
+                  </td>
+                  <td>{s.editable ? "Yes" : "No"}</td>
+                  <td>{s.revisable ? "Yes" : "No"}</td>
+                  <td className="muted">
+                    {current.transitions
+                      .filter((t) => t.from === s.key)
+                      .map((t) => pickLabel(current.states.find((x) => x.key === t.to)?.labels, t.to))
+                      .join(", ") || "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Panel>
+      ) : null}
+    </div>
+  );
+}
+
+const BLANK: StateDraft[] = [
+  { key: "IN_WORK", label: "In Work", editable: true, revisable: false },
+  { key: "RELEASED", label: "Released", editable: false, revisable: true },
+];
+
+function LifecycleEditor({ from, onDone }: { from?: Lifecycle; onDone: (createdId?: string) => void }) {
+  const create = useCreateLifecycle();
+  const [name, setName] = useState(from ? `${from.name}Copy` : "");
+  const [label, setLabel] = useState(from ? `${pickLabel(from.labels, from.name)} (copy)` : "");
+  const [states, setStates] = useState<StateDraft[]>(
+    from?.states.map((s) => ({ key: s.key, label: pickLabel(s.labels, s.key), editable: !!s.editable, revisable: !!s.revisable })) ?? BLANK,
+  );
+  const [transitions, setTransitions] = useState(from?.transitions ?? [{ from: "IN_WORK", to: "RELEASED" }]);
+  const [initial, setInitial] = useState(from?.initialState ?? "IN_WORK");
+
+  const keys = states.map((s) => s.key);
+  const has = (a: string, b: string) => transitions.some((t) => t.from === a && t.to === b);
+  const toggle = (a: string, b: string) =>
+    setTransitions(has(a, b) ? transitions.filter((t) => !(t.from === a && t.to === b)) : [...transitions, { from: a, to: b }]);
+  const setState = (i: number, patch: Partial<StateDraft>) => {
+    const old = states[i]!.key;
+    setStates(states.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+    // Renaming a key carries its transitions and the initial state along.
+    if (patch.key !== undefined && patch.key !== old) {
+      setTransitions(transitions.map((t) => ({ from: t.from === old ? patch.key! : t.from, to: t.to === old ? patch.key! : t.to })));
+      if (initial === old) setInitial(patch.key);
+    }
+  };
+  const removeState = (i: number) => {
+    const key = states[i]!.key;
+    setStates(states.filter((_, j) => j !== i));
+    setTransitions(transitions.filter((t) => t.from !== key && t.to !== key));
+  };
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    create.mutate(
+      {
+        name: name.trim(),
+        labels: { en: label.trim() },
+        initialState: initial,
+        states: states.map((s) => ({ key: s.key.trim(), labels: { en: s.label.trim() || s.key }, editable: !!s.editable, revisable: !!s.revisable })),
+        transitions: transitions.filter((t) => keys.includes(t.from) && keys.includes(t.to)),
+      },
+      { onSuccess: (lc) => onDone(lc.id) },
+    );
+  };
+  const problems = (create.error as { problem?: { details?: { errors?: unknown } } } | null)?.problem?.details?.errors;
+
+  return (
+    <form className="panel" aria-label="New lifecycle" onSubmit={submit} noValidate>
+      <div className="panel-head">
+        <h2>{from ? `Copy of ${pickLabel(from.labels, from.name)}` : "New lifecycle"}</h2>
+        <span className="note">Assign it to types under Types and attributes → Rules and lifecycle</span>
+      </div>
+      <div className="panel-body" style={{ display: "grid", gap: 12 }}>
+        {Array.isArray(problems) ? (
+          <div className="banner error" role="alert">
+            <ul style={{ margin: 0, paddingLeft: 16 }}>
+              {(problems as string[]).map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <ErrorBanner error={create.error} />
+        )}
+        <div className="attr-form cols-2">
+          <div className="field">
+            <label htmlFor="lc-label">Label</label>
+            <input id="lc-label" value={label} onChange={(e) => setLabel(e.target.value)} required />
+          </div>
+          <div className="field">
+            <label htmlFor="lc-name">Name</label>
+            <input id="lc-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. FastTrack" />
+          </div>
+        </div>
+
+        <StateDiagram states={states} transitions={transitions} initial={initial} />
+
+        <div className="section-label">States</div>
+        <table className="grid" aria-label="States">
+          <thead>
+            <tr>
+              <th>Key</th>
+              <th>Label</th>
+              <th>Initial</th>
+              <th title="Objects in this state can be checked out and edited">Editable</th>
+              <th title="A new revision can be started from this state">Revisable</th>
+              <th aria-label="Remove" />
+            </tr>
+          </thead>
+          <tbody>
+            {states.map((s, i) => (
+              <tr key={i}>
+                <td>
+                  <input aria-label={`Key of state ${i + 1}`} value={s.key} onChange={(e) => setState(i, { key: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "_") })} />
+                </td>
+                <td>
+                  <input aria-label={`Label of state ${i + 1}`} value={s.label} onChange={(e) => setState(i, { label: e.target.value })} />
+                </td>
+                <td style={{ width: 60 }}>
+                  <input type="radio" name="initial" aria-label={`${s.label || s.key} is the initial state`} checked={initial === s.key} onChange={() => setInitial(s.key)} style={{ width: "auto" }} />
+                </td>
+                <td style={{ width: 80 }}>
+                  <input type="checkbox" aria-label={`${s.label || s.key} is editable`} checked={s.editable} onChange={(e) => setState(i, { editable: e.target.checked })} style={{ width: "auto" }} />
+                </td>
+                <td style={{ width: 80 }}>
+                  <input type="checkbox" aria-label={`${s.label || s.key} is revisable`} checked={s.revisable} onChange={(e) => setState(i, { revisable: e.target.checked })} style={{ width: "auto" }} />
+                </td>
+                <td style={{ width: 40 }}>
+                  <button type="button" className="btn small ghost icon" aria-label={`Remove state ${s.label || s.key}`} disabled={states.length <= 1} onClick={() => removeState(i)}>
+                    <Trash2 size={12} aria-hidden />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div>
+          <button type="button" className="btn small" onClick={() => setStates([...states, { key: `STATE_${states.length + 1}`, label: "", editable: false, revisable: false }])}>
+            <Plus size={13} aria-hidden />
+            Add state
+          </button>
+        </div>
+
+        <div className="section-label">Allowed transitions (from row → to column)</div>
+        <div className="grid-wrap">
+          <table className="grid matrix" aria-label="Transitions">
+            <thead>
+              <tr>
+                <th>From \ To</th>
+                {states.map((s) => (
+                  <th key={s.key}>{s.label || s.key}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {states.map((a) => (
+                <tr key={a.key}>
+                  <th scope="row">{a.label || a.key}</th>
+                  {states.map((b) => (
+                    <td key={b.key}>
+                      {a.key !== b.key && (
+                        <input
+                          type="checkbox"
+                          aria-label={`${a.label || a.key} to ${b.label || b.key}`}
+                          checked={has(a.key, b.key)}
+                          onChange={() => toggle(a.key, b.key)}
+                          style={{ width: "auto" }}
+                        />
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div className="panel-foot">
+        <button className="btn primary" type="submit" disabled={create.isPending || !label.trim() || !name.trim()}>
+          <Save size={14} aria-hidden />
+          Create lifecycle
+        </button>
+        <button type="button" className="btn" onClick={() => onDone()}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}

@@ -48,7 +48,10 @@ code**. Every later phase builds on this. See [PARITY.md](PARITY.md) §2–§5.
 - [x] 1.8 Custom team roles; access rules (allow and deny) managed per context by its managers;
       rules on a type apply to its subtypes; inherited team members; "check access" explains why
       someone can or can't do something. (Shared teams move to 1.12 with context templates.)
-- [ ] 1.9 Admin UI: types, attributes, enumerations, units, rules, layouts, lifecycles (state diagram).
+- [x] 1.9 Admin UI (site admins): types and subtypes, attributes (all data types and
+      constraints, typed default values), value lists, units, numbering schemes, rules (numbering,
+      revision scheme, manual numbers, lifecycle), layouts per screen with live preview, team roles,
+      lifecycles (state diagram; new or copied templates with a transition matrix).
 - [ ] 1.10 Configuration as code: export/import all of the above as versioned files.
 - [ ] 1.11 Rename / renumber (master-level, with audit). (Set state with admin override shipped in 1.6.)
 - [ ] 1.12 Context templates: product, library, project and organization templates (team roles,
@@ -61,6 +64,9 @@ code**. Every later phase builds on this. See [PARITY.md](PARITY.md) §2–§5.
 - [ ] 1.15 Lifecycle template management: copy, edit and version templates (objects keep the
       version they were created with), phases with gate criteria, templates scoped to a context,
       state-based revision series, reassign lifecycle / reset team (admin).
+- [ ] 1.16 Attribute model extras: global (shared) attributes, dependent value lists,
+      admin-defined units, type properties (icon, instantiable, hidden from create menus),
+      translations of UI strings and type labels.
 
 **Exit:** an admin creates a "Fastener" part subtype with a required enumerated `thread` attribute
 and a numbering rule, entirely in the UI. A user creates one and sees the right form. Revising an

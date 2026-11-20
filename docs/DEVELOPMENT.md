@@ -101,6 +101,25 @@ Try this:
 
 ![Product page](images/ui-product.png)
 
+**Administration** (site admins: the **Admin** link in the top bar) is where the data model is
+configured without code:
+
+- **Types and attributes**: create subtypes; add and edit attributes (data type, value list or
+  unit, required, fixed after creation, length, pattern, range, default value); per screen, arrange
+  attributes in groups with a live preview of the form; set numbering, revision scheme, manual
+  numbers and the lifecycle.
+- **Value lists**, **Units**, **Numbering** schemes and **Team roles**.
+- **Lifecycles**: see each template as a state diagram; create a new one or copy an existing one,
+  with states (editable, revisable, initial) and a matrix of allowed transitions.
+
+Try it: under **Value lists** create *Thread standard* (metric, unified); under **Numbering** create
+*Bolts* with prefix `BLT-`; under **Types and attributes** select *Part*, click **New subtype**
+*Bolt*, add a required *Thread standard* attribute, choose the *Bolts* numbering under **Rules and
+lifecycle**, and give its **Create form** a *Thread* group first. Then create a Bolt in a product:
+the form follows the layout and the number is `BLT-000001`. (`e2e/admin-flow.spec.ts` does exactly this.)
+
+![Layout editor with live preview](images/ui-admin-layout.png)
+
 **Search** from the top bar: press `/`, type part of a number or name, pick with the arrow keys and
 Enter, or press Enter on "See all results" for the full list (every context you can read).
 
