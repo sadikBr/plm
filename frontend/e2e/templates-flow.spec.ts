@@ -29,7 +29,7 @@ test("alice reuses a shared team and a product template; bob gets access through
   await alice.getByLabel("Name").fill("Prototype");
   await alice.getByRole("button", { name: "Create" }).click();
   await expect(alice.getByRole("heading", { name: "Prototype" })).toBeVisible();
-  await alice.getByRole("link", { name: "Team" }).click();
+  await alice.getByRole("link", { name: "Team", exact: true }).click();
   await alice.getByLabel("Attach a shared team").selectOption({ label: `Reviewers ${suffix}` });
   await expect(alice.getByRole("table", { name: "Shared teams" }).getByText(`Reviewers ${suffix}`)).toBeVisible();
 
@@ -50,7 +50,7 @@ test("alice reuses a shared team and a product template; bob gets access through
   await alice.getByRole("button", { name: "Create" }).click();
   await expect(alice.getByRole("heading", { name: "Series" })).toBeVisible();
   const seriesUrl = alice.url();
-  await alice.getByRole("link", { name: "Team" }).click();
+  await alice.getByRole("link", { name: "Team", exact: true }).click();
   await expect(alice.getByRole("table", { name: "Shared teams" }).getByText(`Reviewers ${suffix}`)).toBeVisible();
 
   // ---- bob sees it through the shared team, read-only ----

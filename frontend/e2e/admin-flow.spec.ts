@@ -67,8 +67,10 @@ test("alice models a Bolt type in the admin UI, then creates one", async ({ brow
   await alice.getByRole("button", { name: "Add group" }).click();
   await alice.getByLabel("Add Thread standard to group").selectOption({ label: "Thread" });
   const threadGroup = alice.getByRole("region", { name: "Group Thread" });
-  await threadGroup.getByRole("button", { name: "Move group up" }).click();
-  await threadGroup.getByRole("button", { name: "Move group up" }).click();
+  // Up until it's the first group (its "up" button is then disabled).
+  const up = threadGroup.getByRole("button", { name: "Move group up" });
+  for (let i = 0; i < 5 && (await up.isEnabled()); i++) await up.click();
+  await expect(up).toBeDisabled();
   await alice.getByRole("button", { name: "Save layout" }).click();
   await expect(alice.getByText("This type has its own layout for this screen.")).toBeVisible();
 

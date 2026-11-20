@@ -12,7 +12,7 @@ test("bob, manager of an organization, sets up its own shared team and product t
   await alice.getByRole("button", { name: "Create" }).click();
   await expect(alice.getByRole("heading", { name: `Delegated ${suffix}` })).toBeVisible();
   const orgUrl = alice.url();
-  await alice.getByRole("link", { name: "Team" }).click();
+  await alice.getByRole("link", { name: "Team", exact: true }).click();
   const addMember = alice.getByRole("form", { name: "Add a member" });
   await addMember.getByLabel("Username").fill("bob");
   await addMember.getByLabel("Role").selectOption("MANAGER");
@@ -40,7 +40,7 @@ test("bob, manager of an organization, sets up its own shared team and product t
   await bob.getByRole("dialog").getByLabel("Name").fill("Pilot");
   await bob.getByRole("dialog").getByRole("button", { name: "Create" }).click();
   await expect(bob.getByRole("heading", { name: "Pilot" })).toBeVisible();
-  await bob.getByRole("link", { name: "Team" }).click();
+  await bob.getByRole("link", { name: "Team", exact: true }).click();
   await bob.getByLabel("Attach a shared team").selectOption({ label: `Delegated QA ${suffix}` });
   await expect(bob.getByRole("table", { name: "Shared teams" }).getByText(`Delegated QA ${suffix}`)).toBeVisible();
   await bob.getByRole("button", { name: "Save as template" }).click();
@@ -57,7 +57,7 @@ test("bob, manager of an organization, sets up its own shared team and product t
   await bob.getByRole("dialog").getByLabel("Template", { exact: true }).selectOption({ label: `Delegated product ${suffix}` });
   await bob.getByRole("dialog").getByRole("button", { name: "Create" }).click();
   await expect(bob.getByRole("heading", { name: "Series" })).toBeVisible();
-  await bob.getByRole("link", { name: "Team" }).click();
+  await bob.getByRole("link", { name: "Team", exact: true }).click();
   await expect(bob.getByRole("table", { name: "Shared teams" }).getByText(`Delegated QA ${suffix}`)).toBeVisible();
   await bob.goto(orgUrl + "?tab=templates");
   await expect(bob.getByRole("list", { name: "Context templates" }).getByText(`Delegated product ${suffix}`)).toBeVisible();

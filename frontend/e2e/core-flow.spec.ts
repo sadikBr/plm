@@ -32,7 +32,7 @@ test("alice sets up a product, bob works on a part, carol sees nothing", async (
   await expect(alice.getByRole("heading", { name: "Drone X1" })).toBeVisible();
   const productUrl = alice.url();
 
-  await alice.getByRole("link", { name: "Team" }).click();
+  await alice.getByRole("link", { name: "Team", exact: true }).click();
   const addMember = alice.getByRole("form", { name: "Add a member" });
   await addMember.getByLabel("Username").fill("bob");
   await addMember.getByLabel("Role").selectOption("MEMBER");
@@ -82,7 +82,8 @@ test("alice sets up a product, bob works on a part, carol sees nothing", async (
 
   // ---- alice (site admin) releases it: In Work -> Under Review -> Released ----
   const setState = async (to: string) => {
-    await alice.getByRole("button", { name: "Set state" }).click();
+    await expect(alice.getByRole("dialog")).toHaveCount(0);
+    await alice.locator(".toolbar").getByRole("button", { name: "Set state" }).click();
     await alice.getByRole("menuitem", { name: to, exact: true }).click();
     await alice.getByRole("dialog").getByLabel("Comment").fill(`Moved to ${to}`);
     await alice.getByRole("dialog").getByRole("button", { name: "Set state" }).click();
