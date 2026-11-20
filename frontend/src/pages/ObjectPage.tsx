@@ -1,29 +1,47 @@
+import { Copy, GitBranchPlus, Link2, Lock, LockOpen, MoreHorizontal, Pencil, Undo2, Upload } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { isApiError } from "../api/client";
 import {
   useAudit,
+  useContextById,
   useHistory,
   useMe,
   useObject,
   useObjectActions,
   usePermissions,
   useTypeAttributes,
-  useTypes,
   useWorkingCopy,
   type AttributeDefinition,
   type Attributes,
   type VersionedObject,
 } from "../api/queries";
 import { AttributeForm, AttributeValues, fieldErrors } from "../components/AttributeForm";
-import { Dialog, ErrorBanner, Loading, PrincipalName, formatDate } from "../components/common";
-import { Breadcrumbs, useIdParam } from "../components/Layout";
+import {
+  Dialog,
+  ErrorBanner,
+  Loading,
+  MenuButton,
+  Panel,
+  PrincipalName,
+  Props,
+  StateBadge,
+  TypeIcon,
+  formatDate,
+  useTypeName,
+} from "../components/common";
+import { Breadcrumbs, PageHeader, Tabs, useIdParam } from "../components/Layout";
 import { NotFoundPage } from "./NotFoundPage";
 
 type Tab = "details" | "history" | "audit";
 
+/** Remounts per object, so page state never leaks between objects. */
 export function ObjectPage() {
   const id = useIdParam();
+  return <ObjectView key={id} id={id} />;
+}
+
+function ObjectView({ id }: { id: string }) {
   const { data: obj, error, isLoading } = useObject(id);
   const { data: me } = useMe();
   const [params, setParams] = useSearchParams();
@@ -38,37 +56,23 @@ export function ObjectPage() {
     ["history", "History"],
     ...(me?.siteAdmin ? [["audit", "Audit"] as [Tab, string]] : []),
   ];
+  const myId = me?.user.id;
 
   return (
     <>
-      <Breadcrumbs contextId={obj.contextId} current={obj.number} />
-      <ObjectHeader obj={obj} myId={me?.user.id} />
-      <nav className="tabs" aria-label="Sections">
-        {tabs.map(([key, label]) => (
-          <a
-            key={key}
-            href={`?tab=${key}`}
-            className={tab === key ? "active" : undefined}
-            aria-current={tab === key ? "page" : undefined}
-            onClick={(e) => {
-              e.preventDefault();
-              setParams({ tab: key });
-            }}
-          >
-            {label}
-          </a>
-        ))}
-      </nav>
-      {tab === "details" && <DetailsTab obj={obj} myId={me?.user.id} />}
-      {tab === "history" && <HistoryTab id={obj.id} />}
-      {tab === "audit" && me?.siteAdmin && <AuditTab id={obj.id} />}
+      <ObjectHeader obj={obj} myId={myId} tabs={<Tabs tabs={tabs} active={tab} onSelect={(t) => setParams({ tab: t })} />} />
+      <div className="content">
+        {tab === "details" && <DetailsTab obj={obj} myId={myId} />}
+        {tab === "history" && <HistoryTab id={obj.id} />}
+        {tab === "audit" && me?.siteAdmin && <AuditTab id={obj.id} />}
+      </div>
     </>
   );
 }
 
-function ObjectHeader({ obj, myId }: { obj: VersionedObject; myId?: string }) {
+function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string; tabs: React.ReactNode }) {
   const { data: permissions } = usePermissions(obj.contextId, obj.typeId);
-  const { data: types } = useTypes();
+  const typeName = useTypeName(obj.typeId);
   const actions = useObjectActions(obj.id);
   const [checkingIn, setCheckingIn] = useState(false);
   const [comment, setComment] = useState("");
@@ -77,54 +81,89 @@ function ObjectHeader({ obj, myId }: { obj: VersionedObject; myId?: string }) {
   const free = !obj.checkedOutBy;
   const canModify = !!permissions?.has("MODIFY");
   const canRevise = !!permissions?.has("REVISE");
-  const typeName = types?.find((t) => t.id === obj.typeId)?.displayName ?? "Object";
   const busy = Object.values(actions).some((m) => m.isPending);
   const failed = Object.values(actions).find((m) => m.error)?.error;
 
   return (
     <>
-      <div className="page-header">
-        <div className="titles">
-          <div className="row" style={{ flexWrap: "wrap" }}>
-            <h1>
-              <span className="mono">{obj.number}</span> · {obj.name}
-            </h1>
-            <span className="badge accent version" data-testid="version">
+      <PageHeader
+        crumbs={<Breadcrumbs contextId={obj.contextId} current={obj.number} />}
+        icon={<TypeIcon typeId={obj.typeId} size={18} />}
+        title={
+          <>
+            <span className="num">{obj.number}</span>
+            <span className="sep">·</span>
+            <span className="nm">{obj.name}</span>
+          </>
+        }
+        meta={
+          <>
+            <span className="tag accent version" data-testid="version">
               {obj.version}
             </span>
-            <span className="badge">{obj.latest.state}</span>
+            <StateBadge state={obj.latest.state} />
             {obj.checkedOutBy && (
-              <span className="badge warn" data-testid="checked-out">
+              <span className="tag warn" data-testid="checked-out">
+                <Lock size={11} aria-hidden />
                 Checked out by {mine ? "you" : <PrincipalName id={obj.checkedOutBy} />}
               </span>
             )}
-          </div>
-          <div className="subtitle">{typeName}</div>
-        </div>
-        <div className="actions">
-          {free && canModify && (
-            <button className="btn primary" disabled={busy} onClick={() => actions.checkOut.mutate()}>
+            <span className="sub">{typeName}</span>
+          </>
+        }
+        toolbar={
+          <>
+            <button className="btn ghost" disabled={busy || !free || !canModify} onClick={() => actions.checkOut.mutate()}>
+              <LockOpen size={15} aria-hidden />
               Check out
             </button>
-          )}
-          {mine && (
-            <>
-              <button className="btn primary" disabled={busy} onClick={() => setCheckingIn(true)}>
-                Check in
-              </button>
-              <button className="btn" disabled={busy} onClick={() => actions.undoCheckOut.mutate()}>
-                Undo check-out
-              </button>
-            </>
-          )}
-          {free && canRevise && (
-            <button className="btn" disabled={busy} onClick={() => actions.revise.mutate()}>
+            <button className="btn ghost" disabled={busy || !mine} onClick={() => setCheckingIn(true)}>
+              <Upload size={15} aria-hidden />
+              Check in
+            </button>
+            <button className="btn ghost" disabled={busy || !mine} onClick={() => actions.undoCheckOut.mutate()}>
+              <Undo2 size={15} aria-hidden />
+              Undo check-out
+            </button>
+            <span className="divider" />
+            <button className="btn ghost" disabled={busy || !free || !canRevise} onClick={() => actions.revise.mutate()}>
+              <GitBranchPlus size={15} aria-hidden />
               Revise
             </button>
-          )}
+            <span className="grow" />
+            <MenuButton label="More" icon={<MoreHorizontal size={15} aria-hidden />}>
+              {(close) => (
+                <>
+                  <button
+                    role="menuitem"
+                    onClick={() => {
+                      void navigator.clipboard?.writeText(obj.number);
+                      close();
+                    }}
+                  >
+                    <Copy size={14} aria-hidden /> Copy number
+                  </button>
+                  <button
+                    role="menuitem"
+                    onClick={() => {
+                      void navigator.clipboard?.writeText(window.location.href);
+                      close();
+                    }}
+                  >
+                    <Link2 size={14} aria-hidden /> Copy link
+                  </button>
+                </>
+              )}
+            </MenuButton>
+          </>
+        }
+        tabs={tabs}
+      />
+      {failed != null && (
+        <div style={{ padding: "12px 16px 0" }}>
+          <ErrorBanner error={failed} />
         </div>
-      </div>
-      <ErrorBanner error={failed} />
+      )}
       <Dialog
         open={checkingIn}
         title={`Check in ${obj.number}`}
@@ -170,102 +209,102 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
   const mine = !!myId && obj.checkedOutBy === myId;
   const workingCopy = useWorkingCopy(obj.id, mine);
   const { data: definitions } = useTypeAttributes(obj.typeId);
+  const { data: context } = useContextById(obj.contextId);
+  const typeName = useTypeName(obj.typeId);
   const latest = obj.latest;
 
   return (
-    <div className="grid-2">
+    <div className="cols">
       {mine ? (
-        <div className="card">
-          <h2>
-            Working copy <span className="version">{workingCopy.data?.version}</span>
-          </h2>
-          <p className="muted" style={{ marginTop: -6 }}>
-            Only you see these edits until you check in.
-          </p>
-          <ErrorBanner error={workingCopy.error} />
-          {workingCopy.data && definitions && (
-            <WorkingCopyEditor
-              key={workingCopy.data.id}
-              objectId={obj.id}
-              definitions={definitions}
-              initial={workingCopy.data.attributes as Attributes}
-            />
-          )}
-        </div>
+        workingCopy.data && definitions ? (
+          <WorkingCopyEditor
+            key={workingCopy.data.id}
+            objectId={obj.id}
+            version={workingCopy.data.version}
+            definitions={definitions}
+            initial={workingCopy.data.attributes as Attributes}
+          />
+        ) : (
+          <Panel title="Working copy">
+            <ErrorBanner error={workingCopy.error} />
+            <Loading />
+          </Panel>
+        )
       ) : (
-        <div className="card">
-          <h2>Attributes</h2>
-          {definitions && <AttributeValues definitions={definitions} values={latest.attributes as Attributes} />}
-        </div>
+        <Panel title="Attributes" note={`as of ${latest.version}`}>
+          {definitions ? <AttributeValues definitions={definitions} values={latest.attributes as Attributes} /> : <Loading />}
+        </Panel>
       )}
-      <div className="card">
-        <h2>
-          Latest iteration <span className="version">{latest.version}</span>
-        </h2>
-        <dl className="props">
-          <dt>Number</dt>
-          <dd className="mono">{obj.number}</dd>
-          <dt>State</dt>
-          <dd>{latest.state}</dd>
-          <dt>Checked in</dt>
-          <dd>
-            {formatDate(latest.checkedInAt)} by <PrincipalName id={latest.createdBy} />
-          </dd>
-          <dt>Comment</dt>
-          <dd>{latest.comment ?? <span className="muted">—</span>}</dd>
-          <dt>Created</dt>
-          <dd>
-            {formatDate(obj.createdAt)} by <PrincipalName id={obj.createdBy} />
-          </dd>
-          <dt>Context</dt>
-          <dd>
-            <Link to={`/contexts/${obj.contextId}`}>Open</Link>
-          </dd>
-        </dl>
-      </div>
+      <Panel title="General">
+        <Props
+          items={[
+            ["Number", obj.number],
+            ["Name", obj.name],
+            ["Type", typeName],
+            ["Version", <span className="version">{latest.version}</span>],
+            ["State", <StateBadge state={latest.state} />],
+            ["Context", context ? <Link to={`/contexts/${obj.contextId}`}>{context.name}</Link> : null],
+            ["Checked out by", obj.checkedOutBy ? <PrincipalName id={obj.checkedOutBy} /> : null],
+            ["Last checked in", <>{formatDate(latest.checkedInAt)} · <PrincipalName id={latest.createdBy} /></>],
+            ["Comment", latest.comment],
+            ["Created", <>{formatDate(obj.createdAt)} · <PrincipalName id={obj.createdBy} /></>],
+          ]}
+        />
+      </Panel>
     </div>
   );
 }
 
 function WorkingCopyEditor({
   objectId,
+  version,
   definitions,
   initial,
 }: {
   objectId: string;
+  version: string;
   definitions: AttributeDefinition[];
   initial: Attributes;
 }) {
   const { updateAttributes } = useObjectActions(objectId);
   const [values, setValues] = useState(initial);
   const [dirty, setDirty] = useState(false);
+  const errors = fieldErrors(updateAttributes.error);
 
   return (
     <form
+      className="panel"
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
         updateAttributes.mutate(values, { onSuccess: () => setDirty(false) });
       }}
     >
-      {updateAttributes.error && !Object.keys(fieldErrors(updateAttributes.error)).length && (
-        <ErrorBanner error={updateAttributes.error} />
-      )}
-      <AttributeForm
-        idPrefix="wc"
-        definitions={definitions}
-        values={values}
-        onChange={(next) => {
-          setValues(next);
-          setDirty(true);
-        }}
-        errors={fieldErrors(updateAttributes.error)}
-      />
-      <div className="row">
+      <div className="panel-head">
+        <Pencil size={13} className="icon-muted" aria-hidden />
+        <h2>
+          Working copy <span className="version">{version}</span>
+        </h2>
+        <span className="note">Only you see these edits until you check in.</span>
+      </div>
+      <div className="panel-body" style={{ display: "grid", gap: 10 }}>
+        {updateAttributes.error != null && Object.keys(errors).length === 0 && <ErrorBanner error={updateAttributes.error} />}
+        <AttributeForm
+          idPrefix="wc"
+          definitions={definitions}
+          values={values}
+          onChange={(next) => {
+            setValues(next);
+            setDirty(true);
+          }}
+          errors={errors}
+        />
+      </div>
+      <div className="panel-foot">
         <button className="btn primary" type="submit" disabled={updateAttributes.isPending || !dirty}>
           Save attributes
         </button>
-        {!dirty && updateAttributes.isSuccess && <span className="muted">Saved.</span>}
+        {dirty ? <span className="muted">Unsaved changes</span> : updateAttributes.isSuccess && <span className="muted">Saved.</span>}
       </div>
     </form>
   );
@@ -273,73 +312,88 @@ function WorkingCopyEditor({
 
 function HistoryTab({ id }: { id: string }) {
   const { data, isLoading, error } = useHistory(id);
-  if (isLoading) return <Loading />;
   return (
-    <div className="card">
+    <Panel title="Iterations" note={data ? String(data.length) : undefined} flush>
       <ErrorBanner error={error} />
-      <div className="table-wrap">
-        <table aria-label="Iteration history">
-          <thead>
-            <tr>
-              <th>Version</th>
-              <th>State</th>
-              <th>Comment</th>
-              <th>By</th>
-              <th>Checked in</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data?.map((it) => (
-              <tr key={it.id}>
-                <td className="version">{it.version}</td>
-                <td>
-                  <span className="badge">{it.state}</span>
-                </td>
-                <td>{it.comment ?? <span className="muted">—</span>}</td>
-                <td>
-                  <PrincipalName id={it.createdBy} />
-                </td>
-                <td className="muted">{formatDate(it.checkedInAt)}</td>
+      {isLoading ? (
+        <Loading />
+      ) : (
+        <div className="grid-wrap">
+          <table className="grid" aria-label="Iteration history">
+            <thead>
+              <tr>
+                <th>Version</th>
+                <th>State</th>
+                <th>Comment</th>
+                <th>Checked in by</th>
+                <th>Checked in</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+            </thead>
+            <tbody>
+              {data?.map((it) => (
+                <tr key={it.id}>
+                  <td className="nowrap version">{it.version}</td>
+                  <td>
+                    <StateBadge state={it.state} />
+                  </td>
+                  <td>{it.comment ?? <span className="muted">—</span>}</td>
+                  <td className="nowrap">
+                    <PrincipalName id={it.createdBy} />
+                  </td>
+                  <td className="nowrap muted">{formatDate(it.checkedInAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Panel>
   );
 }
 
 function AuditTab({ id }: { id: string }) {
   const { data, isLoading, error } = useAudit(id, true);
-  if (isLoading) return <Loading />;
   return (
-    <div className="card">
+    <Panel title="Audit trail" note={data ? String(data.length) : undefined} flush>
       <ErrorBanner error={error} />
-      <table aria-label="Audit trail">
-        <thead>
-          <tr>
-            <th>When</th>
-            <th>Action</th>
-            <th>Who</th>
-            <th>Details</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data?.map((entry) => (
-            <tr key={entry.seq}>
-              <td className="muted">{formatDate(entry.occurredAt)}</td>
-              <td>{entry.action.replace(/^versioning\./, "").replace(/\.v\d+$/, "")}</td>
-              <td>
-                <PrincipalName id={entry.actor} />
-              </td>
-              <td className="mono" style={{ maxWidth: 420, overflowWrap: "anywhere" }}>
-                {"version" in entry.details ? String(entry.details.version) : ""}
-                {"comment" in entry.details && entry.details.comment ? ` · “${String(entry.details.comment)}”` : ""}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+      {isLoading ? (
+        <Loading />
+      ) : (
+        <div className="grid-wrap">
+          <table className="grid" aria-label="Audit trail">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Action</th>
+                <th>Who</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data?.map((entry) => (
+                <tr key={entry.seq}>
+                  <td className="nowrap muted">{formatDate(entry.occurredAt)}</td>
+                  <td className="nowrap">{auditAction(entry.action)}</td>
+                  <td className="nowrap">
+                    <PrincipalName id={entry.actor} />
+                  </td>
+                  <td>
+                    {"version" in entry.details && <span className="version">{String(entry.details.version)}</span>}
+                    {"comment" in entry.details && entry.details.comment ? ` · “${String(entry.details.comment)}”` : ""}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Panel>
   );
+}
+
+/** `versioning.ObjectCheckedIn.v1` → `Checked in`. */
+function auditAction(action: string): string {
+  const name = action.replace(/^\w+\./, "").replace(/\.v\d+$/, "").replace(/^Object/, "");
+  const words = name.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }

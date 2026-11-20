@@ -26,6 +26,7 @@ import com.plm.types.api.TypeService
 import com.plm.versioning.api.CreateVersionedObject
 import com.plm.versioning.api.IterationStatus
 import com.plm.versioning.api.MasterId
+import com.plm.versioning.api.ObjectQuery
 import com.plm.versioning.api.VersioningService
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -341,16 +342,19 @@ class VersioningServiceIT(
             assertCode(NotFoundException::class.java, "OBJECT_NOT_FOUND") { versioning.get(outsider, obj.id) }
             assertCode(NotFoundException::class.java, "OBJECT_NOT_FOUND") { versioning.history(outsider, obj.id) }
             assertCode(NotFoundException::class.java, "OBJECT_NOT_FOUND") { versioning.checkOut(outsider, obj.id) }
-            assertCode(NotFoundException::class.java, "CONTEXT_NOT_FOUND") { versioning.list(outsider, product) }
+            assertCode(
+                NotFoundException::class.java,
+                "CONTEXT_NOT_FOUND",
+            ) { versioning.list(outsider, ObjectQuery(product)) }
         }
 
         @Test
         fun `list returns readable objects in pages`() {
             val created = (1..5).map { newPart(mapOf("material" to "M$it")) }
 
-            val firstPage = versioning.list(viewer, product, limit = 2)
-            val secondPage = versioning.list(viewer, product, limit = 2, after = firstPage.last().id)
-            val all = versioning.list(alice, product)
+            val firstPage = versioning.list(viewer, ObjectQuery(product, limit = 2))
+            val secondPage = versioning.list(viewer, ObjectQuery(product, limit = 2, after = firstPage.last().id))
+            val all = versioning.list(alice, ObjectQuery(product))
 
             assertThat(all.map { it.id }).containsExactlyElementsOf(created.map { it.id })
             assertThat(firstPage.map { it.id }).containsExactlyElementsOf(created.take(2).map { it.id })
@@ -362,7 +366,44 @@ class VersioningServiceIT(
             val obj = newPart()
             versioning.checkOut(bob, obj.id)
 
-            assertThat(versioning.list(viewer, product).single { it.id == obj.id }.checkedOutBy).isEqualTo("bob")
+            assertThat(
+                versioning.list(viewer, ObjectQuery(product)).single { it.id == obj.id }.checkedOutBy,
+            ).isEqualTo("bob")
+        }
+
+        @Test
+        fun `search finds number or name across every readable context, and only those`() {
+            val tag = UUID.randomUUID().toString().take(8)
+            val mine = versioning.create(alice, CreateVersionedObject(TypeId.PART, product, "Bracket $tag-left"))
+            val numbered =
+                versioning.create(
+                    alice,
+                    CreateVersionedObject(TypeId.PART, product, "Other", number = "PN-$tag"),
+                )
+            // Same text, in a product alice is not on.
+            val org =
+                contexts.create(
+                    admin,
+                    CreateContext(ContextId.DEFAULT_SITE, ContextKind.ORGANIZATION, "Hidden ${UUID.randomUUID()}"),
+                )
+            val hidden = contexts.create(admin, CreateContext(org.id, ContextKind.PRODUCT, "Secret"))
+            versioning.create(admin, CreateVersionedObject(TypeId.PART, hidden.id, "Bracket $tag-secret"))
+
+            val found = versioning.list(alice, ObjectQuery(text = tag.uppercase())).map { it.id }
+
+            assertThat(found).containsExactlyInAnyOrder(mine.id, numbered.id)
+            assertThat(versioning.list(admin, ObjectQuery(text = tag))).hasSize(3)
+        }
+
+        @Test
+        fun `search treats wildcard characters literally`() {
+            val tag = UUID.randomUUID().toString().take(8)
+            val literal = versioning.create(alice, CreateVersionedObject(TypeId.PART, product, "100% cotton_$tag"))
+            versioning.create(alice, CreateVersionedObject(TypeId.PART, product, "100x cottonX$tag"))
+
+            assertThat(
+                versioning.list(alice, ObjectQuery(text = "100% cotton_$tag")).map { it.id },
+            ).containsExactly(literal.id)
         }
 
         @Test

@@ -18,7 +18,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     const signIn = () => auth.signinRedirect({ state: { returnTo: currentLocation() } satisfies SignInState });
     return (
       <div className="center-screen">
-        <div className="signin card">
+        <div className="signin">
           <img src="/favicon.svg" alt="" />
           <h1>PLM</h1>
           <p>Sign in with your company account to manage parts, documents and changes.</p>

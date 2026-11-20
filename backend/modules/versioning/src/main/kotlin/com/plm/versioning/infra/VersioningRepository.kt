@@ -101,7 +101,8 @@ internal class VersioningRepository(
     /** One page of masters with their latest iteration, restricted by [filter]. Two queries per page. */
     fun list(
         tenant: TenantId,
-        context: ContextId,
+        context: ContextId?,
+        text: String?,
         filter: SqlPredicate,
         limit: Int,
         after: MasterId?,
@@ -115,7 +116,8 @@ internal class VersioningRepository(
                     join object_iteration i on i.id = m.latest_iteration_id
                     left join object_iteration wc on wc.master_id = m.id and wc.status = 'WORKING'
                     where m.tenant_id = :tenant
-                      and m.context_id = :context
+                      and (cast(:context as uuid) is null or m.context_id = :context)
+                      and (cast(:pattern as text) is null or m.number ilike :pattern or m.name ilike :pattern)
                       and (cast(:after as uuid) is null or m.id > :after)
                       and ${filter.sql}
                     order by m.id
@@ -123,8 +125,14 @@ internal class VersioningRepository(
                     """,
                 ).params(filter.params)
                 .param("tenant", tenant.value)
-                .param("context", context.value)
-                .param("after", after?.value)
+                .param("context", context?.value)
+                .param(
+                    "pattern",
+                    text?.let {
+                        "%" + it.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") +
+                            "%"
+                    },
+                ).param("after", after?.value)
                 .param("limit", limit)
                 .query(masterMapper)
                 .list()

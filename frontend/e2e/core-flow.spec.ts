@@ -82,7 +82,7 @@ test("alice sets up a product, bob works on a part, carol sees nothing", async (
   // Meanwhile alice can see it's taken, and can't check it out.
   await alice.goto(objectUrl);
   await expect(alice.getByTestId("checked-out")).toHaveText("Checked out by Bob Builder");
-  await expect(alice.getByRole("button", { name: "Check out" })).toHaveCount(0);
+  await expect(alice.getByRole("button", { name: "Check out" })).toBeDisabled();
 
   await bob.getByRole("button", { name: "Check in" }).click();
   const dialog = bob.getByRole("dialog");
