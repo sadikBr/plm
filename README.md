@@ -3,7 +3,10 @@
 An open Product Lifecycle Management (PLM) platform: documents, parts, multi-level BOMs,
 lifecycles, workflows and change management, built to scale to millions of objects.
 
-> Status: **Phase 0: Foundation**, steps 0.1–0.9 done: versioning, Keycloak login, team-based access control, audit log and domain events. See the [roadmap](docs/ROADMAP.md).
+> Status: **Phase 0: Foundation**, steps 0.1–0.11 done: versioning, Keycloak login, team-based access
+> control, audit log, domain events, a typed API contract and the first web UI.
+
+![Object page: a checked-out part with its working copy](docs/images/ui-object.png) See the [roadmap](docs/ROADMAP.md).
 
 ## Quick start
 
@@ -13,9 +16,10 @@ Requires JDK 21 and Docker. Full guide: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.m
 ./gradlew build      # compile, lint, all tests (uses Testcontainers)
 make up              # start postgres, s3, keycloak, redpanda
 make run             # backend on http://localhost:8080
+make ui-install && make ui   # web UI on http://localhost:5173 (sign in as alice / alice)
 ```
 
-Then follow the walkthrough in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#4-walkthrough-login-teams-versioning-audit): sign in, set up a team, version a part, read the audit trail.
+Then open http://localhost:5173, or follow the [UI tour](docs/DEVELOPMENT.md#4-run-the-web-ui) or the [curl walkthrough](docs/DEVELOPMENT.md#5-walkthrough-with-curl-login-teams-versioning-audit): sign in, set up a team, version a part, read the audit trail.
 
 ## Documentation
 

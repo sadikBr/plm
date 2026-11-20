@@ -31,6 +31,9 @@ internal class SecurityConfiguration(
                 it
                     .requestMatchers("/actuator/health/**", "/actuator/health", "/actuator/info")
                     .permitAll()
+                    // The API contract and its browser are public; calling the API still needs a token.
+                    .requestMatchers("/v3/api-docs/**", "/v3/api-docs", "/swagger-ui/**", "/swagger-ui.html")
+                    .permitAll()
                     .anyRequest()
                     .authenticated()
             }.oauth2ResourceServer { rs -> rs.jwt { it.jwtAuthenticationConverter(KeycloakJwtConverter()) } }
