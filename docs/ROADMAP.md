@@ -46,50 +46,114 @@ code**. Every later phase builds on this. See [PARITY.md](PARITY.md) §2–§5.
 - [ ] 1.8 Custom team roles; policy admin; policies apply to subtypes.
 - [ ] 1.9 Admin UI: types, attributes, enumerations, units, rules, layouts, lifecycles (state diagram).
 - [ ] 1.10 Configuration as code: export/import all of the above as versioned files.
-- [ ] 1.11 Rename / renumber, set state (admin), with audit.
+- [ ] 1.11 Rename / renumber (master-level, with audit). (Set state with admin override shipped in 1.6.)
+- [ ] 1.12 Context templates: product, library, project and organization templates (team roles,
+      folders, policies, preferences, numbering, seed objects). Create a context from a template;
+      save an existing context as a template. Templates are versioned configuration bundles.
+- [ ] 1.13 Preferences framework: typed preferences declared by each module, set at site,
+      organization, context and user level, and lockable at any level so lower levels can't change them.
+- [ ] 1.14 Delegated administration: organization and context administrators who manage types,
+      lifecycles, teams and policies within their scope, without being site administrators.
+- [ ] 1.15 Lifecycle template management: copy, edit and version templates (objects keep the
+      version they were created with), phases with gate criteria, templates scoped to a context,
+      state-based revision series, reassign lifecycle / reset team (admin).
 
 **Exit:** an admin creates a "Fastener" part subtype with a required enumerated `thread` attribute
 and a numbering rule, entirely in the UI. A user creates one and sees the right form. Revising an
-In Work part is refused, and revising a Released part works.
+In Work part is refused, and revising a Released part works. An organization admin creates a
+product from a template with its own lifecycle and team roles, without site admin rights.
 
-## Phase 2 — Documents, content and search
-Primary content and attachments through the vault · thumbnails/previews · folders · Save As ·
-move · delete rules · iteration compare · OpenSearch indexing via events · full-text and attribute
-search with facets and saved searches · table views (columns, filters, export to Excel) ·
-favorites, recent items, subscriptions · webhooks.
+## Phase 2 — Extensibility platform v1
+
+**Goal:** customers add behaviour (actions, rules, integrations) without touching our code, and
+our own later features are built on the same mechanisms. See [EXTENSIBILITY.md](EXTENSIBILITY.md).
+
+- [ ] 2.1 Action registry: every built-in action (check out, revise, set state…) is declared as
+      data, with placement, applies-to (types, states), required permission and a visibility
+      condition. The UI renders toolbars and menus from the registry.
+- [ ] 2.2 Expression language (CEL) for conditions, validations, calculated attributes and gates.
+- [ ] 2.3 Extension packages: manifest (`plm-extension.yaml`), install / upgrade / disable per
+      tenant, compatibility check against the platform contract version, audit.
+- [ ] 2.4 Custom actions with handlers: webhook (signed), start a workflow (Phase 5), open a URL or
+      panel. Parameter forms generated from a schema; results (message, refresh, navigate, download).
+- [ ] 2.5 Pre-operation rules: synchronous validation hooks that can refuse an operation with a
+      message (expressions first; scripts in Phase 5).
+- [ ] 2.6 Event subscriptions and webhooks: filters, signing, retries with backoff, dead letters,
+      delivery log in the admin UI.
+- [ ] 2.7 Service accounts and OAuth client credentials, scoped API tokens for extensions.
+- [ ] 2.8 Profiles: which actions and UI areas a group of users sees.
+
+**Exit:** a sample extension, installed from a manifest, adds an "Send to ERP" action on Released
+parts that calls a webhook, plus a rule that refuses check-in when a description is missing. No
+platform code changes, and it survives a platform upgrade.
+
+## Phase 3 — Documents, content, search and collaboration
+Primary content and attachments through the vault · document templates · thumbnails/previews ·
+folders · Save As · move · delete rules · ownership/reservation · compare · clipboard · mass
+operations as background jobs · OpenSearch indexing via events · full-text and attribute search
+with facets, saved and shared searches · table views (columns, filters, saved views, Excel export) ·
+report definitions, scheduled reports and alerts, dashboards and configurable home page · favorites,
+recent items, subscriptions and digests · discussions · ad hoc access · audit reports ·
+job queue and scheduler with admin monitoring.
 
 **Exit:** a team manages real documents end-to-end with files, permissions and fast search.
 
-## Phase 3 — Parts and product structure
+## Phase 4 — Parts and product structure
 Usage links to masters · occurrences and reference designators · config specs (latest, released,
-baseline) · baselines · multi-level BOM tree table · structure editing · where-used · BOM compare ·
-substitutes/alternates · part↔document links · BOM import/export.
+baseline) · baselines, managed baselines and collections · multi-level BOM tree table · structure
+editing and find in structure · where-used · BOM compare · alternates and substitutes ·
+part↔document links · reference and alias attributes · roll-ups and multi-level reports ·
+BOM import/export · bulk revise.
 
 **Exit:** a 10-level, 50k-line BOM expands in < 2 s with access filtering applied.
 
-## Phase 4 — Workflow and change management
-Temporal integration · process template editor · tasks and inbox · review/approval with
-e-signatures · promotion requests · Problem Report → Change Request → Change Notice → Change Tasks ·
-affected/resulting objects · release on change notice completion · redlines · variances ·
-notifications.
+## Phase 5 — Workflow, change management and extensibility v2
+Temporal integration · process template editor · tasks and inbox, voting, delegation, escalation ·
+e-signatures (21 CFR Part 11) · promotion requests · Problem Report → Change Request → Change
+Notice → Change Tasks, fast and full track · affected/resulting objects and end items ·
+implementation plans · change board · change templates and association rules · variances ·
+redlines and mass change · change dashboards · **extensibility v2**: sandboxed server scripts
+(rules, numbering, automation steps), UI extension slots (panels, tabs, micro-frontends),
+extension endpoints, no-code automations (trigger → condition → actions).
 
 **Exit:** a part can only reach Released through an approved change notice or promotion request.
 
-## Phase 5 — CAD data and visualization
-CAD document type and dependency structure · part↔CAD association · STEP → glTF conversion worker ·
-web 3D viewer (structure, measure, section, markups) · 2D/PDF viewer with markups.
+## Phase 6 — CAD data and visualization
+CAD document type, dependency structure, family tables, collector · part↔CAD association and
+build rules · STEP → glTF conversion worker · publishing rules, watermarks, PDF generation ·
+web 3D viewer (structure, measure, section, markups) · 2D/PDF viewer with markups · MBD/PMI.
 
-## Phase 6 — Configuration
-Effectivity (date, serial, lot) · options and variants · design/manufacturing views (EBOM → MBOM)
-with reconciliation · classification.
+## Phase 7 — Configuration
+Effectivity (date, serial, lot, block; effectivity contexts; pending effectivity via change) ·
+options and variants (option sets, rules, 150% structures, variant specifications, variant
+generation and reuse) · one-off versions · classification with class attributes, classification
+search, find similar.
 
-## Phase 7 — Desktop and native CAD
-Office/desktop integration · native connectors (SolidWorks, Creo, NX, Inventor, CATIA), each its own project.
+## Phase 8 — Desktop and native CAD
+Office/desktop integration · personal workspaces · native connectors (SolidWorks, Creo, NX,
+Inventor, CATIA, electrical CAD), each its own project.
 
-## Phase 8 — Enterprise
-LDAP/AD groups · bulk import/export and migration from other PLM systems · ERP connectors ·
-supplier packages · multi-site file replication · reporting and dashboards · multi-tenancy hardening.
+## Phase 9 — Enterprise integration and infrastructure
+LDAP/AD/SCIM groups · bulk load and migration from other PLM systems · packages and deliveries ·
+ERP connectors with distribution targets and plant data · STEP AP242, ReqIF, OSLC · multi-site
+file replication · security labels and agreements · retention, legal hold, archive and purge ·
+tenant administration · upgrade playbook.
 
-## Phase 9+ — Adjacent domains
-Projects (plans, deliverables) · manufacturing process planning · requirements · quality
-(CAPA, nonconformance, FMEA) · service information.
+## Phase 10 — Manufacturing process management
+EBOM → MBOM and plant-specific structures · equivalence links and reconciliation · generate
+downstream structures · process plans, operations, resources, work instructions · new view versions.
+
+## Phase 11 — Projects and programs
+Project plans, activities, milestones, Gantt · deliverables linked to PLM objects · resources ·
+project templates · meetings and action items · share into projects and send back.
+
+## Phase 12 — Quality and regulatory
+Nonconformance · CAPA · customer complaints · audits · regulatory submissions · FMEA and control plans.
+
+## Phase 13 — Supplier management and environmental compliance
+Manufacturer and vendor parts · AML/AVL and sourcing rules · material declarations · RoHS, REACH,
+conflict minerals · compliance roll-ups.
+
+## Phase 14+ — Adjacent domains
+Requirements traceability · service information, translation, service BOM and parts catalogues ·
+software parts and builds · reliability analysis · mobile and AR.
