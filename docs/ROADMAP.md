@@ -23,29 +23,73 @@ Each phase ends with explicit exit criteria. Don't start a phase until the previ
 generic versioned object, check it out/in, see its iteration history, and an unauthorized user
 cannot see it (proven by an integration test). CI is green and blocks boundary violations.
 
-## Phase 1 — Document management MVP (6–8 weeks)
-Folders · document types · presigned upload/download through the vault · check-out/in/undo ·
-iteration history · revise · basic lifecycle · access policies UI · OpenSearch indexing via events ·
-search UI · object info pages.
+## Phase 1 — Types, attributes and lifecycles (the customization foundation)
 
-**Exit:** a team can manage real documents end-to-end with permissions and search.
+**Goal:** the out-of-the-box Part and Document types arrive with their standard attributes, and
+administrators can extend everything (types, attributes, rules, layouts, lifecycles) **without
+code**. Every later phase builds on this. See [PARITY.md](PARITY.md) §2–§5.
 
-## Phase 2 — Parts & BOM (8–10 weeks)
-Parts · usage links · config specs (latest, released, baseline) · multi-level BOM tree grid ·
-where-used · BOM compare · baselines · part↔document links · CSV/Excel import.
+- [ ] 1.1 Attribute definitions: data types (text, long text, integer, real, real with units,
+      boolean, date, timestamp, URL, enumeration, reference), multi-valued, inherited by subtypes,
+      reusable across types. Validated on every write (API, not just UI).
+- [ ] 1.2 Units of measure and quantities; enumerations (legal value lists) with localized labels.
+- [ ] 1.3 Constraints: required, range, length, regex, immutable, unique. Clear per-field errors.
+- [ ] 1.4 OOTB types and attributes seeded: Part (source, default unit, assembly mode, end item,
+      phantom, trace code, description…) and Document (title, description, category, department…).
+- [ ] 1.5 Initialization rules per type: numbering schemes (prefix, sequence, padding), revision
+      schemes, default values, default lifecycle.
+- [ ] 1.6 Lifecycle templates: states, transitions (promote, demote, revise, set state), per-type
+      assignment. **Revise allowed only from configured states (Released by default).** Default
+      state-based policies: Released is read-only.
+- [ ] 1.7 Layouts per type (create / edit / info / table): attribute groups and order. The UI
+      renders forms and pages from layouts.
+- [ ] 1.8 Custom team roles; policy admin; policies apply to subtypes.
+- [ ] 1.9 Admin UI: types, attributes, enumerations, units, rules, layouts, lifecycles (state diagram).
+- [ ] 1.10 Configuration as code: export/import all of the above as versioned files.
+- [ ] 1.11 Rename / renumber, set state (admin), with audit.
+
+**Exit:** an admin creates a "Fastener" part subtype with a required enumerated `thread` attribute
+and a numbering rule, entirely in the UI. A user creates one and sees the right form. Revising an
+In Work part is refused, and revising a Released part works.
+
+## Phase 2 — Documents, content and search
+Primary content and attachments through the vault · thumbnails/previews · folders · Save As ·
+move · delete rules · iteration compare · OpenSearch indexing via events · full-text and attribute
+search with facets and saved searches · table views (columns, filters, export to Excel) ·
+favorites, recent items, subscriptions · webhooks.
+
+**Exit:** a team manages real documents end-to-end with files, permissions and fast search.
+
+## Phase 3 — Parts and product structure
+Usage links to masters · occurrences and reference designators · config specs (latest, released,
+baseline) · baselines · multi-level BOM tree table · structure editing · where-used · BOM compare ·
+substitutes/alternates · part↔document links · BOM import/export.
 
 **Exit:** a 10-level, 50k-line BOM expands in < 2 s with access filtering applied.
 
-## Phase 3 — Workflow & change (8–10 weeks)
-Temporal integration · review/approval tasks · inbox & notifications · PR → CR → CN → tasks ·
-affected/resulting objects · release-on-CN-completion · promotion requests.
+## Phase 4 — Workflow and change management
+Temporal integration · process template editor · tasks and inbox · review/approval with
+e-signatures · promotion requests · Problem Report → Change Request → Change Notice → Change Tasks ·
+affected/resulting objects · release on change notice completion · redlines · variances ·
+notifications.
 
-**Exit:** a part can only reach Released through an approved change notice.
+**Exit:** a part can only reach Released through an approved change notice or promotion request.
 
-## Phase 4 — CAD & visualization (10+ weeks)
-CAD document type · CAD structure · STEP → glTF conversion worker · web 3D viewer · thumbnails ·
-markups · part↔CAD association. Native CAD plugins are separate projects afterwards.
+## Phase 5 — CAD data and visualization
+CAD document type and dependency structure · part↔CAD association · STEP → glTF conversion worker ·
+web 3D viewer (structure, measure, section, markups) · 2D/PDF viewer with markups.
 
-## Phase 5 — Enterprise
-Date/serial/lot effectivity · options & variants · EBOM/MBOM views · ERP connectors via events ·
-multi-site file replication · reporting · bulk import/export · multi-tenancy hardening.
+## Phase 6 — Configuration
+Effectivity (date, serial, lot) · options and variants · design/manufacturing views (EBOM → MBOM)
+with reconciliation · classification.
+
+## Phase 7 — Desktop and native CAD
+Office/desktop integration · native connectors (SolidWorks, Creo, NX, Inventor, CATIA), each its own project.
+
+## Phase 8 — Enterprise
+LDAP/AD groups · bulk import/export and migration from other PLM systems · ERP connectors ·
+supplier packages · multi-site file replication · reporting and dashboards · multi-tenancy hardening.
+
+## Phase 9+ — Adjacent domains
+Projects (plans, deliverables) · manufacturing process planning · requirements · quality
+(CAPA, nonconformance, FMEA) · service information.
