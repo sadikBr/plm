@@ -22,6 +22,9 @@ enum class Permission(
 
     /** Manage the context: its team and sub-contexts. */
     MANAGE(16),
+
+    /** Change an object's lifecycle state along its lifecycle's transitions. */
+    PROMOTE(32),
     ;
 
     companion object {

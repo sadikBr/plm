@@ -190,15 +190,33 @@ curl -s -o /dev/null -w "carol reads: %{http_code}\n" $API/objects/$PART -H "Aut
 curl -s -X POST $API/objects/$PART/checkout -H "Authorization: Bearer $CAROL" | jq '{status, code}'
 ```
 
-**Bob edits, checks in, revises**, and lists the product (`B.1`, `A.2`, `A.1`):
+**Bob edits and checks in.** Revising is refused: the part is still *In Work*, and only
+*Released* parts can be revised:
 
 ```bash
 curl -s -X PATCH $API/objects/$PART/working-copy -H "Authorization: Bearer $BOB" -H 'Content-Type: application/json' \
   -d '{"attributes":{"material":"Ti-6Al-4V"}}' | jq '{version, attributes}'
 curl -s -X POST $API/objects/$PART/checkin -H "Authorization: Bearer $BOB" -H 'Content-Type: application/json' \
   -d '{"comment":"Switch to titanium"}' | jq '{version, checkedOutBy}'
-curl -s -X POST $API/objects/$PART/revise -H "Authorization: Bearer $BOB" | jq .version
-curl -s $API/objects/$PART/iterations -H "Authorization: Bearer $BOB" | jq '.[] | {version, comment, material: .attributes.material}'
+curl -s -X POST $API/objects/$PART/revise -H "Authorization: Bearer $BOB" | jq '{status, code, detail}'
+```
+
+**Alice releases it** (In Work → Under Review → Released). Changing state needs the PROMOTE
+permission, which managers and site admins have. Bob, a member, doesn't:
+
+```bash
+curl -s $API/objects/$PART/lifecycle -H "Authorization: Bearer $ALICE" | jq '{state, editable, revisable, nextStates}'
+for S in UNDER_REVIEW RELEASED; do
+  curl -s -X POST $API/objects/$PART/state -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+    -d "{\"state\":\"$S\",\"comment\":\"Design review DR-12\"}" | jq -r .latest.state
+done
+```
+
+**Now Bob revises**, and lists the product (`B.1` In Work, `A.2` Released, `A.1`):
+
+```bash
+curl -s -X POST $API/objects/$PART/revise -H "Authorization: Bearer $BOB" | jq '{version, state: .latest.state}'
+curl -s $API/objects/$PART/iterations -H "Authorization: Bearer $BOB" | jq '.[] | {version, state, comment, material: .attributes.material}'
 curl -s "$API/objects?contextId=$PRODUCT" -H "Authorization: Bearer $BOB" | jq '.[] | {number, name, version}'
 ```
 
@@ -253,13 +271,36 @@ Attributes can be multi-valued (a JSON list), required, immutable after creation
 length, pattern or min/max (for quantities, in the dimension's base unit). Attributes and
 enumeration values are never deleted, only deactivated: existing data stays valid.
 
+### Lifecycles, numbering and revisions
+
+Parts and documents follow the out-of-the-box **Basic** lifecycle:
+
+```
+In Work ──► Under Review ──► Released ──► Obsolete
+   │  ◄──────────┘
+   └──► Canceled
+```
+
+- Only **In Work** objects can be checked out. **Released** objects are read-only.
+- Only **Released** objects can be **revised**. The new revision starts In Work again; the released
+  iteration keeps its state in history.
+- Changing state needs the **PROMOTE** permission (team managers by default). A site admin can
+  **override** to any state, which is recorded in the audit trail.
+- Admins can define their own lifecycles (states, which are editable or revisable, allowed
+  transitions) and assign them per type; subtypes inherit.
+- Per type, admins can also set a **numbering scheme** (e.g. `PRT-` + 6 digits) and a **revision
+  scheme** (ASME letters, A–Z, 1, 2, 3…, or 0, 1, 2…).
+
+Each object keeps the lifecycle and revision scheme it was created with, so changing a type's
+rules never changes existing objects.
+
 ### How access works
 
 - **Contexts** form a tree: Site → Organization → Product / Library / Project.
 - **Teams**: each context has members with a role, `VIEWER`, `MEMBER` or `MANAGER`. A role on a
   context also applies to everything below it.
 - **Policies** say what each role may do. The defaults sit on the site and are inherited
-  everywhere: VIEWER = READ · MEMBER = READ, CREATE, MODIFY, REVISE · MANAGER = all of those + MANAGE.
+  everywhere: VIEWER = READ · MEMBER = READ, CREATE, MODIFY, REVISE · MANAGER = all of those + MANAGE, PROMOTE.
   Policies can also be scoped to one type or one lifecycle state (no API for custom policies yet).
 - **Site admins** (Keycloak role `plm-admin`) can do everything, and are the only ones who create
   organizations, define types and read the audit log.
@@ -288,7 +329,13 @@ enumeration values are never deleted, only deactivated: existing data stays vali
 | GET / PATCH | `/api/v1/objects/{id}/working-copy` | Read / replace your working copy's `attributes` |
 | POST | `/api/v1/objects/{id}/checkin` | Optional `{comment}` |
 | POST | `/api/v1/objects/{id}/undo-checkout` | Discard your working copy |
-| POST | `/api/v1/objects/{id}/revise` | Next revision (A.3 → B.1) |
+| POST | `/api/v1/objects/{id}/revise` | Next revision (A.3 → B.1); only from revisable states (Released) |
+| GET | `/api/v1/objects/{id}/lifecycle` | Lifecycle, state, whether editable/revisable, states you may move it to |
+| POST | `/api/v1/objects/{id}/state` | `{state, comment?, override?}`: change lifecycle state (PROMOTE; override = site admin) |
+| GET / POST | `/api/v1/lifecycles` | Lifecycle templates / create one (site admin) |
+| GET / PUT | `/api/v1/types/{typeId}/lifecycle` | Lifecycle a type uses (inherited) / assign one (site admin) |
+| GET / PUT | `/api/v1/types/{typeId}/rules` | Numbering scheme, revision scheme, manual numbers (inherited) / set (site admin) |
+| GET / POST | `/api/v1/numbering-schemes` | Numbering schemes, e.g. `PRT-000123` / create one (site admin) |
 | GET | `/api/v1/audit[?aggregateId=&limit=&before=]` | Audit trail, newest first (site admin) |
 | GET / POST | `/api/v1/types/{typeId}/attributes` | Effective attributes (incl. inherited) / define one (site admin) |
 | PUT | `/api/v1/types/{typeId}/attributes/{id}` | Change an attribute's settings: labels, constraints, default, active (site admin) |

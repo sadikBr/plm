@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { VersionedObject } from "../api/queries";
 import { Reply, fakeApi, problem } from "../test/fakeApi";
-import { ALICE, BOB, attributeRoutes, iteration, me, object, principal, product, types } from "../test/fixtures";
+import { ALICE, BOB, attributeRoutes, iteration, lifecycle, me, object, principal, product, types } from "../test/fixtures";
 import { renderAt } from "../test/render";
 
 /** The API as seen by bob, with [obj] and the given permissions on its context. */
@@ -16,13 +16,14 @@ function apiFor(obj: VersionedObject, permissions: string[], extra: Parameters<t
     "GET /api/v1/types": () => types,
     "GET /api/v1/principals/:id": (_, { id }) => principal(id!),
     "GET /api/v1/objects/:id": () => obj,
+    "GET /api/v1/objects/:id/lifecycle": () => lifecycle(obj.latest.state),
     ...attributeRoutes,
     ...extra,
   });
 }
 
 describe("ObjectPage", () => {
-  it("lets a member check out and revise a free object", async () => {
+  it("lets a member check out an In Work object, but not revise it yet", async () => {
     const obj = object();
     const calls = apiFor(obj, ["CREATE", "MODIFY", "READ", "REVISE"], {
       "POST /api/v1/objects/:id/checkout": () => iteration({ version: "A.2", status: "WORKING", checkedOutBy: BOB }),
@@ -30,10 +31,61 @@ describe("ObjectPage", () => {
     renderAt(`/objects/${obj.id}`);
 
     expect(await screen.findByTestId("version")).toHaveTextContent("A.1");
-    expect(await screen.findByRole("button", { name: "Revise" })).toBeEnabled();
-    await userEvent.click(await screen.findByRole("button", { name: "Check out" }));
+    const revise = await screen.findByRole("button", { name: "Revise" });
+    await waitFor(() => expect(revise).toHaveAttribute("title", "Only Released objects can be revised (this one is In Work)"));
+    expect(revise).toBeDisabled();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Check out" })).toBeEnabled());
+    await userEvent.click(screen.getByRole("button", { name: "Check out" }));
 
     await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path.endsWith("/checkout"))).toBe(true));
+  });
+
+  it("makes Released objects read-only and revisable", async () => {
+    const obj = object({ latest: iteration({ state: "RELEASED" }) });
+    const calls = apiFor(obj, ["CREATE", "MODIFY", "READ", "REVISE"], {
+      "POST /api/v1/objects/:id/revise": () => object({ latest: iteration({ version: "B.1", revision: "B" }) }),
+    });
+    renderAt(`/objects/${obj.id}`);
+
+    const checkOut = await screen.findByRole("button", { name: "Check out" });
+    await waitFor(() => expect(checkOut).toHaveAttribute("title", "Released objects can't be edited. Revise to start a new revision."));
+    expect(checkOut).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Revise" }));
+
+    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path.endsWith("/revise"))).toBe(true));
+  });
+
+  it("lets a manager move the object along its lifecycle, with a comment", async () => {
+    const obj = object();
+    const calls = apiFor(obj, ["MODIFY", "READ", "PROMOTE"], {
+      "GET /api/v1/objects/:id/lifecycle": () => lifecycle("IN_WORK", { canPromote: true }),
+      "POST /api/v1/objects/:id/state": () => object({ latest: iteration({ state: "UNDER_REVIEW" }) }),
+    });
+    renderAt(`/objects/${obj.id}`);
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Set state" })).toBeEnabled());
+    await userEvent.click(screen.getByRole("button", { name: "Set state" }));
+    expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual(["Under Review", "Canceled"]);
+    await userEvent.click(screen.getByRole("menuitem", { name: "Under Review" }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.type(within(dialog).getByLabelText("Comment"), "Ready for DR-12");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Set state" }));
+
+    await waitFor(() =>
+      expect(calls.find((c) => c.path.endsWith("/state"))?.body).toEqual({ state: "UNDER_REVIEW", comment: "Ready for DR-12", override: false }),
+    );
+  });
+
+  it("offers site administrators an override to any state", async () => {
+    const obj = object();
+    apiFor(obj, ["READ"], { "GET /api/v1/objects/:id/lifecycle": () => lifecycle("IN_WORK", { canOverride: true }) });
+    renderAt(`/objects/${obj.id}`);
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Set state" })).toBeEnabled());
+    await userEvent.click(screen.getByRole("button", { name: "Set state" }));
+    expect(screen.getByRole("menuitem", { name: /Released \(override\)/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("menuitem", { name: /Released \(override\)/ }));
+    expect(await screen.findByText(/ignores the lifecycle's transitions/)).toBeInTheDocument();
   });
 
   it("shows who has it checked out and offers no actions to others", async () => {

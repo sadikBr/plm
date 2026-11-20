@@ -22,6 +22,7 @@ private val TYPE_NAME = Regex("^[A-Za-z][A-Za-z0-9_]{0,99}$")
 @Transactional
 internal class DefaultTypeService(
     private val types: TypeRepository,
+    private val hierarchy: com.plm.types.infra.AttributeRepository,
     private val events: DomainEvents,
     private val clock: Clock,
 ) : TypeService {
@@ -35,6 +36,15 @@ internal class DefaultTypeService(
 
     @Transactional(readOnly = true)
     override fun list(actor: Actor): List<TypeDefinition> = types.list(actor.tenant)
+
+    @Transactional(readOnly = true)
+    override fun lineage(
+        actor: Actor,
+        id: TypeId,
+    ): List<TypeId> =
+        hierarchy.lineage(actor.tenant, id).ifEmpty {
+            throw NotFoundException("TYPE_NOT_FOUND", "Type $id does not exist", mapOf("typeId" to id.value))
+        }
 
     override fun createSubtype(
         actor: Actor,

@@ -73,6 +73,27 @@ data class ObjectQuery(
     val after: MasterId? = null,
 )
 
+data class SetState(
+    val state: String,
+    val comment: String? = null,
+    /** Site administrators only: ignore the lifecycle's transitions. */
+    val override: Boolean = false,
+)
+
+data class ObjectLifecycle(
+    val template: com.plm.lifecycle.api.LifecycleTemplate,
+    val state: String,
+    /** Can be checked out in this state. */
+    val editable: Boolean,
+    /** Can be revised from this state. */
+    val revisable: Boolean,
+    val revisionScheme: com.plm.types.api.RevisionScheme,
+    /** States the actor may move it to now (empty without PROMOTE). */
+    val nextStates: List<String>,
+    /** Site administrators may set any state. */
+    val canOverride: Boolean,
+)
+
 data class CreateVersionedObject(
     val typeId: TypeId,
     val contextId: ContextId,
@@ -156,9 +177,28 @@ interface VersioningService {
         id: MasterId,
     ): VersionedObject
 
-    /** Starts the next revision from the latest iteration (A.3 -> B.1). */
+    /**
+     * Starts the next revision from the latest iteration (A.3 -> B.1), in the lifecycle's initial
+     * state. Only allowed from revisable states (Released, by default): `REVISE_NOT_ALLOWED`.
+     */
     fun revise(
         actor: Actor,
         id: MasterId,
     ): VersionedObject
+
+    /**
+     * Moves the latest iteration to another lifecycle state. Needs PROMOTE and an allowed transition
+     * (`TRANSITION_NOT_ALLOWED`). With [SetState.override], a site administrator may set any state.
+     */
+    fun setState(
+        actor: Actor,
+        id: MasterId,
+        command: SetState,
+    ): VersionedObject
+
+    /** Lifecycle, current state and what the actor can do next. Lets the UI explain disabled actions. */
+    fun lifecycle(
+        actor: Actor,
+        id: MasterId,
+    ): ObjectLifecycle
 }

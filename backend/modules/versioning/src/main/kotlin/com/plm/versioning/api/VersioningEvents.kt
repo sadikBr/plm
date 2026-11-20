@@ -91,3 +91,19 @@ data class ObjectRevised(
 ) : VersioningEvent {
     override val eventType = "versioning.ObjectRevised.v1"
 }
+
+data class ObjectStateChanged(
+    override val objectId: UUID,
+    override val number: String,
+    override val typeId: UUID,
+    override val contextId: UUID,
+    override val iterationId: UUID,
+    override val version: String,
+    val from: String,
+    val to: String,
+    val comment: String?,
+    /** True when a site administrator bypassed the lifecycle's transitions. */
+    val override: Boolean,
+) : VersioningEvent {
+    override val eventType = "versioning.ObjectStateChanged.v1"
+}

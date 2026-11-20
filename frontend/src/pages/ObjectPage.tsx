@@ -1,4 +1,4 @@
-import { Copy, GitBranchPlus, Link2, Lock, LockOpen, MoreHorizontal, Pencil, Undo2, Upload } from "lucide-react";
+import { ArrowRightLeft, Copy, GitBranchPlus, Link2, Lock, LockOpen, MoreHorizontal, Pencil, ShieldAlert, Undo2, Upload } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { isApiError } from "../api/client";
@@ -6,6 +6,7 @@ import {
   useAudit,
   useContextById,
   useHistory,
+  useLifecycle,
   useMe,
   useObject,
   useObjectActions,
@@ -14,6 +15,7 @@ import {
   useWorkingCopy,
   type AttributeDefinition,
   type Attributes,
+  type ObjectLifecycle,
   type VersionedObject,
 } from "../api/queries";
 import { AttributeForm, AttributeValues, fieldErrors } from "../components/AttributeForm";
@@ -74,8 +76,10 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
   const { data: permissions } = usePermissions(obj.contextId, obj.typeId);
   const typeName = useTypeName(obj.typeId);
   const actions = useObjectActions(obj.id);
+  const { data: lifecycle } = useLifecycle(obj.id);
   const [checkingIn, setCheckingIn] = useState(false);
   const [comment, setComment] = useState("");
+  const [stateChange, setStateChange] = useState<{ to: string; override: boolean } | null>(null);
 
   const mine = !!myId && obj.checkedOutBy === myId;
   const free = !obj.checkedOutBy;
@@ -83,6 +87,27 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
   const canRevise = !!permissions?.has("REVISE");
   const busy = Object.values(actions).some((m) => m.isPending);
   const failed = Object.values(actions).find((m) => m.error)?.error;
+  const label = (state: string) => stateName(lifecycle, state);
+  const current = label(obj.latest.state);
+  const revisableIn = lifecycle?.states.filter((s) => s.revisable).map((s) => label(s.key)).join(" or ");
+
+  // Why an action is unavailable, shown as a tooltip on the disabled button.
+  const checkOutReason = !free
+    ? `Checked out by ${mine ? "you" : "someone else"}`
+    : !canModify
+      ? "You don't have permission to edit this"
+      : lifecycle && !lifecycle.editable
+        ? `${current} objects can't be edited. Revise to start a new revision.`
+        : undefined;
+  const reviseReason = !free
+    ? "Check it in first"
+    : !canRevise
+      ? "You don't have permission to revise this"
+      : lifecycle && !lifecycle.revisable
+        ? `Only ${revisableIn || "released"} objects can be revised (this one is ${current})`
+        : undefined;
+  const otherStates = (lifecycle?.states ?? []).filter((s) => s.key !== obj.latest.state && !lifecycle?.nextStates.includes(s.key));
+  const canChangeState = free && !!lifecycle && (lifecycle.nextStates.length > 0 || lifecycle.canOverride);
 
   return (
     <>
@@ -101,7 +126,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
             <span className="tag accent version" data-testid="version">
               {obj.version}
             </span>
-            <StateBadge state={obj.latest.state} />
+            <StateBadge state={obj.latest.state} label={current} />
             {obj.checkedOutBy && (
               <span className="tag warn" data-testid="checked-out">
                 <Lock size={11} aria-hidden />
@@ -113,7 +138,12 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
         }
         toolbar={
           <>
-            <button className="btn ghost" disabled={busy || !free || !canModify} onClick={() => actions.checkOut.mutate()}>
+            <button
+              className="btn ghost"
+              disabled={busy || !!checkOutReason || !lifecycle}
+              title={checkOutReason}
+              onClick={() => actions.checkOut.mutate()}
+            >
               <LockOpen size={15} aria-hidden />
               Check out
             </button>
@@ -126,10 +156,63 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
               Undo check-out
             </button>
             <span className="divider" />
-            <button className="btn ghost" disabled={busy || !free || !canRevise} onClick={() => actions.revise.mutate()}>
+            <button
+              className="btn ghost"
+              disabled={busy || !!reviseReason || !lifecycle}
+              title={reviseReason}
+              onClick={() => actions.revise.mutate()}
+            >
               <GitBranchPlus size={15} aria-hidden />
               Revise
             </button>
+            {canChangeState ? (
+              <MenuButton label="Set state" icon={<ArrowRightLeft size={15} aria-hidden />} align="left">
+                {(close) => (
+                  <>
+                    {lifecycle!.nextStates.length === 0 && <button disabled>No transitions from {current}</button>}
+                    {lifecycle!.nextStates.map((to) => (
+                      <button
+                        key={to}
+                        role="menuitem"
+                        onClick={() => {
+                          setStateChange({ to, override: false });
+                          close();
+                        }}
+                      >
+                        <StateBadge state={to} label={label(to)} />
+                      </button>
+                    ))}
+                    {lifecycle!.canOverride && otherStates.length > 0 && (
+                      <>
+                        <hr />
+                        {otherStates.map((s) => (
+                          <button
+                            key={s.key}
+                            role="menuitem"
+                            title="Site administrator override: ignores the lifecycle's transitions"
+                            onClick={() => {
+                              setStateChange({ to: s.key, override: true });
+                              close();
+                            }}
+                          >
+                            <ShieldAlert size={14} aria-hidden /> {label(s.key)} (override)
+                          </button>
+                        ))}
+                      </>
+                    )}
+                  </>
+                )}
+              </MenuButton>
+            ) : (
+              <button
+                className="btn ghost"
+                disabled
+                title={!free ? "Check it in first" : "You don't have permission to change the state"}
+              >
+                <ArrowRightLeft size={15} aria-hidden />
+                Set state
+              </button>
+            )}
             <span className="grow" />
             <MenuButton label="More" icon={<MoreHorizontal size={15} aria-hidden />}>
               {(close) => (
@@ -164,6 +247,21 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
           <ErrorBanner error={failed} />
         </div>
       )}
+      <StateChangeDialog
+        objectNumber={obj.number}
+        from={current}
+        change={stateChange}
+        label={label}
+        busy={busy}
+        onCancel={() => setStateChange(null)}
+        onConfirm={(comment) =>
+          stateChange &&
+          actions.setState.mutate(
+            { state: stateChange.to, comment: comment || undefined, override: stateChange.override },
+            { onSuccess: () => setStateChange(null) },
+          )
+        }
+      />
       <Dialog
         open={checkingIn}
         title={`Check in ${obj.number}`}
@@ -202,6 +300,68 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
         </div>
       </Dialog>
     </>
+  );
+}
+
+function stateName(lifecycle: ObjectLifecycle | undefined, state: string): string {
+  const labels = lifecycle?.states.find((s) => s.key === state)?.labels;
+  return labels?.en ?? state.charAt(0) + state.slice(1).toLowerCase().replace(/_/g, " ");
+}
+
+function StateChangeDialog({
+  objectNumber,
+  from,
+  change,
+  label,
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  objectNumber: string;
+  from: string;
+  change: { to: string; override: boolean } | null;
+  label: (state: string) => string;
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: (comment: string) => void;
+}) {
+  const [comment, setComment] = useState("");
+  return (
+    <Dialog
+      open={change !== null}
+      title={`Set state of ${objectNumber}`}
+      onClose={onCancel}
+      footer={
+        <>
+          <button className="btn" onClick={onCancel}>
+            Cancel
+          </button>
+          <button className="btn primary" disabled={busy} onClick={() => onConfirm(comment)}>
+            Set state
+          </button>
+        </>
+      }
+    >
+      {change && (
+        <>
+          <p style={{ margin: 0 }}>
+            {from} → <strong>{label(change.to)}</strong>
+          </p>
+          {change.override && (
+            <div className="banner warn">This ignores the lifecycle's transitions. It is recorded in the audit trail.</div>
+          )}
+          <div className="field">
+            <label htmlFor="state-comment">Comment</label>
+            <textarea
+              id="state-comment"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Why? e.g. approved in design review DR-12"
+            />
+          </div>
+        </>
+      )}
+    </Dialog>
   );
 }
 

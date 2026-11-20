@@ -1,6 +1,7 @@
 import { Info } from "lucide-react";
 import type { ReactNode } from "react";
 import { ApiError } from "../api/client";
+import { Props } from "./common";
 import {
   useEnumerations,
   useUnits,
@@ -79,29 +80,20 @@ export function formatAttribute(
 
 // ---------- Read-only view ----------
 
-/** Attribute values as a definition list, in the type's order. Values without a definition (legacy data) come last. */
+/** Attribute values as a property grid, in the type's order. Values without a definition (legacy data) come last. */
 export function AttributeValues({ definitions, values }: { definitions: AttributeDefinition[]; values: Attributes }) {
   const { data: enumerations } = useEnumerations();
   const known = new Set(definitions.map((d) => d.name));
-  const rows: [string, string, string][] = [
+  const items: [string, ReactNode][] = [
     ...definitions
       .filter((d) => d.active || values[d.name] != null)
-      .map((d) => [d.name, pickLabel(d.labels, d.name), formatAttribute(d, values[d.name], enumerations)] as [string, string, string]),
+      .map((d): [string, ReactNode] => [pickLabel(d.labels, d.name), values[d.name] == null ? null : formatAttribute(d, values[d.name], enumerations)]),
     ...Object.keys(values)
       .filter((k) => !known.has(k))
-      .map((k) => [k, k, formatAttribute(undefined, values[k])] as [string, string, string]),
+      .map((k): [string, ReactNode] => [k, formatAttribute(undefined, values[k])]),
   ];
-  if (rows.length === 0) return <p className="muted">No attributes.</p>;
-  return (
-    <dl className="props">
-      {rows.map(([name, label, text]) => (
-        <div key={name} style={{ display: "contents" }}>
-          <dt>{label}</dt>
-          <dd>{text}</dd>
-        </div>
-      ))}
-    </dl>
-  );
+  if (items.length === 0) return <p className="muted">No attributes.</p>;
+  return <Props items={items} columns={2} />;
 }
 
 // ---------- Editable form ----------

@@ -6,6 +6,8 @@ import com.plm.access.api.AccessTarget
 import com.plm.access.api.ContextService
 import com.plm.access.api.Permission
 import com.plm.identity.api.PrincipalDirectory
+import com.plm.lifecycle.api.LifecycleService
+import com.plm.lifecycle.api.LifecycleTemplate
 import com.plm.platform.actor.Actor
 import com.plm.platform.error.ConflictException
 import com.plm.platform.error.ForbiddenException
@@ -15,6 +17,7 @@ import com.plm.platform.events.DomainEvents
 import com.plm.platform.id.PrincipalId
 import com.plm.platform.id.UuidV7
 import com.plm.types.api.AttributeValidator
+import com.plm.types.api.TypeRuleService
 import com.plm.types.api.TypeService
 import com.plm.versioning.api.CheckOutUndone
 import com.plm.versioning.api.CreateVersionedObject
@@ -25,8 +28,11 @@ import com.plm.versioning.api.MasterId
 import com.plm.versioning.api.ObjectCheckedIn
 import com.plm.versioning.api.ObjectCheckedOut
 import com.plm.versioning.api.ObjectCreated
+import com.plm.versioning.api.ObjectLifecycle
 import com.plm.versioning.api.ObjectQuery
 import com.plm.versioning.api.ObjectRevised
+import com.plm.versioning.api.ObjectStateChanged
+import com.plm.versioning.api.SetState
 import com.plm.versioning.api.VersionedObject
 import com.plm.versioning.api.VersioningService
 import com.plm.versioning.api.WorkingCopyUpdated
@@ -56,6 +62,8 @@ internal class DefaultVersioningService(
     private val events: DomainEvents,
     private val directory: PrincipalDirectory,
     private val attributeValidator: AttributeValidator,
+    private val typeRules: TypeRuleService,
+    private val lifecycles: LifecycleService,
     private val clock: Clock,
 ) : VersioningService {
     override fun create(
@@ -73,8 +81,20 @@ internal class DefaultVersioningService(
                 mapOf("contextId" to context.id.value, "kind" to context.kind),
             )
         }
-        access.require(actor, AccessTarget(context.id, type.id, INITIAL_STATE), Permission.CREATE)
+        val rules = typeRules.rules(actor, type.id)
+        if (command.number != null && !rules.allowManualNumber) {
+            throw ValidationException(
+                "MANUAL_NUMBER_NOT_ALLOWED",
+                "${type.displayName} numbers are assigned automatically; leave the number empty",
+            )
+        }
+        val lifecycle = lifecycles.forType(actor, type.id)
+        access.require(actor, AccessTarget(context.id, type.id, lifecycle.initialState), Permission.CREATE)
         val attributes = attributeValidator.validate(actor, type.id, command.attributes, previous = null)
+        val number =
+            command.number
+                ?: rules.numberingSchemeId?.let { typeRules.nextNumber(actor, it) }
+                ?: repository.nextNumber()
 
         val now = clock.instant()
         val masterId = MasterId(UuidV7.generate(clock))
@@ -82,10 +102,10 @@ internal class DefaultVersioningService(
             Iteration(
                 id = IterationId(UuidV7.generate(clock)),
                 masterId = masterId,
-                revision = RevisionSeries.first,
+                revision = rules.revisionScheme.first,
                 iteration = 1,
                 status = IterationStatus.CHECKED_IN,
-                state = INITIAL_STATE,
+                state = lifecycle.initialState,
                 attributes = attributes,
                 basedOnId = null,
                 comment = null,
@@ -99,9 +119,11 @@ internal class DefaultVersioningService(
                 id = masterId,
                 typeId = type.id,
                 contextId = context.id,
-                number = command.number ?: repository.nextNumber(),
+                number = number,
                 name = name,
                 latestIterationId = first.id,
+                lifecycleId = lifecycle.id,
+                revisionScheme = rules.revisionScheme,
                 createdAt = now,
                 createdBy = actor.principal.value,
                 checkedOutBy = null,
@@ -177,6 +199,15 @@ internal class DefaultVersioningService(
     ): Iteration {
         val master = findMaster(actor, id, forUpdate = true)
         val latest = authorize(actor, master, Permission.MODIFY)
+        val lifecycle = lifecycleOf(actor, master)
+        if (!lifecycle.isEditable(latest.state)) {
+            throw ConflictException(
+                "NOT_EDITABLE",
+                "${master.number} is ${stateName(lifecycle, latest.state)} and can't be changed. " +
+                    "Revise it to start a new revision you can edit.",
+                mapOf("state" to latest.state),
+            )
+        }
         repository.workingCopy(master.id)?.let { existing ->
             throw ConflictException(
                 "ALREADY_CHECKED_OUT",
@@ -294,13 +325,25 @@ internal class DefaultVersioningService(
                 mapOf("checkedOutBy" to master.checkedOutBy),
             )
         }
+        val lifecycle = lifecycleOf(actor, master)
+        if (!lifecycle.isRevisable(latest.state)) {
+            val from = lifecycle.states.filter { it.revisable }.joinToString(" or ") { it.labels["en"] ?: it.key }
+            throw ConflictException(
+                "REVISE_NOT_ALLOWED",
+                "${master.number} is ${stateName(
+                    lifecycle,
+                    latest.state,
+                )}; only ${from.ifEmpty { "no" }} objects can be revised",
+                mapOf("state" to latest.state),
+            )
+        }
         val now = clock.instant()
         val revised =
             latest.copy(
                 id = IterationId(UuidV7.generate(clock)),
-                revision = RevisionSeries.next(latest.revision),
+                revision = master.revisionScheme.next(latest.revision),
                 iteration = 1,
-                state = INITIAL_STATE,
+                state = lifecycle.initialState,
                 basedOnId = latest.id,
                 comment = null,
                 createdAt = now,
@@ -323,6 +366,109 @@ internal class DefaultVersioningService(
         )
         return master.copy(latestIterationId = revised.id).toObject(revised)
     }
+
+    override fun setState(
+        actor: Actor,
+        id: MasterId,
+        command: SetState,
+    ): VersionedObject {
+        val comment = command.comment?.trim()?.takeIf { it.isNotEmpty() }
+        if (comment != null && comment.length > MAX_COMMENT_LENGTH) {
+            throw ValidationException("INVALID_COMMENT", "Comment must be at most $MAX_COMMENT_LENGTH characters")
+        }
+        val master = findMaster(actor, id, forUpdate = true)
+        val latest =
+            if (command.override) {
+                if (!actor.siteAdmin) {
+                    throw ForbiddenException(
+                        "ADMIN_REQUIRED",
+                        "Only site administrators can override the lifecycle",
+                    )
+                }
+                readable(actor, master)
+            } else {
+                authorize(actor, master, Permission.PROMOTE)
+            }
+        if (master.checkedOutBy != null) {
+            throw ConflictException(
+                "CHECKED_OUT",
+                "${master.number} is checked out by ${nameOf(actor, master.checkedOutBy)}; check it in first",
+                mapOf("checkedOutBy" to master.checkedOutBy),
+            )
+        }
+        val lifecycle = lifecycleOf(actor, master)
+        val target =
+            lifecycle.state(command.state)
+                ?: throw ValidationException(
+                    "UNKNOWN_STATE",
+                    "'${command.state}' is not a state of the ${lifecycle.name} lifecycle",
+                    mapOf("states" to lifecycle.states.map { it.key }),
+                )
+        if (target.key == latest.state) {
+            throw ValidationException("SAME_STATE", "${master.number} is already ${stateName(lifecycle, latest.state)}")
+        }
+        if (!command.override && !lifecycle.canTransition(latest.state, target.key)) {
+            throw ConflictException(
+                "TRANSITION_NOT_ALLOWED",
+                "${master.number} can't go from ${stateName(
+                    lifecycle,
+                    latest.state,
+                )} to ${stateName(lifecycle, target.key)}",
+                mapOf(
+                    "from" to latest.state,
+                    "to" to target.key,
+                    "allowed" to lifecycle.nextStates(latest.state).map { it.key },
+                ),
+            )
+        }
+        repository.setState(latest.id, target.key)
+        events.publish(
+            actor,
+            ObjectStateChanged(
+                master.id.value,
+                master.number,
+                master.typeId.value,
+                master.contextId.value,
+                latest.id.value,
+                latest.version,
+                latest.state,
+                target.key,
+                comment,
+                command.override,
+            ),
+        )
+        return master.toObject(latest.copy(state = target.key))
+    }
+
+    @Transactional(readOnly = true)
+    override fun lifecycle(
+        actor: Actor,
+        id: MasterId,
+    ): ObjectLifecycle {
+        val master = findMaster(actor, id, forUpdate = false)
+        val latest = readable(actor, master)
+        val lifecycle = lifecycleOf(actor, master)
+        val canPromote = access.has(actor, master.target(latest), Permission.PROMOTE)
+        return ObjectLifecycle(
+            template = lifecycle,
+            state = latest.state,
+            editable = lifecycle.isEditable(latest.state),
+            revisable = lifecycle.isRevisable(latest.state),
+            revisionScheme = master.revisionScheme,
+            nextStates = if (canPromote) lifecycle.nextStates(latest.state).map { it.key } else emptyList(),
+            canOverride = actor.siteAdmin,
+        )
+    }
+
+    private fun lifecycleOf(
+        actor: Actor,
+        master: MasterRow,
+    ): LifecycleTemplate = lifecycles.get(actor, master.lifecycleId)
+
+    private fun stateName(
+        lifecycle: LifecycleTemplate,
+        state: String,
+    ) = lifecycle.state(state)?.labels?.get("en") ?: state
 
     private fun findMaster(
         actor: Actor,
@@ -417,9 +563,4 @@ internal class DefaultVersioningService(
             createdAt = createdAt,
             createdBy = createdBy,
         )
-
-    private companion object {
-        /** Until lifecycles exist (roadmap 1.x), every iteration starts In Work. */
-        const val INITIAL_STATE = "IN_WORK"
-    }
 }

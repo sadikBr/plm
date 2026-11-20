@@ -6,7 +6,9 @@ import com.plm.types.api.TypeId
 import com.plm.versioning.api.CreateVersionedObject
 import com.plm.versioning.api.Iteration
 import com.plm.versioning.api.MasterId
+import com.plm.versioning.api.ObjectLifecycle
 import com.plm.versioning.api.ObjectQuery
+import com.plm.versioning.api.SetState
 import com.plm.versioning.api.VersionedObject
 import com.plm.versioning.api.VersioningService
 import org.springframework.http.HttpStatus
@@ -108,6 +110,31 @@ internal class VersionedObjectController(
         @PathVariable id: UUID,
     ) = ObjectResponse(versioning.undoCheckOut(actor, MasterId(id)))
 
+    /** Lifecycle, current state, and what the caller may do next (with reasons for what they may not). */
+    @GetMapping("/{id}/lifecycle")
+    fun lifecycle(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = ObjectLifecycleResponse(versioning.lifecycle(actor, MasterId(id)))
+
+    /** Moves the object to another lifecycle state along an allowed transition (needs PROMOTE). */
+    @PostMapping("/{id}/state")
+    fun setState(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: SetStateRequest,
+    ) = ObjectResponse(
+        versioning.setState(
+            actor,
+            MasterId(id),
+            SetState(
+                request.state,
+                request.comment,
+                request.override ?: false,
+            ),
+        ),
+    )
+
     @PostMapping("/{id}/revise")
     fun revise(
         actor: Actor,
@@ -186,5 +213,44 @@ internal data class IterationResponse(
         createdBy = i.createdBy,
         checkedInAt = i.checkedInAt,
         checkedOutBy = i.checkedOutBy,
+    )
+}
+
+internal data class SetStateRequest(
+    val state: String,
+    val comment: String? = null,
+    /** Site administrators only: ignore the lifecycle's transitions. */
+    val override: Boolean? = null,
+)
+
+internal data class LifecycleStateResponse(
+    val key: String,
+    val labels: Map<String, String>,
+    val editable: Boolean,
+    val revisable: Boolean,
+)
+
+internal data class ObjectLifecycleResponse(
+    val lifecycleId: UUID,
+    val lifecycleName: String,
+    val states: List<LifecycleStateResponse>,
+    val state: String,
+    val editable: Boolean,
+    val revisable: Boolean,
+    val revisionScheme: String,
+    /** States the caller may move the object to now. */
+    val nextStates: List<String>,
+    val canOverride: Boolean,
+) {
+    constructor(l: ObjectLifecycle) : this(
+        l.template.id.value,
+        l.template.name,
+        l.template.states.map { LifecycleStateResponse(it.key, it.labels, it.editable, it.revisable) },
+        l.state,
+        l.editable,
+        l.revisable,
+        l.revisionScheme.name,
+        l.nextStates,
+        l.canOverride,
     )
 }

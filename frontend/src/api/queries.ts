@@ -13,6 +13,7 @@ export type AttributeDefinition = Schemas["AttributeResponse"];
 export type DataType = AttributeDefinition["dataType"];
 export type Enumeration = Schemas["EnumerationResponse"];
 export type Unit = Schemas["UnitResponse"];
+export type ObjectLifecycle = Schemas["ObjectLifecycleResponse"];
 
 const PAGE_SIZE = 50;
 
@@ -31,6 +32,7 @@ export const keys = {
   objects: (contextId: string) => ["objects", contextId] as const,
   object: (id: string) => ["object", id] as const,
   history: (id: string) => ["history", id] as const,
+  lifecycle: (id: string) => ["lifecycle", id] as const,
   workingCopy: (id: string) => ["workingCopy", id] as const,
   principal: (id: string) => ["principal", id] as const,
   audit: (aggregateId: string) => ["audit", aggregateId] as const,
@@ -143,6 +145,13 @@ export const useObject = (id: string) =>
     queryFn: () => unwrap(api.GET("/api/v1/objects/{id}", { params: { path: { id } } })),
   });
 
+/** Lifecycle, current state, and what the user may do next. */
+export const useLifecycle = (id: string) =>
+  useQuery({
+    queryKey: keys.lifecycle(id),
+    queryFn: () => unwrap(api.GET("/api/v1/objects/{id}/lifecycle", { params: { path: { id } } })),
+  });
+
 export const useHistory = (id: string) =>
   useQuery({
     queryKey: keys.history(id),
@@ -239,6 +248,7 @@ export function useObjectActions(id: string) {
       qc.invalidateQueries({ queryKey: keys.history(id) }),
       qc.invalidateQueries({ queryKey: keys.workingCopy(id) }),
       qc.invalidateQueries({ queryKey: keys.audit(id) }),
+      qc.invalidateQueries({ queryKey: keys.lifecycle(id) }),
       contextId ? qc.invalidateQueries({ queryKey: keys.objects(contextId) }) : Promise.resolve(),
     ]);
   const path = { params: { path: { id } } };
@@ -259,6 +269,11 @@ export function useObjectActions(id: string) {
     }),
     revise: useMutation({
       mutationFn: () => unwrap(api.POST("/api/v1/objects/{id}/revise", path)),
+      onSettled: (obj) => refresh(obj?.contextId),
+    }),
+    setState: useMutation({
+      mutationFn: (body: { state: string; comment?: string; override?: boolean }) =>
+        unwrap(api.POST("/api/v1/objects/{id}/state", { ...path, body })),
       onSettled: (obj) => refresh(obj?.contextId),
     }),
     updateAttributes: useMutation({
