@@ -14,7 +14,7 @@ import {
   usePrincipal,
   useAttachTeam,
   useAttachedTeams,
-  useSharedTeams,
+  useUsableTeams,
   usePutMember,
   useRemoveMember,
   useTeamRoles,
@@ -205,7 +205,7 @@ function SharedTeamsPanel({
   roleLabel: (key: TeamRole) => string;
 }) {
   const { data: attached } = useAttachedTeams(contextId);
-  const { data: all } = useSharedTeams();
+  const { data: all } = useUsableTeams(contextId);
   const change = useAttachTeam(contextId);
   const available = (all ?? []).filter((t) => !attached?.some((a) => a.id === t.id));
   if (!canManage && !attached?.length) return null;

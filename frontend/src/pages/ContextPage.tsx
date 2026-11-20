@@ -38,9 +38,10 @@ import { rememberVisit } from "../components/Navigator";
 import { ObjectTable } from "../components/ObjectTable";
 import { AccessTab, TeamTab } from "./ContextAccess";
 import { PreferencesTab } from "./Preferences";
+import { ContextTemplatesAdmin, SharedTeamsAdmin } from "../admin/TeamsAndTemplatesAdmin";
 import { NotFoundPage } from "./NotFoundPage";
 
-type Tab = "objects" | "contexts" | "team" | "access" | "preferences";
+type Tab = "objects" | "contexts" | "team" | "access" | "preferences" | "teams" | "templates";
 
 /** Remounts per context, so page state (open dialogs, filters, form drafts) never leaks between contexts. */
 export function ContextPage() {
@@ -66,12 +67,16 @@ function ContextView({ id }: { id: string }) {
   const holdsObjects = HOLDS_OBJECTS.has(context.kind);
   const childKinds = ALLOWED_CHILDREN[context.kind];
   const tab = (params.get("tab") as Tab | null) ?? (holdsObjects ? "objects" : "contexts");
+  // Managers save templates for their organization; site admins may also make them site-wide.
+  const canSaveTemplate = context.kind !== "SITE" && (!!me?.siteAdmin || !!permissions?.has("MANAGE"));
+  const isOrgAdmin = context.kind === "ORGANIZATION" && !!permissions?.has("MANAGE");
   const tabs: [Tab, string][] = [
     ...(holdsObjects ? [["objects", "Objects"] as [Tab, string]] : []),
     ...(childKinds.length > 0 ? [["contexts", "Contexts"] as [Tab, string]] : []),
     ["team", "Team"],
     // Access rules are for whoever manages this context.
     ...(permissions?.has("MANAGE") ? [["access", "Access"] as [Tab, string], ["preferences", "Preferences"] as [Tab, string]] : []),
+    ...(isOrgAdmin ? [["teams", "Shared teams"] as [Tab, string], ["templates", "Templates"] as [Tab, string]] : []),
   ];
   const canCreateObject = holdsObjects && !!permissions?.has("CREATE");
   // Organizations are created by site admins only; everything else needs MANAGE on the parent.
@@ -93,7 +98,7 @@ function ContextView({ id }: { id: string }) {
           </>
         }
         toolbar={
-          canCreateObject || canCreateContext || (me?.siteAdmin && context.kind !== "SITE") ? (
+          canCreateObject || canCreateContext || canSaveTemplate ? (
             <>
               {canCreateObject && (
                 <button className="btn ghost" onClick={() => setDialog("object")}>
@@ -107,7 +112,7 @@ function ContextView({ id }: { id: string }) {
                   {newContextLabel}
                 </button>
               )}
-              {me?.siteAdmin && context.kind !== "SITE" && (
+              {canSaveTemplate && (
                 <button className="btn ghost" onClick={() => setDialog("template")}>
                   <LayoutTemplate size={15} aria-hidden />
                   Save as template
@@ -123,6 +128,8 @@ function ContextView({ id }: { id: string }) {
         {tab === "contexts" && <ContextsTab context={context} />}
         {tab === "team" && <TeamTab context={context} canManage={!!permissions?.has("MANAGE")} />}
         {tab === "preferences" && permissions?.has("MANAGE") && <PreferencesTab contextId={context.id} />}
+        {tab === "teams" && isOrgAdmin && <SharedTeamsAdmin organizationId={context.id} />}
+        {tab === "templates" && isOrgAdmin && <ContextTemplatesAdmin organizationId={context.id} />}
         {tab === "access" && permissions?.has("MANAGE") && (
           // Rules on the site apply everywhere: only site admins change them.
           <AccessTab context={context} canChange={context.kind === "SITE" ? !!me?.siteAdmin : true} />
@@ -130,7 +137,7 @@ function ContextView({ id }: { id: string }) {
       </div>
       <NewObjectDialog context={context} open={dialog === "object"} onClose={() => setDialog(null)} />
       <NewContextDialog parent={context} kinds={childKinds} open={dialog === "context"} onClose={() => setDialog(null)} />
-      {dialog === "template" && <SaveAsTemplateDialog context={context} onClose={() => setDialog(null)} />}
+      {dialog === "template" && <SaveAsTemplateDialog context={context} siteAdmin={!!me?.siteAdmin} onClose={() => setDialog(null)} />}
     </>
   );
 }
@@ -343,7 +350,7 @@ function NewContextDialog({
   const [templateId, setTemplateId] = useState("");
   const formId = "new-context-form";
   const chosenKind = kind || kinds[0];
-  const { data: templates } = useContextTemplates(chosenKind);
+  const { data: templates } = useContextTemplates(chosenKind, parent.id);
   const template = templates?.find((t) => t.id === templateId);
 
   const submit = (e: FormEvent) => {
@@ -428,8 +435,10 @@ function NewContextDialog({
   );
 }
 
-function SaveAsTemplateDialog({ context, onClose }: { context: Context; onClose: () => void }) {
+function SaveAsTemplateDialog({ context, siteAdmin, onClose }: { context: Context; siteAdmin: boolean; onClose: () => void }) {
   const save = useSaveAsTemplate(context.id);
+  // Organization templates are always site-wide (organizations are created on the site).
+  const [siteWide, setSiteWide] = useState(context.kind === "ORGANIZATION");
   const [name, setName] = useState(`${context.name} template`);
   const [description, setDescription] = useState("");
   const [saved, setSaved] = useState(false);
@@ -461,7 +470,7 @@ function SaveAsTemplateDialog({ context, onClose }: { context: Context; onClose:
         style={{ display: "grid", gap: 12 }}
         onSubmit={(e) => {
           e.preventDefault();
-          save.mutate({ name: name.trim(), description: description.trim() || null }, { onSuccess: () => setSaved(true) });
+          save.mutate({ name: name.trim(), description: description.trim() || null, siteWide }, { onSuccess: () => setSaved(true) });
         }}
       >
         <ErrorBanner error={save.error} />
@@ -483,6 +492,17 @@ function SaveAsTemplateDialog({ context, onClose }: { context: Context; onClose:
               <label htmlFor="template-description">Description</label>
               <input id="template-description" value={description} onChange={(e) => setDescription(e.target.value)} />
             </div>
+            {context.kind !== "ORGANIZATION" &&
+              (siteAdmin ? (
+                <label className="check">
+                  <input type="checkbox" checked={siteWide} onChange={(e) => setSiteWide(e.target.checked)} />
+                  Site-wide: usable in every organization (otherwise only in this {kindLabel(context.kind).toLowerCase()}'s organization)
+                </label>
+              ) : (
+                <p className="muted" style={{ margin: 0 }}>
+                  It will belong to this {kindLabel(context.kind).toLowerCase()}'s organization and be usable only there.
+                </p>
+              ))}
           </>
         )}
       </form>

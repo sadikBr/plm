@@ -2,7 +2,7 @@ import { Plus, Trash2, UserPlus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "../api/client";
-import { findPrincipalByUsername, useContextTemplates, useSharedTeams, useTeamRoles, useTypes, type ContextTemplate } from "../api/queries";
+import { findPrincipalByUsername, useContextById, useContextTemplates, useSharedTeams, useTeamRoles, useTypes, type ContextTemplate } from "../api/queries";
 import { pickLabel } from "../components/AttributeForm";
 import { ErrorBanner, Loading, Panel, PrincipalName, formatDate, kindLabel } from "../components/common";
 
@@ -15,10 +15,17 @@ function useInvalidate() {
   };
 }
 
+function OrgName({ id }: { id: string }) {
+  const { data } = useContextById(id);
+  return <>{data ? data.name : "an organization"}</>;
+}
+
 // ---------- Context templates ----------
 
-export function ContextTemplatesAdmin() {
-  const { data: templates, isLoading } = useContextTemplates();
+/** Templates of one organization (its managers), or every template (site admins, no [organizationId]). */
+export function ContextTemplatesAdmin({ organizationId }: { organizationId?: string }) {
+  const { data: all, isLoading } = useContextTemplates();
+  const templates = organizationId ? all?.filter((t) => t.organizationId === organizationId) : all;
   const [selected, setSelected] = useState<string | null>(null);
   const current = templates?.find((t) => t.id === selected) ?? templates?.[0];
 
@@ -28,7 +35,8 @@ export function ContextTemplatesAdmin() {
       <Panel title="Context templates" flush>
         {!templates?.length ? (
           <p className="empty">
-            No templates yet. Open a product, library, project or organization set up the way you like and use <strong>Save as template</strong>.
+            No templates yet. Open a {organizationId ? "product, library or project of this organization" : "product, library, project or organization"} set
+            up the way you like and use <strong>Save as template</strong>.
           </p>
         ) : (
           <ul className="type-tree" aria-label="Context templates">
@@ -38,6 +46,7 @@ export function ContextTemplatesAdmin() {
                   {t.name}
                   <span className="muted" style={{ marginLeft: "auto" }}>
                     {kindLabel(t.kind)}
+                    {!organizationId && !t.organizationId && " · site-wide"}
                   </span>
                 </button>
               </li>
@@ -76,7 +85,12 @@ function TemplateDetails({ template }: { template: ContextTemplate }) {
   return (
     <Panel
       title={template.name}
-      note={`${kindLabel(template.kind)} template · updated ${formatDate(template.updatedAt)}`}
+      note={
+        <>
+          {kindLabel(template.kind)} template · {template.organizationId ? <OrgName id={template.organizationId} /> : "site-wide"} · updated{" "}
+          {formatDate(template.updatedAt)}
+        </>
+      }
       actions={
         <button className="btn small danger" onClick={() => remove.mutate()} disabled={remove.isPending}>
           <Trash2 size={13} aria-hidden />
@@ -157,14 +171,16 @@ function TemplateDetails({ template }: { template: ContextTemplate }) {
 
 // ---------- Shared teams ----------
 
-export function SharedTeamsAdmin() {
-  const { data: teams, isLoading } = useSharedTeams();
+/** Shared teams of one organization (its managers), or every team (site admins, no [organizationId]). */
+export function SharedTeamsAdmin({ organizationId }: { organizationId?: string }) {
+  const { data: all, isLoading } = useSharedTeams();
+  const teams = organizationId ? all?.filter((t) => t.organizationId === organizationId) : all;
   const invalidate = useInvalidate();
   const [selected, setSelected] = useState<string | null>(null);
   const [name, setName] = useState("");
   const current = teams?.find((t) => t.id === selected) ?? teams?.[0];
   const create = useMutation({
-    mutationFn: () => unwrap(api.POST("/api/v1/shared-teams", { body: { name: name.trim() } })),
+    mutationFn: () => unwrap(api.POST("/api/v1/shared-teams", { body: { name: name.trim(), organizationId: organizationId ?? null } })),
     onSuccess: (team) => {
       setName("");
       setSelected(team.id);
@@ -202,6 +218,7 @@ export function SharedTeamsAdmin() {
               <button className={current?.id === t.id ? "type-row active" : "type-row"} onClick={() => setSelected(t.id)}>
                 {t.name}
                 <span className="muted" style={{ marginLeft: "auto" }}>
+                  {!organizationId && t.organizationId ? "org · " : ""}
                   {t.members.length}
                 </span>
               </button>

@@ -141,14 +141,22 @@ const REFERENCE_DATA = { staleTime: 10 * 60_000 };
 export type ContextTemplate = Schemas["ContextTemplateResponse"];
 export type SharedTeam = Schemas["SharedTeamResponse"];
 
-/** Templates for new contexts of [kind] (all kinds when omitted). */
-export const useContextTemplates = (kind?: ContextKind) =>
+/** Templates for new contexts of [kind] (all kinds when omitted); with [parentId], only those usable under it. */
+export const useContextTemplates = (kind?: ContextKind, parentId?: string) =>
   useQuery({
-    queryKey: ["contextTemplates", kind ?? "all"],
-    queryFn: () => unwrap(api.GET("/api/v1/context-templates", { params: { query: kind ? { kind } : {} } })),
+    queryKey: ["contextTemplates", kind ?? "all", parentId ?? "any"],
+    queryFn: () =>
+      unwrap(api.GET("/api/v1/context-templates", { params: { query: { ...(kind ? { kind } : {}), ...(parentId ? { parentId } : {}) } } })),
   });
 
 export const useSharedTeams = () => useQuery({ queryKey: ["sharedTeams"], queryFn: () => unwrap(api.GET("/api/v1/shared-teams")) });
+
+/** Shared teams that can be attached to a context: site-wide ones and its organization's. */
+export const useUsableTeams = (contextId: string) =>
+  useQuery({
+    queryKey: ["sharedTeams", "usable", contextId],
+    queryFn: () => unwrap(api.GET("/api/v1/contexts/{contextId}/shared-teams/usable", { params: { path: { contextId } } })),
+  });
 
 export const useAttachedTeams = (contextId: string) =>
   useQuery({

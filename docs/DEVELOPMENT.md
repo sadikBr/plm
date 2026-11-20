@@ -430,6 +430,11 @@ curl -s -X POST $API/contexts -H "Authorization: Bearer $ALICE" -H 'Content-Type
   -d "{\"parentId\":\"$ORG\",\"kind\":\"PRODUCT\",\"name\":\"Pump\",\"templateId\":\"$TEMPLATE\"}" | jq -c '{name, kind}'
 ```
 
+**Organization administration.** Managers of an organization don't need to be site admins to run
+it: on the organization's page they get **Shared teams** and **Templates** tabs for the
+organization's own teams and templates, which are usable only inside it. **Save as template** on
+one of their products makes an organization template; site admins can choose to make it site-wide.
+
 ### Preferences
 
 Preferences are settings each module declares (type, default, where they may be set). A value set

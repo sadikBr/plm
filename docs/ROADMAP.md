@@ -65,8 +65,11 @@ code**. Every later phase builds on this. See [PARITY.md](PARITY.md) §2–§5.
       organization/product/library/project and user level, lockable at any context level so
       nothing below (users included) can change them. Preferences tab on contexts, My preferences.
       First preferences: rows per page, check-in comment required, per-context numbering scheme.
-- [ ] 1.14 Delegated administration: organization and context administrators who manage types,
-      lifecycles, teams and policies within their scope, without being site administrators.
+- [x] 1.14 Delegated administration: an organization's managers administer it without being site
+      administrators: its team, access rules and preferences (1.8, 1.13), plus its own shared teams
+      and context templates, usable only inside it. Site-wide teams, templates and the data model
+      (types, attributes, lifecycles, roles) stay with site administrators, since they apply to
+      everyone. (Organization-specific types and lifecycles: see 1.15.)
 - [ ] 1.15 Lifecycle template management: copy, edit and version templates (objects keep the
       version they were created with), phases with gate criteria, templates scoped to a context,
       state-based revision series, reassign lifecycle / reset team (admin).
