@@ -1,14 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import { ApiError } from "../api/client";
-import type { AttributeDefinition, Attributes } from "../api/queries";
+import type { AttributeDefinition, Attributes, LayoutGroup } from "../api/queries";
 import { fakeApi } from "../test/fakeApi";
-import { attributeRoutes, enumerations, partAttributes } from "../test/fixtures";
+import { attributeRoutes, enumerations, partAttributes, partLayout } from "../test/fixtures";
 import {
   AttributeForm,
+  AttributeValues,
   defaultValues,
   fieldErrors,
   formatAttribute,
@@ -19,12 +20,26 @@ import {
 
 const defs = partAttributes as unknown as AttributeDefinition[];
 
-function Harness({ initial = {}, onValues }: { initial?: Attributes; onValues: (v: Attributes) => void }) {
+const layoutGroups = partLayout().groups as LayoutGroup[];
+
+function Harness({
+  initial = {},
+  onValues,
+  groups,
+  errors,
+}: {
+  initial?: Attributes;
+  onValues: (v: Attributes) => void;
+  groups?: LayoutGroup[];
+  errors?: Record<string, string>;
+}) {
   const [values, setValues] = useState(initial);
   return (
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <AttributeForm
         definitions={defs}
+        groups={groups}
+        errors={errors}
         values={values}
         onChange={(v) => {
           setValues(v);
@@ -101,5 +116,63 @@ describe("AttributeForm", () => {
     await userEvent.clear(await screen.findByLabelText("Material"));
 
     expect(latest).toEqual({});
+  });
+
+  it("groups and orders fields by the layout, and leaves out attributes it hides", async () => {
+    fakeApi(attributeRoutes);
+    let latest: Attributes = {};
+    // The layout hides nothing explicitly, but only lists some attributes: the rest are not rendered.
+    const groups = layoutGroups.filter((g) => g.key !== "more");
+    render(<Harness groups={groups} initial={{ releasedAt: "2026-01-01T00:00:00Z" }} onValues={(v) => (latest = v)} />);
+
+    const general = await screen.findByRole("group", { name: "General" });
+    const labels = within(general)
+      .getAllByText(/Material|Mass|Source/, { selector: "label" })
+      .map((l) => l.textContent);
+    expect(labels).toEqual(["Material", "Mass", "Source"]);
+    expect(within(screen.getByRole("group", { name: "Structure and tracking" })).getByLabelText("End item")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Released at")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Legacy code")).not.toBeInTheDocument();
+
+    // Values of fields the layout doesn't show are kept.
+    await userEvent.type(screen.getByLabelText("Material"), "Ti");
+    expect(latest).toEqual({ releasedAt: "2026-01-01T00:00:00Z", material: "Ti" });
+  });
+
+  it("shows errors for attributes the layout doesn't show above the form", async () => {
+    fakeApi(attributeRoutes);
+    render(<Harness groups={layoutGroups.slice(0, 1)} errors={{ material: "Too long", endItem: "Required" }} onValues={() => {}} />);
+
+    expect(await screen.findByText("Too long")).toBeInTheDocument();
+    expect(screen.getByText("End item: Required")).toHaveClass("banner");
+  });
+});
+
+describe("AttributeValues", () => {
+  const renderValues = (values: Attributes, groups?: LayoutGroup[]) =>
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <AttributeValues definitions={defs} values={values} groups={groups} />
+      </QueryClientProvider>,
+    );
+
+  it("shows one titled section per layout group, plus values that no longer have an active attribute", async () => {
+    fakeApi(attributeRoutes);
+    renderValues({ material: "AL6061", legacyCode: "X-1", importedFrom: "old-plm" }, layoutGroups);
+
+    const general = await screen.findByRole("region", { name: "General" });
+    expect(within(general).getByText("AL6061")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "More attributes" })).toBeInTheDocument();
+    const other = screen.getByRole("region", { name: "Other values" });
+    expect(within(other).getByText("Legacy code")).toBeInTheDocument();
+    expect(within(other).getByText("old-plm")).toBeInTheDocument();
+  });
+
+  it("needs no headings without a layout", async () => {
+    fakeApi(attributeRoutes);
+    renderValues({ material: "AL6061" });
+
+    expect(await screen.findByText("AL6061")).toBeInTheDocument();
+    expect(screen.queryByRole("region")).not.toBeInTheDocument();
   });
 });

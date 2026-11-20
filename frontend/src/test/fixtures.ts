@@ -121,9 +121,24 @@ export const partAttributes = [
   { ...base, id: "a6", name: "legacyCode", labels: { en: "Legacy code" }, dataType: "STRING" as const, active: false, sortOrder: 120 },
 ];
 
+/** A part layout with two groups; releasedAt is left for the trailing group, as the server would. */
+export function partLayout(screen = "INFO") {
+  return {
+    typeId: "t-part",
+    screen,
+    source: { typeId: "t-part", screen: "DEFAULT" },
+    groups: [
+      { key: "general", labels: { en: "General" }, columns: 2, attributes: ["material", "mass", "source"] },
+      { key: "structure", labels: { en: "Structure and tracking" }, columns: 1, attributes: ["endItem"] },
+      { key: "more", labels: { en: "More attributes" }, columns: 2, attributes: ["releasedAt"] },
+    ],
+  };
+}
+
 /** Routes every page needs for rendering attributes. */
 export const attributeRoutes = {
   "GET /api/v1/types/:id/attributes": () => partAttributes,
+  "GET /api/v1/types/:id/layouts/:screen": (_req: unknown, params: Record<string, string>) => partLayout(params.screen),
   "GET /api/v1/enumerations": () => enumerations,
   "GET /api/v1/units": () => units,
 };

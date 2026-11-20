@@ -16,6 +16,7 @@ import {
   usePermissions,
   usePutMember,
   useRemoveMember,
+  useLayout,
   useTypeAttributes,
   useTypes,
   type Attributes,
@@ -178,6 +179,7 @@ function NewObjectDialog({ context, open, onClose }: { context: Context; open: b
   const [number, setNumber] = useState("");
   const chosenType = typeId || types?.[0]?.id;
   const { data: definitions } = useTypeAttributes(chosenType);
+  const { data: layout } = useLayout(chosenType, "CREATE");
   // Edits belong to the type they were made for; switching type starts again from its defaults.
   const [edits, setEdits] = useState<{ typeId: string; values: Attributes }>();
   const values = edits && edits.typeId === chosenType ? edits.values : defaultValues(definitions ?? []);
@@ -239,17 +241,15 @@ function NewObjectDialog({ context, open, onClose }: { context: Context; open: b
             <input id="obj-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
           </div>
         </div>
-        {definitions && chosenType && (
-          <>
-            <div className="section-label">Attributes</div>
-            <AttributeForm
-              idPrefix="new"
-              definitions={definitions}
-              values={values}
-              onChange={(next) => setEdits({ typeId: chosenType, values: next })}
-              errors={fieldErrors(create.error)}
-            />
-          </>
+        {definitions && layout && chosenType && (
+          <AttributeForm
+            idPrefix="new"
+            definitions={definitions}
+            groups={layout.groups}
+            values={values}
+            onChange={(next) => setEdits({ typeId: chosenType, values: next })}
+            errors={fieldErrors(create.error)}
+          />
         )}
       </form>
     </Dialog>

@@ -138,6 +138,10 @@ Authorization: Bearer {{bob.response.body.access_token}}
 GET {{api}}/types/{{partType}}/attributes
 Authorization: Bearer {{bob.response.body.access_token}}
 
+### 15b2. The layout the Part create form is rendered with (groups and order)
+GET {{api}}/types/{{partType}}/layouts/CREATE
+Authorization: Bearer {{bob.response.body.access_token}}
+
 ### 15c. Invalid values -> 422 INVALID_ATTRIBUTES with one error per field
 POST {{api}}/objects
 Authorization: Bearer {{bob.response.body.access_token}}

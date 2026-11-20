@@ -14,6 +14,9 @@ export type DataType = AttributeDefinition["dataType"];
 export type Enumeration = Schemas["EnumerationResponse"];
 export type Unit = Schemas["UnitResponse"];
 export type ObjectLifecycle = Schemas["ObjectLifecycleResponse"];
+export type LayoutScreen = Schemas["ResolvedLayoutResponse"]["screen"];
+export type ResolvedLayout = Schemas["ResolvedLayoutResponse"];
+export type LayoutGroup = Schemas["LayoutGroupDto"];
 
 const PAGE_SIZE = 50;
 
@@ -27,6 +30,7 @@ export const keys = {
   permissions: (contextId: string, typeId?: string) => ["permissions", contextId, typeId ?? "any"] as const,
   types: ["types"] as const,
   typeAttributes: (typeId: string) => ["typeAttributes", typeId] as const,
+  layout: (typeId: string, screen: string) => ["layout", typeId, screen] as const,
   enumerations: ["enumerations"] as const,
   units: ["units"] as const,
   objects: (contextId: string) => ["objects", contextId] as const,
@@ -100,6 +104,16 @@ export const useTypeAttributes = (typeId: string | undefined) =>
   useQuery({
     queryKey: keys.typeAttributes(typeId ?? ""),
     queryFn: () => unwrap(api.GET("/api/v1/types/{typeId}/attributes", { params: { path: { typeId: typeId! } } })),
+    enabled: !!typeId,
+    ...REFERENCE_DATA,
+  });
+
+/** The layout (attribute groups and order) to render a type's attributes with on [screen]. */
+export const useLayout = (typeId: string | undefined, screen: LayoutScreen) =>
+  useQuery({
+    queryKey: keys.layout(typeId ?? "", screen),
+    queryFn: () =>
+      unwrap(api.GET("/api/v1/types/{typeId}/layouts/{screen}", { params: { path: { typeId: typeId!, screen } } })),
     enabled: !!typeId,
     ...REFERENCE_DATA,
   });

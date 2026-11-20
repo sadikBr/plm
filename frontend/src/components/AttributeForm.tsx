@@ -8,6 +8,7 @@ import {
   type AttributeDefinition,
   type Attributes,
   type Enumeration,
+  type LayoutGroup,
   type Unit,
 } from "../api/queries";
 
@@ -80,27 +81,75 @@ export function formatAttribute(
 
 // ---------- Read-only view ----------
 
-/** Attribute values as a property grid, in the type's order. Values without a definition (legacy data) come last. */
-export function AttributeValues({ definitions, values }: { definitions: AttributeDefinition[]; values: Attributes }) {
+/**
+ * Attribute values as property grids, one per layout group (or one grid in the type's order when
+ * there's no layout). Values of deactivated attributes and values without a definition (legacy
+ * data) come last, under "Other values", so nothing stored is ever invisible.
+ */
+export function AttributeValues({
+  definitions,
+  values,
+  groups,
+}: {
+  definitions: AttributeDefinition[];
+  values: Attributes;
+  groups?: LayoutGroup[];
+}) {
   const { data: enumerations } = useEnumerations();
-  const known = new Set(definitions.map((d) => d.name));
-  const items: [string, ReactNode][] = [
-    ...definitions
-      .filter((d) => d.active || values[d.name] != null)
-      .map((d): [string, ReactNode] => [pickLabel(d.labels, d.name), values[d.name] == null ? null : formatAttribute(d, values[d.name], enumerations)]),
-    ...Object.keys(values)
-      .filter((k) => !known.has(k))
-      .map((k): [string, ReactNode] => [k, formatAttribute(undefined, values[k])]),
+  const byName = new Map(definitions.map((d) => [d.name, d]));
+  const item = (name: string): [string, ReactNode] => {
+    const def = byName.get(name);
+    const value = values[name];
+    return [def ? pickLabel(def.labels, name) : name, value == null ? null : formatAttribute(def, value, enumerations)];
+  };
+  const sections: Section[] = groups
+    ? groups.map((g) => ({
+        key: g.key,
+        title: pickLabel(g.labels, g.key),
+        columns: g.columns,
+        names: g.attributes.filter((n) => byName.get(n)?.active),
+      }))
+    : [{ key: "attributes", title: "Attributes", columns: 2, names: definitions.filter((d) => d.active).map((d) => d.name) }];
+  const other = [
+    ...definitions.filter((d) => !d.active && values[d.name] != null).map((d) => d.name),
+    ...Object.keys(values).filter((k) => !byName.has(k)),
   ];
-  if (items.length === 0) return <p className="muted">No attributes.</p>;
-  return <Props items={items} columns={2} />;
+  if (other.length > 0) sections.push({ key: "other", title: "Other values", columns: 2, names: other });
+  const shown = sections.filter((section) => section.names.length > 0);
+
+  if (shown.length === 0) return <p className="muted">No attributes.</p>;
+  // A single group needs no heading: the panel title says it all.
+  if (shown.length === 1 && shown[0]!.key !== "other") {
+    return <Props items={shown[0]!.names.map(item)} columns={shown[0]!.columns === 1 ? 1 : 2} />;
+  }
+  return (
+    <div className="prop-groups">
+      {shown.map((section) => (
+        <section key={section.key} aria-label={section.title}>
+          <h3 className="group-title">{section.title}</h3>
+          <Props items={section.names.map(item)} columns={section.columns === 1 ? 1 : 2} />
+        </section>
+      ))}
+    </div>
+  );
+}
+
+interface Section {
+  key: string;
+  title: string;
+  columns: number;
+  names: string[];
 }
 
 // ---------- Editable form ----------
 
 /**
- * One input per active attribute, chosen by data type. Controlled: [values] in, [onChange] out.
- * [errors] are server-side messages keyed by attribute name (see [fieldErrors]).
+ * One input per attribute, chosen by data type. With [groups] (a resolved layout) the fields are
+ * grouped and ordered by it, and attributes it hides are not shown (their values, such as defaults,
+ * are kept). Without, every active attribute is shown in the type's order.
+ *
+ * Controlled: [values] in, [onChange] out. [errors] are server-side messages keyed by attribute
+ * name (see [fieldErrors]); errors on attributes the form doesn't show are listed above it.
  */
 export function AttributeForm({
   definitions,
@@ -108,12 +157,14 @@ export function AttributeForm({
   onChange,
   errors = {},
   idPrefix = "attr",
+  groups,
 }: {
   definitions: AttributeDefinition[];
   values: Attributes;
   onChange: (values: Attributes) => void;
   errors?: Record<string, string>;
   idPrefix?: string;
+  groups?: LayoutGroup[];
 }) {
   const { data: enumerations } = useEnumerations();
   const { data: units } = useUnits();
@@ -124,49 +175,68 @@ export function AttributeForm({
     onChange(next);
   };
 
+  const byName = new Map(definitions.map((d) => [d.name, d]));
+  const field = (def: AttributeDefinition) => {
+    const id = `${idPrefix}-${def.name}`;
+    const error = errors[def.name];
+    return (
+      <div className="field" key={def.name}>
+        {def.dataType !== "BOOLEAN" && (
+          // The asterisk stays outside the label: the input's `required` attribute is what assistive tech announces.
+          <div className="label-row">
+            <label htmlFor={id}>{pickLabel(def.labels, def.name)}</label>
+            {def.required && <span aria-hidden className="required">*</span>}
+            {def.description && (
+              <span title={def.description} className="info">
+                <Info size={12} aria-hidden />
+              </span>
+            )}
+          </div>
+        )}
+        {def.description && (
+          <span id={`${id}-desc`} className="sr-only">
+            {def.description}
+          </span>
+        )}
+        <Input
+          id={id}
+          def={def}
+          value={values[def.name]}
+          onChange={(v) => set(def.name, v)}
+          enumeration={def.enumerationId ? enumerations?.get(def.enumerationId) : undefined}
+          units={units ?? []}
+          invalid={!!error}
+        />
+        {error && (
+          <span className="field-error" role="alert">
+            {error}
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  if (!groups) return <div className="attr-form">{definitions.filter((d) => d.active).map(field)}</div>;
+
+  const shown = new Set(groups.flatMap((g) => g.attributes));
+  const unshown = Object.entries(errors).filter(([name]) => !shown.has(name));
   return (
-    <div className="attr-form">
-      {definitions
-        .filter((d) => d.active)
-        .map((def) => {
-          const id = `${idPrefix}-${def.name}`;
-          const error = errors[def.name];
-          return (
-            <div className="field" key={def.name}>
-              {def.dataType !== "BOOLEAN" && (
-                // The asterisk stays outside the label: the input's `required` attribute is what assistive tech announces.
-                <div className="label-row">
-                  <label htmlFor={id}>{pickLabel(def.labels, def.name)}</label>
-                  {def.required && <span aria-hidden className="required">*</span>}
-                  {def.description && (
-                    <span title={def.description} className="info">
-                      <Info size={12} aria-hidden />
-                    </span>
-                  )}
-                </div>
-              )}
-              {def.description && (
-                <span id={`${id}-desc`} className="sr-only">
-                  {def.description}
-                </span>
-              )}
-              <Input
-                id={id}
-                def={def}
-                value={values[def.name]}
-                onChange={(v) => set(def.name, v)}
-                enumeration={def.enumerationId ? enumerations?.get(def.enumerationId) : undefined}
-                units={units ?? []}
-                invalid={!!error}
-              />
-              {error && (
-                <span className="field-error" role="alert">
-                  {error}
-                </span>
-              )}
-            </div>
-          );
-        })}
+    <div className="attr-groups">
+      {unshown.length > 0 && (
+        <div className="banner error" role="alert">
+          {unshown.map(([name, message]) => `${pickLabel(byName.get(name)?.labels, name)}: ${message}`).join(" · ")}
+        </div>
+      )}
+      {groups.map((group) => {
+        const defs = group.attributes.map((n) => byName.get(n)).filter((d): d is AttributeDefinition => !!d?.active);
+        if (defs.length === 0) return null;
+        return (
+          <fieldset key={group.key} className="attr-group">
+            <legend className="section-label">{pickLabel(group.labels, group.key)}</legend>
+            <div className={group.columns === 1 ? "attr-form cols-1" : "attr-form cols-2"}>{defs.map(field)}</div>
+          </fieldset>
+        );
+      })}
     </div>
   );
 }
