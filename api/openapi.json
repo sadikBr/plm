@@ -305,6 +305,55 @@
         "required" : [ "contextId", "name", "typeId" ],
         "type" : "object"
       },
+      "CreatePolicyRequest" : {
+        "properties" : {
+          "effect" : {
+            "enum" : [ "ALLOW", "DENY" ],
+            "type" : [ "string", "null" ]
+          },
+          "permissions" : {
+            "items" : {
+              "enum" : [ "READ", "CREATE", "MODIFY", "REVISE", "MANAGE", "PROMOTE" ],
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "role" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "permissions", "role" ],
+        "type" : "object"
+      },
+      "CreateTeamRoleRequest" : {
+        "properties" : {
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "sortOrder" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "required" : [ "key", "labels" ],
+        "type" : "object"
+      },
       "CreateTypeRequest" : {
         "properties" : {
           "displayName" : {
@@ -449,6 +498,41 @@
           }
         },
         "required" : [ "key", "labels" ],
+        "type" : "object"
+      },
+      "ExplanationResponse" : {
+        "properties" : {
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "permissions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PermissionExplanationResponse"
+            },
+            "type" : "array"
+          },
+          "principalId" : {
+            "type" : "string"
+          },
+          "roles" : {
+            "items" : {
+              "$ref" : "#/components/schemas/MemberResponse"
+            },
+            "type" : "array"
+          },
+          "siteAdmin" : {
+            "type" : "boolean"
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "contextId", "permissions", "principalId", "roles", "siteAdmin" ],
         "type" : "object"
       },
       "IterationResponse" : {
@@ -658,7 +742,6 @@
             "type" : "string"
           },
           "role" : {
-            "enum" : [ "VIEWER", "MEMBER", "MANAGER" ],
             "type" : "string"
           }
         },
@@ -775,6 +858,76 @@
         "required" : [ "contextId", "createdAt", "createdBy", "id", "latest", "name", "number", "typeId", "version" ],
         "type" : "object"
       },
+      "PermissionExplanationResponse" : {
+        "properties" : {
+          "allowedBy" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PolicyResponse"
+            },
+            "type" : "array"
+          },
+          "deniedBy" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PolicyResponse"
+            },
+            "type" : "array"
+          },
+          "granted" : {
+            "type" : "boolean"
+          },
+          "permission" : {
+            "enum" : [ "READ", "CREATE", "MODIFY", "REVISE", "MANAGE", "PROMOTE" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "allowedBy", "deniedBy", "granted", "permission" ],
+        "type" : "object"
+      },
+      "PolicyResponse" : {
+        "properties" : {
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "effect" : {
+            "enum" : [ "ALLOW", "DENY" ],
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "inherited" : {
+            "type" : "boolean"
+          },
+          "permissions" : {
+            "items" : {
+              "enum" : [ "READ", "CREATE", "MODIFY", "REVISE", "MANAGE", "PROMOTE" ],
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "role" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "contextId", "createdAt", "createdBy", "effect", "id", "inherited", "permissions", "role" ],
+        "type" : "object"
+      },
       "PrincipalResponse" : {
         "properties" : {
           "displayName" : {
@@ -831,7 +984,6 @@
       "PutMemberRequest" : {
         "properties" : {
           "role" : {
-            "enum" : [ "VIEWER", "MEMBER", "MANAGER" ],
             "type" : "string"
           }
         },
@@ -917,6 +1069,34 @@
           }
         },
         "required" : [ "key", "labels" ],
+        "type" : "object"
+      },
+      "TeamRoleResponse" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "sortOrder" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "system" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "active", "key", "labels", "sortOrder", "system" ],
         "type" : "object"
       },
       "TransitionDto" : {
@@ -1020,6 +1200,41 @@
           }
         },
         "required" : [ "code", "dimension", "factor", "labels", "offset" ],
+        "type" : "object"
+      },
+      "UpdatePolicyRequest" : {
+        "properties" : {
+          "permissions" : {
+            "items" : {
+              "enum" : [ "READ", "CREATE", "MODIFY", "REVISE", "MANAGE", "PROMOTE" ],
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "permissions" ],
+        "type" : "object"
+      },
+      "UpdateTeamRoleRequest" : {
+        "properties" : {
+          "active" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "sortOrder" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "required" : [ "labels" ],
         "type" : "object"
       },
       "UpdateWorkingCopyRequest" : {
@@ -1176,9 +1391,108 @@
         "tags" : [ "Context" ]
       }
     },
+    "/api/v1/contexts/{contextId}/access/explain" : {
+      "get" : {
+        "operationId" : "policyExplain",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "principalId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "typeId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "state",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExplanationResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Policy" ]
+      }
+    },
     "/api/v1/contexts/{contextId}/members" : {
       "get" : {
         "operationId" : "teamMembers",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/MemberResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Team" ]
+      }
+    },
+    "/api/v1/contexts/{contextId}/members/effective" : {
+      "get" : {
+        "operationId" : "teamEffectiveMembers",
         "parameters" : [ {
           "in" : "path",
           "name" : "contextId",
@@ -1351,6 +1665,91 @@
           }
         },
         "tags" : [ "Team" ]
+      }
+    },
+    "/api/v1/contexts/{contextId}/policies" : {
+      "get" : {
+        "operationId" : "policyList",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/PolicyResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Policy" ]
+      },
+      "post" : {
+        "operationId" : "policyCreate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreatePolicyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PolicyResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Policy" ]
       }
     },
     "/api/v1/contexts/{id}" : {
@@ -2278,6 +2677,81 @@
         "tags" : [ "Versioned object" ]
       }
     },
+    "/api/v1/policies/{policyId}" : {
+      "delete" : {
+        "operationId" : "policyDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "policyId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Policy" ]
+      },
+      "put" : {
+        "operationId" : "policyUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "policyId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdatePolicyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PolicyResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Policy" ]
+      }
+    },
     "/api/v1/principals" : {
       "get" : {
         "operationId" : "principalByUsername",
@@ -2348,6 +2822,119 @@
           }
         },
         "tags" : [ "Principal" ]
+      }
+    },
+    "/api/v1/team-roles" : {
+      "get" : {
+        "operationId" : "teamRoleList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/TeamRoleResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Team role" ]
+      },
+      "post" : {
+        "operationId" : "teamRoleCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateTeamRoleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TeamRoleResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Team role" ]
+      }
+    },
+    "/api/v1/team-roles/{key}" : {
+      "put" : {
+        "operationId" : "teamRoleUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateTeamRoleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TeamRoleResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Team role" ]
       }
     },
     "/api/v1/types" : {
@@ -2986,11 +3573,15 @@
   }, {
     "name" : "Lifecycle"
   }, {
+    "name" : "Policy"
+  }, {
     "name" : "Principal"
   }, {
     "name" : "Reference data"
   }, {
     "name" : "Team"
+  }, {
+    "name" : "Team role"
   }, {
     "name" : "Type"
   }, {

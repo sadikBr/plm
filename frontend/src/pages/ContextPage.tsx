@@ -1,28 +1,23 @@
-import { FilePlus, FolderPlus, UserPlus } from "lucide-react";
+import { FilePlus, FolderPlus } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { isApiError } from "../api/client";
 import {
   ALLOWED_CHILDREN,
   HOLDS_OBJECTS,
-  findPrincipalByUsername,
   useChildren,
   useContextById,
   useCreateContext,
   useCreateObject,
   useMe,
-  useMembers,
   useObjects,
   usePermissions,
-  usePutMember,
-  useRemoveMember,
   useLayout,
   useTypeAttributes,
   useTypes,
   type Attributes,
   type Context,
   type ContextKind,
-  type TeamRole,
 } from "../api/queries";
 import { AttributeForm, defaultValues, fieldErrors } from "../components/AttributeForm";
 import {
@@ -32,15 +27,15 @@ import {
   Loading,
   Panel,
   PrincipalName,
-  Props,
   formatDate,
   kindLabel,
 } from "../components/common";
 import { Breadcrumbs, PageHeader, Tabs, useIdParam } from "../components/Layout";
 import { ObjectTable } from "../components/ObjectTable";
+import { AccessTab, TeamTab } from "./ContextAccess";
 import { NotFoundPage } from "./NotFoundPage";
 
-type Tab = "objects" | "contexts" | "team";
+type Tab = "objects" | "contexts" | "team" | "access";
 
 /** Remounts per context, so page state (open dialogs, filters, form drafts) never leaks between contexts. */
 export function ContextPage() {
@@ -66,6 +61,8 @@ function ContextView({ id }: { id: string }) {
     ...(holdsObjects ? [["objects", "Objects"] as [Tab, string]] : []),
     ...(childKinds.length > 0 ? [["contexts", "Contexts"] as [Tab, string]] : []),
     ["team", "Team"],
+    // Access rules are for whoever manages this context.
+    ...(permissions?.has("MANAGE") ? [["access", "Access"] as [Tab, string]] : []),
   ];
   const canCreateObject = holdsObjects && !!permissions?.has("CREATE");
   // Organizations are created by site admins only; everything else needs MANAGE on the parent.
@@ -110,6 +107,10 @@ function ContextView({ id }: { id: string }) {
         {tab === "objects" && holdsObjects && <ObjectsTab context={context} />}
         {tab === "contexts" && <ContextsTab context={context} />}
         {tab === "team" && <TeamTab context={context} canManage={!!permissions?.has("MANAGE")} />}
+        {tab === "access" && permissions?.has("MANAGE") && (
+          // Rules on the site apply everywhere: only site admins change them.
+          <AccessTab context={context} canChange={context.kind === "SITE" ? !!me?.siteAdmin : true} />
+        )}
       </div>
       <NewObjectDialog context={context} open={dialog === "object"} onClose={() => setDialog(null)} />
       <NewContextDialog parent={context} kinds={childKinds} open={dialog === "context"} onClose={() => setDialog(null)} />
@@ -375,143 +376,5 @@ function NewContextDialog({
         </div>
       </form>
     </Dialog>
-  );
-}
-
-// ---------- Team ----------
-
-const ROLES: TeamRole[] = ["VIEWER", "MEMBER", "MANAGER"];
-const ROLE_HELP: Record<TeamRole, string> = {
-  VIEWER: "Read",
-  MEMBER: "Read, create, edit, revise",
-  MANAGER: "Everything, plus team and sub-contexts",
-};
-const roleLabel = (r: TeamRole) => r.charAt(0) + r.slice(1).toLowerCase();
-
-function TeamTab({ context, canManage }: { context: Context; canManage: boolean }) {
-  const { data: members, isLoading, error } = useMembers(context.id);
-  const put = usePutMember(context.id);
-  const remove = useRemoveMember(context.id);
-
-  return (
-    <div className="cols">
-      <Panel title="Team" note={`Roles also apply to everything inside this ${kindLabel(context.kind).toLowerCase()}`} flush>
-        <ErrorBanner error={error ?? put.error ?? remove.error} />
-        {isLoading ? (
-          <Loading />
-        ) : !members?.length ? (
-          <p className="empty">No direct members. Access may be inherited from a parent context.</p>
-        ) : (
-          <div className="grid-wrap">
-            <table className="grid" aria-label="Team members">
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th id="team-role-col">Role</th>
-                  <th>Can</th>
-                  <th>Added</th>
-                  {canManage && <th aria-label="Actions" />}
-                </tr>
-              </thead>
-              <tbody>
-                {members.map((m) => (
-                  <tr key={m.principalId}>
-                    <td id={`member-${m.principalId}`} className="nowrap">
-                      <PrincipalName id={m.principalId} />
-                    </td>
-                    <td style={{ width: 140 }}>
-                      {canManage ? (
-                        <select
-                          // Read as e.g. "Bob Builder Role": which member this changes.
-                          aria-labelledby={`member-${m.principalId} team-role-col`}
-                          value={m.role}
-                          onChange={(e) => put.mutate({ principalId: m.principalId, role: e.target.value as TeamRole })}
-                        >
-                          {ROLES.map((r) => (
-                            <option key={r} value={r}>
-                              {roleLabel(r)}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="tag">{roleLabel(m.role)}</span>
-                      )}
-                    </td>
-                    <td className="muted">{ROLE_HELP[m.role]}</td>
-                    <td className="nowrap muted">{formatDate(m.addedAt)}</td>
-                    {canManage && (
-                      <td style={{ width: 80 }}>
-                        <button className="btn small danger" onClick={() => remove.mutate(m.principalId)}>
-                          Remove
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Panel>
-      {canManage ? <AddMemberPanel contextId={context.id} /> : <RolesPanel />}
-    </div>
-  );
-}
-
-function RolesPanel() {
-  return (
-    <Panel title="Roles">
-      <Props items={ROLES.map((r) => [roleLabel(r), ROLE_HELP[r]])} />
-    </Panel>
-  );
-}
-
-function AddMemberPanel({ contextId }: { contextId: string }) {
-  const put = usePutMember(contextId);
-  const [username, setUsername] = useState("");
-  const [role, setRole] = useState<TeamRole>("MEMBER");
-  const [lookupError, setLookupError] = useState<unknown>();
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    setLookupError(undefined);
-    try {
-      const principal = await findPrincipalByUsername(username.trim());
-      put.mutate({ principalId: principal.id, role }, { onSuccess: () => setUsername("") });
-    } catch (err) {
-      setLookupError(err);
-    }
-  };
-
-  return (
-    <form className="panel" aria-labelledby="add-member-title" onSubmit={(e) => void submit(e)}>
-      <div className="panel-head">
-        <h2 id="add-member-title">Add a member</h2>
-      </div>
-      <div className="panel-body" style={{ display: "grid", gap: 10 }}>
-        <ErrorBanner error={lookupError ?? put.error} />
-        <div className="field">
-          <label htmlFor="member-username">Username</label>
-          <input id="member-username" value={username} onChange={(e) => setUsername(e.target.value)} required />
-          <span className="hint">The user must have signed in at least once.</span>
-        </div>
-        <div className="field">
-          <label htmlFor="member-role">Role</label>
-          <select id="member-role" value={role} onChange={(e) => setRole(e.target.value as TeamRole)}>
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {roleLabel(r)} — {ROLE_HELP[r].toLowerCase()}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-      <div className="panel-foot">
-        <button className="btn primary" type="submit" disabled={put.isPending || !username.trim()}>
-          <UserPlus size={14} aria-hidden />
-          Add
-        </button>
-      </div>
-    </form>
   );
 }

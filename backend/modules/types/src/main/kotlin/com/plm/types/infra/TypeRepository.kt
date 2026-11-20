@@ -67,6 +67,17 @@ internal class TypeRepository(
                 .param("baseClass", type.baseClass.name)
                 .param("now", Timestamp.from(now))
                 .update()
+            jdbc
+                .sql(
+                    """
+                    insert into type_closure (ancestor_id, descendant_id, depth)
+                    select ancestor_id, :id, depth + 1 from type_closure where descendant_id = :parent
+                    union all
+                    select :id, :id, 0
+                    """,
+                ).param("id", type.id.value)
+                .param("parent", type.parentId?.value)
+                .update()
         } catch (e: DuplicateKeyException) {
             throw ConflictException(
                 "DUPLICATE_TYPE_NAME",

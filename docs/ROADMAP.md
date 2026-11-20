@@ -45,7 +45,9 @@ code**. Every later phase builds on this. See [PARITY.md](PARITY.md) §2–§5.
       order, one or two columns, hidden attributes; inherited along the type hierarchy. The UI
       renders forms and the attributes panel from them. (Table and search columns come with saved
       table views in Phase 3.)
-- [ ] 1.8 Custom team roles; policy admin; policies apply to subtypes.
+- [x] 1.8 Custom team roles; access rules (allow and deny) managed per context by its managers;
+      rules on a type apply to its subtypes; inherited team members; "check access" explains why
+      someone can or can't do something. (Shared teams move to 1.12 with context templates.)
 - [ ] 1.9 Admin UI: types, attributes, enumerations, units, rules, layouts, lifecycles (state diagram).
 - [ ] 1.10 Configuration as code: export/import all of the above as versioned files.
 - [ ] 1.11 Rename / renumber (master-level, with audit). (Set state with admin override shipped in 1.6.)

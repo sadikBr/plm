@@ -32,8 +32,23 @@ enum class Permission(
     }
 }
 
-/** Roles a principal can hold in a context's team. Granted permissions come from [access policies][AccessService]. */
-enum class TeamRole { VIEWER, MEMBER, MANAGER }
+/**
+ * A role a principal can hold in a context's team, by key (e.g. `DESIGN_ENGINEER`). Roles are data
+ * ([TeamRoleService]); VIEWER, MEMBER and MANAGER ship out of the box. What a role may do comes
+ * from [access policies][PolicyService].
+ */
+@JvmInline
+value class TeamRole(
+    val key: String,
+) {
+    override fun toString() = key
+
+    companion object {
+        val VIEWER = TeamRole("VIEWER")
+        val MEMBER = TeamRole("MEMBER")
+        val MANAGER = TeamRole("MANAGER")
+    }
+}
 
 /** What a permission check is about: an object of [typeId] in [state] inside [contextId]. */
 data class AccessTarget(
@@ -58,9 +73,11 @@ data class SqlPredicate(
 /**
  * Single choke point for authorization (ADR 0005).
  *
- * A principal's permissions on a target are the union of every [access policy] that is defined on
- * the target's context or any ancestor, applies to the target's type and state, and names a role
- * the principal holds in the target's context or any ancestor. Site administrators have every permission.
+ * A principal's permissions on a target come from every [access policy][PolicyService] that is
+ * defined on the target's context or any ancestor, applies to the target's type (or a supertype of
+ * it) and state, and names a role the principal holds in the target's context or any ancestor:
+ * the union of the ALLOW policies, minus the union of the DENY policies. Site administrators have
+ * every permission.
  */
 interface AccessService {
     fun permissions(
@@ -107,7 +124,16 @@ interface TeamService {
         contextId: ContextId,
     ): List<TeamMember>
 
-    /** Adds the principal, or changes their role. Needs MANAGE. */
+    /**
+     * Everyone with a role here: members of this context and of its ancestors (whose roles are
+     * inherited), nearest context first. A principal can appear more than once, with different roles.
+     */
+    fun effectiveMembers(
+        actor: Actor,
+        contextId: ContextId,
+    ): List<TeamMember>
+
+    /** Adds the principal, or changes their role. Needs MANAGE. The role must exist and be active (`UNKNOWN_ROLE`). */
     fun put(
         actor: Actor,
         contextId: ContextId,

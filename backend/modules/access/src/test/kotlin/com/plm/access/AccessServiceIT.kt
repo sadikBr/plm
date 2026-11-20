@@ -74,7 +74,7 @@ class AccessServiceIT(
                 """,
             ).param("id", UuidV7.generate())
             .param("context", context.value)
-            .param("role", role.name)
+            .param("role", role.key)
             .param("type", type?.value)
             .param("state", state)
             .param("bits", permissions.sumOf { it.bit })

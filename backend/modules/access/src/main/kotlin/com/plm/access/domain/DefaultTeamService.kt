@@ -13,6 +13,7 @@ import com.plm.access.api.TeamService
 import com.plm.access.infra.AccessRepository
 import com.plm.platform.actor.Actor
 import com.plm.platform.error.NotFoundException
+import com.plm.platform.error.ValidationException
 import com.plm.platform.events.DomainEvents
 import com.plm.platform.id.PrincipalId
 import org.springframework.stereotype.Service
@@ -37,6 +38,15 @@ internal class DefaultTeamService(
         return repository.members(context.id)
     }
 
+    @Transactional(readOnly = true)
+    override fun effectiveMembers(
+        actor: Actor,
+        contextId: ContextId,
+    ): List<TeamMember> {
+        val context = contexts.get(actor, contextId)
+        return repository.effectiveMembers(context.id)
+    }
+
     override fun put(
         actor: Actor,
         contextId: ContextId,
@@ -45,10 +55,18 @@ internal class DefaultTeamService(
     ): TeamMember {
         val context = contexts.get(actor, contextId)
         access.require(actor, AccessTarget(context.id), Permission.MANAGE)
+        val definition = repository.role(actor.tenant, role)
+        if (definition == null || !definition.active) {
+            throw ValidationException(
+                "UNKNOWN_ROLE",
+                "There is no active role '${role.key}'",
+                mapOf("role" to role.key),
+            )
+        }
         val previous = repository.member(context.id, principalId)
         val member = TeamMember(context.id, principalId, role, clock.instant(), actor.principal.value)
         repository.putMember(actor.tenant, member)
-        events.publish(actor, TeamMemberPut(context.id.value, principalId.value, role, previous?.role))
+        events.publish(actor, TeamMemberPut(context.id.value, principalId.value, role.key, previous?.role?.key))
         return member
     }
 
@@ -63,6 +81,6 @@ internal class DefaultTeamService(
             repository.member(context.id, principalId)
                 ?: throw NotFoundException("MEMBER_NOT_FOUND", "$principalId is not on this team")
         repository.removeMember(context.id, principalId)
-        events.publish(actor, TeamMemberRemoved(context.id.value, principalId.value, existing.role))
+        events.publish(actor, TeamMemberRemoved(context.id.value, principalId.value, existing.role.key))
     }
 }

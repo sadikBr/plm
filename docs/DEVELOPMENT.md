@@ -326,16 +326,67 @@ rules never changes existing objects.
 ### How access works
 
 - **Contexts** form a tree: Site → Organization → Product / Library / Project.
-- **Teams**: each context has members with a role, `VIEWER`, `MEMBER` or `MANAGER`. A role on a
-  context also applies to everything below it.
-- **Policies** say what each role may do. The defaults sit on the site and are inherited
-  everywhere: VIEWER = READ · MEMBER = READ, CREATE, MODIFY, REVISE · MANAGER = all of those + MANAGE, PROMOTE.
-  Policies can also be scoped to one type or one lifecycle state (no API for custom policies yet).
+- **Teams**: each context has members with a role. `VIEWER`, `MEMBER` and `MANAGER` ship out of
+  the box; site admins add their own (e.g. `DESIGN_REVIEWER`). A role on a context also applies to
+  everything below it.
+- **Policies** (access rules) say what each role may do. The defaults sit on the site and are
+  inherited everywhere: VIEWER = READ · MEMBER = READ, CREATE, MODIFY, REVISE · MANAGER = all of
+  those + MANAGE, PROMOTE. A rule can be limited to a type (and then also covers its subtypes) and
+  to a lifecycle state. **Allow** rules add up; a **Deny** rule takes a permission away whatever
+  any Allow says.
+- Context managers change the rules of their contexts; rules on the site are for site admins.
 - **Site admins** (Keycloak role `plm-admin`) can do everything, and are the only ones who create
   organizations, define types and read the audit log.
 - If you can't READ something, it doesn't exist for you (`404`). If you can read it but lack the
   permission for an action, you get `403 ACCESS_DENIED`.
 - Lists are filtered **inside the SQL query**, so they stay fast and never leak counts.
+
+### Team roles and access rules
+
+Alice (site admin) defines a **custom role** and makes carol a design reviewer of the product.
+A new role can do nothing until a rule says so, so the part disappears for carol (`404`):
+
+```bash
+curl -s -X POST $API/team-roles -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d '{"key":"DESIGN_REVIEWER","labels":{"en":"Design reviewer"},"description":"Reviews and releases designs."}' | jq -c
+curl -s -X PUT $API/contexts/$PRODUCT/members/ca201000-0000-4000-8000-000000000003 \
+  -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' -d '{"role":"DESIGN_REVIEWER"}' > /dev/null
+curl -s -o /dev/null -w "carol reads: %{http_code}\n" $API/objects/$PART -H "Authorization: Bearer $CAROL"
+```
+
+As manager of the product, alice **adds a rule**: design reviewers may read parts and change their
+state. Carol can read the part again:
+
+```bash
+curl -s -X POST $API/contexts/$PRODUCT/policies -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d '{"role":"DESIGN_REVIEWER","typeId":"00000000-0000-7000-8000-000000000102","permissions":["READ","PROMOTE"]}' \
+  | jq -c '{role, effect, permissions}'
+curl -s -o /dev/null -w "carol reads: %{http_code}\n" $API/objects/$PART -H "Authorization: Bearer $CAROL"
+```
+
+A **deny rule**: members may no longer edit *Fasteners* in this product (other parts are not
+affected). Bob's permissions for each type show the difference:
+
+```bash
+curl -s -X POST $API/contexts/$PRODUCT/policies -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d "{\"role\":\"MEMBER\",\"typeId\":\"$FASTENER\",\"effect\":\"DENY\",\"permissions\":[\"MODIFY\"]}" | jq -c '{role, effect, permissions}'
+curl -s "$API/contexts/$PRODUCT/permissions?typeId=00000000-0000-7000-8000-000000000102" -H "Authorization: Bearer $BOB"; echo
+curl -s "$API/contexts/$PRODUCT/permissions?typeId=$FASTENER" -H "Authorization: Bearer $BOB"; echo
+```
+
+**Why** can't bob edit fasteners? Ask the system, instead of reading the rules yourself. Managers
+can ask about anyone, everyone can ask about themselves:
+
+```bash
+curl -s "$API/contexts/$PRODUCT/access/explain?principalId=b0b00000-0000-4000-8000-000000000002&typeId=$FASTENER" \
+  -H "Authorization: Bearer $ALICE" \
+  | jq -c '.permissions[] | {permission, granted, deniedBy: [.deniedBy[] | .role], allowedBy: [.allowedBy[] | .role]}'
+```
+
+In the UI, the product's **Access** tab (managers only) lists the rules in effect, inherited ones
+included, lets you add and delete rules, and has a **Check access** panel with the same explanation.
+
+![Access tab](images/ui-access.png)
 
 ### Endpoints
 
@@ -364,6 +415,12 @@ rules never changes existing objects.
 | GET / POST | `/api/v1/lifecycles` | Lifecycle templates / create one (site admin) |
 | GET / PUT | `/api/v1/types/{typeId}/lifecycle` | Lifecycle a type uses (inherited) / assign one (site admin) |
 | GET / PUT | `/api/v1/types/{typeId}/rules` | Numbering scheme, revision scheme, manual numbers (inherited) / set (site admin) |
+| GET / POST | `/api/v1/team-roles` | Team roles / define one (site admin) |
+| PUT | `/api/v1/team-roles/{key}` | Relabel, reorder or deactivate a role (site admin) |
+| GET | `/api/v1/contexts/{id}/members/effective` | Team including members inherited from parent contexts |
+| GET / POST | `/api/v1/contexts/{id}/policies` | Access rules in effect here / add one (MANAGE; site: site admin) |
+| PUT / DELETE | `/api/v1/policies/{id}` | Change a rule's permissions / delete it |
+| GET | `/api/v1/contexts/{id}/access/explain?principalId=…&typeId=…&state=…` | Why someone can or can't do things here |
 | GET | `/api/v1/types/{id}/layouts/{screen}` | Layout to render for `CREATE`, `EDIT`, `INFO` or `DEFAULT`, resolved through the type hierarchy |
 | GET | `/api/v1/types/{id}/layouts` | Layouts saved on the type itself |
 | PUT / DELETE | `/api/v1/types/{id}/layouts/{screen}` | Save / remove the type's own layout for a screen (site admin) |

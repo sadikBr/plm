@@ -6,8 +6,14 @@ export type ContextKind = Context["kind"];
 export type VersionedObject = Schemas["ObjectResponse"];
 export type Iteration = Schemas["IterationResponse"];
 export type Member = Schemas["MemberResponse"];
-export type TeamRole = Member["role"];
-export type Permission = "READ" | "CREATE" | "MODIFY" | "REVISE" | "MANAGE";
+/** A team role key, e.g. `MEMBER`. Roles are data: see [useTeamRoles]. */
+export type TeamRole = string;
+export type TeamRoleDefinition = Schemas["TeamRoleResponse"];
+export type Permission = Schemas["PolicyResponse"]["permissions"][number];
+export type AccessPolicy = Schemas["PolicyResponse"];
+export type PolicyEffect = AccessPolicy["effect"];
+export type AccessExplanation = Schemas["ExplanationResponse"];
+export type LifecycleTemplate = Schemas["LifecycleResponse"];
 export type Attributes = Record<string, unknown>;
 export type AttributeDefinition = Schemas["AttributeResponse"];
 export type DataType = AttributeDefinition["dataType"];
@@ -27,6 +33,11 @@ export const keys = {
   context: (id: string) => ["context", id] as const,
   children: (id: string) => ["children", id] as const,
   members: (id: string) => ["members", id] as const,
+  effectiveMembers: (id: string) => ["effectiveMembers", id] as const,
+  policies: (id: string) => ["policies", id] as const,
+  explain: (id: string, principalId: string, typeId: string, state: string) => ["explain", id, principalId, typeId, state] as const,
+  teamRoles: ["teamRoles"] as const,
+  lifecycles: ["lifecycles"] as const,
   permissions: (contextId: string, typeId?: string) => ["permissions", contextId, typeId ?? "any"] as const,
   types: ["types"] as const,
   typeAttributes: (typeId: string) => ["typeAttributes", typeId] as const,
@@ -80,6 +91,34 @@ export const useMembers = (contextId: string) =>
     queryFn: () => unwrap(api.GET("/api/v1/contexts/{contextId}/members", { params: { path: { contextId } } })),
   });
 
+/** Everyone with a role here, including members of parent contexts, nearest first. */
+export const useEffectiveMembers = (contextId: string) =>
+  useQuery({
+    queryKey: keys.effectiveMembers(contextId),
+    queryFn: () => unwrap(api.GET("/api/v1/contexts/{contextId}/members/effective", { params: { path: { contextId } } })),
+  });
+
+/** Access policies in effect in a context (its own and its parents'), root first. Needs MANAGE. */
+export const usePolicies = (contextId: string, enabled = true) =>
+  useQuery({
+    queryKey: keys.policies(contextId),
+    queryFn: () => unwrap(api.GET("/api/v1/contexts/{contextId}/policies", { params: { path: { contextId } } })),
+    enabled,
+  });
+
+/** Why [principalId] can or can't do things here, per permission. */
+export const useExplain = (contextId: string, principalId: string, typeId: string, state: string) =>
+  useQuery({
+    queryKey: keys.explain(contextId, principalId, typeId, state),
+    queryFn: () =>
+      unwrap(
+        api.GET("/api/v1/contexts/{contextId}/access/explain", {
+          params: { path: { contextId }, query: { principalId, ...(typeId ? { typeId } : {}), ...(state ? { state } : {}) } },
+        }),
+      ),
+    enabled: !!principalId,
+  });
+
 export const usePermissions = (contextId: string | undefined, typeId?: string) =>
   useQuery({
     queryKey: keys.permissions(contextId ?? "", typeId),
@@ -98,6 +137,12 @@ export const useTypes = () => useQuery({ queryKey: keys.types, queryFn: () => un
 
 /** Reference data changes rarely: cache it for the session (admins' changes show after a reload). */
 const REFERENCE_DATA = { staleTime: 10 * 60_000 };
+
+export const useTeamRoles = () =>
+  useQuery({ queryKey: keys.teamRoles, queryFn: () => unwrap(api.GET("/api/v1/team-roles")), ...REFERENCE_DATA });
+
+export const useLifecycles = () =>
+  useQuery({ queryKey: keys.lifecycles, queryFn: () => unwrap(api.GET("/api/v1/lifecycles")), ...REFERENCE_DATA });
 
 /** Effective attributes of a type (inherited first), the basis for every form. */
 export const useTypeAttributes = (typeId: string | undefined) =>
@@ -224,7 +269,7 @@ export function usePutMember(contextId: string) {
           body: { role },
         }),
       ),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.members(contextId) }),
+    onSuccess: () => invalidateAccess(qc),
   });
 }
 
@@ -237,7 +282,31 @@ export function useRemoveMember(contextId: string) {
           params: { path: { contextId, principalId } },
         }),
       ),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.members(contextId) }),
+    onSuccess: () => invalidateAccess(qc),
+  });
+}
+
+/** Team and policy changes can change anyone's permissions anywhere below: refetch everything access-related. */
+function invalidateAccess(qc: ReturnType<typeof useQueryClient>) {
+  for (const key of ["members", "effectiveMembers", "policies", "explain", "permissions"]) {
+    void qc.invalidateQueries({ queryKey: [key] });
+  }
+}
+
+export function useCreatePolicy(contextId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Schemas["CreatePolicyRequest"]) =>
+      unwrap(api.POST("/api/v1/contexts/{contextId}/policies", { params: { path: { contextId } }, body })),
+    onSuccess: () => invalidateAccess(qc),
+  });
+}
+
+export function useDeletePolicy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (policyId: string) => unwrap(api.DELETE("/api/v1/policies/{policyId}", { params: { path: { policyId } } })),
+    onSuccess: () => invalidateAccess(qc),
   });
 }
 

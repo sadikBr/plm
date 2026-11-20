@@ -30,12 +30,12 @@ search summaries; those are marked *(to confirm)*. The list is about **what** us
 |---|---|---|
 | Context hierarchy: Site → Organization → Product / Library / Project | ✅ | Closure table, inherited teams and policies |
 | **Context templates** (product, library, project, organization): team roles, folders, policies, preferences, seed objects. Create a context from a template; export a context as a template | ⬜ [1.12] | Templates are versioned config bundles |
-| Teams with roles per context, inherited down the tree | ✅ | VIEWER / MEMBER / MANAGER today |
-| Custom team roles (e.g. Design Engineer, Change Admin) | ⬜ [1.8] | Roles become data, not an enum |
-| Shared teams (one team reused by several contexts) | ⬜ [1.8] | |
-| Access policies by role × type × lifecycle state | ✅ | Default policies only; no admin UI yet |
-| Policy admin UI, policies that apply to subtypes | ⬜ [1.8] | |
-| Deny entries and absolute denies (override inherited grants) | ⬜ [1.8] | |
+| Teams with roles per context, inherited down the tree | ✅ | Inherited members shown on each context |
+| Custom team roles (e.g. Design Engineer, Change Admin) | ✅ | Roles are data; admin UI for defining them [1.9] |
+| Shared teams (one team reused by several contexts) | ⬜ [1.12] | With context templates |
+| Access policies by role × type × lifecycle state | ✅ | Managed per context by its managers |
+| Policy admin UI, policies that apply to subtypes | ✅ | Access tab on each context |
+| Deny entries and absolute denies (override inherited grants) | ✅ | A deny always wins over any allow |
 | Ad hoc access on one object (grant a person extra rights) | ⬜ [3] | |
 | Delegated administrators: site, organization and context admins | 🟡 | Site admin ✅ · org and context admins ⬜ [1.14] |
 | Users, groups, organizations; sync with LDAP/AD/SCIM via the identity provider | 🟡 | Users from OIDC ✅ · groups and sync [9] |
@@ -257,7 +257,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | Electronic signatures, signature manifest | ⬜ [5] | |
 | Retention policies, legal hold, purge and archive with restore | ⬜ [9] | |
 | Audit reports and audit configuration | ⬜ [3] | |
-| Access reports ("who can see this, and why") | ⬜ [1.8] | Explains the policy that grants access |
+| Access reports ("who can see this, and why") | 🟡 | Per person and target, with the deciding rules ✅ · "who can see this object" list [3] |
 
 ## 15. Data exchange and integration
 

@@ -36,6 +36,13 @@ internal class TeamController(
         @PathVariable contextId: UUID,
     ) = teams.members(actor, ContextId(contextId)).map(::MemberResponse)
 
+    /** Everyone with a role here, including members of parent contexts (whose roles are inherited), nearest first. */
+    @GetMapping("/members/effective")
+    fun effectiveMembers(
+        actor: Actor,
+        @PathVariable contextId: UUID,
+    ) = teams.effectiveMembers(actor, ContextId(contextId)).map(::MemberResponse)
+
     /** Adds a member or changes their role. */
     @PutMapping("/members/{principalId}")
     fun put(
@@ -43,7 +50,7 @@ internal class TeamController(
         @PathVariable contextId: UUID,
         @PathVariable principalId: String,
         @RequestBody request: PutMemberRequest,
-    ) = MemberResponse(teams.put(actor, ContextId(contextId), PrincipalId(principalId), request.role))
+    ) = MemberResponse(teams.put(actor, ContextId(contextId), PrincipalId(principalId), TeamRole(request.role)))
 
     @DeleteMapping("/members/{principalId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -66,15 +73,16 @@ internal class TeamController(
 }
 
 internal data class PutMemberRequest(
-    val role: TeamRole,
+    /** A team role key, e.g. `MEMBER` (see `GET /api/v1/team-roles`). */
+    val role: String,
 )
 
 internal data class MemberResponse(
     val contextId: UUID,
     val principalId: String,
-    val role: TeamRole,
+    val role: String,
     val addedAt: Instant,
     val addedBy: String,
 ) {
-    constructor(m: TeamMember) : this(m.contextId.value, m.principalId.value, m.role, m.addedAt, m.addedBy)
+    constructor(m: TeamMember) : this(m.contextId.value, m.principalId.value, m.role.key, m.addedAt, m.addedBy)
 }
