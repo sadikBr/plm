@@ -6,9 +6,10 @@ import { PageHeader, Tabs } from "../components/Layout";
 import { ConfigurationAdmin } from "./ConfigurationAdmin";
 import { LifecyclesAdmin } from "./LifecyclesAdmin";
 import { NumberingAdmin, RolesAdmin, UnitsAdmin, ValueListsAdmin } from "./ReferenceAdmin";
+import { ContextTemplatesAdmin, SharedTeamsAdmin } from "./TeamsAndTemplatesAdmin";
 import { TypesAdmin } from "./TypesAdmin";
 
-type Section = "types" | "lists" | "units" | "numbering" | "lifecycles" | "roles" | "configuration";
+type Section = "types" | "lists" | "units" | "numbering" | "lifecycles" | "roles" | "teams" | "templates" | "configuration";
 
 const SECTIONS: [Section, string][] = [
   ["types", "Types and attributes"],
@@ -17,6 +18,8 @@ const SECTIONS: [Section, string][] = [
   ["numbering", "Numbering"],
   ["lifecycles", "Lifecycles"],
   ["roles", "Team roles"],
+  ["teams", "Shared teams"],
+  ["templates", "Context templates"],
   ["configuration", "Export / import"],
 ];
 
@@ -50,6 +53,8 @@ export function AdminPage() {
         {tab === "numbering" && <NumberingAdmin />}
         {tab === "lifecycles" && <LifecyclesAdmin />}
         {tab === "roles" && <RolesAdmin />}
+        {tab === "teams" && <SharedTeamsAdmin />}
+        {tab === "templates" && <ContextTemplatesAdmin />}
         {tab === "configuration" && <ConfigurationAdmin />}
       </div>
     </>

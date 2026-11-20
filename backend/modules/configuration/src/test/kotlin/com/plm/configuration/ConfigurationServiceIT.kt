@@ -1,5 +1,8 @@
 package com.plm.configuration
 
+import com.plm.access.api.Permission
+import com.plm.access.api.TemplateContent
+import com.plm.access.api.TemplatePolicy
 import com.plm.configuration.api.AttributeConfig
 import com.plm.configuration.api.ChangeAction.CONFLICT
 import com.plm.configuration.api.ChangeAction.CREATE
@@ -7,6 +10,7 @@ import com.plm.configuration.api.ChangeAction.UNCHANGED
 import com.plm.configuration.api.ChangeAction.UPDATE
 import com.plm.configuration.api.ConfigBundle
 import com.plm.configuration.api.ConfigurationService
+import com.plm.configuration.api.ContextTemplateConfig
 import com.plm.configuration.api.EnumerationConfig
 import com.plm.configuration.api.EnumerationValueConfig
 import com.plm.configuration.api.ImportPlan
@@ -132,6 +136,24 @@ class ConfigurationServiceIT(
                         ),
                 ),
             ),
+        contextTemplates =
+            listOf(
+                ContextTemplateConfig(
+                    "Bolt product $s",
+                    "PRODUCT",
+                    content =
+                        TemplateContent(
+                            policies =
+                                listOf(
+                                    TemplatePolicy(
+                                        "VIEWER",
+                                        type = "Bolt$s",
+                                        permissions = setOf(Permission.READ, Permission.MODIFY),
+                                    ),
+                                ),
+                        ),
+                ),
+            ),
     )
 
     private fun ImportPlan.actions() = changes.associate { "${it.kind} ${it.key}" to it.action }
@@ -153,6 +175,7 @@ class ConfigurationServiceIT(
             "attribute",
             "attribute",
             "layout",
+            "contextTemplate",
         )
         // Rules and lifecycle of the new type are set as its own overrides.
         assertThat(

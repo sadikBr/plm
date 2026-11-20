@@ -4,6 +4,8 @@ import com.plm.access.api.Context
 import com.plm.access.api.ContextId
 import com.plm.access.api.ContextKind
 import com.plm.access.api.ContextService
+import com.plm.access.api.ContextTemplateId
+import com.plm.access.api.ContextTemplateService
 import com.plm.access.api.CreateContext
 import com.plm.platform.actor.Actor
 import org.springframework.http.HttpStatus
@@ -21,6 +23,7 @@ import java.util.UUID
 @RequestMapping("/api/v1/contexts")
 internal class ContextController(
     private val contexts: ContextService,
+    private val templates: ContextTemplateService,
 ) {
     /** The tenant's root context. */
     @GetMapping("/site")
@@ -43,13 +46,21 @@ internal class ContextController(
     fun create(
         actor: Actor,
         @RequestBody request: CreateContextRequest,
-    ) = ContextResponse(contexts.create(actor, CreateContext(ContextId(request.parentId), request.kind, request.name)))
+    ): ContextResponse {
+        val command = CreateContext(ContextId(request.parentId), request.kind, request.name)
+        return ContextResponse(
+            request.templateId?.let { templates.createContext(actor, command, ContextTemplateId(it)) }
+                ?: contexts.create(actor, command),
+        )
+    }
 }
 
 internal data class CreateContextRequest(
     val parentId: UUID,
     val kind: ContextKind,
     val name: String,
+    /** Start from this context template (its kind must match). */
+    val templateId: UUID? = null,
 )
 
 internal data class ContextResponse(

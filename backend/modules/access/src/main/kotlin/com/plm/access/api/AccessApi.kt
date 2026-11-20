@@ -115,6 +115,8 @@ data class TeamMember(
     val role: TeamRole,
     val addedAt: Instant,
     val addedBy: String,
+    /** Set when the role comes from a shared team attached to [contextId], not the context's own team. */
+    val sharedTeamId: SharedTeamId? = null,
 )
 
 interface TeamService {

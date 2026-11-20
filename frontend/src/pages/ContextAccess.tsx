@@ -12,6 +12,9 @@ import {
   useMembers,
   usePolicies,
   usePrincipal,
+  useAttachTeam,
+  useAttachedTeams,
+  useSharedTeams,
   usePutMember,
   useRemoveMember,
   useTeamRoles,
@@ -153,6 +156,7 @@ export function TeamTab({ context, canManage }: { context: Context; canManage: b
             </div>
           )}
         </Panel>
+        <SharedTeamsPanel contextId={context.id} canManage={canManage} roleLabel={roles.label} />
         {inherited.length > 0 && (
           <Panel title="Inherited from parent contexts" note="Their roles apply here too" flush>
             <div className="grid-wrap">
@@ -188,6 +192,91 @@ export function TeamTab({ context, canManage }: { context: Context; canManage: b
       </div>
       {canManage ? <AddMemberPanel contextId={context.id} /> : <RolesPanel />}
     </div>
+  );
+}
+
+function SharedTeamsPanel({
+  contextId,
+  canManage,
+  roleLabel,
+}: {
+  contextId: string;
+  canManage: boolean;
+  roleLabel: (key: TeamRole) => string;
+}) {
+  const { data: attached } = useAttachedTeams(contextId);
+  const { data: all } = useSharedTeams();
+  const change = useAttachTeam(contextId);
+  const available = (all ?? []).filter((t) => !attached?.some((a) => a.id === t.id));
+  if (!canManage && !attached?.length) return null;
+  return (
+    <Panel
+      title="Shared teams"
+      note="Teams maintained in one place; their members get their roles here and below"
+      flush
+      actions={
+        canManage &&
+        available.length > 0 && (
+          <select
+            aria-label="Attach a shared team"
+            value=""
+            onChange={(e) => e.target.value && change.mutate({ teamId: e.target.value, attach: true })}
+            style={{ width: 200 }}
+          >
+            <option value="">Attach a shared team…</option>
+            {available.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        )
+      }
+    >
+      <ErrorBanner error={change.error} />
+      {!attached?.length ? (
+        <p className="empty">No shared teams attached.</p>
+      ) : (
+        <table className="grid" aria-label="Shared teams">
+          <thead>
+            <tr>
+              <th>Team</th>
+              <th>Members</th>
+              {canManage && <th aria-label="Actions" />}
+            </tr>
+          </thead>
+          <tbody>
+            {attached.map((t) => (
+              <tr key={t.id}>
+                <td className="nowrap">
+                  {t.name}
+                  {t.description && <div className="muted">{t.description}</div>}
+                </td>
+                <td>
+                  {t.members.length === 0 ? (
+                    <span className="muted">Nobody yet</span>
+                  ) : (
+                    t.members.map((m, i) => (
+                      <span key={m.principalId}>
+                        {i > 0 && ", "}
+                        <PrincipalName id={m.principalId} /> <span className="muted">({roleLabel(m.role)})</span>
+                      </span>
+                    ))
+                  )}
+                </td>
+                {canManage && (
+                  <td style={{ width: 80 }}>
+                    <button className="btn small danger" onClick={() => change.mutate({ teamId: t.id, attach: false })}>
+                      Detach
+                    </button>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </Panel>
   );
 }
 

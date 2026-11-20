@@ -83,6 +83,10 @@ internal data class MemberResponse(
     val role: String,
     val addedAt: Instant,
     val addedBy: String,
+    /** Set when the role comes from an attached shared team. */
+    val sharedTeamId: UUID? = null,
 ) {
-    constructor(m: TeamMember) : this(m.contextId.value, m.principalId.value, m.role.key, m.addedAt, m.addedBy)
+    constructor(
+        m: TeamMember,
+    ) : this(m.contextId.value, m.principalId.value, m.role.key, m.addedAt, m.addedBy, m.sharedTeamId?.value)
 }

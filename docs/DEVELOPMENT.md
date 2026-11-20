@@ -407,6 +407,29 @@ included, lets you add and delete rules, and has a **Check access** panel with t
 
 ![Access tab](images/ui-access.png)
 
+### Shared teams and context templates
+
+A **shared team** is a group of people with roles, kept in one place (**Admin → Shared teams**)
+and attached to any number of contexts from their **Team** tab. Its members get their role in
+every context it's attached to; change the team once and it applies everywhere.
+
+A **context template** is what a new organization, product, library or project starts with:
+access rules, team members and shared teams. Set a context up the way you like, click **Save as
+template** (site admins), then pick the template in the **New context** dialog. Templates are
+listed under **Admin → Context templates** and travel in configuration bundles.
+
+```bash
+TEAM=$(curl -s -X POST $API/shared-teams -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d '{"name":"Reviewers"}' | jq -r .id)
+curl -s -X PUT $API/shared-teams/$TEAM/members/b0b00000-0000-4000-8000-000000000002 -H "Authorization: Bearer $ALICE" \
+  -H 'Content-Type: application/json' -d '{"role":"VIEWER"}' | jq -c '{name, members: [.members[].role]}'
+TEMPLATE=$(curl -s -X POST $API/context-templates -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d '{"name":"Regulated product","kind":"PRODUCT","content":{"sharedTeams":["Reviewers"],
+       "policies":[{"role":"MEMBER","type":"Document","state":"RELEASED","effect":"DENY","permissions":["REVISE"]}]}}' | jq -r .id)
+curl -s -X POST $API/contexts -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d "{\"parentId\":\"$ORG\",\"kind\":\"PRODUCT\",\"name\":\"Pump\",\"templateId\":\"$TEMPLATE\"}" | jq -c '{name, kind}'
+```
+
 ### Configuration as code
 
 Everything an admin sets up (types, attributes, layouts, value lists, numbering schemes, rules,
@@ -477,6 +500,13 @@ Rules of the game (see [ADR 0019](adr/0019-configuration-as-code.md)):
 | GET / PUT | `/api/v1/types/{typeId}/lifecycle` | Lifecycle a type uses (inherited) / assign one (site admin) |
 | GET / PUT | `/api/v1/types/{typeId}/rules` | Numbering scheme, revision scheme, manual numbers (inherited) / set (site admin) |
 | POST | `/api/v1/objects/{id}/rename` | New number and/or name, all versions (MANAGE; not while checked out) |
+| GET / POST | `/api/v1/shared-teams` | Shared teams / create one (site admin) |
+| PUT / DELETE | `/api/v1/shared-teams/{id}/members/{principalId}` | Add or change / remove a member (site admin) |
+| GET | `/api/v1/contexts/{id}/shared-teams` | Shared teams attached to a context |
+| PUT / DELETE | `/api/v1/contexts/{id}/shared-teams/{teamId}` | Attach / detach (MANAGE) |
+| GET / POST | `/api/v1/context-templates?kind=…` | Context templates / create one (site admin) |
+| PUT / DELETE | `/api/v1/context-templates/{id}` | Change / delete a template (site admin) |
+| POST | `/api/v1/contexts/{id}/save-as-template` | Save a context as a template (site admin) |
 | GET | `/api/v1/configuration/export` | The whole configuration as one bundle (site admin) |
 | POST | `/api/v1/configuration/import?dryRun=true\|false` | Plan an import, or apply it (site admin) |
 | GET / POST | `/api/v1/team-roles` | Team roles / define one (site admin) |

@@ -1,5 +1,8 @@
 package com.plm.configuration.domain
 
+import com.plm.access.api.ContextKind
+import com.plm.access.api.ContextTemplateService
+import com.plm.access.api.SaveContextTemplate
 import com.plm.access.api.TeamRole
 import com.plm.access.api.TeamRoleService
 import com.plm.access.api.TeamRoleSettings
@@ -8,6 +11,7 @@ import com.plm.configuration.api.ChangeAction
 import com.plm.configuration.api.ConfigBundle
 import com.plm.configuration.api.ConfigurationImported
 import com.plm.configuration.api.ConfigurationService
+import com.plm.configuration.api.ContextTemplateConfig
 import com.plm.configuration.api.EnumerationConfig
 import com.plm.configuration.api.EnumerationValueConfig
 import com.plm.configuration.api.ImportPlan
@@ -66,6 +70,7 @@ internal class DefaultConfigurationService(
     private val layouts: LayoutService,
     private val lifecycles: LifecycleService,
     private val roles: TeamRoleService,
+    private val contextTemplates: ContextTemplateService,
     private val events: DomainEvents,
     transactions: PlatformTransactionManager,
 ) : ConfigurationService {
@@ -109,6 +114,10 @@ internal class DefaultConfigurationService(
                         NumberingSchemeConfig(s.name, s.prefix, s.padding, s.suffix)
                     },
                 lifecycles = lifecycleList.sortedBy { l -> l.name }.map { l -> l.toConfig() },
+                contextTemplates =
+                    contextTemplates.list(actor).sortedWith(compareBy({ t -> t.kind }, { t -> t.name })).map { t ->
+                        ContextTemplateConfig(t.name, t.kind.name, t.description, t.content)
+                    },
                 types =
                     parentsFirst(allTypes).map { t ->
                         val own =
@@ -223,6 +232,7 @@ internal class DefaultConfigurationService(
             for (t in bundle.types) typeIds[t.name]?.let { importRules(t, it) }
             for (t in bundle.types) typeIds[t.name]?.let { importTypeLifecycle(t, it) }
             for (t in bundle.types) typeIds[t.name]?.let { importLayouts(t, it) }
+            importContextTemplates()
             return changes
         }
 
@@ -245,6 +255,37 @@ internal class DefaultConfigurationService(
             } catch (e: PlmException) {
                 changes += PlannedChange(kind, key, ChangeAction.CONFLICT, problemDetails(e))
                 false
+            }
+        }
+
+        fun importContextTemplates() {
+            val existing = contextTemplates.list(actor).associateBy { it.kind.name to it.name }
+            for (t in bundle.contextTemplates) {
+                val key = "${t.kind}/${t.name}"
+                val kind = runCatching { ContextKind.valueOf(t.kind) }.getOrNull()
+                if (kind == null) {
+                    change("contextTemplate", key, ChangeAction.CONFLICT, listOf("unknown kind '${t.kind}'"))
+                    continue
+                }
+                val command = SaveContextTemplate(t.name, kind, t.description, t.content)
+                val current = existing[t.kind to t.name]
+                if (current == null) {
+                    change("contextTemplate", key, ChangeAction.CREATE) { contextTemplates.create(actor, command) }
+                } else {
+                    val diff =
+                        diff(
+                            "description" to (current.description to t.description),
+                            "rules" to (current.content.policies.toSet() to t.content.policies.toSet()),
+                            "members" to (current.content.members.toSet() to t.content.members.toSet()),
+                            "sharedTeams" to (current.content.sharedTeams to t.content.sharedTeams),
+                        )
+                    change(
+                        "contextTemplate",
+                        key,
+                        updateOrNot(diff),
+                        diff,
+                    ) { contextTemplates.update(actor, current.id, command) }
+                }
             }
         }
 

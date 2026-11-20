@@ -18,11 +18,23 @@ data class ConfigBundle(
     val lifecycles: List<LifecycleConfig> = emptyList(),
     /** Parents before children. Includes the out-of-the-box base types, matched by name. */
     val types: List<TypeConfig> = emptyList(),
+    /** Templates for new organizations, products, libraries and projects. */
+    val contextTemplates: List<ContextTemplateConfig> = emptyList(),
 ) {
     companion object {
         const val FORMAT = "plm-config/1"
     }
 }
+
+data class ContextTemplateConfig(
+    val name: String,
+    /** ORGANIZATION, PRODUCT, LIBRARY or PROJECT. */
+    val kind: String,
+    val description: String? = null,
+    val content: com.plm.access.api.TemplateContent =
+        com.plm.access.api
+            .TemplateContent(),
+)
 
 data class TeamRoleConfig(
     val key: String,

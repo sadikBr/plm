@@ -5,6 +5,7 @@ import com.plm.access.api.ContextId
 import com.plm.access.api.Permission
 import com.plm.access.api.PolicyEffect
 import com.plm.access.api.PolicyId
+import com.plm.access.api.SharedTeamId
 import com.plm.access.api.TeamMember
 import com.plm.access.api.TeamRole
 import com.plm.access.api.TeamRoleDefinition
@@ -33,7 +34,7 @@ private fun permissionJoin(
     context: String,
 ) = """
     from context_closure ${prefix}mc
-    join context_member ${prefix}tm
+    join team_membership ${prefix}tm
       on ${prefix}tm.context_id = ${prefix}mc.ancestor_id
      and ${prefix}tm.tenant_id = :${prefix}tenant
      and ${prefix}tm.principal_id = :${prefix}principal
@@ -118,7 +119,7 @@ internal class AccessRepository(
             .sql(
                 """
                 select exists (
-                    select 1 from context_member tm
+                    select 1 from team_membership tm
                     join context_closure cc
                       on (cc.ancestor_id = tm.context_id and cc.descendant_id = :context)
                       or (cc.descendant_id = tm.context_id and cc.ancestor_id = :context)
@@ -220,15 +221,23 @@ internal class AccessRepository(
             .sql(
                 """
                 select tm.* from context_closure cc
-                join context_member tm on tm.context_id = cc.ancestor_id
+                join team_membership tm on tm.context_id = cc.ancestor_id
                 where cc.descendant_id = :context
                   and (cast(:principal as text) is null or tm.principal_id = :principal)
                 order by cc.depth, tm.principal_id
                 """,
             ).param("context", context.value)
             .param("principal", principal?.value)
-            .query(memberMapper)
-            .list()
+            .query {
+                rs,
+                i,
+                ->
+                memberMapper
+                    .mapRow(
+                        rs,
+                        i,
+                    ).copy(sharedTeamId = rs.getObject("shared_team_id", UUID::class.java)?.let(::SharedTeamId))
+            }.list()
 
     // ---------- Policies ----------
 

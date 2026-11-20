@@ -1,4 +1,4 @@
-import { FilePlus, FolderPlus } from "lucide-react";
+import { FilePlus, FolderPlus, LayoutTemplate } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { isApiError } from "../api/client";
@@ -7,6 +7,8 @@ import {
   HOLDS_OBJECTS,
   useChildren,
   useContextById,
+  useContextTemplates,
+  useSaveAsTemplate,
   useCreateContext,
   useCreateObject,
   useMe,
@@ -48,7 +50,7 @@ function ContextView({ id }: { id: string }) {
   const { data: permissions } = usePermissions(context?.id);
   const { data: me } = useMe();
   const [params, setParams] = useSearchParams();
-  const [dialog, setDialog] = useState<"object" | "context" | null>(null);
+  const [dialog, setDialog] = useState<"object" | "context" | "template" | null>(null);
 
   if (isLoading) return <Loading />;
   if (isApiError(error, 404)) return <NotFoundPage what="context" />;
@@ -84,7 +86,7 @@ function ContextView({ id }: { id: string }) {
           </>
         }
         toolbar={
-          canCreateObject || canCreateContext ? (
+          canCreateObject || canCreateContext || (me?.siteAdmin && context.kind !== "SITE") ? (
             <>
               {canCreateObject && (
                 <button className="btn ghost" onClick={() => setDialog("object")}>
@@ -96,6 +98,12 @@ function ContextView({ id }: { id: string }) {
                 <button className="btn ghost" onClick={() => setDialog("context")}>
                   <FolderPlus size={15} aria-hidden />
                   {newContextLabel}
+                </button>
+              )}
+              {me?.siteAdmin && context.kind !== "SITE" && (
+                <button className="btn ghost" onClick={() => setDialog("template")}>
+                  <LayoutTemplate size={15} aria-hidden />
+                  Save as template
                 </button>
               )}
             </>
@@ -114,6 +122,7 @@ function ContextView({ id }: { id: string }) {
       </div>
       <NewObjectDialog context={context} open={dialog === "object"} onClose={() => setDialog(null)} />
       <NewContextDialog parent={context} kinds={childKinds} open={dialog === "context"} onClose={() => setDialog(null)} />
+      {dialog === "template" && <SaveAsTemplateDialog context={context} onClose={() => setDialog(null)} />}
     </>
   );
 }
@@ -322,14 +331,17 @@ function NewContextDialog({
   const navigate = useNavigate();
   const [kind, setKind] = useState<ContextKind | "">("");
   const [name, setName] = useState("");
+  const [templateId, setTemplateId] = useState("");
   const formId = "new-context-form";
   const chosenKind = kind || kinds[0];
+  const { data: templates } = useContextTemplates(chosenKind);
+  const template = templates?.find((t) => t.id === templateId);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!chosenKind) return;
     create.mutate(
-      { parentId: parent.id, kind: chosenKind, name },
+      { parentId: parent.id, kind: chosenKind, name, templateId: template?.id ?? null },
       {
         onSuccess: (ctx) => {
           onClose();
@@ -360,7 +372,14 @@ function NewContextDialog({
         {kinds.length > 1 && (
           <div className="field">
             <label htmlFor="ctx-kind">Kind</label>
-            <select id="ctx-kind" value={chosenKind} onChange={(e) => setKind(e.target.value as ContextKind)}>
+            <select
+              id="ctx-kind"
+              value={chosenKind}
+              onChange={(e) => {
+                setKind(e.target.value as ContextKind);
+                setTemplateId("");
+              }}
+            >
               {kinds.map((k) => (
                 <option key={k} value={k}>
                   {kindLabel(k)}
@@ -374,6 +393,89 @@ function NewContextDialog({
           <input id="ctx-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
           <span className="hint">You will become its manager.</span>
         </div>
+        {!!templates?.length && (
+          <div className="field wide">
+            <label htmlFor="ctx-template">Template</label>
+            <select id="ctx-template" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
+              <option value="">None: start empty</option>
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+            {template && (
+              <span className="hint">
+                {template.description ? `${template.description} · ` : ""}
+                {template.content.policies.length} access rule{template.content.policies.length === 1 ? "" : "s"},{" "}
+                {template.content.members.length} member{template.content.members.length === 1 ? "" : "s"},{" "}
+                {template.content.sharedTeams.length} shared team{template.content.sharedTeams.length === 1 ? "" : "s"}
+              </span>
+            )}
+          </div>
+        )}
+      </form>
+    </Dialog>
+  );
+}
+
+function SaveAsTemplateDialog({ context, onClose }: { context: Context; onClose: () => void }) {
+  const save = useSaveAsTemplate(context.id);
+  const [name, setName] = useState(`${context.name} template`);
+  const [description, setDescription] = useState("");
+  const [saved, setSaved] = useState(false);
+  return (
+    <Dialog
+      open
+      title={`Save ${context.name} as a template`}
+      onClose={onClose}
+      footer={
+        saved ? (
+          <button className="btn primary" onClick={onClose}>
+            Done
+          </button>
+        ) : (
+          <>
+            <button className="btn" type="button" onClick={onClose}>
+              Cancel
+            </button>
+            <button className="btn primary" type="submit" form="template-form" disabled={save.isPending || !name.trim()}>
+              Save template
+            </button>
+          </>
+        )
+      }
+    >
+      <form
+        id="template-form"
+        noValidate
+        style={{ display: "grid", gap: 12 }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          save.mutate({ name: name.trim(), description: description.trim() || null }, { onSuccess: () => setSaved(true) });
+        }}
+      >
+        <ErrorBanner error={save.error} />
+        {saved ? (
+          <p style={{ margin: 0 }}>
+            Saved. New {kindLabel(context.kind).toLowerCase()}s can now start from <strong>{name}</strong>.
+          </p>
+        ) : (
+          <>
+            <p className="muted" style={{ margin: 0 }}>
+              Captures this {kindLabel(context.kind).toLowerCase()}'s own access rules, team members and attached shared teams.
+              Its objects are not copied.
+            </p>
+            <div className="field">
+              <label htmlFor="template-name">Template name</label>
+              <input id="template-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+            </div>
+            <div className="field">
+              <label htmlFor="template-description">Description</label>
+              <input id="template-description" value={description} onChange={(e) => setDescription(e.target.value)} />
+            </div>
+          </>
+        )}
       </form>
     </Dialog>
   );

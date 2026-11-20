@@ -138,6 +138,46 @@ export const useTypes = () => useQuery({ queryKey: keys.types, queryFn: () => un
 /** Reference data changes rarely: cache it for the session (admins' changes show after a reload). */
 const REFERENCE_DATA = { staleTime: 10 * 60_000 };
 
+export type ContextTemplate = Schemas["ContextTemplateResponse"];
+export type SharedTeam = Schemas["SharedTeamResponse"];
+
+/** Templates for new contexts of [kind] (all kinds when omitted). */
+export const useContextTemplates = (kind?: ContextKind) =>
+  useQuery({
+    queryKey: ["contextTemplates", kind ?? "all"],
+    queryFn: () => unwrap(api.GET("/api/v1/context-templates", { params: { query: kind ? { kind } : {} } })),
+  });
+
+export const useSharedTeams = () => useQuery({ queryKey: ["sharedTeams"], queryFn: () => unwrap(api.GET("/api/v1/shared-teams")) });
+
+export const useAttachedTeams = (contextId: string) =>
+  useQuery({
+    queryKey: ["attachedTeams", contextId],
+    queryFn: () => unwrap(api.GET("/api/v1/contexts/{contextId}/shared-teams", { params: { path: { contextId } } })),
+  });
+
+export function useAttachTeam(contextId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ teamId, attach }: { teamId: string; attach: boolean }) =>
+      attach
+        ? unwrap(api.PUT("/api/v1/contexts/{contextId}/shared-teams/{teamId}", { params: { path: { contextId, teamId } } }))
+        : unwrap(api.DELETE("/api/v1/contexts/{contextId}/shared-teams/{teamId}", { params: { path: { contextId, teamId } } })),
+    onSuccess: () => {
+      for (const key of ["attachedTeams", "effectiveMembers", "explain", "permissions"]) void qc.invalidateQueries({ queryKey: [key] });
+    },
+  });
+}
+
+export function useSaveAsTemplate(contextId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Schemas["SaveFromContextRequest"]) =>
+      unwrap(api.POST("/api/v1/contexts/{contextId}/save-as-template", { params: { path: { contextId } }, body })),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["contextTemplates"] }),
+  });
+}
+
 export const useTeamRoles = () =>
   useQuery({ queryKey: keys.teamRoles, queryFn: () => unwrap(api.GET("/api/v1/team-roles")), ...REFERENCE_DATA });
 

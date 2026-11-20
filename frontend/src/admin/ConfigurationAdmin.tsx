@@ -25,6 +25,7 @@ const KIND_LABEL: Record<string, string> = {
   typeRules: "Type rules",
   typeLifecycle: "Type lifecycle",
   layout: "Layout",
+  contextTemplate: "Context template",
 };
 
 /** Export the configuration as a file; import one, review what it would change, then apply. */

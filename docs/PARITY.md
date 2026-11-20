@@ -29,10 +29,10 @@ search summaries; those are marked *(to confirm)*. The list is about **what** us
 | Capability | Status | Notes |
 |---|---|---|
 | Context hierarchy: Site → Organization → Product / Library / Project | ✅ | Closure table, inherited teams and policies |
-| **Context templates** (product, library, project, organization): team roles, folders, policies, preferences, seed objects. Create a context from a template; export a context as a template | ⬜ [1.12] | Templates are versioned config bundles |
+| **Context templates** (product, library, project, organization): team roles, folders, policies, preferences, seed objects. Create a context from a template; export a context as a template | 🟡 | Rules, team, shared teams ✅ · in config bundles ✅ · folders [3], preferences [1.13], seed objects [3] |
 | Teams with roles per context, inherited down the tree | ✅ | Inherited members shown on each context |
 | Custom team roles (e.g. Design Engineer, Change Admin) | ✅ | Roles are data, managed in the admin UI |
-| Shared teams (one team reused by several contexts) | ⬜ [1.12] | With context templates |
+| Shared teams (one team reused by several contexts) | ✅ | Admin → Shared teams; attach on a context's Team tab |
 | Access policies by role × type × lifecycle state | ✅ | Managed per context by its managers |
 | Policy admin UI, policies that apply to subtypes | ✅ | Access tab on each context |
 | Deny entries and absolute denies (override inherited grants) | ✅ | A deny always wins over any allow |
@@ -64,8 +64,8 @@ search summaries; those are marked *(to confirm)*. The list is about **what** us
 | Constraints: required, range, length, regex, immutable, unique, state-dependent required | 🟡 | All but unique and state-dependent; server-enforced |
 | Multi-valued attributes | ✅ | |
 | Layouts: attribute groups and order per type, for create / edit / info / table / search | 🟡 | Create, edit, info ✅ (inherited, hidden attributes, 1–2 columns) · admin editor with live preview ✅ · table/search columns [3] |
-| Initialization rules per type: numbering, revision scheme, defaults, lifecycle, folder, team | 🟡 | Numbering, revision, lifecycle, defaults ✅ · folder [3], team [1.12] |
-| Numbering per context or per subtype; pluggable numbering strategies | 🟡 | Per type ✅ · per context [1.12] · scripted [5] |
+| Initialization rules per type: numbering, revision scheme, defaults, lifecycle, folder, team | 🟡 | Numbering, revision, lifecycle, defaults ✅ · folder [3] · team via context templates ✅ |
+| Numbering per context or per subtype; pluggable numbering strategies | 🟡 | Per type ✅ · per context [1.13, as a preference] · scripted [5] |
 | Classification (class hierarchy with class-specific attributes) | ⬜ [7] | |
 | Admin UI for all of the above, with live form preview | ✅ | Administration page for site admins |
 | Move configuration between environments (dev → test → prod) | ✅ | One JSON bundle; plan with diffs, then all-or-nothing apply |

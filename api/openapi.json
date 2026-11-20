@@ -249,6 +249,12 @@
       },
       "ConfigBundle" : {
         "properties" : {
+          "contextTemplates" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ContextTemplateConfig"
+            },
+            "type" : "array"
+          },
           "enumerations" : {
             "items" : {
               "$ref" : "#/components/schemas/EnumerationConfig"
@@ -283,7 +289,7 @@
             "type" : "array"
           }
         },
-        "required" : [ "enumerations", "format", "lifecycles", "numberingSchemes", "teamRoles", "types" ],
+        "required" : [ "contextTemplates", "enumerations", "format", "lifecycles", "numberingSchemes", "teamRoles", "types" ],
         "type" : "object"
       },
       "ContextResponse" : {
@@ -314,6 +320,58 @@
         "required" : [ "createdAt", "createdBy", "id", "kind", "name" ],
         "type" : "object"
       },
+      "ContextTemplateConfig" : {
+        "properties" : {
+          "content" : {
+            "$ref" : "#/components/schemas/TemplateContent"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "content", "kind", "name" ],
+        "type" : "object"
+      },
+      "ContextTemplateResponse" : {
+        "properties" : {
+          "content" : {
+            "$ref" : "#/components/schemas/TemplateContent"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "SITE", "ORGANIZATION", "PRODUCT", "LIBRARY", "PROJECT" ],
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "content", "createdAt", "createdBy", "id", "kind", "name", "updatedAt" ],
+        "type" : "object"
+      },
       "CreateContextRequest" : {
         "properties" : {
           "kind" : {
@@ -326,6 +384,10 @@
           "parentId" : {
             "format" : "uuid",
             "type" : "string"
+          },
+          "templateId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "kind", "name", "parentId" ],
@@ -433,6 +495,18 @@
           }
         },
         "required" : [ "permissions", "role" ],
+        "type" : "object"
+      },
+      "CreateSharedTeamRequest" : {
+        "properties" : {
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "name" ],
         "type" : "object"
       },
       "CreateTeamRoleRequest" : {
@@ -1025,6 +1099,10 @@
           },
           "role" : {
             "type" : "string"
+          },
+          "sharedTeamId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "addedAt", "addedBy", "contextId", "principalId", "role" ],
@@ -1354,6 +1432,41 @@
         "required" : [ "groups", "screen", "typeId" ],
         "type" : "object"
       },
+      "SaveContextTemplateRequest" : {
+        "properties" : {
+          "content" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/TemplateContent"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "kind" : {
+            "enum" : [ "SITE", "ORGANIZATION", "PRODUCT", "LIBRARY", "PROJECT" ],
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "kind", "name" ],
+        "type" : "object"
+      },
+      "SaveFromContextRequest" : {
+        "properties" : {
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "name" ],
+        "type" : "object"
+      },
       "SaveLayoutRequest" : {
         "properties" : {
           "groups" : {
@@ -1385,6 +1498,48 @@
           }
         },
         "required" : [ "state" ],
+        "type" : "object"
+      },
+      "SharedTeamMemberResponse" : {
+        "properties" : {
+          "addedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "principalId" : {
+            "type" : "string"
+          },
+          "role" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "addedAt", "principalId", "role" ],
+        "type" : "object"
+      },
+      "SharedTeamResponse" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "members" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SharedTeamMemberResponse"
+            },
+            "type" : "array"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "id", "members", "name" ],
         "type" : "object"
       },
       "StateDto" : {
@@ -1459,6 +1614,69 @@
           }
         },
         "required" : [ "active", "key", "labels", "sortOrder", "system" ],
+        "type" : "object"
+      },
+      "TemplateContent" : {
+        "properties" : {
+          "members" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TemplateMember"
+            },
+            "type" : "array"
+          },
+          "policies" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TemplatePolicy"
+            },
+            "type" : "array"
+          },
+          "sharedTeams" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "members", "policies", "sharedTeams" ],
+        "type" : "object"
+      },
+      "TemplateMember" : {
+        "properties" : {
+          "principalId" : {
+            "type" : "string"
+          },
+          "role" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "principalId", "role" ],
+        "type" : "object"
+      },
+      "TemplatePolicy" : {
+        "properties" : {
+          "effect" : {
+            "enum" : [ "ALLOW", "DENY" ],
+            "type" : "string"
+          },
+          "permissions" : {
+            "items" : {
+              "enum" : [ "READ", "CREATE", "MODIFY", "REVISE", "MANAGE", "PROMOTE" ],
+              "type" : "string"
+            },
+            "type" : "array",
+            "uniqueItems" : true
+          },
+          "role" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          },
+          "type" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "effect", "permissions", "role" ],
         "type" : "object"
       },
       "TransitionDto" : {
@@ -1814,6 +2032,192 @@
           }
         },
         "tags" : [ "Configuration" ]
+      }
+    },
+    "/api/v1/context-templates" : {
+      "get" : {
+        "operationId" : "contextTemplateList",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "kind",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "SITE", "ORGANIZATION", "PRODUCT", "LIBRARY", "PROJECT" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ContextTemplateResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Context template" ]
+      },
+      "post" : {
+        "operationId" : "contextTemplateCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveContextTemplateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ContextTemplateResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Context template" ]
+      }
+    },
+    "/api/v1/context-templates/{id}" : {
+      "delete" : {
+        "operationId" : "contextTemplateDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Context template" ]
+      },
+      "get" : {
+        "operationId" : "contextTemplateGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ContextTemplateResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Context template" ]
+      },
+      "put" : {
+        "operationId" : "contextTemplateUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveContextTemplateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ContextTemplateResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Context template" ]
       }
     },
     "/api/v1/contexts" : {
@@ -2241,6 +2645,167 @@
           }
         },
         "tags" : [ "Policy" ]
+      }
+    },
+    "/api/v1/contexts/{contextId}/save-as-template" : {
+      "post" : {
+        "operationId" : "contextTemplateSaveFromContext",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveFromContextRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ContextTemplateResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Context template" ]
+      }
+    },
+    "/api/v1/contexts/{contextId}/shared-teams" : {
+      "get" : {
+        "operationId" : "sharedTeamAttached",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/SharedTeamResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Shared team" ]
+      }
+    },
+    "/api/v1/contexts/{contextId}/shared-teams/{teamId}" : {
+      "delete" : {
+        "operationId" : "sharedTeamDetach",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "teamId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Shared team" ]
+      },
+      "put" : {
+        "operationId" : "sharedTeamAttach",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "teamId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Shared team" ]
       }
     },
     "/api/v1/contexts/{id}" : {
@@ -3362,6 +3927,234 @@
         "tags" : [ "Principal" ]
       }
     },
+    "/api/v1/shared-teams" : {
+      "get" : {
+        "operationId" : "sharedTeamList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/SharedTeamResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Shared team" ]
+      },
+      "post" : {
+        "operationId" : "sharedTeamCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateSharedTeamRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SharedTeamResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Shared team" ]
+      }
+    },
+    "/api/v1/shared-teams/{id}" : {
+      "delete" : {
+        "operationId" : "sharedTeamDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Shared team" ]
+      },
+      "get" : {
+        "operationId" : "sharedTeamGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SharedTeamResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Shared team" ]
+      }
+    },
+    "/api/v1/shared-teams/{id}/members/{principalId}" : {
+      "delete" : {
+        "operationId" : "sharedTeamRemoveMember",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "principalId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SharedTeamResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Shared team" ]
+      },
+      "put" : {
+        "operationId" : "sharedTeamPutMember",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "principalId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PutMemberRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SharedTeamResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Shared team" ]
+      }
+    },
     "/api/v1/team-roles" : {
       "get" : {
         "operationId" : "teamRoleList",
@@ -4109,6 +4902,8 @@
   }, {
     "name" : "Context"
   }, {
+    "name" : "Context template"
+  }, {
     "name" : "Layout"
   }, {
     "name" : "Lifecycle"
@@ -4118,6 +4913,8 @@
     "name" : "Principal"
   }, {
     "name" : "Reference data"
+  }, {
+    "name" : "Shared team"
   }, {
     "name" : "Team"
   }, {
