@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, isApiError, unwrap, type Schemas } from "./client";
 
 export type Context = Schemas["ContextResponse"];
@@ -32,6 +32,7 @@ export const keys = {
   site: ["site"] as const,
   context: (id: string) => ["context", id] as const,
   children: (id: string) => ["children", id] as const,
+  contextsOfKind: (kind: string) => ["contextsOfKind", kind] as const,
   members: (id: string) => ["members", id] as const,
   effectiveMembers: (id: string) => ["effectiveMembers", id] as const,
   policies: (id: string) => ["policies", id] as const,
@@ -84,6 +85,32 @@ export const useChildren = (id: string | undefined, enabled = true) =>
     queryFn: () => unwrap(api.GET("/api/v1/contexts/{id}/children", { params: { path: { id: id! } } })),
     enabled: !!id && enabled,
   });
+
+/** Every context of one kind the user can see (organizations, products, ...), by name. */
+export const useContextsOfKind = (kind: ContextKind | undefined) =>
+  useQuery({
+    queryKey: keys.contextsOfKind(kind ?? ""),
+    queryFn: () => unwrap(api.GET("/api/v1/contexts", { params: { query: { kind: kind!, limit: 500 } } })),
+    enabled: !!kind && kind !== "SITE",
+  });
+
+/** The organizations the user manages: where they may create products, libraries and projects. */
+export function useManagedOrganizations(): Context[] | undefined {
+  const { data: organizations } = useContextsOfKind("ORGANIZATION");
+  const permissions = useQueries({
+    queries: (organizations ?? []).map((org) => ({
+      queryKey: keys.permissions(org.id),
+      queryFn: async () =>
+        new Set(
+          (await unwrap(
+            api.GET("/api/v1/contexts/{contextId}/permissions", { params: { path: { contextId: org.id }, query: {} } }),
+          )) as Permission[],
+        ),
+    })),
+  });
+  if (!organizations || permissions.some((p) => !p.data)) return undefined;
+  return organizations.filter((_, i) => permissions[i]!.data!.has("MANAGE"));
+}
 
 export const useMembers = (contextId: string) =>
   useQuery({
@@ -347,6 +374,7 @@ export function useCreateContext() {
     mutationFn: (body: Schemas["CreateContextRequest"]) => unwrap(api.POST("/api/v1/contexts", { body })),
     onSuccess: (ctx) => {
       if (ctx.parentId) void qc.invalidateQueries({ queryKey: keys.children(ctx.parentId) });
+      void qc.invalidateQueries({ queryKey: keys.contextsOfKind(ctx.kind) });
     },
   });
 }

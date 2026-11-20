@@ -73,6 +73,7 @@ internal class ContextRepository(
         siteAdmin: Boolean,
         text: String,
         limit: Int,
+        kind: ContextKind? = null,
     ): List<Context> {
         val pattern = "%" + text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
         return jdbc
@@ -80,6 +81,7 @@ internal class ContextRepository(
                 """
                 select c.* from context c
                 where c.tenant_id = :tenant and c.name ilike :pattern
+                  and (cast(:kind as text) is null or c.kind = :kind)
                   and (:admin or exists (
                     select 1 from team_membership tm
                     join context_closure cc
@@ -95,6 +97,7 @@ internal class ContextRepository(
             .param("admin", siteAdmin)
             .param("principal", principal)
             .param("limit", limit)
+            .param("kind", kind?.name)
             .query(mapper)
             .list()
     }

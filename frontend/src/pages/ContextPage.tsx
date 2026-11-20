@@ -1,5 +1,5 @@
-import { FilePlus, FolderPlus, LayoutTemplate } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { FilePlus, LayoutTemplate, Plus } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { isApiError } from "../api/client";
 import {
@@ -7,12 +7,11 @@ import {
   HOLDS_OBJECTS,
   useChildren,
   useContextById,
-  useContextTemplates,
   useEffectivePreferences,
   useSaveAsTemplate,
-  useCreateContext,
   useCreateObject,
   useMe,
+  useMembers,
   useObjects,
   usePermissions,
   useLayout,
@@ -21,6 +20,7 @@ import {
   type Attributes,
   type Context,
   type ContextKind,
+  type Permission,
 } from "../api/queries";
 import { AttributeForm, defaultValues, fieldErrors } from "../components/AttributeForm";
 import {
@@ -32,17 +32,40 @@ import {
   PrincipalName,
   formatDate,
   kindLabel,
+  kindPlural,
   typeLabel,
 } from "../components/common";
 import { Breadcrumbs, PageHeader, Tabs, useIdParam } from "../components/Layout";
 import { rememberVisit } from "../components/Navigator";
 import { ObjectTable } from "../components/ObjectTable";
 import { AccessTab, TeamTab } from "./ContextAccess";
+import { ContextTable, NewContextDialog } from "./ContextLists";
 import { PreferencesTab } from "./Preferences";
 import { ContextTemplatesAdmin, SharedTeamsAdmin } from "../admin/TeamsAndTemplatesAdmin";
 import { NotFoundPage } from "./NotFoundPage";
 
-type Tab = "objects" | "contexts" | "team" | "access" | "preferences" | "teams" | "templates";
+type Tab =
+  | "overview"
+  | "contents"
+  | "organizations"
+  | "products"
+  | "libraries"
+  | "projects"
+  | "team"
+  | "access"
+  | "preferences"
+  | "teams"
+  | "templates";
+
+/** The tab listing an organization's (or the site's) children of one kind. */
+const CHILD_TAB: Partial<Record<ContextKind, Tab>> = {
+  ORGANIZATION: "organizations",
+  PRODUCT: "products",
+  LIBRARY: "libraries",
+  PROJECT: "projects",
+};
+// Links from before the tabs were split by kind.
+const OLD_TABS: Record<string, Tab> = { objects: "contents" };
 
 /** Remounts per context, so page state (open dialogs, filters, form drafts) never leaks between contexts. */
 export function ContextPage() {
@@ -55,7 +78,7 @@ function ContextView({ id }: { id: string }) {
   const { data: permissions } = usePermissions(context?.id);
   const { data: me } = useMe();
   const [params, setParams] = useSearchParams();
-  const [dialog, setDialog] = useState<"object" | "context" | "template" | null>(null);
+  const [dialog, setDialog] = useState<"template" | null>(null);
 
   useEffect(() => {
     if (context) rememberVisit(context);
@@ -67,22 +90,27 @@ function ContextView({ id }: { id: string }) {
 
   const holdsObjects = HOLDS_OBJECTS.has(context.kind);
   const childKinds = ALLOWED_CHILDREN[context.kind];
-  const tab = (params.get("tab") as Tab | null) ?? (holdsObjects ? "objects" : "contexts");
+  const canManage = !!permissions?.has("MANAGE");
   // Managers save templates for their organization; site admins may also make them site-wide.
-  const canSaveTemplate = context.kind !== "SITE" && (!!me?.siteAdmin || !!permissions?.has("MANAGE"));
-  const isOrgAdmin = context.kind === "ORGANIZATION" && !!permissions?.has("MANAGE");
+  const canSaveTemplate = context.kind !== "SITE" && (!!me?.siteAdmin || canManage);
+  const isOrgAdmin = context.kind === "ORGANIZATION" && canManage;
   const tabs: [Tab, string][] = [
-    ...(holdsObjects ? [["objects", "Objects"] as [Tab, string]] : []),
-    ...(childKinds.length > 0 ? [["contexts", "Contexts"] as [Tab, string]] : []),
+    ["overview", "Overview"],
+    ...(holdsObjects ? [["contents", "Contents"] as [Tab, string]] : []),
+    ...childKinds.map((k) => [CHILD_TAB[k]!, kindPlural(k)] as [Tab, string]),
     ["team", "Team"],
-    // Access rules are for whoever manages this context.
-    ...(permissions?.has("MANAGE") ? [["access", "Access"] as [Tab, string], ["preferences", "Preferences"] as [Tab, string]] : []),
+    // Access rules and preferences are for whoever manages this context.
+    ...(canManage ? [["access", "Access"] as [Tab, string], ["preferences", "Preferences"] as [Tab, string]] : []),
     ...(isOrgAdmin ? [["teams", "Shared teams"] as [Tab, string], ["templates", "Templates"] as [Tab, string]] : []),
   ];
-  const canCreateObject = holdsObjects && !!permissions?.has("CREATE");
+  const asked = params.get("tab") ?? "";
+  const requested = (OLD_TABS[asked] ?? asked) as Tab;
+  // Each kind opens on what it's mostly used for: a product's contents, the site's organizations.
+  const fallback: Tab = holdsObjects ? "contents" : context.kind === "SITE" ? "organizations" : "overview";
+  const tab: Tab = tabs.some(([t]) => t === requested) ? requested : fallback;
+  const select = (t: Tab) => setParams({ tab: t });
   // Organizations are created by site admins only; everything else needs MANAGE on the parent.
-  const canCreateContext = childKinds.length > 0 && (context.kind === "SITE" ? !!me?.siteAdmin : !!permissions?.has("MANAGE"));
-  const newContextLabel = `New ${childKinds.length === 1 ? kindLabel(childKinds[0]!).toLowerCase() : "context"}`;
+  const canCreateChildren = context.kind === "SITE" ? !!me?.siteAdmin : canManage;
 
   return (
     <>
@@ -92,60 +120,222 @@ function ContextView({ id }: { id: string }) {
         title={<span className="nm">{context.name}</span>}
         meta={
           <>
-            <span className="tag">{kindLabel(context.kind)}</span>
+            <span className={`tag kind-${context.kind.toLowerCase()}`}>{kindLabel(context.kind)}</span>
             <span className="sub">
               Created {formatDate(context.createdAt)} by <PrincipalName id={context.createdBy} />
             </span>
           </>
         }
         toolbar={
-          canCreateObject || canCreateContext || canSaveTemplate ? (
-            <>
-              {canCreateObject && (
-                <button className="btn ghost" onClick={() => setDialog("object")}>
-                  <FilePlus size={15} aria-hidden />
-                  New object
-                </button>
-              )}
-              {canCreateContext && (
-                <button className="btn ghost" onClick={() => setDialog("context")}>
-                  <FolderPlus size={15} aria-hidden />
-                  {newContextLabel}
-                </button>
-              )}
-              {canSaveTemplate && (
-                <button className="btn ghost" onClick={() => setDialog("template")}>
-                  <LayoutTemplate size={15} aria-hidden />
-                  Save as template
-                </button>
-              )}
-            </>
+          canSaveTemplate ? (
+            <button className="btn ghost" onClick={() => setDialog("template")}>
+              <LayoutTemplate size={15} aria-hidden />
+              Save as template
+            </button>
           ) : undefined
         }
-        tabs={<Tabs tabs={tabs} active={tab} onSelect={(t) => setParams({ tab: t })} />}
+        tabs={<Tabs tabs={tabs} active={tab} onSelect={select} />}
       />
       <div className="content">
-        {tab === "objects" && holdsObjects && <ObjectsTab context={context} />}
-        {tab === "contexts" && <ContextsTab context={context} />}
-        {tab === "team" && <TeamTab context={context} canManage={!!permissions?.has("MANAGE")} />}
-        {tab === "preferences" && permissions?.has("MANAGE") && <PreferencesTab contextId={context.id} />}
+        {tab === "overview" && <OverviewTab context={context} permissions={permissions} onSelect={select} />}
+        {tab === "contents" && <ObjectsTab context={context} canCreate={!!permissions?.has("CREATE")} />}
+        {childKinds.map((k) => tab === CHILD_TAB[k] && <ChildrenTab key={k} parent={context} kind={k} canCreate={canCreateChildren} />)}
+        {tab === "team" && <TeamTab context={context} canManage={canManage} />}
+        {tab === "preferences" && canManage && <PreferencesTab contextId={context.id} />}
         {tab === "teams" && isOrgAdmin && <SharedTeamsAdmin organizationId={context.id} />}
         {tab === "templates" && isOrgAdmin && <ContextTemplatesAdmin organizationId={context.id} />}
-        {tab === "access" && permissions?.has("MANAGE") && (
+        {tab === "access" && canManage && (
           // Rules on the site apply everywhere: only site admins change them.
           <AccessTab context={context} canChange={context.kind === "SITE" ? !!me?.siteAdmin : true} />
         )}
       </div>
-      <NewObjectDialog context={context} open={dialog === "object"} onClose={() => setDialog(null)} />
-      <NewContextDialog parent={context} kinds={childKinds} open={dialog === "context"} onClose={() => setDialog(null)} />
       {dialog === "template" && <SaveAsTemplateDialog context={context} siteAdmin={!!me?.siteAdmin} onClose={() => setDialog(null)} />}
+    </>
+  );
+}
+
+// ---------- Overview ----------
+
+const PERMISSION_LABELS: [Permission, string][] = [
+  ["READ", "Read"],
+  ["CREATE", "Create"],
+  ["MODIFY", "Modify"],
+  ["REVISE", "Revise"],
+  ["PROMOTE", "Promote"],
+  ["MANAGE", "Manage"],
+];
+
+function OverviewTab({
+  context,
+  permissions,
+  onSelect,
+}: {
+  context: Context;
+  permissions?: Set<Permission>;
+  onSelect: (tab: Tab) => void;
+}) {
+  const { data: parent } = useContextById(context.parentId && context.kind !== "ORGANIZATION" ? context.parentId : undefined);
+  const { data: children } = useChildren(context.id, !HOLDS_OBJECTS.has(context.kind));
+  const { data: members } = useMembers(context.id);
+  const childKinds = ALLOWED_CHILDREN[context.kind];
+
+  return (
+    <div className="overview">
+      <Panel title="Details">
+        <dl className="props">
+          <Prop label="Name">{context.name}</Prop>
+          <Prop label="Kind">{kindLabel(context.kind)}</Prop>
+          {parent && (
+            <Prop label="Organization">
+              <Link to={`/contexts/${parent.id}`}>{parent.name}</Link>
+            </Prop>
+          )}
+          <Prop label="Created">
+            {formatDate(context.createdAt)} by <PrincipalName id={context.createdBy} />
+          </Prop>
+          <Prop label="Team">
+            {members ? (
+              <button className="link-btn" onClick={() => onSelect("team")}>
+                {members.length} direct member
+                {members.length === 1 ? "" : "s"}
+              </button>
+            ) : (
+              "—"
+            )}
+          </Prop>
+          <Prop label="Your access">
+            <span className="perm-list">
+              {PERMISSION_LABELS.filter(([p]) => permissions?.has(p)).map(([p, label]) => (
+                <span key={p} className="tag">
+                  {label}
+                </span>
+              ))}
+            </span>
+          </Prop>
+        </dl>
+      </Panel>
+      {childKinds.length > 0 && (
+        <Panel title="Contains">
+          <div className="stat-tiles">
+            {childKinds.map((k) => {
+              const n = children?.filter((c) => c.kind === k).length;
+              return (
+                <button key={k} className="stat-tile" onClick={() => onSelect(CHILD_TAB[k]!)}>
+                  <span className={`kind kind-${k.toLowerCase()}`}>
+                    <ContextIcon kind={k} size={16} />
+                  </span>
+                  <span className="stat-num">{n ?? "…"}</span>
+                  <span className="stat-label">{kindPlural(k)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Panel>
+      )}
+      {HOLDS_OBJECTS.has(context.kind) && <RecentObjects context={context} onSelect={onSelect} />}
+    </div>
+  );
+}
+
+function Prop({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="prop">
+      <dt>{label}</dt>
+      <dd>{children}</dd>
+    </div>
+  );
+}
+
+function RecentObjects({ context, onSelect }: { context: Context; onSelect: (tab: Tab) => void }) {
+  const objects = useObjects(context.id, 5);
+  const rows = objects.data?.pages[0] ?? [];
+  return (
+    <Panel
+      title="Objects"
+      flush
+      actions={
+        <button className="btn small" onClick={() => onSelect("contents")}>
+          Open contents
+        </button>
+      }
+    >
+      {objects.isLoading ? (
+        <Loading />
+      ) : rows.length === 0 ? (
+        <p className="empty">No objects yet.</p>
+      ) : (
+        <ObjectTable objects={rows} label="Latest objects" />
+      )}
+    </Panel>
+  );
+}
+
+// ---------- Children of one kind (an organization's products, the site's organizations) ----------
+
+function ChildrenTab({ parent, kind, canCreate }: { parent: Context; kind: ContextKind; canCreate: boolean }) {
+  const { data: children, isLoading, error } = useChildren(parent.id);
+  const [creating, setCreating] = useState(false);
+  const [filter, setFilter] = useState("");
+  const ofKind = children?.filter((c) => c.kind === kind) ?? [];
+  const f = filter.trim().toLowerCase();
+  const shown = f ? ofKind.filter((c) => c.name.toLowerCase().includes(f)) : ofKind;
+  const label = kindLabel(kind).toLowerCase();
+
+  return (
+    <>
+      <Panel
+        title={kindPlural(kind)}
+        note={children ? String(ofKind.length) : undefined}
+        flush
+        actions={
+          <>
+            {ofKind.length > 5 && (
+              <input
+                className="filter"
+                type="search"
+                aria-label={`Filter ${kindPlural(kind).toLowerCase()}`}
+                placeholder="Filter by name"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              />
+            )}
+            {canCreate && (
+              <button className="btn small primary" onClick={() => setCreating(true)}>
+                <Plus size={14} aria-hidden />
+                New {label}
+              </button>
+            )}
+          </>
+        }
+      >
+        <ErrorBanner error={error} />
+        {isLoading ? (
+          <Loading />
+        ) : ofKind.length === 0 ? (
+          <p className="empty">No {kindPlural(kind).toLowerCase()} here that you can see.</p>
+        ) : (
+          <ContextTable contexts={shown} label={kindPlural(kind)} />
+        )}
+      </Panel>
+      {creating && <NewContextDialog kind={kind} parent={parent} onClose={() => setCreating(false)} />}
     </>
   );
 }
 
 // ---------- Objects ----------
 
-function ObjectsTab({ context }: { context: Context }) {
+const BASE_CLASS_LABELS: Record<string, string> = {
+  PART: "part",
+  DOCUMENT: "document",
+};
+
+function ObjectsTab({ context, canCreate }: { context: Context; canCreate: boolean }) {
+  const { data: types } = useTypes();
+  const [creating, setCreating] = useState<string | null>(null);
+  // One New button per kind of thing there are types for: New part, New document.
+  const baseClasses = [...new Set(types?.filter((t) => t.instantiable).map((t) => t.baseClass))].sort(
+    (a, b) => Object.keys(BASE_CLASS_LABELS).indexOf(a) - Object.keys(BASE_CLASS_LABELS).indexOf(b),
+  );
   const { data: prefs } = useEffectivePreferences(context.id);
   const objects = useObjects(context.id, (prefs?.get("ui.tablePageSize") as number | undefined) ?? 50);
   const [filter, setFilter] = useState("");
@@ -161,16 +351,26 @@ function ObjectsTab({ context }: { context: Context }) {
       note={objects.data ? `${rows.length}${objects.hasNextPage ? "+" : ""}` : undefined}
       flush
       actions={
-        <input
-          className="filter"
-          type="search"
-          aria-label="Filter objects"
-          placeholder="Filter by number or name"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        />
+        <>
+          <input
+            className="filter"
+            type="search"
+            aria-label="Filter objects"
+            placeholder="Filter by number or name"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
+          {canCreate &&
+            baseClasses.map((bc) => (
+              <button key={bc} className="btn small primary" onClick={() => setCreating(bc)}>
+                {bc === "DOCUMENT" ? <FilePlus size={14} aria-hidden /> : <Plus size={14} aria-hidden />}
+                New {BASE_CLASS_LABELS[bc] ?? bc.toLowerCase()}
+              </button>
+            ))}
+        </>
       }
     >
+      {creating && <NewObjectDialog context={context} baseClass={creating} onClose={() => setCreating(null)} />}
       <ErrorBanner error={objects.error} />
       {objects.isLoading ? (
         <Loading />
@@ -181,9 +381,7 @@ function ObjectsTab({ context }: { context: Context }) {
           objects={shown}
           footer={
             <>
-              <span>
-                {shown.length === rows.length ? `${rows.length} objects` : `${shown.length} of ${rows.length} objects`}
-              </span>
+              <span>{shown.length === rows.length ? `${rows.length} objects` : `${shown.length} of ${rows.length} objects`}</span>
               {objects.hasNextPage && (
                 <button className="btn small" onClick={() => void objects.fetchNextPage()} disabled={objects.isFetchingNextPage}>
                   Load more
@@ -197,10 +395,10 @@ function ObjectsTab({ context }: { context: Context }) {
   );
 }
 
-function NewObjectDialog({ context, open, onClose }: { context: Context; open: boolean; onClose: () => void }) {
+function NewObjectDialog({ context, baseClass, onClose }: { context: Context; baseClass: string; onClose: () => void }) {
   const { data: allTypes } = useTypes();
   // Abstract types only group subtypes: they can't be created.
-  const types = allTypes?.filter((t) => t.instantiable);
+  const types = allTypes?.filter((t) => t.instantiable && t.baseClass === baseClass);
   const create = useCreateObject();
   const navigate = useNavigate();
   const [typeId, setTypeId] = useState("");
@@ -210,7 +408,10 @@ function NewObjectDialog({ context, open, onClose }: { context: Context; open: b
   const { data: definitions } = useTypeAttributes(chosenType);
   const { data: layout } = useLayout(chosenType, "CREATE");
   // Edits belong to the type they were made for; switching type starts again from its defaults.
-  const [edits, setEdits] = useState<{ typeId: string; values: Attributes }>();
+  const [edits, setEdits] = useState<{
+    typeId: string;
+    values: Attributes;
+  }>();
   const values = edits && edits.typeId === chosenType ? edits.values : defaultValues(definitions ?? []);
   const formId = "new-object-form";
 
@@ -218,7 +419,13 @@ function NewObjectDialog({ context, open, onClose }: { context: Context; open: b
     e.preventDefault();
     if (!chosenType) return;
     create.mutate(
-      { typeId: chosenType, contextId: context.id, name, number: number.trim() || null, attributes: values },
+      {
+        typeId: chosenType,
+        contextId: context.id,
+        name,
+        number: number.trim() || null,
+        attributes: values,
+      },
       {
         onSuccess: (obj) => {
           onClose();
@@ -230,8 +437,8 @@ function NewObjectDialog({ context, open, onClose }: { context: Context; open: b
 
   return (
     <Dialog
-      open={open}
-      title={`New object in ${context.name}`}
+      open
+      title={`New ${BASE_CLASS_LABELS[baseClass] ?? baseClass.toLowerCase()} in ${context.name}`}
       onClose={onClose}
       footer={
         <>
@@ -265,7 +472,9 @@ function NewObjectDialog({ context, open, onClose }: { context: Context; open: b
           <div className="field wide">
             <div className="label-row">
               <label htmlFor="obj-name">Name</label>
-              <span aria-hidden className="required">*</span>
+              <span aria-hidden className="required">
+                *
+              </span>
             </div>
             <input id="obj-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
           </div>
@@ -279,159 +488,6 @@ function NewObjectDialog({ context, open, onClose }: { context: Context; open: b
             onChange={(next) => setEdits({ typeId: chosenType, values: next })}
             errors={fieldErrors(create.error)}
           />
-        )}
-      </form>
-    </Dialog>
-  );
-}
-
-// ---------- Contexts ----------
-
-function ContextsTab({ context }: { context: Context }) {
-  const { data: children, isLoading, error } = useChildren(context.id);
-
-  return (
-    <Panel title="Contexts" note={children ? String(children.length) : undefined} flush>
-      <ErrorBanner error={error} />
-      {isLoading ? (
-        <Loading />
-      ) : !children?.length ? (
-        <p className="empty">Nothing here that you can see.</p>
-      ) : (
-        <div className="grid-wrap">
-          <table className="grid" aria-label="Contexts">
-            <thead>
-              <tr>
-                <th className="icon-cell"><span className="sr-only">Icon</span></th>
-                <th>Name</th>
-                <th>Kind</th>
-                <th>Created by</th>
-                <th>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {children.map((c) => (
-                <tr key={c.id}>
-                  <td className="icon-cell">
-                    <ContextIcon kind={c.kind} />
-                  </td>
-                  <td>
-                    <Link className="num-link" to={`/contexts/${c.id}`}>
-                      {c.name}
-                    </Link>
-                  </td>
-                  <td className="nowrap">{kindLabel(c.kind)}</td>
-                  <td className="nowrap">
-                    <PrincipalName id={c.createdBy} />
-                  </td>
-                  <td className="nowrap muted">{formatDate(c.createdAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </Panel>
-  );
-}
-
-function NewContextDialog({
-  parent,
-  kinds,
-  open,
-  onClose,
-}: {
-  parent: Context;
-  kinds: ContextKind[];
-  open: boolean;
-  onClose: () => void;
-}) {
-  const create = useCreateContext();
-  const navigate = useNavigate();
-  const [kind, setKind] = useState<ContextKind | "">("");
-  const [name, setName] = useState("");
-  const [templateId, setTemplateId] = useState("");
-  const formId = "new-context-form";
-  const chosenKind = kind || kinds[0];
-  const { data: templates } = useContextTemplates(chosenKind, parent.id);
-  const template = templates?.find((t) => t.id === templateId);
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!chosenKind) return;
-    create.mutate(
-      { parentId: parent.id, kind: chosenKind, name, templateId: template?.id ?? null },
-      {
-        onSuccess: (ctx) => {
-          onClose();
-          navigate(`/contexts/${ctx.id}`);
-        },
-      },
-    );
-  };
-
-  return (
-    <Dialog
-      open={open}
-      title={`New context in ${parent.name}`}
-      onClose={onClose}
-      footer={
-        <>
-          <button className="btn" type="button" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="btn primary" type="submit" form={formId} disabled={create.isPending || !name.trim()}>
-            Create
-          </button>
-        </>
-      }
-    >
-      <form id={formId} onSubmit={submit} className="attr-form">
-        <ErrorBanner error={create.error} />
-        {kinds.length > 1 && (
-          <div className="field">
-            <label htmlFor="ctx-kind">Kind</label>
-            <select
-              id="ctx-kind"
-              value={chosenKind}
-              onChange={(e) => {
-                setKind(e.target.value as ContextKind);
-                setTemplateId("");
-              }}
-            >
-              {kinds.map((k) => (
-                <option key={k} value={k}>
-                  {kindLabel(k)}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        <div className="field">
-          <label htmlFor="ctx-name">Name</label>
-          <input id="ctx-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
-          <span className="hint">You will become its manager.</span>
-        </div>
-        {!!templates?.length && (
-          <div className="field wide">
-            <label htmlFor="ctx-template">Template</label>
-            <select id="ctx-template" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
-              <option value="">None: start empty</option>
-              {templates.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-            {template && (
-              <span className="hint">
-                {template.description ? `${template.description} · ` : ""}
-                {template.content.policies.length} access rule{template.content.policies.length === 1 ? "" : "s"},{" "}
-                {template.content.members.length} member{template.content.members.length === 1 ? "" : "s"},{" "}
-                {template.content.sharedTeams.length} shared team{template.content.sharedTeams.length === 1 ? "" : "s"}
-              </span>
-            )}
-          </div>
         )}
       </form>
     </Dialog>
@@ -473,7 +529,14 @@ function SaveAsTemplateDialog({ context, siteAdmin, onClose }: { context: Contex
         style={{ display: "grid", gap: 12 }}
         onSubmit={(e) => {
           e.preventDefault();
-          save.mutate({ name: name.trim(), description: description.trim() || null, siteWide }, { onSuccess: () => setSaved(true) });
+          save.mutate(
+            {
+              name: name.trim(),
+              description: description.trim() || null,
+              siteWide,
+            },
+            { onSuccess: () => setSaved(true) },
+          );
         }}
       >
         <ErrorBanner error={save.error} />
@@ -484,8 +547,8 @@ function SaveAsTemplateDialog({ context, siteAdmin, onClose }: { context: Contex
         ) : (
           <>
             <p className="muted" style={{ margin: 0 }}>
-              Captures this {kindLabel(context.kind).toLowerCase()}'s own access rules, team members and attached shared teams.
-              Its objects are not copied.
+              Captures this {kindLabel(context.kind).toLowerCase()}'s own access rules, team members and attached shared teams. Its objects
+              are not copied.
             </p>
             <div className="field">
               <label htmlFor="template-name">Template name</label>
@@ -499,7 +562,8 @@ function SaveAsTemplateDialog({ context, siteAdmin, onClose }: { context: Contex
               (siteAdmin ? (
                 <label className="check">
                   <input type="checkbox" checked={siteWide} onChange={(e) => setSiteWide(e.target.checked)} />
-                  Site-wide: usable in every organization (otherwise only in this {kindLabel(context.kind).toLowerCase()}'s organization)
+                  Site-wide: usable in every organization (otherwise only in this {kindLabel(context.kind).toLowerCase()}
+                  's organization)
                 </label>
               ) : (
                 <p className="muted" style={{ margin: 0 }}>

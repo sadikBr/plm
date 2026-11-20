@@ -34,9 +34,8 @@ test("bob, manager of an organization, sets up its own shared team and product t
   await expect(bob.getByRole("table", { name: "Team members" }).getByText("Carol Contractor")).toBeVisible();
 
   // ---- a product with the team, saved as the organization's template ----
-  await bob.getByRole("link", { name: "Contexts" }).click();
-  await bob.getByRole("button", { name: "New context" }).click();
-  await bob.getByRole("dialog").getByLabel("Kind").selectOption("PRODUCT");
+  await bob.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Products" }).click();
+  await bob.getByRole("button", { name: "New product" }).click();
   await bob.getByRole("dialog").getByLabel("Name").fill("Pilot");
   await bob.getByRole("dialog").getByRole("button", { name: "Create" }).click();
   await expect(bob.getByRole("heading", { name: "Pilot" })).toBeVisible();
@@ -50,9 +49,10 @@ test("bob, manager of an organization, sets up its own shared team and product t
   await bob.getByRole("button", { name: "Done" }).click();
 
   // ---- used for the next product; the organization's Templates tab lists it ----
-  await bob.goto(orgUrl);
-  await bob.getByRole("button", { name: "New context" }).click();
-  await bob.getByRole("dialog").getByLabel("Kind").selectOption("PRODUCT");
+  // This time from the Products list, which offers the organizations bob manages.
+  await bob.goto("/browse/products");
+  await bob.getByRole("button", { name: "New product" }).click();
+  await bob.getByRole("dialog").getByLabel("Organization").selectOption({ label: `Delegated ${suffix}` });
   await bob.getByRole("dialog").getByLabel("Name").fill("Series");
   await bob.getByRole("dialog").getByLabel("Template", { exact: true }).selectOption({ label: `Delegated product ${suffix}` });
   await bob.getByRole("dialog").getByRole("button", { name: "Create" }).click();

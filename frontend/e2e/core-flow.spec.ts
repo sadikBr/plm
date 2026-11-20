@@ -25,8 +25,8 @@ test("alice sets up a product, bob works on a part, carol sees nothing", async (
   await alice.getByRole("button", { name: "Create" }).click();
   await expect(alice.getByRole("heading", { name: `Acme ${suffix}` })).toBeVisible();
 
-  await alice.getByRole("button", { name: "New context" }).click();
-  await alice.getByLabel("Kind").selectOption("PRODUCT");
+  await alice.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Products" }).click();
+  await alice.getByRole("button", { name: "New product" }).click();
   await alice.getByLabel("Name").fill("Drone X1");
   await alice.getByRole("button", { name: "Create" }).click();
   await expect(alice.getByRole("heading", { name: "Drone X1" })).toBeVisible();
@@ -43,7 +43,7 @@ test("alice sets up a product, bob works on a part, carol sees nothing", async (
   const bob = await asUser(browser, "bob");
   await bob.goto(productUrl);
   await expect(bob.getByRole("heading", { name: "Drone X1" })).toBeVisible();
-  await bob.getByRole("button", { name: "New object" }).click();
+  await bob.getByRole("button", { name: "New part" }).click();
   await bob.getByLabel("Type").selectOption({ label: "Part" });
   await bob.getByLabel("Name", { exact: true }).fill("Motor mount");
   const create = bob.getByRole("dialog");

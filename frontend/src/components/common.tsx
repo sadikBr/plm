@@ -87,16 +87,32 @@ export function formatDate(iso: string | null | undefined): string {
 
 // ---------- Contexts, types and states ----------
 
-const KIND: Record<ContextKind, { label: string; icon: LucideIcon }> = {
-  SITE: { label: "Site", icon: Globe },
-  ORGANIZATION: { label: "Organization", icon: Building2 },
-  PRODUCT: { label: "Product", icon: Package },
-  LIBRARY: { label: "Library", icon: Library },
-  PROJECT: { label: "Project", icon: FolderKanban },
+const KIND: Record<ContextKind, { label: string; plural: string; slug: string; icon: LucideIcon }> = {
+  SITE: { label: "Site", plural: "Site", slug: "site", icon: Globe },
+  ORGANIZATION: { label: "Organization", plural: "Organizations", slug: "organizations", icon: Building2 },
+  PRODUCT: { label: "Product", plural: "Products", slug: "products", icon: Package },
+  LIBRARY: { label: "Library", plural: "Libraries", slug: "libraries", icon: Library },
+  PROJECT: { label: "Project", plural: "Projects", slug: "projects", icon: FolderKanban },
 };
 
 export function kindLabel(kind: ContextKind): string {
   return KIND[kind].label;
+}
+
+export function kindPlural(kind: ContextKind): string {
+  return KIND[kind].plural;
+}
+
+/** The kinds that are browsed as lists, in sidebar order; the site is a single context. */
+export const BROWSABLE_KINDS: ContextKind[] = ["ORGANIZATION", "PRODUCT", "LIBRARY", "PROJECT"];
+
+/** URL of the list of every visible context of [kind], e.g. `/browse/products`. */
+export function browsePath(kind: ContextKind): string {
+  return `/browse/${KIND[kind].slug}`;
+}
+
+export function kindFromSlug(slug: string | undefined): ContextKind | undefined {
+  return BROWSABLE_KINDS.find((k) => KIND[k].slug === slug);
 }
 
 export function ContextIcon({ kind, size = 15 }: { kind: ContextKind; size?: number }) {

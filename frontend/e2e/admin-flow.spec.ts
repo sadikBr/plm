@@ -79,13 +79,13 @@ test("alice models a Bolt type in the admin UI, then creates one", async ({ brow
   await alice.getByRole("button", { name: "New organization" }).click();
   await alice.getByLabel("Name").fill(`Fasteners Inc ${suffix}`);
   await alice.getByRole("button", { name: "Create" }).click();
-  await alice.getByRole("button", { name: "New context" }).click();
-  await alice.getByLabel("Kind").selectOption("PRODUCT");
+  await alice.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Products" }).click();
+  await alice.getByRole("button", { name: "New product" }).click();
   await alice.getByLabel("Name").fill("Gearbox");
   await alice.getByRole("button", { name: "Create" }).click();
   await expect(alice.getByRole("heading", { name: "Gearbox" })).toBeVisible();
 
-  await alice.getByRole("button", { name: "New object" }).click();
+  await alice.getByRole("button", { name: "New part" }).click();
   const create = alice.getByRole("dialog");
   await create.getByLabel("Type").selectOption({ label: `Bolt ${suffix}` });
   await create.getByLabel("Name", { exact: true }).fill("Hex bolt M8x30");

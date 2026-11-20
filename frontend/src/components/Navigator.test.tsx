@@ -13,7 +13,11 @@ function api() {
   return fakeApi({
     "GET /api/v1/me": () => me(ALICE, true),
     "GET /api/v1/contexts/site": () => SITE,
-    "GET /api/v1/contexts": (req) => (new URL(req.url).searchParams.get("q") === "dro" ? [DRONE] : []),
+    "GET /api/v1/contexts": (req) => {
+      const params = new URL(req.url).searchParams;
+      if (params.get("kind")) return [ORG, DRONE].filter((c) => c.kind === params.get("kind"));
+      return params.get("q") === "dro" ? [DRONE] : [];
+    },
     "GET /api/v1/contexts/:id": (_, { id }) => [SITE, ORG, DRONE].find((c) => c.id === id),
     "GET /api/v1/contexts/:id/children": (_, { id }) => (id === "site-id" ? [ORG] : id === "org-id" ? [DRONE] : []),
     "GET /api/v1/contexts/:id/path": () => [SITE, ORG, DRONE],
@@ -28,14 +32,28 @@ function api() {
 describe("Navigator", () => {
   beforeEach(() => localStorage.clear());
 
-  it("opens the tree down to the current context and highlights it", async () => {
+  it("groups contexts by kind and lists the current kind's contexts, highlighting where we are", async () => {
     api();
     renderAt(`/contexts/${PRODUCT}`);
 
-    const tree = await screen.findByRole("tree", { name: "All contexts" });
-    const drone = await within(tree).findByRole("treeitem", { name: /Drone X1/, selected: true });
-    expect(drone).toBeInTheDocument();
-    expect(within(tree).getByRole("button", { name: "Collapse Acme" })).toHaveAttribute("aria-expanded", "true");
+    const browse = await screen.findByRole("list", { name: "Browse by kind" });
+    for (const kind of ["Organizations", "Products", "Libraries", "Projects"]) {
+      expect(within(browse).getByRole("link", { name: new RegExp(kind) })).toBeInTheDocument();
+    }
+    const products = await within(browse).findByRole("list", { name: "Products" });
+    expect(await within(products).findByRole("link", { name: /Drone X1/ })).toHaveAttribute("aria-current", "page");
+    // Other kinds stay closed until asked.
+    expect(within(browse).queryByRole("list", { name: "Libraries" })).not.toBeInTheDocument();
+    await userEvent.click(within(browse).getByRole("button", { name: "Show libraries" }));
+    expect(await within(browse).findByText("None you can see")).toBeInTheDocument();
+  });
+
+  it("lists every context of a kind on its browse page", async () => {
+    api();
+    renderAt("/browse/products");
+    const table = await screen.findByRole("table", { name: "Products" });
+    expect(within(table).getByRole("link", { name: "Drone X1" })).toBeInTheDocument();
+    expect(await within(table).findByRole("link", { name: "Acme" })).toBeInTheDocument();
   });
 
   it("finds contexts by name, and pins them to the top", async () => {

@@ -121,4 +121,25 @@ class ContextServiceIT(
         assertThat(contexts.search(admin, "Gear_$tag").map { it.name }).containsExactly("Gear_$tag hidden")
         assertThat(contexts.path(dora, mine.id).map { it.id }).containsExactly(ContextId.DEFAULT_SITE, org.id, mine.id)
     }
+
+    @Test
+    fun `contexts can be listed by kind, only the visible ones`() {
+        val tag = UUID.randomUUID().toString().take(8)
+        val org = contexts.create(admin, CreateContext(ContextId.DEFAULT_SITE, ContextKind.ORGANIZATION, "Kinds $tag"))
+        val product = contexts.create(admin, CreateContext(org.id, ContextKind.PRODUCT, "Pump $tag"))
+        contexts.create(admin, CreateContext(org.id, ContextKind.LIBRARY, "Standard parts $tag"))
+        val erin = Actors.user("erin").also { teams.put(admin, product.id, it.principal, TeamRole.VIEWER) }
+
+        assertThat(contexts.search(admin, "", 500, ContextKind.LIBRARY).map { it.name }).contains("Standard parts $tag")
+        assertThat(
+            contexts
+                .search(admin, "", 500, ContextKind.LIBRARY)
+                .map {
+                    it.kind
+                }.toSet(),
+        ).containsOnly(ContextKind.LIBRARY)
+        assertThat(contexts.search(erin, "", 500, ContextKind.PRODUCT).map { it.id }).containsExactly(product.id)
+        assertThat(contexts.search(erin, "", 500, ContextKind.LIBRARY)).isEmpty()
+        assertThat(contexts.search(erin, "", 500)).isEmpty() // no kind, no text: nothing
+    }
 }

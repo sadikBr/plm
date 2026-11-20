@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from "react-router";
 import { isApiError } from "./api/client";
 import { AdminPage } from "./admin/AdminPage";
 import { Layout } from "./components/Layout";
+import { BrowsePage } from "./pages/BrowsePage";
 import { ContextPage } from "./pages/ContextPage";
 import { HomePage } from "./pages/HomePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
@@ -35,6 +36,7 @@ export function AppRoutes() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
+        <Route path="browse/:kind" element={<BrowsePage />} />
         <Route path="contexts/:id" element={<ContextPage />} />
         <Route path="objects/:id" element={<ObjectPage />} />
         <Route path="search" element={<SearchPage />} />

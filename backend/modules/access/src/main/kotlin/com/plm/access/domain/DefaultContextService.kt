@@ -63,15 +63,24 @@ internal class DefaultContextService(
         actor: Actor,
         text: String,
         limit: Int,
+        kind: ContextKind?,
     ): List<Context> {
         val trimmed = text.trim()
-        if (trimmed.isEmpty()) return emptyList()
+        // A blank text lists every visible context, but only of one kind: the whole tree is the navigator's job.
+        if (trimmed.isEmpty() && kind == null) return emptyList()
         if (trimmed.length >
             100
         ) {
             throw ValidationException("INVALID_QUERY", "Search text must be at most 100 characters")
         }
-        return contexts.search(actor.tenant, actor.principal.value, actor.siteAdmin, trimmed, limit.coerceIn(1, 100))
+        return contexts.search(
+            actor.tenant,
+            actor.principal.value,
+            actor.siteAdmin,
+            trimmed,
+            limit.coerceIn(1, 500),
+            kind,
+        )
     }
 
     override fun create(

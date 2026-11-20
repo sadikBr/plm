@@ -24,8 +24,8 @@ test("alice reuses a shared team and a product template; bob gets access through
   await alice.getByRole("button", { name: "New organization" }).click();
   await alice.getByLabel("Name").fill(`Templates Inc ${suffix}`);
   await alice.getByRole("button", { name: "Create" }).click();
-  await alice.getByRole("button", { name: "New context" }).click();
-  await alice.getByLabel("Kind").selectOption("PRODUCT");
+  await alice.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Products" }).click();
+  await alice.getByRole("button", { name: "New product" }).click();
   await alice.getByLabel("Name").fill("Prototype");
   await alice.getByRole("button", { name: "Create" }).click();
   await expect(alice.getByRole("heading", { name: "Prototype" })).toBeVisible();
@@ -42,8 +42,8 @@ test("alice reuses a shared team and a product template; bob gets access through
 
   // ---- a new product from the template ----
   await alice.getByRole("link", { name: `Templates Inc ${suffix}` }).first().click();
-  await alice.getByRole("button", { name: "New context" }).click();
-  await alice.getByLabel("Kind").selectOption("PRODUCT");
+  await alice.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Products" }).click();
+  await alice.getByRole("button", { name: "New product" }).click();
   await alice.getByLabel("Name").fill("Series");
   await alice.getByRole("dialog").getByLabel("Template", { exact: true }).selectOption({ label: `Standard product ${suffix}` });
   await expect(alice.getByText(/1 shared team/)).toBeVisible();
@@ -57,5 +57,5 @@ test("alice reuses a shared team and a product template; bob gets access through
   const bob = await asUser(browser, "bob");
   await bob.goto(seriesUrl);
   await expect(bob.getByRole("heading", { name: "Series" })).toBeVisible();
-  await expect(bob.getByRole("button", { name: "New object" })).toHaveCount(0);
+  await expect(bob.getByRole("button", { name: "New part" })).toHaveCount(0);
 });

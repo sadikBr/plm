@@ -2751,8 +2751,17 @@
         "parameters" : [ {
           "in" : "query",
           "name" : "q",
-          "required" : true,
+          "required" : false,
           "schema" : {
+            "default" : "",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "kind",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "SITE", "ORGANIZATION", "PRODUCT", "LIBRARY", "PROJECT" ],
             "type" : "string"
           }
         }, {

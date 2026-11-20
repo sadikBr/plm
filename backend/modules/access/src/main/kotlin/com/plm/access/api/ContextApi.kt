@@ -74,11 +74,15 @@ interface ContextService {
         id: ContextId,
     ): List<Context>
 
-    /** Visible contexts whose name contains [text], by name. At most [limit] (1-100). */
+    /**
+     * Visible contexts whose name contains [text] (any name when blank), optionally only of [kind],
+     * by name. At most [limit] (1-500).
+     */
     fun search(
         actor: Actor,
         text: String,
         limit: Int = 20,
+        kind: ContextKind? = null,
     ): List<Context>
 
     /**

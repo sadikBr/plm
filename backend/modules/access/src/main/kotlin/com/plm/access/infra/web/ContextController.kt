@@ -30,13 +30,14 @@ internal class ContextController(
     @GetMapping("/site")
     fun site(actor: Actor) = ContextResponse(contexts.get(actor, ContextId.DEFAULT_SITE))
 
-    /** Visible contexts whose name contains `q`, by name. */
+    /** Visible contexts whose name contains `q`, optionally of one `kind` (all of that kind when `q` is empty), by name. */
     @GetMapping
     fun search(
         actor: Actor,
-        @RequestParam q: String,
+        @RequestParam(defaultValue = "") q: String,
+        @RequestParam(required = false) kind: ContextKind?,
         @RequestParam(defaultValue = "20") limit: Int,
-    ) = contexts.search(actor, q, limit).map(::ContextResponse)
+    ) = contexts.search(actor, q, limit, kind).map(::ContextResponse)
 
     /** The context and its ancestors, root first: breadcrumbs, and opening the navigator to it. */
     @GetMapping("/{id}/path")

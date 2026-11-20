@@ -89,11 +89,24 @@ make ui            # cd frontend && npm run dev
 Open http://localhost:5173 and sign in as `alice`, `bob` or `carol` (password = username).
 The dev server proxies `/api` to the backend on :8080, so `make up` and `make run` must be running.
 
+The sidebar browses by kind of container: **Site**, **Organizations**, **Products**, **Libraries**
+and **Projects**. Each kind opens a list of every one you can see (`/browse/products`, with a filter
+by organization and its own **New product** action), and the kind you're in lists its containers
+right in the sidebar. Pin the ones you use; recent visits are kept too.
+
+Each kind of container has its own tabs and actions:
+
+| Container | Tabs | Actions |
+|---|---|---|
+| Site | Organizations, Overview, Team, Access, Preferences | New organization (site admins) |
+| Organization | Overview, Products, Libraries, Projects, Team, Access, Preferences, Shared teams, Templates | New product / library / project (on their tabs), Save as template |
+| Product, library, project | Contents, Overview, Team, Access, Preferences | New part, New document (one per base class with creatable types), Save as template |
+
 Try this:
 
-1. As **alice**: on the Site page, click **New organization**. Inside it, create a **Product**.
-   Open its **Team** tab and add `bob` as MEMBER. (bob must have signed in once first.)
-2. As **bob** (use a private window): open the product, click **New object**, then **Check out**,
+1. As **alice**: on the Site page, click **New organization**. In it, open **Products** and click
+   **New product**. Open its **Team** tab and add `bob` as MEMBER. (bob must have signed in once first.)
+2. As **bob** (use a private window): open the product, click **New part**, then **Check out**,
    edit attributes, **Check in** with a comment, and **Revise**. See the **History** tab.
 3. As **alice**, open the same object: it shows "Checked out by Bob Builder" while bob has it.
    The **Audit** tab lists every change.
@@ -275,7 +288,7 @@ curl -s -X POST $API/types/$FASTENER/attributes -H "Authorization: Bearer $ALICE
   -d '{"name":"threadSize","dataType":"STRING","labels":{"en":"Thread size"},"required":true,"pattern":"M\\d+(x[\\d.]+)?"}' | jq '{name, required, pattern}'
 ```
 
-The **New object** form in the UI now offers *Fastener*, with *Thread size* as a required field.
+The **New part** form in the UI now offers *Fastener*, with *Thread size* as a required field.
 
 | Data type | Value format |
 |---|---|
@@ -415,7 +428,7 @@ every context it's attached to; change the team once and it applies everywhere.
 
 A **context template** is what a new organization, product, library or project starts with:
 access rules, team members and shared teams. Set a context up the way you like, click **Save as
-template** (site admins), then pick the template in the **New context** dialog. Templates are
+template** (site admins), then pick the template in the **New product** (library, project, organization) dialog. Templates are
 listed under **Admin → Context templates** and travel in configuration bundles.
 
 ```bash
@@ -542,6 +555,7 @@ Rules of the game (see [ADR 0019](adr/0019-configuration-as-code.md)):
 | GET | `/api/v1/me` | The signed-in user, and whether they are a site admin |
 | GET | `/api/v1/principals?username=bob` · `/principals/{id}` | Look up a user (after their first sign-in) |
 | GET | `/api/v1/contexts/site` | Root context |
+| GET | `/api/v1/contexts?q=…&kind=…&limit=` | Find contexts by name; with `kind` and no `q`, every visible context of that kind |
 | GET | `/api/v1/contexts/{id}` · `/{id}/children` | Read contexts (only those on your team's path) |
 | POST | `/api/v1/contexts` | Create `{parentId, kind, name}`. ORGANIZATION: site admin only. Others: MANAGE on the parent. You become MANAGER |
 | GET | `/api/v1/contexts/{id}/members` | Team of this context |
