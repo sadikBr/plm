@@ -177,6 +177,7 @@ svg { flex: none; }
 .nav-row > a { flex: 1; display: flex; align-items: center; gap: 7px; min-width: 0; height: 100%; padding-left: 6px; color: var(--text-2); text-decoration: none; }
 .nav-row > a:hover { text-decoration: none; color: var(--text); }
 .nav-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.nav-org { flex: 0 1 auto; max-width: 45%; margin-left: auto; padding-left: 8px; font-size: 11px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav-hint { margin-left: auto; padding-left: 6px; font-size: 11px; color: var(--text-3); flex: none; }
 .nav-pin { flex: none; border: 0; background: none; width: 22px; height: 22px; border-radius: 4px; display: grid; place-items: center; color: var(--text-3); cursor: pointer; opacity: 0; }
 .nav-row:hover .nav-pin, .nav-pin:focus-visible { opacity: 1; }

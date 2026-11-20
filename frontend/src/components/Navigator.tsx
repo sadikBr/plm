@@ -3,7 +3,15 @@ import { ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, Clock, Pin, Pin
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router";
 import { api, unwrap } from "../api/client";
-import { useContextById, useContextsOfKind, useObject, useSite, type Context, type ContextKind } from "../api/queries";
+import {
+  useContextById,
+  useContextsOfKind,
+  useObject,
+  useOrganizationNames,
+  useSite,
+  type Context,
+  type ContextKind,
+} from "../api/queries";
 import { BROWSABLE_KINDS, ContextIcon, Spinner, browsePath, kindFromSlug, kindLabel, kindPlural } from "./common";
 
 // ---------- Per-viewer memory: pinned and recent contexts, collapsed state ----------
@@ -14,6 +22,8 @@ interface Remembered {
   id: string;
   name: string;
   kind: ContextKind;
+  /** Missing in entries saved before it was remembered. */
+  parentId?: string | null;
 }
 
 const listeners = new Set<() => void>();
@@ -59,12 +69,12 @@ const NONE: Remembered[] = [];
 
 /** Remembers a visit, most recent first; called by the context page. */
 export function rememberVisit(context: Context) {
-  const entry = { id: context.id, name: context.name, kind: context.kind };
+  const entry = { id: context.id, name: context.name, kind: context.kind, parentId: context.parentId };
   const recent = read<Remembered[]>(RECENT, NONE).filter((r) => r.id !== context.id);
   write(RECENT, [entry, ...recent].slice(0, 6));
   // Keep pinned names up to date after a rename.
   const pinned = read<Remembered[]>(PINNED, NONE);
-  if (pinned.some((p) => p.id === context.id && p.name !== context.name)) {
+  if (pinned.some((p) => p.id === context.id && (p.name !== context.name || p.parentId !== context.parentId))) {
     write(
       PINNED,
       pinned.map((p) => (p.id === context.id ? entry : p)),
@@ -307,13 +317,20 @@ function PinButton({ item, pinned }: { item: Remembered; pinned: boolean }) {
 }
 
 function FlatRow({ item, current, pinned, indent = false }: { item: Remembered; current: boolean; pinned: boolean; indent?: boolean }) {
+  const organizations = useOrganizationNames();
+  const org = item.parentId ? organizations?.get(item.parentId) : undefined;
   return (
     <div className={current ? "nav-row active" : "nav-row"} style={indent ? { paddingLeft: 22 } : undefined}>
-      <NavLink to={`/contexts/${item.id}`} title={`${item.name} · ${kindLabel(item.kind)}`} aria-current={current ? "page" : undefined}>
+      <NavLink
+        to={`/contexts/${item.id}`}
+        title={`${item.name} · ${kindLabel(item.kind)}${org ? ` in ${org}` : ""}`}
+        aria-current={current ? "page" : undefined}
+      >
         <span className={`kind kind-${item.kind.toLowerCase()}`}>
           <ContextIcon kind={item.kind} size={14} />
         </span>
         <span className="nav-name">{item.name}</span>
+        {org && <span className="nav-org">{org}</span>}
       </NavLink>
       <PinButton item={item} pinned={pinned} />
     </div>

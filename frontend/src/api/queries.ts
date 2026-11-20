@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { api, isApiError, unwrap, type Schemas } from "./client";
 
 export type Context = Schemas["ContextResponse"];
@@ -93,6 +94,17 @@ export const useContextsOfKind = (kind: ContextKind | undefined) =>
     queryFn: () => unwrap(api.GET("/api/v1/contexts", { params: { query: { kind: kind!, limit: 500 } } })),
     enabled: !!kind && kind !== "SITE",
   });
+
+/**
+ * Organization names by id, for showing next to products, libraries and projects; undefined when the
+ * user turned that off (preference `ui.showOrganization`).
+ */
+export function useOrganizationNames(): Map<string, string> | undefined {
+  const { data: prefs } = useEffectivePreferences();
+  const show = prefs !== undefined && prefs.get("ui.showOrganization") !== false;
+  const { data: organizations } = useContextsOfKind(show ? "ORGANIZATION" : undefined);
+  return useMemo(() => (show && organizations ? new Map(organizations.map((o) => [o.id, o.name])) : undefined), [show, organizations]);
+}
 
 /** The organizations the user manages: where they may create products, libraries and projects. */
 export function useManagedOrganizations(): Context[] | undefined {

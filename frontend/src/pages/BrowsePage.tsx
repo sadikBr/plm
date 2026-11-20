@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useParams } from "react-router";
-import { useContextsOfKind, useManagedOrganizations, useMe, useSite, type ContextKind } from "../api/queries";
+import { useContextsOfKind, useManagedOrganizations, useMe, useOrganizationNames, useSite, type ContextKind } from "../api/queries";
 import { ContextIcon, ErrorBanner, Loading, Panel, kindFromSlug, kindLabel, kindPlural } from "../components/common";
 import { PageHeader } from "../components/Layout";
 import { ContextTable, NewContextDialog, countOf } from "./ContextLists";
@@ -18,6 +18,8 @@ function BrowseView({ kind }: { kind: ContextKind }) {
   const { data: contexts, isLoading, error } = useContextsOfKind(kind);
   const { data: organizations } = useContextsOfKind(kind === "ORGANIZATION" ? undefined : "ORGANIZATION");
   const { data: me } = useMe();
+  // The Organization column follows the user's "Show organization names" preference.
+  const showOrganization = !!useOrganizationNames();
   const { data: site } = useSite();
   const managed = useManagedOrganizations();
   const [filter, setFilter] = useState("");
@@ -90,7 +92,11 @@ function BrowseView({ kind }: { kind: ContextKind }) {
           ) : shown.length === 0 ? (
             <p className="empty">Nothing matches.</p>
           ) : (
-            <ContextTable contexts={shown} label={kindPlural(kind)} organizations={kind === "ORGANIZATION" ? undefined : byId} />
+            <ContextTable
+              contexts={shown}
+              label={kindPlural(kind)}
+              organizations={kind === "ORGANIZATION" || !showOrganization ? undefined : byId}
+            />
           )}
         </Panel>
       </div>

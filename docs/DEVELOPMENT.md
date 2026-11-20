@@ -92,7 +92,9 @@ The dev server proxies `/api` to the backend on :8080, so `make up` and `make ru
 The sidebar browses by kind of container: **Site**, **Organizations**, **Products**, **Libraries**
 and **Projects**. Each kind opens a list of every one you can see (`/browse/products`, with a filter
 by organization and its own **New product** action), and the kind you're in lists its containers
-right in the sidebar. Pin the ones you use; recent visits are kept too.
+right in the sidebar. Pin the ones you use; recent visits are kept too. Products, libraries and projects show
+their organization's name beside them; turn that off under **My preferences → Display → Show
+organization names** (or for everyone, as a site default on the Site's **Preferences** tab).
 
 Each kind of container has its own tabs and actions:
 

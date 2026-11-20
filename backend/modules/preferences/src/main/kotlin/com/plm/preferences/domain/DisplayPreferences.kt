@@ -22,5 +22,14 @@ internal class DisplayPreferences : PreferenceDeclarations {
                 min = 10,
                 max = 500,
             ),
+            PreferenceDefinition(
+                key = "ui.showOrganization",
+                label = "Show organization names",
+                description = "Show which organization a product, library or project belongs to, next to its name in the navigator and lists.",
+                category = "Display",
+                type = PreferenceType.BOOLEAN,
+                default = true,
+                levels = setOf(PreferenceLevel.SITE, PreferenceLevel.USER),
+            ),
         )
 }
