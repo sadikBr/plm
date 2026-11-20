@@ -113,11 +113,15 @@ our own later features are built on the same mechanisms. See [EXTENSIBILITY.md](
       (Done: service accounts, API tokens and client secrets with scopes and expiry, the OAuth
       token endpoint, `api:read` / `api:write` delegated tokens in webhook calls, an `api:account`
       service account per extension, admin screen.)
-- [ ] 2.8 Profiles: which actions and UI areas a group of users sees.
+- [x] 2.8 Profiles: which actions and UI areas a group of users sees. (Done: profiles with users
+      and shared teams as members, hidden actions (built-in and extension) and interface areas;
+      someone in several profiles sees what any of them shows. Profiles shape the interface;
+      access rules still decide what anyone may do.)
 
 **Exit:** a sample extension, installed from a manifest, adds an "Send to ERP" action on Released
 parts that calls a webhook, plus a rule that refuses check-in when a description is missing. No
-platform code changes, and it survives a platform upgrade.
+platform code changes, and it survives a platform upgrade. (Met: the `erp-sync` and
+`quality-rules` samples in `extensions/samples`, covered by the e2e suite.)
 
 ## Phase 3 — Documents, content, search and collaboration
 User interface translations (all screens, per-user language) · primary content and attachments through the vault · document templates · thumbnails/previews ·

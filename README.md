@@ -3,9 +3,11 @@
 An open Product Lifecycle Management (PLM) platform: documents, parts, multi-level BOMs,
 lifecycles, workflows and change management, built to scale to millions of objects.
 
-> Status: **Phase 1 complete** (types, attributes, layouts, lifecycles, access, preferences,
-> templates, configuration as code, administration UI) on top of the Phase 0 foundation. Next:
-> Phase 2, the extensibility platform. See the [roadmap](docs/ROADMAP.md).
+> Status: **Phase 2 complete**: the extensibility platform (action registry, CEL expressions,
+> extension packages, webhook actions, operation rules, event webhooks, service accounts and API
+> tokens, profiles) on top of Phase 1 (types, attributes, layouts, lifecycles, access, preferences,
+> templates, configuration as code). Next: Phase 3, documents, content and search. See the
+> [roadmap](docs/ROADMAP.md).
 
 ![Object page: a checked-out part with its working copy](docs/images/ui-object.png) See the [roadmap](docs/ROADMAP.md).
 

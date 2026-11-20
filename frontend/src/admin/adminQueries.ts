@@ -23,6 +23,8 @@ export type ServiceAccount = Schemas["ServiceAccountResponse"];
 export type ApiToken = Schemas["ApiTokenResponse"];
 export type IssuedToken = Schemas["IssuedTokenResponse"];
 export type IssueTokenRequest = Schemas["IssueTokenRequest"];
+export type Profile = Schemas["Profile"];
+export type ProfileMember = Schemas["ProfileMember"];
 export type ExtensionPreview = Schemas["PreviewResponse"];
 export type ExtensionManifest = Schemas["ExtensionManifest"];
 export type ValidationRuleRequest = Schemas["ValidationRuleRequest"];
@@ -46,6 +48,8 @@ const ADMIN_KEYS = [
   "webhookDeliveries",
   "serviceAccounts",
   "apiTokens",
+  "profiles",
+  "myProfile",
   "extensions",
   "actionRegistry",
   "availableActions",
@@ -328,3 +332,21 @@ export const useIssueToken = () =>
 
 export const useRevokeToken = () =>
   useAdminMutation((id: string) => unwrap(api.DELETE("/api/v1/tokens/{id}", { params: { path: { id } } })));
+
+// ---------- Profiles (2.8) ----------
+
+export const useProfiles = () => useQuery({ queryKey: ["profiles"], queryFn: () => unwrap(api.GET("/api/v1/profiles")) });
+
+export const useUiAreas = () =>
+  useQuery({ queryKey: ["uiAreas"], queryFn: () => unwrap(api.GET("/api/v1/ui-areas")), staleTime: Infinity });
+
+export const useCreateProfile = () =>
+  useAdminMutation((body: Schemas["ProfileSettings"]) => unwrap(api.POST("/api/v1/profiles", { body })));
+
+export const useUpdateProfile = () =>
+  useAdminMutation(({ id, body }: { id: string; body: Schemas["ProfileSettings"] }) =>
+    unwrap(api.PUT("/api/v1/profiles/{id}", { params: { path: { id } }, body })),
+  );
+
+export const useDeleteProfile = () =>
+  useAdminMutation((id: string) => unwrap(api.DELETE("/api/v1/profiles/{id}", { params: { path: { id } } })));

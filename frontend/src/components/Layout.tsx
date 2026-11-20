@@ -1,7 +1,7 @@
 import { ChevronRight, LogOut, Settings } from "lucide-react";
 import { type ReactNode } from "react";
 import { Link, NavLink, Outlet, useParams } from "react-router";
-import { useCanOpen, useContextById, useMe } from "../api/queries";
+import { useCanOpen, useContextById, useMe, useShows } from "../api/queries";
 import { userManager } from "../auth/oidc";
 import { initials } from "./common";
 import { GlobalSearch } from "./GlobalSearch";
@@ -9,6 +9,7 @@ import { Navigator, useNavigatorCollapsed } from "./Navigator";
 
 export function Layout() {
   const { data: me } = useMe();
+  const shows = useShows();
   const [collapsed] = useNavigatorCollapsed();
 
   return (
@@ -18,7 +19,7 @@ export function Layout() {
           <img src="/favicon.svg" alt="" />
           PLM
         </Link>
-        <GlobalSearch />
+        {shows("search") && <GlobalSearch />}
         <div className="spacer" />
         <div className="who">
           {me?.siteAdmin && (

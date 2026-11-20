@@ -23,6 +23,7 @@ import {
   type Context,
   type ContextKind,
   type Permission,
+  useShows,
 } from "../api/queries";
 import { AttributeForm, defaultValues, fieldErrors } from "../components/AttributeForm";
 import {
@@ -79,6 +80,7 @@ function ContextView({ id }: { id: string }) {
   const { data: context, error, isLoading } = useContextById(id);
   const { data: permissions } = usePermissions(context?.id);
   const { data: me } = useMe();
+  const shows = useShows();
   const canOpen = useCanOpen();
   const managed = useManagedOrganizations();
   const [params, setParams] = useSearchParams();
@@ -104,9 +106,10 @@ function ContextView({ id }: { id: string }) {
     ["overview", "Overview"],
     ...(holdsObjects ? [["contents", "Contents"] as [Tab, string]] : []),
     ...childKinds.map((k) => [CHILD_TAB[k]!, kindPlural(k)] as [Tab, string]),
-    ["team", "Team"],
+    ...(shows("context.team") ? [["team", "Team"] as [Tab, string]] : []),
     // Access rules and preferences are for whoever manages this context.
-    ...(canManage ? [["access", "Access"] as [Tab, string], ["preferences", "Preferences"] as [Tab, string]] : []),
+    ...(canManage && shows("context.access") ? [["access", "Access"] as [Tab, string]] : []),
+    ...(canManage && shows("context.preferences") ? [["preferences", "Preferences"] as [Tab, string]] : []),
     ...(isOrgAdmin ? [["teams", "Shared teams"] as [Tab, string], ["templates", "Templates"] as [Tab, string]] : []),
   ];
   const asked = params.get("tab") ?? "";

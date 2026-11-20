@@ -14,6 +14,7 @@ import {
   useSite,
   type Context,
   type ContextKind,
+  useShows,
 } from "../api/queries";
 import { BROWSABLE_KINDS, ContextIcon, Spinner, browsePath, kindFromSlug, kindLabel, kindPlural } from "./common";
 
@@ -122,7 +123,10 @@ export function Navigator() {
   // The site and organizations are for administrators; others see the containers they work in.
   const site = siteContext && canOpen?.(siteContext) ? siteContext : undefined;
   const { data: me } = useMe();
-  const kinds = BROWSABLE_KINDS.filter((k) => k !== "ORGANIZATION" || !!me?.siteAdmin || !!managed?.length);
+  const shows = useShows();
+  const kinds = BROWSABLE_KINDS.filter((k) => k !== "ORGANIZATION" || !!me?.siteAdmin || !!managed?.length).filter((k) =>
+    shows(`browse.${kindPlural(k).toLowerCase()}`),
+  );
   const allowed = (r: Remembered) => !!canOpen?.(r);
   const pinned = useStored<Remembered[]>(PINNED, NONE).filter(allowed);
   const recent = useStored<Remembered[]>(RECENT, NONE)

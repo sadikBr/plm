@@ -23,6 +23,7 @@ import {
   type Attributes,
   type ObjectLifecycle,
   type VersionedObject,
+  useShows,
 } from "../api/queries";
 import { AttributeForm, AttributeValues, fieldErrors, pickLabel } from "../components/AttributeForm";
 import {
@@ -53,18 +54,20 @@ export function ObjectPage() {
 function ObjectView({ id }: { id: string }) {
   const { data: obj, error, isLoading } = useObject(id);
   const { data: me } = useMe();
+  const shows = useShows();
   const [params, setParams] = useSearchParams();
 
   if (isLoading) return <Loading />;
   if (isApiError(error, 404)) return <NotFoundPage what="object" />;
   if (error || !obj) return <ErrorBanner error={error} />;
 
-  const tab = (params.get("tab") as Tab | null) ?? "details";
   const tabs: [Tab, string][] = [
     ["details", "Details"],
-    ["history", "History"],
-    ...(me?.siteAdmin ? [["audit", "Audit"] as [Tab, string]] : []),
+    ...(shows("object.history") ? [["history", "History"] as [Tab, string]] : []),
+    ...(me?.siteAdmin && shows("object.audit") ? [["audit", "Audit"] as [Tab, string]] : []),
   ];
+  const asked = params.get("tab") as Tab | null;
+  const tab: Tab = asked && tabs.some(([t]) => t === asked) ? asked : "details";
   const myId = me?.user.id;
 
   return (

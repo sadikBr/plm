@@ -560,3 +560,16 @@ input:disabled, select:disabled, textarea:disabled { background: var(--panel-2);
 .secret-box code.secret { font-size: 12.5px; padding: 3px 6px; background: var(--panel); border: 1px solid var(--border); border-radius: 3px; color: var(--text); word-break: break-all; }
 .secret-box pre.example { margin: 0; padding: 6px 8px; background: var(--panel); border: 1px solid var(--border); border-radius: 3px; color: var(--text); }
 tr.selected > td { background: var(--row-selected); }
+
+/* Profiles */
+.members-box { margin: 0; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; display: grid; gap: 8px; }
+.members-box legend { font-size: 12px; color: var(--text-3); padding: 0 4px; }
+.members-box .tag { display: inline-flex; align-items: center; gap: 4px; }
+.tag-remove { border: 0; background: none; padding: 0; color: var(--text-3); cursor: pointer; display: inline-flex; }
+.tag-remove:hover { color: var(--danger); }
+.check-list-title { grid-column: 1 / -1; font-size: 11.5px; font-weight: 600; color: var(--text-3); margin-top: 4px; }
+.check-list.tall { max-height: 300px; }
+.member-add { display: flex; gap: 6px; align-items: center; }
+.member-add input { width: 220px; flex: none; }
+.member-add select { width: auto; flex: none; }
+.member-add .btn { flex: none; }

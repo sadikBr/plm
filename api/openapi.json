@@ -1162,6 +1162,32 @@
         "required" : [ "dataType", "labels", "name" ],
         "type" : "object"
       },
+      "EffectiveProfile" : {
+        "properties" : {
+          "hiddenActions" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array",
+            "uniqueItems" : true
+          },
+          "hiddenAreas" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array",
+            "uniqueItems" : true
+          },
+          "profiles" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "hiddenActions", "hiddenAreas", "profiles" ],
+        "type" : "object"
+      },
       "EffectiveResponse" : {
         "properties" : {
           "key" : {
@@ -2724,6 +2750,90 @@
         },
         "type" : "object"
       },
+      "Profile" : {
+        "properties" : {
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "hiddenActions" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "hiddenAreas" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "members" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ProfileMember"
+            },
+            "type" : "array"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "updatedBy" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "hiddenActions", "hiddenAreas", "id", "members", "name", "updatedAt", "updatedBy" ],
+        "type" : "object"
+      },
+      "ProfileMember" : {
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "USER", "SHARED_TEAM" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "kind" ],
+        "type" : "object"
+      },
+      "ProfileSettings" : {
+        "properties" : {
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "hiddenActions" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "hiddenAreas" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "members" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ProfileMember"
+            },
+            "type" : "array"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "hiddenActions", "hiddenAreas", "members", "name" ],
+        "type" : "object"
+      },
       "PutMemberRequest" : {
         "properties" : {
           "role" : {
@@ -3353,6 +3463,18 @@
           }
         },
         "required" : [ "allowManualNumber", "inheritedFrom", "revisionScheme", "typeId" ],
+        "type" : "object"
+      },
+      "UiArea" : {
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "key", "label" ],
         "type" : "object"
       },
       "UnitConfig" : {
@@ -6179,6 +6301,34 @@
         "tags" : [ "Preference" ]
       }
     },
+    "/api/v1/me/profile" : {
+      "get" : {
+        "operationId" : "profileMine",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EffectiveProfile"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Profile" ]
+      }
+    },
     "/api/v1/numbering-schemes" : {
       "get" : {
         "operationId" : "typeRuleSchemes",
@@ -7460,6 +7610,148 @@
           }
         },
         "tags" : [ "Principal" ]
+      }
+    },
+    "/api/v1/profiles" : {
+      "get" : {
+        "operationId" : "profileList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Profile"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Profile" ]
+      },
+      "post" : {
+        "operationId" : "profileCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProfileSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Profile"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Profile" ]
+      }
+    },
+    "/api/v1/profiles/{id}" : {
+      "delete" : {
+        "operationId" : "profileDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Profile" ]
+      },
+      "put" : {
+        "operationId" : "profileUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProfileSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Profile"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Profile" ]
       }
     },
     "/api/v1/service-accounts" : {
@@ -8823,6 +9115,37 @@
         "tags" : [ "Type rule" ]
       }
     },
+    "/api/v1/ui-areas" : {
+      "get" : {
+        "operationId" : "profileAreas",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/UiArea"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Profile" ]
+      }
+    },
     "/api/v1/units" : {
       "get" : {
         "operationId" : "referenceDataUnits",
@@ -9091,6 +9414,8 @@
     "name" : "Preference"
   }, {
     "name" : "Principal"
+  }, {
+    "name" : "Profile"
   }, {
     "name" : "Reference data"
   }, {

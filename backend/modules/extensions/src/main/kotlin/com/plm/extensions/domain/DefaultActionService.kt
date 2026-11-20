@@ -19,6 +19,7 @@ import com.plm.platform.events.DomainEvents
 import com.plm.platform.expression.ExpressionException
 import com.plm.platform.expression.ExpressionKind
 import com.plm.platform.expression.Expressions
+import com.plm.preferences.api.ProfileService
 import com.plm.types.api.TypeService
 import com.plm.versioning.api.MasterId
 import com.plm.versioning.api.VersioningService
@@ -42,6 +43,7 @@ internal class DefaultActionService(
     private val events: DomainEvents,
     private val clock: Clock,
     private val extensionActions: ExtensionActions,
+    private val profiles: ProfileService,
 ) : ActionService {
     private val builtins: Map<String, ActionDefinition> =
         declarations.flatMap { it.actions() }.let { all ->
@@ -97,9 +99,12 @@ internal class DefaultActionService(
         val model by lazy { versioning.expressionModel(actor, objectId) }
         val names = types.list(actor).associate { it.id to it.name }
         val lineage = types.lineage(actor, obj.typeId).mapNotNull { names[it] }.toSet()
+        // Profiles (roadmap 2.8): what the user's profiles hide isn't offered, nor run from here.
+        val hiddenByProfile = profiles.effective(actor).hiddenActions
         return registered(actor)
             .asSequence()
             .filterNot { it.hidden }
+            .filterNot { it.effective.id in hiddenByProfile }
             .map { it.effective }
             .filter { it.types.isEmpty() || it.types.any { t -> t in lineage } }
             .filter { it.states.isEmpty() || obj.latest.state in it.states }

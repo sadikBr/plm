@@ -61,6 +61,20 @@ export const keys = {
 
 export const useMe = () => useQuery({ queryKey: keys.me, queryFn: () => unwrap(api.GET("/api/v1/me")) });
 
+/** What the signed-in user's profiles hide (roadmap 2.8). */
+export const useMyProfile = () =>
+  useQuery({ queryKey: ["myProfile"], queryFn: () => unwrap(api.GET("/api/v1/me/profile")), staleTime: 60_000 });
+
+/**
+ * Whether an interface area shows for the user: false only when their profiles hide it. Shown
+ * while loading, as most people are in no profile.
+ */
+export function useShows(): (area: string) => boolean {
+  const { data } = useMyProfile();
+  const hidden = new Set(data?.hiddenAreas ?? []);
+  return (area) => !hidden.has(area);
+}
+
 /** The root context, or null if the user isn't on any team yet (the server reports it as not found). */
 export const useSite = () =>
   useQuery({
@@ -321,8 +335,7 @@ export const useTypeAttributes = (typeId: string | undefined) =>
 export const useLayout = (typeId: string | undefined, screen: LayoutScreen) =>
   useQuery({
     queryKey: keys.layout(typeId ?? "", screen),
-    queryFn: () =>
-      unwrap(api.GET("/api/v1/types/{typeId}/layouts/{screen}", { params: { path: { typeId: typeId!, screen } } })),
+    queryFn: () => unwrap(api.GET("/api/v1/types/{typeId}/layouts/{screen}", { params: { path: { typeId: typeId!, screen } } })),
     enabled: !!typeId,
     ...REFERENCE_DATA,
   });
@@ -334,8 +347,7 @@ export const useEnumerations = () =>
     ...REFERENCE_DATA,
   });
 
-export const useUnits = () =>
-  useQuery({ queryKey: keys.units, queryFn: () => unwrap(api.GET("/api/v1/units")), ...REFERENCE_DATA });
+export const useUnits = () => useQuery({ queryKey: keys.units, queryFn: () => unwrap(api.GET("/api/v1/units")), ...REFERENCE_DATA });
 
 export const useObjects = (contextId: string, pageSize = PAGE_SIZE) =>
   useInfiniteQuery({
@@ -510,7 +522,9 @@ export function useInvokeAction(objectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ actionId, parameters }: { actionId: string; parameters: Record<string, unknown> }) =>
-      unwrap(api.POST("/api/v1/objects/{id}/actions/{actionId}/invoke", { params: { path: { id: objectId, actionId } }, body: { parameters } })),
+      unwrap(
+        api.POST("/api/v1/objects/{id}/actions/{actionId}/invoke", { params: { path: { id: objectId, actionId } }, body: { parameters } }),
+      ),
     onSuccess: (result) => {
       // The service may have changed the object, and the call is in its audit trail.
       void qc.invalidateQueries({ queryKey: keys.audit(objectId) });
@@ -524,8 +538,7 @@ export function useInvokeAction(objectId: string) {
 }
 
 /** Admin → Actions: every action as declared and configured. */
-export const useActionRegistry = () =>
-  useQuery({ queryKey: keys.actionRegistry, queryFn: () => unwrap(api.GET("/api/v1/actions")) });
+export const useActionRegistry = () => useQuery({ queryKey: keys.actionRegistry, queryFn: () => unwrap(api.GET("/api/v1/actions")) });
 
 export function useConfigureAction() {
   const qc = useQueryClient();
@@ -564,8 +577,7 @@ export function useObjectActions(id: string) {
       onSettled: () => refresh(),
     }),
     checkIn: useMutation({
-      mutationFn: (comment: string) =>
-        unwrap(api.POST("/api/v1/objects/{id}/checkin", { ...path, body: { comment: comment || null } })),
+      mutationFn: (comment: string) => unwrap(api.POST("/api/v1/objects/{id}/checkin", { ...path, body: { comment: comment || null } })),
       onSettled: (obj) => refresh(obj?.contextId),
     }),
     undoCheckOut: useMutation({
@@ -582,8 +594,7 @@ export function useObjectActions(id: string) {
       onSettled: (obj) => refresh(obj?.contextId),
     }),
     updateAttributes: useMutation({
-      mutationFn: (attributes: Attributes) =>
-        unwrap(api.PATCH("/api/v1/objects/{id}/working-copy", { ...path, body: { attributes } })),
+      mutationFn: (attributes: Attributes) => unwrap(api.PATCH("/api/v1/objects/{id}/working-copy", { ...path, body: { attributes } })),
       onSettled: () => refresh(),
     }),
   };
@@ -609,7 +620,8 @@ export function useChangeLifecycle(id: string) {
     mutationFn: (body: Schemas["ChangeLifecycleRequest"]) =>
       unwrap(api.POST("/api/v1/objects/{id}/lifecycle", { params: { path: { id } }, body })),
     onSuccess: () => {
-      for (const key of [keys.object(id), keys.lifecycle(id), keys.audit(id), keys.history(id)]) void qc.invalidateQueries({ queryKey: key });
+      for (const key of [keys.object(id), keys.lifecycle(id), keys.audit(id), keys.history(id)])
+        void qc.invalidateQueries({ queryKey: key });
     },
   });
 }
