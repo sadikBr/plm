@@ -5,6 +5,10 @@ spring:
     url: ${PLM_DB_URL:jdbc:postgresql://localhost:5432/plm}
     username: ${PLM_DB_USER:plm}
     password: ${PLM_DB_PASSWORD:plm}
+  mvc:
+    problemdetails:
+      # Framework errors (malformed JSON, unknown routes) also use RFC 9457 problem details.
+      enabled: true
   flyway:
     # Each module owns a subfolder: db/migration/<module>/V<yyyyMMddHHmm>__<desc>.sql
     # Timestamp versions keep modules from colliding on version numbers.

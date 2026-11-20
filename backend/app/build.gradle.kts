@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     implementation(project(":backend:platform"))
+    testImplementation(project(":backend:testing"))
     rootProject.subprojects
         .filter { it.path.startsWith(":backend:modules:") }
         .forEach { implementation(project(it.path)) }

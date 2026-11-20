@@ -18,6 +18,10 @@ spring-boot-starter-flyway = { module = "org.springframework.boot:spring-boot-st
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers" }
 spring-context = { module = "org.springframework:spring-context" }
+spring-tx = { module = "org.springframework:spring-tx" }
+spring-jdbc = { module = "org.springframework:spring-jdbc" }
+spring-web = { module = "org.springframework:spring-web" }
+jackson-databind = { module = "tools.jackson.core:jackson-databind" }
 flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
 postgresql = { module = "org.postgresql:postgresql" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect" }
@@ -26,3 +30,7 @@ testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgr
 testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupiter" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+
+[bundles]
+# Everything a domain module needs to expose a service, persist with SQL and serve REST.
+module-runtime = ["spring-context", "spring-tx", "spring-jdbc", "spring-web", "jackson-databind"]

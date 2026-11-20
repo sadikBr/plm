@@ -3,7 +3,7 @@
 An open Product Lifecycle Management (PLM) platform: documents, parts, multi-level BOMs,
 lifecycles, workflows and change management, built to scale to millions of objects.
 
-> Status: **Phase 0: Foundation**, steps 0.1–0.3 done. See the [roadmap](docs/ROADMAP.md).
+> Status: **Phase 0: Foundation**, steps 0.1–0.6 done. The versioning engine works end to end over REST. See the [roadmap](docs/ROADMAP.md).
 
 ## Quick start
 
@@ -14,6 +14,8 @@ Requires JDK 21 and Docker. Full guide: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.m
 make up              # start postgres, s3, keycloak
 make run             # backend on http://localhost:8080
 ```
+
+Then try the API: [docs/api/versioning.http](docs/api/versioning.http), or the curl walkthrough in the dev guide.
 
 ## Documentation
 

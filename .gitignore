@@ -8,3 +8,5 @@ dist/
 .env.*
 .DS_Store
 .kotlin/
+*.hprof
+hs_err_pid*.log

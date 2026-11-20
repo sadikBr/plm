@@ -15,7 +15,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "plm"
 
-include(":backend:platform", ":backend:app")
+include(":backend:platform", ":backend:testing", ":backend:app")
 
 // One Gradle project per domain module. See backend/modules/README.md.
 val modules =
