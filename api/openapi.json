@@ -11,6 +11,70 @@
         "required" : [ "lifecycleId" ],
         "type" : "object"
       },
+      "AttributeConfig" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "dataType" : {
+            "type" : "string"
+          },
+          "defaultValue" : { },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "dimension" : {
+            "type" : [ "string", "null" ]
+          },
+          "displayUnit" : {
+            "type" : [ "string", "null" ]
+          },
+          "enumeration" : {
+            "type" : [ "string", "null" ]
+          },
+          "immutable" : {
+            "type" : "boolean"
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "maxLength" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "maxValue" : {
+            "type" : [ "number", "null" ]
+          },
+          "minLength" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "minValue" : {
+            "type" : [ "number", "null" ]
+          },
+          "multiValued" : {
+            "type" : "boolean"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "pattern" : {
+            "type" : [ "string", "null" ]
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "sortOrder" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "active", "dataType", "immutable", "labels", "multiValued", "name", "required", "sortOrder" ],
+        "type" : "object"
+      },
       "AttributeResponse" : {
         "properties" : {
           "active" : {
@@ -181,6 +245,45 @@
             "type" : [ "string", "null" ]
           }
         },
+        "type" : "object"
+      },
+      "ConfigBundle" : {
+        "properties" : {
+          "enumerations" : {
+            "items" : {
+              "$ref" : "#/components/schemas/EnumerationConfig"
+            },
+            "type" : "array"
+          },
+          "format" : {
+            "type" : "string"
+          },
+          "lifecycles" : {
+            "items" : {
+              "$ref" : "#/components/schemas/LifecycleConfig"
+            },
+            "type" : "array"
+          },
+          "numberingSchemes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/NumberingSchemeConfig"
+            },
+            "type" : "array"
+          },
+          "teamRoles" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TeamRoleConfig"
+            },
+            "type" : "array"
+          },
+          "types" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TypeConfig"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "enumerations", "format", "lifecycles", "numberingSchemes", "teamRoles", "types" ],
         "type" : "object"
       },
       "ContextResponse" : {
@@ -433,6 +536,27 @@
         "required" : [ "dataType", "labels", "name" ],
         "type" : "object"
       },
+      "EnumerationConfig" : {
+        "properties" : {
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "values" : {
+            "items" : {
+              "$ref" : "#/components/schemas/EnumerationValueConfig"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "labels", "name", "values" ],
+        "type" : "object"
+      },
       "EnumerationRequest" : {
         "properties" : {
           "labels" : {
@@ -480,6 +604,24 @@
           }
         },
         "required" : [ "id", "labels", "name", "system", "values" ],
+        "type" : "object"
+      },
+      "EnumerationValueConfig" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          }
+        },
+        "required" : [ "active", "key", "labels" ],
         "type" : "object"
       },
       "EnumerationValueDto" : {
@@ -535,6 +677,37 @@
         "required" : [ "contextId", "permissions", "principalId", "roles", "siteAdmin" ],
         "type" : "object"
       },
+      "ImportPlanResponse" : {
+        "properties" : {
+          "applied" : {
+            "type" : "boolean"
+          },
+          "changes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PlannedChange"
+            },
+            "type" : "array"
+          },
+          "conflicts" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "creates" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "unchanged" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "updates" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "applied", "changes", "conflicts", "creates", "unchanged", "updates" ],
+        "type" : "object"
+      },
       "IterationResponse" : {
         "properties" : {
           "attributes" : {
@@ -584,6 +757,52 @@
           }
         },
         "required" : [ "attributes", "createdAt", "createdBy", "id", "iteration", "revision", "state", "status", "version" ],
+        "type" : "object"
+      },
+      "LayoutConfig" : {
+        "properties" : {
+          "groups" : {
+            "items" : {
+              "$ref" : "#/components/schemas/LayoutGroupConfig"
+            },
+            "type" : "array"
+          },
+          "hidden" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "screen" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "groups", "hidden", "screen" ],
+        "type" : "object"
+      },
+      "LayoutGroupConfig" : {
+        "properties" : {
+          "attributes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "columns" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          }
+        },
+        "required" : [ "attributes", "columns", "key", "labels" ],
         "type" : "object"
       },
       "LayoutGroupDto" : {
@@ -655,6 +874,36 @@
         "required" : [ "screen", "typeId" ],
         "type" : "object"
       },
+      "LifecycleConfig" : {
+        "properties" : {
+          "initialState" : {
+            "type" : "string"
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "states" : {
+            "items" : {
+              "$ref" : "#/components/schemas/LifecycleStateConfig"
+            },
+            "type" : "array"
+          },
+          "transitions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/LifecycleTransitionConfig"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "initialState", "labels", "name", "states", "transitions" ],
+        "type" : "object"
+      },
       "LifecycleResponse" : {
         "properties" : {
           "id" : {
@@ -692,6 +941,27 @@
         "required" : [ "id", "initialState", "labels", "name", "states", "system", "transitions" ],
         "type" : "object"
       },
+      "LifecycleStateConfig" : {
+        "properties" : {
+          "editable" : {
+            "type" : "boolean"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "revisable" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "editable", "key", "labels", "revisable" ],
+        "type" : "object"
+      },
       "LifecycleStateResponse" : {
         "properties" : {
           "editable" : {
@@ -711,6 +981,18 @@
           }
         },
         "required" : [ "editable", "key", "labels", "revisable" ],
+        "type" : "object"
+      },
+      "LifecycleTransitionConfig" : {
+        "properties" : {
+          "from" : {
+            "type" : "string"
+          },
+          "to" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "from", "to" ],
         "type" : "object"
       },
       "MeResponse" : {
@@ -746,6 +1028,25 @@
           }
         },
         "required" : [ "addedAt", "addedBy", "contextId", "principalId", "role" ],
+        "type" : "object"
+      },
+      "NumberingSchemeConfig" : {
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "padding" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "prefix" : {
+            "type" : "string"
+          },
+          "suffix" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "name", "padding", "prefix", "suffix" ],
         "type" : "object"
       },
       "NumberingSchemeResponse" : {
@@ -881,6 +1182,28 @@
           }
         },
         "required" : [ "allowedBy", "deniedBy", "granted", "permission" ],
+        "type" : "object"
+      },
+      "PlannedChange" : {
+        "properties" : {
+          "action" : {
+            "enum" : [ "CREATE", "UPDATE", "UNCHANGED", "CONFLICT" ],
+            "type" : "string"
+          },
+          "details" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "action", "details", "key", "kind" ],
         "type" : "object"
       },
       "PolicyResponse" : {
@@ -1071,6 +1394,31 @@
         "required" : [ "key", "labels" ],
         "type" : "object"
       },
+      "TeamRoleConfig" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "sortOrder" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "active", "key", "labels", "sortOrder" ],
+        "type" : "object"
+      },
       "TeamRoleResponse" : {
         "properties" : {
           "active" : {
@@ -1111,6 +1459,46 @@
         "required" : [ "from", "to" ],
         "type" : "object"
       },
+      "TypeConfig" : {
+        "properties" : {
+          "attributes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AttributeConfig"
+            },
+            "type" : "array"
+          },
+          "baseClass" : {
+            "type" : "string"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "layouts" : {
+            "items" : {
+              "$ref" : "#/components/schemas/LayoutConfig"
+            },
+            "type" : "array"
+          },
+          "lifecycle" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "parent" : {
+            "type" : [ "string", "null" ]
+          },
+          "rules" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/TypeRulesConfig"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "attributes", "baseClass", "displayName", "layouts", "name" ],
+        "type" : "object"
+      },
       "TypeResponse" : {
         "properties" : {
           "baseClass" : {
@@ -1145,6 +1533,20 @@
           },
           "revisionScheme" : {
             "enum" : [ "ALPHABETIC_ASME", "ALPHABETIC", "NUMERIC_FROM_1", "NUMERIC_FROM_0" ],
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
+      "TypeRulesConfig" : {
+        "properties" : {
+          "allowManualNumber" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "numberingScheme" : {
+            "type" : [ "string", "null" ]
+          },
+          "revisionScheme" : {
             "type" : [ "string", "null" ]
           }
         },
@@ -1323,6 +1725,81 @@
           }
         },
         "tags" : [ "Audit" ]
+      }
+    },
+    "/api/v1/configuration/export" : {
+      "get" : {
+        "operationId" : "configurationExport",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConfigBundle"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Configuration" ]
+      }
+    },
+    "/api/v1/configuration/import" : {
+      "post" : {
+        "operationId" : "configurationImport",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "dryRun",
+          "required" : false,
+          "schema" : {
+            "default" : true,
+            "type" : "boolean"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConfigBundle"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ImportPlanResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Configuration" ]
       }
     },
     "/api/v1/contexts" : {
@@ -3566,6 +4043,8 @@
     "name" : "Attribute"
   }, {
     "name" : "Audit"
+  }, {
+    "name" : "Configuration"
   }, {
     "name" : "Context"
   }, {

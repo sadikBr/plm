@@ -436,3 +436,7 @@ tr.inactive td { color: var(--text-3); }
 .grid.matrix th[scope="row"] { text-align: left; }
 .cols-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 12px; align-items: start; }
 @media (max-width: 1100px) { .cols-layout { grid-template-columns: minmax(0, 1fr); } }
+.tag.change-create { background: var(--ok-soft); color: var(--ok); font-weight: 600; }
+.tag.change-update { background: var(--info-soft); color: var(--info); font-weight: 600; }
+.tag.change-conflict { background: var(--danger-soft); color: var(--danger); font-weight: 600; }
+.tag.change-unchanged { color: var(--text-3); }

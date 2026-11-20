@@ -33,6 +33,7 @@ Three layers enforce this:
 | workflow | Temporal workflows, tasks | lifecycle, identity |
 | change | PR / CR / CN / change tasks | versioning, lifecycle, workflow |
 | search | OpenSearch indexing (event consumer) | access |
+| configuration | Export/import of the whole configuration as one bundle (config as code) | types, lifecycle, access |
 
 Every module also depends on `backend/platform` (the shared kernel).
 To add a dependency, edit the module's `build.gradle.kts` and update this table in the same PR.

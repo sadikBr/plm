@@ -54,6 +54,10 @@ internal class DefaultLifecycleService(
         return get(actor, nearest)
     }
 
+    @Transactional(readOnly = true)
+    override fun assignments(actor: Actor): Map<TypeId, LifecycleTemplateId> =
+        repository.assignments(types.list(actor).map { it.id })
+
     override fun assign(
         actor: Actor,
         typeId: TypeId,

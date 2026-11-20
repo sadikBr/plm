@@ -3,11 +3,12 @@ import { useSearchParams } from "react-router";
 import { useMe } from "../api/queries";
 import { Loading } from "../components/common";
 import { PageHeader, Tabs } from "../components/Layout";
+import { ConfigurationAdmin } from "./ConfigurationAdmin";
 import { LifecyclesAdmin } from "./LifecyclesAdmin";
 import { NumberingAdmin, RolesAdmin, UnitsAdmin, ValueListsAdmin } from "./ReferenceAdmin";
 import { TypesAdmin } from "./TypesAdmin";
 
-type Section = "types" | "lists" | "units" | "numbering" | "lifecycles" | "roles";
+type Section = "types" | "lists" | "units" | "numbering" | "lifecycles" | "roles" | "configuration";
 
 const SECTIONS: [Section, string][] = [
   ["types", "Types and attributes"],
@@ -16,6 +17,7 @@ const SECTIONS: [Section, string][] = [
   ["numbering", "Numbering"],
   ["lifecycles", "Lifecycles"],
   ["roles", "Team roles"],
+  ["configuration", "Export / import"],
 ];
 
 /** Site administration: the data model and reference data, all without code. */
@@ -48,6 +50,7 @@ export function AdminPage() {
         {tab === "numbering" && <NumberingAdmin />}
         {tab === "lifecycles" && <LifecyclesAdmin />}
         {tab === "roles" && <RolesAdmin />}
+        {tab === "configuration" && <ConfigurationAdmin />}
       </div>
     </>
   );

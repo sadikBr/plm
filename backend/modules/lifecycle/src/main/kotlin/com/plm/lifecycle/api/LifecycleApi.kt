@@ -92,6 +92,9 @@ interface LifecycleService {
         templateId: LifecycleTemplateId,
     ): LifecycleTemplate
 
+    /** Every type's own assignment (not inherited ones), e.g. for exporting configuration. */
+    fun assignments(actor: Actor): Map<TypeId, LifecycleTemplateId>
+
     fun create(
         actor: Actor,
         command: CreateLifecycleTemplate,

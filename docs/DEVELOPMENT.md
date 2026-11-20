@@ -407,6 +407,48 @@ included, lets you add and delete rules, and has a **Check access** panel with t
 
 ![Access tab](images/ui-access.png)
 
+### Configuration as code
+
+Everything an admin sets up (types, attributes, layouts, value lists, numbering schemes, rules,
+lifecycles, team roles) exports as **one JSON file**. Items refer to each other by name, and the
+output is stable (sorted, no timestamps), so it belongs in Git:
+
+```bash
+curl -s $API/configuration/export -H "Authorization: Bearer $ALICE" | jq . > plm-config.json
+jq -c '{types: [.types[].name], lifecycles: [.lifecycles[].name]}' plm-config.json
+```
+
+**Importing** compares the file with this environment. By default it's a dry run: it returns the
+plan and changes nothing. Re-importing what you just exported changes nothing at all:
+
+```bash
+curl -s -X POST $API/configuration/import -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  --data-binary @plm-config.json | jq -c '{applied, creates, updates, unchanged, conflicts}'
+```
+
+Edit the file (here: a new *Washer* part subtype with a required inner diameter), check the
+plan, then apply it with `dryRun=false`:
+
+```bash
+jq '.types += [{"name":"Washer","displayName":"Washer","parent":"Part","baseClass":"PART",
+     "attributes":[{"name":"innerDiameter","labels":{"en":"Inner diameter"},"dataType":"QUANTITY",
+                    "dimension":"LENGTH","displayUnit":"mm","required":true}]}]' plm-config.json > plm-config-new.json
+curl -s -X POST $API/configuration/import -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  --data-binary @plm-config-new.json | jq -c '[.changes[] | select(.action != "UNCHANGED") | "\(.action) \(.kind) \(.key)"]'
+curl -s -X POST "$API/configuration/import?dryRun=false" -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  --data-binary @plm-config-new.json | jq -c '{applied, creates}'
+```
+
+Rules of the game (see [ADR 0019](adr/0019-configuration-as-code.md)):
+- Import **adds and updates, never deletes**.
+- It's **all or nothing**: one transaction, and nothing is applied while the plan has a
+  **conflict** (something the platform can't change, such as an attribute's data type or an
+  existing lifecycle template).
+- Updates list what changes, e.g. `required: false → true`.
+- In the UI: **Admin → Export / import**, which shows the same plan before you apply.
+
+![Import plan](images/ui-config-import.png)
+
 ### Endpoints
 
 | Method | Path | Does |
@@ -434,6 +476,8 @@ included, lets you add and delete rules, and has a **Check access** panel with t
 | GET / POST | `/api/v1/lifecycles` | Lifecycle templates / create one (site admin) |
 | GET / PUT | `/api/v1/types/{typeId}/lifecycle` | Lifecycle a type uses (inherited) / assign one (site admin) |
 | GET / PUT | `/api/v1/types/{typeId}/rules` | Numbering scheme, revision scheme, manual numbers (inherited) / set (site admin) |
+| GET | `/api/v1/configuration/export` | The whole configuration as one bundle (site admin) |
+| POST | `/api/v1/configuration/import?dryRun=true\|false` | Plan an import, or apply it (site admin) |
 | GET / POST | `/api/v1/team-roles` | Team roles / define one (site admin) |
 | PUT | `/api/v1/team-roles/{key}` | Relabel, reorder or deactivate a role (site admin) |
 | GET | `/api/v1/contexts/{id}/members/effective` | Team including members inherited from parent contexts |

@@ -138,4 +138,47 @@ describe("Administration", () => {
       expect((body?.states as unknown[]).length).toBe(5);
     });
   });
+
+  it("imports a configuration file: dry run first, apply only without conflicts", async () => {
+    let conflict = true;
+    const plan = (applied: boolean) => ({
+      applied,
+      creates: 1,
+      updates: 0,
+      unchanged: 1,
+      conflicts: conflict ? 1 : 0,
+      changes: [
+        { kind: "type", key: "Part", action: "UNCHANGED", details: [] },
+        { kind: "attribute", key: "Bolt.thread", action: "CREATE", details: [] },
+        ...(conflict ? [{ kind: "lifecycle", key: "Quick", action: "CONFLICT", details: ["exists with different states"] }] : []),
+      ],
+    });
+    const calls = api(true, { "POST /api/v1/configuration/import": (req) => plan(new URL(req.url).searchParams.get("dryRun") === "false") });
+    renderAt("/admin?tab=configuration");
+
+    const file = new File([JSON.stringify({ format: "plm-config/1", types: [] })], "plm-config.json", { type: "application/json" });
+    await userEvent.upload(await screen.findByLabelText("Configuration file"), file);
+
+    const table = await screen.findByRole("table", { name: "Import plan" });
+    expect(within(table).getByText("Conflict")).toBeInTheDocument();
+    expect(within(table).queryByText("Part")).not.toBeInTheDocument(); // unchanged rows hidden by default
+    expect(screen.getByRole("button", { name: "Apply 1 change" })).toBeDisabled();
+    expect(calls.filter((c) => c.method === "POST").map((c) => c.path)).toEqual(["/api/v1/configuration/import?dryRun=true"]);
+
+    // The conflict is fixed in the file: choose it again, then apply.
+    conflict = false;
+    await userEvent.upload(screen.getByLabelText("Configuration file"), file);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Apply 1 change" })).toBeEnabled());
+    await userEvent.click(screen.getByRole("button", { name: "Apply 1 change" }));
+
+    expect(await screen.findByRole("heading", { name: "Applied" })).toBeInTheDocument();
+    expect(calls.filter((c) => c.method === "POST").at(-1)?.path).toBe("/api/v1/configuration/import?dryRun=false");
+  });
+
+  it("refuses a file that isn't JSON", async () => {
+    api(true);
+    renderAt("/admin?tab=configuration");
+    await userEvent.upload(await screen.findByLabelText("Configuration file"), new File(["not json"], "notes.json", { type: "application/json" }));
+    expect(await screen.findByText("notes.json is not a JSON configuration file.")).toBeInTheDocument();
+  });
 });

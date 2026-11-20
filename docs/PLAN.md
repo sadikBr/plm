@@ -42,6 +42,7 @@ The detailed, capability-by-capability view lives in [PARITY.md](PARITY.md).
 | 16 | Workbench UI design system | [0016](adr/0016-workbench-ui.md) |
 | 17 | Numbering, revision schemes and lifecycles | [0017](adr/0017-numbering-and-lifecycles.md) |
 | 18 | Extensibility platform | [0018](adr/0018-extensibility-platform.md) |
+| 19 | Configuration as code | [0019](adr/0019-configuration-as-code.md) |
 
 ### 2.1 Architecture: modular monolith
 One deployable, strictly separated modules: `identity`, `access`, `types`, `content`, `versioning`,

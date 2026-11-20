@@ -52,7 +52,9 @@ code**. Every later phase builds on this. See [PARITY.md](PARITY.md) §2–§5.
       constraints, typed default values), value lists, units, numbering schemes, rules (numbering,
       revision scheme, manual numbers, lifecycle), layouts per screen with live preview, team roles,
       lifecycles (state diagram; new or copied templates with a transition matrix).
-- [ ] 1.10 Configuration as code: export/import all of the above as versioned files.
+- [x] 1.10 Configuration as code: the whole configuration as one JSON bundle (by name, stable
+      output for Git); import shows a plan with diffs and applies it in one transaction or not at
+      all; adds and updates, never deletes. Admin page and API.
 - [ ] 1.11 Rename / renumber (master-level, with audit). (Set state with admin override shipped in 1.6.)
 - [ ] 1.12 Context templates: product, library, project and organization templates (team roles,
       folders, policies, preferences, numbering, seed objects). Create a context from a template;

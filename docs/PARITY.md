@@ -68,7 +68,7 @@ search summaries; those are marked *(to confirm)*. The list is about **what** us
 | Numbering per context or per subtype; pluggable numbering strategies | 🟡 | Per type ✅ · per context [1.12] · scripted [5] |
 | Classification (class hierarchy with class-specific attributes) | ⬜ [7] | |
 | Admin UI for all of the above, with live form preview | ✅ | Administration page for site admins |
-| Move configuration between environments (dev → test → prod) | ⬜ [1.10] | Configuration as code: diff, validate, apply |
+| Move configuration between environments (dev → test → prod) | ✅ | One JSON bundle; plan with diffs, then all-or-nothing apply |
 
 ## 3. Out-of-the-box object types
 
@@ -281,7 +281,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | Scheduled jobs | ⬜ [3] | |
 | Monitoring, tracing, metrics, health | 🟡 | Health ✅ · OTel/Prometheus [0.12] |
 | Horizontal scaling, zero-downtime upgrades | 🟡 | Stateless app ✅ · upgrade playbook [9] |
-| Configuration promotion between environments | ⬜ [1.10] | |
+| Configuration promotion between environments | ✅ | Export / import on the Admin page and API |
 
 ## 17. Manufacturing process management
 
@@ -355,7 +355,7 @@ Full design: [EXTENSIBILITY.md](EXTENSIBILITY.md) and [ADR 0018](adr/0018-extens
 | Object initialization rules, numbering | Type rules + numbering strategies (scripts for edge cases) | 🟡 [1.5 ✅, 5] |
 | Lifecycle and workflow templates | Admin editors, versioned templates | 🟡 [1.15, 5] |
 | Preferences | Typed preference registry with levels and locks | ⬜ [1.13] |
-| Moving configuration between systems | Configuration bundles (diff, validate, apply) | ⬜ [1.10] |
+| Moving configuration between systems | Configuration bundles (diff, validate, apply) | ✅ |
 | New actions in menus and toolbars | **Custom actions** declared in an extension manifest | ⬜ [2] |
 | Rules that hide or disable actions | Action visibility conditions (expressions) | ⬜ [2] |
 | Server code that runs before an operation (validation, defaulting) | **Pre-operation rules**: expressions, then sandboxed scripts | ⬜ [2, 5] |
