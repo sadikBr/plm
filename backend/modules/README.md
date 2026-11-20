@@ -8,9 +8,10 @@ Each folder is a Gradle project and a top-level package `com.plm.<module>` with 
 | `domain` | **module-private** | Entities, domain services, rules |
 | `infra` | **module-private** | Repositories, SQL, adapters |
 
-Two layers enforce this:
-1. **Gradle.** A module can only see modules listed in its `build.gradle.kts`. Cycles fail the build.
-2. **ArchUnit** (`backend/app/src/test/.../ArchitectureTest.kt`). Code outside a module may not touch
+Three layers enforce this:
+1. **Kotlin `internal`.** Classes outside `api` are `internal`, so other Gradle modules can't even compile against them.
+2. **Gradle.** A module can only see modules listed in its `build.gradle.kts`. Cycles fail the build.
+3. **ArchUnit** (`backend/app/src/test/.../ArchitectureTest.kt`). Code outside a module may not touch
    its `domain` or `infra` packages.
 
 ## Allowed dependencies
@@ -34,3 +35,8 @@ Two layers enforce this:
 
 Every module also depends on `backend/platform` (the shared kernel).
 To add a dependency, edit the module's `build.gradle.kts` and update this table in the same PR.
+
+## Writing a module
+
+Copy the shape of `types`, `access` or `versioning`, and follow [ADR 0012](../../docs/adr/0012-core-implementation-conventions.md).
+Tests use `@PlmIntegrationTest` from `backend/testing`.

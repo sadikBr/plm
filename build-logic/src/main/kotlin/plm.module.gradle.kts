@@ -9,7 +9,8 @@ val libs = the<VersionCatalogsExtension>().named("libs")
 
 dependencies {
     if (path != ":backend:platform") {
-        "implementation"(project(":backend:platform"))
+        "api"(project(":backend:platform"))
     }
-    "implementation"(libs.findLibrary("spring-context").get())
+    "implementation"(libs.findBundle("module-runtime").get())
+    "testImplementation"(project(":backend:testing"))
 }

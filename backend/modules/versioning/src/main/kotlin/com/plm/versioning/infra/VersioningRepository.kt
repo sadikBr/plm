@@ -1,0 +1,237 @@
+package com.plm.versioning.infra
+
+import com.plm.access.api.ContextId
+import com.plm.platform.error.ConflictException
+import com.plm.platform.id.TenantId
+import com.plm.types.api.TypeId
+import com.plm.versioning.api.Iteration
+import com.plm.versioning.api.IterationId
+import com.plm.versioning.api.IterationStatus
+import com.plm.versioning.api.MasterId
+import org.springframework.dao.DuplicateKeyException
+import org.springframework.jdbc.core.RowMapper
+import org.springframework.jdbc.core.simple.JdbcClient
+import org.springframework.stereotype.Repository
+import tools.jackson.core.type.TypeReference
+import tools.jackson.databind.json.JsonMapper
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
+import java.util.UUID
+
+internal data class MasterRow(
+    val id: MasterId,
+    val typeId: TypeId,
+    val contextId: ContextId,
+    val number: String,
+    val name: String,
+    val latestIterationId: IterationId,
+    val createdAt: Instant,
+    val createdBy: String,
+    /** Derived: owner of the working copy, if any. */
+    val checkedOutBy: String?,
+)
+
+@Repository
+internal class VersioningRepository(
+    private val jdbc: JdbcClient,
+) {
+    private val json = JsonMapper.builder().build()
+    private val attrsType = object : TypeReference<Map<String, Any?>>() {}
+
+    private val masterMapper =
+        RowMapper { rs, _ ->
+            MasterRow(
+                id = MasterId(rs.uuid("id")),
+                typeId = TypeId(rs.uuid("type_id")),
+                contextId = ContextId(rs.uuid("context_id")),
+                number = rs.getString("number"),
+                name = rs.getString("name"),
+                latestIterationId = IterationId(rs.uuid("latest_iteration_id")),
+                createdAt = rs.instant("created_at")!!,
+                createdBy = rs.getString("created_by"),
+                checkedOutBy = rs.getString("checked_out_by"),
+            )
+        }
+
+    private val iterationMapper =
+        RowMapper { rs, _ ->
+            Iteration(
+                id = IterationId(rs.uuid("id")),
+                masterId = MasterId(rs.uuid("master_id")),
+                revision = rs.getString("revision"),
+                iteration = rs.getInt("iteration"),
+                status = IterationStatus.valueOf(rs.getString("status")),
+                state = rs.getString("state"),
+                attributes = json.readValue(rs.getString("attrs"), attrsType),
+                basedOnId = rs.getObject("based_on_id", UUID::class.java)?.let(::IterationId),
+                comment = rs.getString("comment"),
+                createdAt = rs.instant("created_at")!!,
+                createdBy = rs.getString("created_by"),
+                checkedInAt = rs.instant("checked_in_at"),
+                checkedOutBy = rs.getString("checked_out_by"),
+            )
+        }
+
+    fun nextNumber(): String =
+        "%010d".format(jdbc.sql("select nextval('object_number_seq')").query(Long::class.java).single())
+
+    /**
+     * With [forUpdate], locks the master row until the transaction ends. The working-copy owner is
+     * read in a second statement: Postgres cannot lock the nullable side of an outer join.
+     */
+    fun findMaster(
+        tenant: TenantId,
+        id: MasterId,
+        forUpdate: Boolean,
+    ): MasterRow? {
+        val lock = if (forUpdate) " for update" else ""
+        val found =
+            jdbc
+                .sql("select *, null as checked_out_by from object_master where tenant_id = :tenant and id = :id$lock")
+                .param("tenant", tenant.value)
+                .param("id", id.value)
+                .query(masterMapper)
+                .optional()
+                .orElse(null) ?: return null
+        return found.copy(checkedOutBy = workingCopy(found.id)?.checkedOutBy)
+    }
+
+    fun insertMaster(
+        tenant: TenantId,
+        master: MasterRow,
+    ) {
+        try {
+            jdbc
+                .sql(
+                    """
+                    insert into object_master
+                        (id, tenant_id, type_id, context_id, number, name, latest_iteration_id, created_at, created_by)
+                    values (:id, :tenant, :type, :context, :number, :name, :latest, :createdAt, :createdBy)
+                    """,
+                ).param("id", master.id.value)
+                .param("tenant", tenant.value)
+                .param("type", master.typeId.value)
+                .param("context", master.contextId.value)
+                .param("number", master.number)
+                .param("name", master.name)
+                .param("latest", master.latestIterationId.value)
+                .param("createdAt", Timestamp.from(master.createdAt))
+                .param("createdBy", master.createdBy)
+                .update()
+        } catch (e: DuplicateKeyException) {
+            throw ConflictException(
+                "DUPLICATE_NUMBER",
+                "An object numbered '${master.number}' already exists",
+                mapOf("number" to master.number),
+            ).apply { initCause(e) }
+        }
+    }
+
+    fun insertIteration(
+        tenant: TenantId,
+        it: Iteration,
+    ) {
+        try {
+            jdbc
+                .sql(
+                    """
+                    insert into object_iteration
+                        (id, tenant_id, master_id, revision, iteration, status, state, attrs, based_on_id,
+                         comment, created_at, created_by, checked_in_at, checked_out_by)
+                    values (:id, :tenant, :master, :revision, :iteration, :status, :state, cast(:attrs as jsonb),
+                            :basedOn, :comment, :createdAt, :createdBy, :checkedInAt, :checkedOutBy)
+                    """,
+                ).param("id", it.id.value)
+                .param("tenant", tenant.value)
+                .param("master", it.masterId.value)
+                .param("revision", it.revision)
+                .param("iteration", it.iteration)
+                .param("status", it.status.name)
+                .param("state", it.state)
+                .param("attrs", json.writeValueAsString(it.attributes))
+                .param("basedOn", it.basedOnId?.value)
+                .param("comment", it.comment)
+                .param("createdAt", Timestamp.from(it.createdAt))
+                .param("createdBy", it.createdBy)
+                .param("checkedInAt", it.checkedInAt?.let(Timestamp::from))
+                .param("checkedOutBy", it.checkedOutBy)
+                .update()
+        } catch (e: DuplicateKeyException) {
+            // Unreachable while the master row lock is held; kept as a safety net.
+            throw ConflictException("ALREADY_CHECKED_OUT", "Object is already checked out").apply { initCause(e) }
+        }
+    }
+
+    fun iteration(id: IterationId): Iteration =
+        jdbc
+            .sql("select * from object_iteration where id = :id")
+            .param("id", id.value)
+            .query(iterationMapper)
+            .single()
+
+    fun workingCopy(master: MasterId): Iteration? =
+        jdbc
+            .sql("select * from object_iteration where master_id = :master and status = 'WORKING'")
+            .param("master", master.value)
+            .query(iterationMapper)
+            .optional()
+            .orElse(null)
+
+    fun history(master: MasterId): List<Iteration> =
+        jdbc
+            .sql("select * from object_iteration where master_id = :master and status = 'CHECKED_IN' order by seq desc")
+            .param("master", master.value)
+            .query(iterationMapper)
+            .list()
+
+    fun updateAttributes(
+        id: IterationId,
+        attributes: Map<String, Any?>,
+    ) {
+        jdbc
+            .sql("update object_iteration set attrs = cast(:attrs as jsonb) where id = :id and status = 'WORKING'")
+            .param("attrs", json.writeValueAsString(attributes))
+            .param("id", id.value)
+            .update()
+            .also { check(it == 1) { "working copy $id vanished" } }
+    }
+
+    fun checkIn(it: Iteration) {
+        jdbc
+            .sql(
+                """
+                update object_iteration
+                set status = 'CHECKED_IN', comment = :comment, checked_in_at = :checkedInAt, checked_out_by = null
+                where id = :id and status = 'WORKING'
+                """,
+            ).param("comment", it.comment)
+            .param("checkedInAt", Timestamp.from(it.checkedInAt))
+            .param("id", it.id.value)
+            .update()
+            .also { check(it == 1) { "working copy vanished" } }
+    }
+
+    fun deleteWorkingCopy(id: IterationId) {
+        jdbc
+            .sql("delete from object_iteration where id = :id and status = 'WORKING'")
+            .param("id", id.value)
+            .update()
+            .also { check(it == 1) { "working copy $id vanished" } }
+    }
+
+    fun setLatest(
+        master: MasterId,
+        iteration: IterationId,
+    ) {
+        jdbc
+            .sql("update object_master set latest_iteration_id = :iteration where id = :master")
+            .param("iteration", iteration.value)
+            .param("master", master.value)
+            .update()
+    }
+
+    private fun ResultSet.uuid(column: String): UUID = getObject(column, UUID::class.java)
+
+    private fun ResultSet.instant(column: String): Instant? = getTimestamp(column)?.toInstant()
+}
