@@ -41,7 +41,7 @@ test("alice reuses a shared team and a product template; bob gets access through
   await alice.getByRole("button", { name: "Done" }).click();
 
   // ---- a new product from the template ----
-  await alice.getByRole("link", { name: `Templates Inc ${suffix}` }).first().click();
+  await alice.getByRole("link", { name: `Templates Inc ${suffix}`, exact: true }).first().click();
   await alice.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Products" }).click();
   await alice.getByRole("button", { name: "New product" }).click();
   await alice.getByLabel("Name").fill("Series");
