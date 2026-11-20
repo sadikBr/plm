@@ -493,6 +493,28 @@ internal class DefaultVersioningService(
                 mapOf("missing" to missing, "state" to target.key),
             )
         }
+        // Gate: the state's entry condition, on the object as it is now (an admin override skips it).
+        val gate = target.entryCondition
+        if (!command.override && gate != null) {
+            val met =
+                try {
+                    Expressions.test(gate, models.build(actor, master.facts(latest)))
+                } catch (e: ExpressionException) {
+                    throw ValidationException(
+                        "ENTRY_CRITERIA_NOT_MET",
+                        "${target.entryMessage ?: "The entry condition isn't met"} (it couldn't be checked: ${e.message})",
+                        mapOf("state" to target.key),
+                    )
+                }
+            if (!met) {
+                throw ValidationException(
+                    "ENTRY_CRITERIA_NOT_MET",
+                    target.entryMessage
+                        ?: "${master.number} doesn't meet the conditions to become ${stateName(lifecycle, target.key)}",
+                    mapOf("state" to target.key, "condition" to gate),
+                )
+            }
+        }
         if (!command.override && !lifecycle.canTransition(latest.state, target.key)) {
             throw ConflictException(
                 "TRANSITION_NOT_ALLOWED",

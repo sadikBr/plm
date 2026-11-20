@@ -32,6 +32,12 @@ data class LifecycleState(
      * numbers while prototyping, letters once released). Null: the object's current series.
      */
     val revisionScheme: RevisionScheme? = null,
+    /**
+     * Gate: a CEL condition over `object` and `user` (the object as it is before the change) that
+     * must be true to enter this state, and the message shown when it isn't.
+     */
+    val entryCondition: String? = null,
+    val entryMessage: String? = null,
 )
 
 data class LifecycleTransition(

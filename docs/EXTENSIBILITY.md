@@ -67,7 +67,7 @@ rules:
 subscriptions:
   - id: released-parts
     events: [object.state-changed]
-    filter: "event.to == 'RELEASED' && object.type.isA('Part')"
+    filter: "event.to == 'RELEASED' && 'Part' in object.types"
     deliver:
       webhook: { url: "${config.erpUrl}/plm/events", retries: 8 }
 
@@ -117,7 +117,7 @@ Run inside the operation's transaction, before it commits: `object.create`, `obj
 - **set defaults** on create (scripts, Phase 5),
 - **require** a condition for a transition (gate criteria in lifecycles use the same rules).
 
-Conditions are [CEL](https://cel.dev) expressions over a documented object model (`object`,
+Conditions are [CEL](https://cel.dev) expressions (built: roadmap 2.2; variables in DEVELOPMENT.md, *Expressions*) over a documented object model (`object`,
 `user`, `context`, `event`). CEL is side-effect free and fast, with a bounded execution cost.
 Webhook rules are allowed but must answer within 2 s; on timeout the operation fails closed or
 open as the rule declares.

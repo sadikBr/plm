@@ -13,6 +13,8 @@ import com.plm.platform.error.ForbiddenException
 import com.plm.platform.error.NotFoundException
 import com.plm.platform.error.ValidationException
 import com.plm.platform.events.DomainEvents
+import com.plm.platform.expression.ExpressionKind
+import com.plm.platform.expression.Expressions
 import com.plm.platform.id.UuidV7
 import com.plm.types.api.TypeId
 import com.plm.types.api.TypeService
@@ -179,6 +181,15 @@ internal class DefaultLifecycleService(
         t.states.forEach { s ->
             s.requiredAttributes.filterNot { ATTRIBUTE_NAME.matches(it) }.forEach {
                 errors += "State '${s.key}': '$it' is not an attribute name"
+            }
+            s.entryCondition?.let { condition ->
+                Expressions.check(condition, ExpressionKind.CONDITION).firstOrNull()?.let {
+                    errors += "State '${s.key}': the entry condition isn't valid: ${it.message}"
+                }
+                if (s.entryMessage.isNullOrBlank()) {
+                    errors +=
+                        "State '${s.key}': say what to do when the entry condition isn't met"
+                }
             }
             if (s.revisionScheme != null && !s.revisable) {
                 errors += "State '${s.key}' sets a revision series but can't be revised from"

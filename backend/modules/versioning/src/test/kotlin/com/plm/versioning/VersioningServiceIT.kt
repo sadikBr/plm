@@ -1289,4 +1289,107 @@ class VersioningServiceIT(
             }
         }
     }
+
+    @Nested
+    inner class Gates {
+        private fun gatedType(): TypeId {
+            val type =
+                types
+                    .createSubtype(
+                        admin,
+                        CreateSubtype(TypeId.PART, "Gate${UUID.randomUUID().toString().take(8)}", "Gated"),
+                    ).id
+            val lc =
+                lifecycles.create(
+                    admin,
+                    CreateLifecycleTemplate(
+                        "Gate ${UUID.randomUUID()}",
+                        mapOf("en" to "Gate"),
+                        "DRAFT",
+                        listOf(
+                            LifecycleState("DRAFT", mapOf("en" to "Draft"), editable = true, revisable = false),
+                            LifecycleState(
+                                "RELEASED",
+                                mapOf("en" to "Released"),
+                                editable = false,
+                                revisable = true,
+                                entryCondition =
+                                    "object.attributes.source == 'make' || " +
+                                        "object.attributes.description != null",
+                                entryMessage = "Bought parts need a description before release",
+                            ),
+                        ),
+                        listOf(LifecycleTransition("DRAFT", "RELEASED")),
+                    ),
+                )
+            lifecycles.assign(admin, type, lc.id)
+            return type
+        }
+
+        @Test
+        fun `a state's entry condition must hold, with its message, unless an admin overrides`() {
+            val type = gatedType()
+            val bought =
+                versioning.create(
+                    alice,
+                    CreateVersionedObject(
+                        type,
+                        product,
+                        "Bought",
+                        attributes =
+                            mapOf(
+                                "source" to "buy",
+                            ),
+                    ),
+                )
+            assertThatThrownBy { versioning.setState(manager, bought.id, SetState("RELEASED")) }
+                .isInstanceOfSatisfying(ValidationException::class.java) {
+                    assertThat(it.code).isEqualTo("ENTRY_CRITERIA_NOT_MET")
+                    assertThat(it.message).isEqualTo("Bought parts need a description before release")
+                }
+            assertThat(
+                versioning.setState(admin, bought.id, SetState("RELEASED", override = true)).latest.state,
+            ).isEqualTo("RELEASED")
+
+            val made =
+                versioning.create(
+                    alice,
+                    CreateVersionedObject(
+                        type,
+                        product,
+                        "Made",
+                        attributes =
+                            mapOf(
+                                "source" to "make",
+                            ),
+                    ),
+                )
+            assertThat(versioning.setState(manager, made.id, SetState("RELEASED")).latest.state).isEqualTo("RELEASED")
+        }
+
+        @Test
+        fun `an invalid entry condition, or one without a message, is refused`() {
+            assertThatThrownBy {
+                lifecycles.create(
+                    admin,
+                    CreateLifecycleTemplate(
+                        "Bad ${UUID.randomUUID()}",
+                        mapOf("en" to "Bad"),
+                        "A",
+                        listOf(
+                            LifecycleState("A", mapOf("en" to "A"), editable = true, revisable = false),
+                            LifecycleState(
+                                "B",
+                                mapOf("en" to "B"),
+                                editable = false,
+                                revisable = true,
+                                entryCondition = "object.state ==",
+                            ),
+                        ),
+                        listOf(LifecycleTransition("A", "B")),
+                    ),
+                )
+            }.isInstanceOf(ValidationException::class.java).hasMessageContaining("entry condition isn't valid")
+        }
+    }
 }

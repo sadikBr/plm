@@ -2,7 +2,8 @@ import { Copy, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { useLifecycles } from "../api/queries";
 import { pickLabel } from "../components/AttributeForm";
-import { ErrorBanner, Loading, Panel } from "../components/common";
+import { Dialog, ErrorBanner, Loading, Panel } from "../components/common";
+import { ExpressionField } from "../components/ExpressionField";
 import { useCreateLifecycle, useLifecycleVersions, useUpdateLifecycle, type Lifecycle } from "./adminQueries";
 
 interface StateDraft {
@@ -13,6 +14,9 @@ interface StateDraft {
   /** Comma-separated attribute names, as typed. */
   required?: string;
   revisionScheme?: string | null;
+  /** Gate: condition to enter, and the message when it isn't met. */
+  entryCondition?: string | null;
+  entryMessage?: string | null;
 }
 
 const SERIES: { key: string; label: string }[] = [
@@ -68,11 +72,28 @@ export function StateDiagram({ states, transitions, initial }: Diagram) {
         const y = forward ? rowY : rowY + NODE_H;
         // Adjacent forward steps are straight; everything else bends further the further it goes.
         if (forward && span === 1) {
-          return <line key={`${t.from}-${t.to}`} x1={x(a) + NODE_W} y1={rowY + NODE_H / 2} x2={x(b) - 2} y2={rowY + NODE_H / 2} className="edge" markerEnd="url(#arrow)" />;
+          return (
+            <line
+              key={`${t.from}-${t.to}`}
+              x1={x(a) + NODE_W}
+              y1={rowY + NODE_H / 2}
+              x2={x(b) - 2}
+              y2={rowY + NODE_H / 2}
+              className="edge"
+              markerEnd="url(#arrow)"
+            />
+          );
         }
         const bend = bendOf(span);
         const cy = forward ? y - bend : y + bend;
-        return <path key={`${t.from}-${t.to}`} d={`M${x1},${y} C${x1},${cy} ${x2},${cy} ${x2},${y}`} className={forward ? "edge" : "edge back"} markerEnd="url(#arrow)" />;
+        return (
+          <path
+            key={`${t.from}-${t.to}`}
+            d={`M${x1},${y} C${x1},${cy} ${x2},${cy} ${x2},${y}`}
+            className={forward ? "edge" : "edge back"}
+            markerEnd="url(#arrow)"
+          />
+        );
       })}
       {states.map((s, i) => (
         <g key={s.key || i}>
@@ -167,7 +188,12 @@ export function LifecyclesAdmin() {
           }
         >
           <StateDiagram
-            states={current.states.map((s) => ({ key: s.key, label: pickLabel(s.labels, s.key), editable: !!s.editable, revisable: !!s.revisable }))}
+            states={current.states.map((s) => ({
+              key: s.key,
+              label: pickLabel(s.labels, s.key),
+              editable: !!s.editable,
+              revisable: !!s.revisable,
+            }))}
             transitions={current.transitions}
             initial={current.initialState}
           />
@@ -180,6 +206,7 @@ export function LifecyclesAdmin() {
                 <th>Can be revised from</th>
                 <th>Required to enter</th>
                 <th>Revision series</th>
+                <th>Entry condition</th>
                 <th>Can move to</th>
               </tr>
             </thead>
@@ -188,7 +215,11 @@ export function LifecyclesAdmin() {
                 <tr key={s.key}>
                   <td className="nowrap">
                     {pickLabel(s.labels, s.key)}
-                    {s.key === current.initialState && <span className="tag" style={{ marginLeft: 6 }}>Initial</span>}
+                    {s.key === current.initialState && (
+                      <span className="tag" style={{ marginLeft: 6 }}>
+                        Initial
+                      </span>
+                    )}
                   </td>
                   <td>
                     <code>{s.key}</code>
@@ -197,6 +228,15 @@ export function LifecyclesAdmin() {
                   <td>{s.revisable ? "Yes" : "No"}</td>
                   <td className="muted">{s.requiredAttributes?.join(", ") || "—"}</td>
                   <td className="muted">{SERIES.find((x) => x.key === s.revisionScheme)?.label ?? "—"}</td>
+                  <td className="muted">
+                    {s.entryCondition ? (
+                      <code className="wrap-code" title={s.entryMessage ?? undefined}>
+                        {s.entryCondition}
+                      </code>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                   <td className="muted">
                     {current.transitions
                       .filter((t) => t.from === s.key)
@@ -225,7 +265,9 @@ function LifecycleEditor({ from, editing = false, onDone }: { from?: Lifecycle; 
   const update = useUpdateLifecycle();
   const mutation = editing ? update : create;
   const [name, setName] = useState(from ? (editing ? from.name : `${from.name}Copy`) : "");
-  const [label, setLabel] = useState(from ? (editing ? pickLabel(from.labels, from.name) : `${pickLabel(from.labels, from.name)} (copy)`) : "");
+  const [label, setLabel] = useState(
+    from ? (editing ? pickLabel(from.labels, from.name) : `${pickLabel(from.labels, from.name)} (copy)`) : "",
+  );
   const [states, setStates] = useState<StateDraft[]>(
     from?.states.map((s) => ({
       key: s.key,
@@ -234,11 +276,14 @@ function LifecycleEditor({ from, editing = false, onDone }: { from?: Lifecycle; 
       revisable: !!s.revisable,
       required: (s.requiredAttributes ?? []).join(", "),
       revisionScheme: s.revisionScheme ?? null,
+      entryCondition: s.entryCondition ?? null,
+      entryMessage: s.entryMessage ?? null,
     })) ?? BLANK,
   );
   const [transitions, setTransitions] = useState(from?.transitions ?? [{ from: "IN_WORK", to: "RELEASED" }]);
   const [initial, setInitial] = useState(from?.initialState ?? "IN_WORK");
 
+  const [gateOf, setGateOf] = useState<number | null>(null);
   const keys = states.map((s) => s.key);
   const has = (a: string, b: string) => transitions.some((t) => t.from === a && t.to === b);
   const toggle = (a: string, b: string) =>
@@ -274,6 +319,8 @@ function LifecycleEditor({ from, editing = false, onDone }: { from?: Lifecycle; 
           .map((x) => x.trim())
           .filter(Boolean),
         revisionScheme: (s.revisable ? (s.revisionScheme ?? null) : null) as Lifecycle["states"][number]["revisionScheme"],
+        entryCondition: s.entryCondition?.trim() || null,
+        entryMessage: s.entryCondition?.trim() ? s.entryMessage?.trim() || null : null,
       })),
       transitions: transitions.filter((t) => keys.includes(t.from) && keys.includes(t.to)),
     };
@@ -335,6 +382,7 @@ function LifecycleEditor({ from, editing = false, onDone }: { from?: Lifecycle; 
               <th title="A new revision can be started from this state">Revisable</th>
               <th title="Attributes that must have a value before an object may enter this state">Required to enter</th>
               <th title="Revisions started from this state continue in this series">Revision series</th>
+              <th title="A condition an object must meet to enter this state">Entry condition</th>
               <th aria-label="Remove" />
             </tr>
           </thead>
@@ -342,19 +390,42 @@ function LifecycleEditor({ from, editing = false, onDone }: { from?: Lifecycle; 
             {states.map((s, i) => (
               <tr key={i}>
                 <td>
-                  <input aria-label={`Key of state ${i + 1}`} value={s.key} onChange={(e) => setState(i, { key: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "_") })} />
+                  <input
+                    aria-label={`Key of state ${i + 1}`}
+                    value={s.key}
+                    onChange={(e) => setState(i, { key: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "_") })}
+                  />
                 </td>
                 <td>
                   <input aria-label={`Label of state ${i + 1}`} value={s.label} onChange={(e) => setState(i, { label: e.target.value })} />
                 </td>
                 <td style={{ width: 60 }}>
-                  <input type="radio" name="initial" aria-label={`${s.label || s.key} is the initial state`} checked={initial === s.key} onChange={() => setInitial(s.key)} style={{ width: "auto" }} />
+                  <input
+                    type="radio"
+                    name="initial"
+                    aria-label={`${s.label || s.key} is the initial state`}
+                    checked={initial === s.key}
+                    onChange={() => setInitial(s.key)}
+                    style={{ width: "auto" }}
+                  />
                 </td>
                 <td style={{ width: 80 }}>
-                  <input type="checkbox" aria-label={`${s.label || s.key} is editable`} checked={s.editable} onChange={(e) => setState(i, { editable: e.target.checked })} style={{ width: "auto" }} />
+                  <input
+                    type="checkbox"
+                    aria-label={`${s.label || s.key} is editable`}
+                    checked={s.editable}
+                    onChange={(e) => setState(i, { editable: e.target.checked })}
+                    style={{ width: "auto" }}
+                  />
                 </td>
                 <td style={{ width: 80 }}>
-                  <input type="checkbox" aria-label={`${s.label || s.key} is revisable`} checked={s.revisable} onChange={(e) => setState(i, { revisable: e.target.checked })} style={{ width: "auto" }} />
+                  <input
+                    type="checkbox"
+                    aria-label={`${s.label || s.key} is revisable`}
+                    checked={s.revisable}
+                    onChange={(e) => setState(i, { revisable: e.target.checked })}
+                    style={{ width: "auto" }}
+                  />
                 </td>
                 <td>
                   <input
@@ -379,8 +450,24 @@ function LifecycleEditor({ from, editing = false, onDone }: { from?: Lifecycle; 
                     ))}
                   </select>
                 </td>
+                <td className="nowrap">
+                  <button
+                    type="button"
+                    className="btn small"
+                    aria-label={`Entry condition of ${s.label || s.key}`}
+                    onClick={() => setGateOf(i)}
+                  >
+                    {s.entryCondition ? "Edit…" : "Add…"}
+                  </button>
+                </td>
                 <td style={{ width: 40 }}>
-                  <button type="button" className="btn small ghost icon" aria-label={`Remove state ${s.label || s.key}`} disabled={states.length <= 1} onClick={() => removeState(i)}>
+                  <button
+                    type="button"
+                    className="btn small ghost icon"
+                    aria-label={`Remove state ${s.label || s.key}`}
+                    disabled={states.length <= 1}
+                    onClick={() => removeState(i)}
+                  >
                     <Trash2 size={12} aria-hidden />
                   </button>
                 </td>
@@ -389,7 +476,11 @@ function LifecycleEditor({ from, editing = false, onDone }: { from?: Lifecycle; 
           </tbody>
         </table>
         <div>
-          <button type="button" className="btn small" onClick={() => setStates([...states, { key: `STATE_${states.length + 1}`, label: "", editable: false, revisable: false }])}>
+          <button
+            type="button"
+            className="btn small"
+            onClick={() => setStates([...states, { key: `STATE_${states.length + 1}`, label: "", editable: false, revisable: false }])}
+          >
             <Plus size={13} aria-hidden />
             Add state
           </button>
@@ -438,6 +529,16 @@ function LifecycleEditor({ from, editing = false, onDone }: { from?: Lifecycle; 
           Cancel
         </button>
       </div>
+      {gateOf != null && states[gateOf] && (
+        <GateDialog
+          state={states[gateOf]!}
+          onSave={(entryCondition, entryMessage) => {
+            setState(gateOf, { entryCondition, entryMessage });
+            setGateOf(null);
+          }}
+          onClose={() => setGateOf(null)}
+        />
+      )}
     </form>
   );
 }
@@ -447,8 +548,72 @@ function Versions({ id }: { id: string }) {
   if (!data || data.length < 2) return null;
   return (
     <p className="muted" style={{ margin: "12px 0 0" }}>
-      Versions: {data.map((v) => `v${v.version}${v.latest ? " (current)" : ""}`).join(" · ")}. Objects created earlier keep the version
-      they started with.
+      Versions: {data.map((v) => `v${v.version}${v.latest ? " (current)" : ""}`).join(" · ")}. Objects created earlier keep the version they
+      started with.
     </p>
+  );
+}
+
+/** A state's gate: the condition to enter it and the message when it isn't met. */
+function GateDialog({
+  state,
+  onSave,
+  onClose,
+}: {
+  state: StateDraft;
+  onSave: (condition: string | null, message: string | null) => void;
+  onClose: () => void;
+}) {
+  const [condition, setCondition] = useState(state.entryCondition ?? "");
+  const [message, setMessage] = useState(state.entryMessage ?? "");
+  return (
+    <Dialog
+      open
+      title={`Entry condition of ${state.label || state.key}`}
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className="btn" onClick={() => onSave(null, null)} disabled={!state.entryCondition}>
+            Remove
+          </button>
+          <span className="grow" />
+          <button type="button" className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={!condition.trim() || !message.trim()}
+            onClick={() => onSave(condition.trim(), message.trim())}
+          >
+            Done
+          </button>
+        </>
+      }
+    >
+      <div className="attr-form">
+        <p className="muted wide" style={{ margin: 0 }}>
+          Checked on the object as it is when someone moves it to {state.label || state.key}. Site administrators can override it. Saved
+          with the lifecycle.
+        </p>
+        <ExpressionField
+          id="gate-condition"
+          label="Enter only when"
+          value={condition}
+          onChange={setCondition}
+          rows={3}
+          placeholder="object.attributes.source == 'make' || object.attributes.description != null"
+        />
+        <div className="field wide">
+          <label htmlFor="gate-message">Message when it isn't met</label>
+          <input
+            id="gate-message"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Bought parts need a description before release"
+          />
+        </div>
+      </div>
+    </Dialog>
   );
 }

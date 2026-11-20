@@ -522,6 +522,15 @@ curl -s -X POST "$API/objects/$PART/expression-model/evaluate" -H "Authorization
   -H 'Content-Type: application/json' -d '{"expression": "object.attributes.material", "kind": "VALUE"}'
 ```
 
+### Lifecycle gates
+
+A lifecycle state can have an **entry condition** (Admin → Lifecycles → edit → *Entry condition*):
+an expression the object must meet to move into that state, and the message shown when it
+doesn't. It's checked on the object as it is before the change, after the state's required
+attributes, and refused with `ENTRY_CRITERIA_NOT_MET`. Site administrators' overrides skip it.
+Saving a lifecycle with a gate creates a new version (as any change does); gates travel in
+configuration bundles.
+
 ### Calculated attributes
 
 An attribute can be **calculated**: in its dialog, tick *Calculated* and write a formula (an

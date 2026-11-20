@@ -348,4 +348,30 @@ describe("Administration", () => {
       }),
     );
   });
+
+  it("gives a lifecycle state an entry condition", async () => {
+    const calls = api(true, {
+      "POST /api/v1/lifecycles": () => ({ ...basic, id: "new" }),
+      "POST /api/v1/expressions/check": () => ({ valid: true, problems: [] }),
+    });
+    renderAt("/admin?tab=lifecycles");
+
+    await screen.findByRole("img", { name: "State diagram" });
+    await userEvent.click(screen.getByRole("button", { name: "Copy as new" }));
+    const form = screen.getByRole("form", { name: "New lifecycle" });
+    await userEvent.click(within(form).getByRole("button", { name: "Entry condition of Released" }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.type(within(dialog).getByLabelText("Enter only when"), "object.attributes.material != null");
+    await userEvent.type(within(dialog).getByLabelText("Message when it isn't met"), "Pick a material first");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Done" }));
+    await userEvent.click(within(form).getByRole("button", { name: "Create lifecycle" }));
+
+    await waitFor(() => {
+      const states = posted(calls, "POST", "/api/v1/lifecycles")?.states as { key: string }[];
+      expect(states.find((x) => x.key === "RELEASED")).toMatchObject({
+        entryCondition: "object.attributes.material != null",
+        entryMessage: "Pick a material first",
+      });
+    });
+  });
 });

@@ -72,6 +72,8 @@ internal class LifecycleRepository(
                             rs.getBoolean("revisable"),
                             json.readValue(rs.getString("required_attributes"), names),
                             rs.getString("revision_scheme")?.let(RevisionScheme::valueOf),
+                            rs.getString("entry_condition"),
+                            rs.getString("entry_message"),
                         )
                 }.list()
                 .groupBy({ it.first }, { it.second })
@@ -130,8 +132,10 @@ internal class LifecycleRepository(
                 .sql(
                     """
                     insert into lifecycle_state
-                        (template_id, key, labels, editable, revisable, sort_order, required_attributes, revision_scheme)
-                    values (:id, :key, cast(:labels as jsonb), :editable, :revisable, :order, cast(:required as jsonb), :scheme)
+                        (template_id, key, labels, editable, revisable, sort_order, required_attributes, revision_scheme,
+                         entry_condition, entry_message)
+                    values (:id, :key, cast(:labels as jsonb), :editable, :revisable, :order, cast(:required as jsonb), :scheme,
+                            :condition, :message)
                     """,
                 ).param("id", t.id.value)
                 .param("key", s.key)
@@ -141,6 +145,8 @@ internal class LifecycleRepository(
                 .param("order", i + 1)
                 .param("required", json.writeValueAsString(s.requiredAttributes))
                 .param("scheme", s.revisionScheme?.name)
+                .param("condition", s.entryCondition)
+                .param("message", s.entryMessage)
                 .update()
         }
         t.transitions.forEach { tr ->

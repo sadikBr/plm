@@ -980,6 +980,8 @@ private fun LifecycleConfig.toCommand() =
                 it.revisable,
                 it.requiredAttributes,
                 it.revisionScheme?.let(RevisionScheme::valueOf),
+                it.entryCondition,
+                it.entryMessage,
             )
         },
         transitions.map { LifecycleTransition(it.from, it.to) },
@@ -999,6 +1001,8 @@ private fun LifecycleTemplate.toConfig() =
                     it.revisable,
                     it.requiredAttributes,
                     it.revisionScheme?.name,
+                    it.entryCondition,
+                    it.entryMessage,
                 )
             },
         transitions = transitions.map { LifecycleTransitionConfig(it.from, it.to) },

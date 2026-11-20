@@ -1403,6 +1403,12 @@
           "editable" : {
             "type" : "boolean"
           },
+          "entryCondition" : {
+            "type" : [ "string", "null" ]
+          },
+          "entryMessage" : {
+            "type" : [ "string", "null" ]
+          },
           "key" : {
             "type" : "string"
           },
@@ -2073,6 +2079,12 @@
         "properties" : {
           "editable" : {
             "type" : [ "boolean", "null" ]
+          },
+          "entryCondition" : {
+            "type" : [ "string", "null" ]
+          },
+          "entryMessage" : {
+            "type" : [ "string", "null" ]
           },
           "key" : {
             "type" : "string"

@@ -82,6 +82,9 @@ internal data class StateDto(
     val requiredAttributes: List<String>? = null,
     /** Revisions started from this state continue in this series. */
     val revisionScheme: RevisionScheme? = null,
+    /** Gate: a CEL condition that must hold to enter this state, and the message when it doesn't. */
+    val entryCondition: String? = null,
+    val entryMessage: String? = null,
 )
 
 internal data class TransitionDto(
@@ -109,6 +112,8 @@ internal data class CreateLifecycleRequest(
                     it.revisable ?: false,
                     it.requiredAttributes.orEmpty(),
                     it.revisionScheme,
+                    it.entryCondition?.trim()?.ifEmpty { null },
+                    it.entryMessage?.trim()?.ifEmpty { null },
                 )
             },
             transitions.map { LifecycleTransition(it.from, it.to) },
@@ -144,6 +149,8 @@ internal data class LifecycleResponse(
                 it.revisable,
                 it.requiredAttributes,
                 it.revisionScheme,
+                it.entryCondition,
+                it.entryMessage,
             )
         },
         t.transitions.map { TransitionDto(it.from, it.to) },

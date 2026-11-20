@@ -91,6 +91,9 @@ data class LifecycleStateConfig(
     val revisable: Boolean = false,
     val requiredAttributes: List<String> = emptyList(),
     val revisionScheme: String? = null,
+    /** Gate: CEL condition to enter the state, and the message when it isn't met. */
+    val entryCondition: String? = null,
+    val entryMessage: String? = null,
 )
 
 data class LifecycleTransitionConfig(
