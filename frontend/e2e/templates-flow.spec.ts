@@ -8,7 +8,7 @@ test("alice reuses a shared team and a product template; bob gets access through
   const sections = alice.getByRole("navigation", { name: "Sections" });
 
   // ---- a shared team with bob in it ----
-  await alice.getByRole("link", { name: "Admin" }).click();
+  await alice.getByRole("link", { name: "Admin", exact: true }).click();
   await sections.getByRole("link", { name: "Shared teams" }).click();
   await alice.getByLabel("New team name").fill(`Reviewers ${suffix}`);
   await alice.getByRole("button", { name: "Create", exact: true }).click();

@@ -8,6 +8,7 @@ import {
   useChildren,
   useContextById,
   useContextTemplates,
+  useEffectivePreferences,
   useSaveAsTemplate,
   useCreateContext,
   useCreateObject,
@@ -35,9 +36,10 @@ import {
 import { Breadcrumbs, PageHeader, Tabs, useIdParam } from "../components/Layout";
 import { ObjectTable } from "../components/ObjectTable";
 import { AccessTab, TeamTab } from "./ContextAccess";
+import { PreferencesTab } from "./Preferences";
 import { NotFoundPage } from "./NotFoundPage";
 
-type Tab = "objects" | "contexts" | "team" | "access";
+type Tab = "objects" | "contexts" | "team" | "access" | "preferences";
 
 /** Remounts per context, so page state (open dialogs, filters, form drafts) never leaks between contexts. */
 export function ContextPage() {
@@ -64,7 +66,7 @@ function ContextView({ id }: { id: string }) {
     ...(childKinds.length > 0 ? [["contexts", "Contexts"] as [Tab, string]] : []),
     ["team", "Team"],
     // Access rules are for whoever manages this context.
-    ...(permissions?.has("MANAGE") ? [["access", "Access"] as [Tab, string]] : []),
+    ...(permissions?.has("MANAGE") ? [["access", "Access"] as [Tab, string], ["preferences", "Preferences"] as [Tab, string]] : []),
   ];
   const canCreateObject = holdsObjects && !!permissions?.has("CREATE");
   // Organizations are created by site admins only; everything else needs MANAGE on the parent.
@@ -115,6 +117,7 @@ function ContextView({ id }: { id: string }) {
         {tab === "objects" && holdsObjects && <ObjectsTab context={context} />}
         {tab === "contexts" && <ContextsTab context={context} />}
         {tab === "team" && <TeamTab context={context} canManage={!!permissions?.has("MANAGE")} />}
+        {tab === "preferences" && permissions?.has("MANAGE") && <PreferencesTab contextId={context.id} />}
         {tab === "access" && permissions?.has("MANAGE") && (
           // Rules on the site apply everywhere: only site admins change them.
           <AccessTab context={context} canChange={context.kind === "SITE" ? !!me?.siteAdmin : true} />
@@ -130,7 +133,8 @@ function ContextView({ id }: { id: string }) {
 // ---------- Objects ----------
 
 function ObjectsTab({ context }: { context: Context }) {
-  const objects = useObjects(context.id);
+  const { data: prefs } = useEffectivePreferences(context.id);
+  const objects = useObjects(context.id, (prefs?.get("ui.tablePageSize") as number | undefined) ?? 50);
   const [filter, setFilter] = useState("");
   const rows = useMemo(() => objects.data?.pages.flat() ?? [], [objects.data]);
   const shown = useMemo(() => {

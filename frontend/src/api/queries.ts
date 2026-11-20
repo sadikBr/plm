@@ -178,6 +178,50 @@ export function useSaveAsTemplate(contextId: string) {
   });
 }
 
+export type ContextPreference = Schemas["ContextPreferenceResponse"];
+export type UserPreference = Schemas["UserPreferenceResponse"];
+
+/** Every preference's value for the current user in [contextId] (site-wide when undefined), by key. */
+export const useEffectivePreferences = (contextId?: string) =>
+  useQuery({
+    queryKey: ["preferences", "effective", contextId ?? "site"],
+    queryFn: async () =>
+      new Map(
+        (await unwrap(api.GET("/api/v1/preferences/effective", { params: { query: contextId ? { contextId } : {} } }))).map((p) => [
+          p.key,
+          p.value as unknown,
+        ]),
+      ),
+  });
+
+export const useContextPreferences = (contextId: string, enabled = true) =>
+  useQuery({
+    queryKey: ["preferences", "context", contextId],
+    queryFn: () => unwrap(api.GET("/api/v1/contexts/{contextId}/preferences", { params: { path: { contextId } } })),
+    enabled,
+  });
+
+export const useMyPreferences = () =>
+  useQuery({ queryKey: ["preferences", "me"], queryFn: () => unwrap(api.GET("/api/v1/me/preferences")) });
+
+export function useSetPreference(scope: { contextId: string } | "me") {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ key, value, locked, clear }: { key: string; value?: unknown; locked?: boolean; clear?: boolean }) => {
+      if (scope === "me") {
+        return clear
+          ? unwrap(api.DELETE("/api/v1/me/preferences/{key}", { params: { path: { key } } }))
+          : unwrap(api.PUT("/api/v1/me/preferences/{key}", { params: { path: { key } }, body: { value } }));
+      }
+      const path = { contextId: scope.contextId, key };
+      return clear
+        ? unwrap(api.DELETE("/api/v1/contexts/{contextId}/preferences/{key}", { params: { path } }))
+        : unwrap(api.PUT("/api/v1/contexts/{contextId}/preferences/{key}", { params: { path }, body: { value, locked } }));
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["preferences"] }),
+  });
+}
+
 export const useTeamRoles = () =>
   useQuery({ queryKey: keys.teamRoles, queryFn: () => unwrap(api.GET("/api/v1/team-roles")), ...REFERENCE_DATA });
 
@@ -213,17 +257,17 @@ export const useEnumerations = () =>
 export const useUnits = () =>
   useQuery({ queryKey: keys.units, queryFn: () => unwrap(api.GET("/api/v1/units")), ...REFERENCE_DATA });
 
-export const useObjects = (contextId: string) =>
+export const useObjects = (contextId: string, pageSize = PAGE_SIZE) =>
   useInfiniteQuery({
-    queryKey: keys.objects(contextId),
+    queryKey: [...keys.objects(contextId), pageSize],
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) =>
       unwrap(
         api.GET("/api/v1/objects", {
-          params: { query: { contextId, limit: PAGE_SIZE, ...(pageParam ? { after: pageParam } : {}) } },
+          params: { query: { contextId, limit: pageSize, ...(pageParam ? { after: pageParam } : {}) } },
         }),
       ),
-    getNextPageParam: (last) => (last.length === PAGE_SIZE ? last[last.length - 1]?.id : undefined),
+    getNextPageParam: (last) => (last.length === pageSize ? last[last.length - 1]?.id : undefined),
   });
 
 /** Objects whose number or name contains [text], across every context the user can read. */

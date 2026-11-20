@@ -25,7 +25,7 @@ Three layers enforce this:
 | events | Relays the outbox to Kafka (infrastructure) | — |
 | access | Contexts, teams, policies, permission checks and SQL filters | identity, types |
 | content | File vault metadata, presigned URLs | access |
-| versioning | Master / Version / Iteration engine, lifecycle enforcement | types, access, identity, lifecycle |
+| versioning | Master / Version / Iteration engine, lifecycle enforcement | types, access, identity, lifecycle, preferences |
 | lifecycle | Lifecycle templates and their assignment to types | types |
 | documents | Document types | versioning, content, lifecycle |
 | parts | Part types | versioning, lifecycle |
@@ -34,6 +34,7 @@ Three layers enforce this:
 | change | PR / CR / CN / change tasks | versioning, lifecycle, workflow |
 | search | OpenSearch indexing (event consumer) | access |
 | configuration | Export/import of the whole configuration as one bundle (config as code) | types, lifecycle, access |
+| preferences | Typed preferences set per site / organization / context / user, with locking | access, types |
 
 Every module also depends on `backend/platform` (the shared kernel).
 To add a dependency, edit the module's `build.gradle.kts` and update this table in the same PR.

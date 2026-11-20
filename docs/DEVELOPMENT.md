@@ -430,6 +430,24 @@ curl -s -X POST $API/contexts -H "Authorization: Bearer $ALICE" -H 'Content-Type
   -d "{\"parentId\":\"$ORG\",\"kind\":\"PRODUCT\",\"name\":\"Pump\",\"templateId\":\"$TEMPLATE\"}" | jq -c '{name, kind}'
 ```
 
+### Preferences
+
+Preferences are settings each module declares (type, default, where they may be set). A value set
+on the site, an organization or a product applies there and below; a **locked** value can't be
+changed below, not even by users. Users set their own under **My preferences** (click your name).
+Managers use the **Preferences** tab of their contexts.
+
+```bash
+curl -s -X PUT $API/contexts/$ORG/preferences/versioning.checkInCommentRequired -H "Authorization: Bearer $ALICE" \
+  -H 'Content-Type: application/json' -d '{"value":true,"locked":true}' | jq -c '{key: .definition.key, effective: .effective.value}'
+curl -s "$API/preferences/effective?contextId=$PRODUCT" -H "Authorization: Bearer $BOB" | jq -c '[.[] | {key, value, source}]'
+```
+
+Now check-ins in the product without a comment are refused (`CHECK_IN_COMMENT_REQUIRED`), and
+the product's manager can't switch it off there (`PREFERENCE_LOCKED`).
+
+![Preferences tab](images/ui-preferences.png)
+
 ### Configuration as code
 
 Everything an admin sets up (types, attributes, layouts, value lists, numbering schemes, rules,
@@ -507,6 +525,10 @@ Rules of the game (see [ADR 0019](adr/0019-configuration-as-code.md)):
 | GET / POST | `/api/v1/context-templates?kind=…` | Context templates / create one (site admin) |
 | PUT / DELETE | `/api/v1/context-templates/{id}` | Change / delete a template (site admin) |
 | POST | `/api/v1/contexts/{id}/save-as-template` | Save a context as a template (site admin) |
+| GET | `/api/v1/preferences/effective?contextId=…` | Every preference's value for you in a context |
+| GET | `/api/v1/contexts/{id}/preferences` | Preferences settable on a context, with where values come from |
+| PUT / DELETE | `/api/v1/contexts/{id}/preferences/{key}` | Set (`{value, locked}`) / clear (MANAGE; site: site admin) |
+| GET · PUT / DELETE | `/api/v1/me/preferences` · `/{key}` | Your own preferences |
 | GET | `/api/v1/configuration/export` | The whole configuration as one bundle (site admin) |
 | POST | `/api/v1/configuration/import?dryRun=true\|false` | Plan an import, or apply it (site admin) |
 | GET / POST | `/api/v1/team-roles` | Team roles / define one (site admin) |

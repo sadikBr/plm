@@ -292,6 +292,28 @@
         "required" : [ "contextTemplates", "enumerations", "format", "lifecycles", "numberingSchemes", "teamRoles", "types" ],
         "type" : "object"
       },
+      "ContextPreferenceResponse" : {
+        "properties" : {
+          "canSet" : {
+            "type" : "boolean"
+          },
+          "definition" : {
+            "$ref" : "#/components/schemas/PreferenceDefinitionResponse"
+          },
+          "effective" : {
+            "$ref" : "#/components/schemas/EffectiveResponse"
+          },
+          "own" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/OwnValueResponse"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "canSet", "definition", "effective" ],
+        "type" : "object"
+      },
       "ContextResponse" : {
         "properties" : {
           "createdAt" : {
@@ -608,6 +630,28 @@
           }
         },
         "required" : [ "dataType", "labels", "name" ],
+        "type" : "object"
+      },
+      "EffectiveResponse" : {
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "lockedAt" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "source" : {
+            "enum" : [ "DEFAULT", "CONTEXT", "USER" ],
+            "type" : "string"
+          },
+          "sourceContextId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "value" : { }
+        },
+        "required" : [ "key", "source" ],
         "type" : "object"
       },
       "EnumerationConfig" : {
@@ -1237,6 +1281,23 @@
         "required" : [ "contextId", "createdAt", "createdBy", "id", "latest", "name", "number", "typeId", "version" ],
         "type" : "object"
       },
+      "OwnValueResponse" : {
+        "properties" : {
+          "locked" : {
+            "type" : "boolean"
+          },
+          "setAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "setBy" : {
+            "type" : "string"
+          },
+          "value" : { }
+        },
+        "required" : [ "locked", "setAt", "setBy" ],
+        "type" : "object"
+      },
       "PermissionExplanationResponse" : {
         "properties" : {
           "allowedBy" : {
@@ -1327,6 +1388,62 @@
           }
         },
         "required" : [ "contextId", "createdAt", "createdBy", "effect", "id", "inherited", "permissions", "role" ],
+        "type" : "object"
+      },
+      "PreferenceDefinitionResponse" : {
+        "properties" : {
+          "category" : {
+            "type" : "string"
+          },
+          "default" : { },
+          "description" : {
+            "type" : "string"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "levels" : {
+            "items" : {
+              "enum" : [ "SITE", "CONTEXT", "USER" ],
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "max" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "min" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "options" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PreferenceOption"
+            },
+            "type" : "array"
+          },
+          "type" : {
+            "enum" : [ "BOOLEAN", "INTEGER", "STRING", "CHOICE" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "category", "description", "key", "label", "levels", "options", "type" ],
+        "type" : "object"
+      },
+      "PreferenceOption" : {
+        "properties" : {
+          "label" : {
+            "type" : "string"
+          },
+          "value" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "label", "value" ],
         "type" : "object"
       },
       "PrincipalResponse" : {
@@ -1483,6 +1600,15 @@
           }
         },
         "required" : [ "groups" ],
+        "type" : "object"
+      },
+      "SetPreferenceRequest" : {
+        "properties" : {
+          "locked" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "value" : { }
+        },
         "type" : "object"
       },
       "SetStateRequest" : {
@@ -1879,6 +2005,28 @@
           }
         },
         "required" : [ "attributes" ],
+        "type" : "object"
+      },
+      "UserPreferenceResponse" : {
+        "properties" : {
+          "canSet" : {
+            "type" : "boolean"
+          },
+          "definition" : {
+            "$ref" : "#/components/schemas/PreferenceDefinitionResponse"
+          },
+          "effective" : {
+            "$ref" : "#/components/schemas/EffectiveResponse"
+          },
+          "own" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/OwnValueResponse"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "canSet", "definition", "effective" ],
         "type" : "object"
       }
     },
@@ -2647,6 +2795,135 @@
         "tags" : [ "Policy" ]
       }
     },
+    "/api/v1/contexts/{contextId}/preferences" : {
+      "get" : {
+        "operationId" : "preferenceForContext",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ContextPreferenceResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Preference" ]
+      }
+    },
+    "/api/v1/contexts/{contextId}/preferences/{key}" : {
+      "delete" : {
+        "operationId" : "preferenceClearForContext",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Preference" ]
+      },
+      "put" : {
+        "operationId" : "preferenceSetForContext",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetPreferenceRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ContextPreferenceResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Preference" ]
+      }
+    },
     "/api/v1/contexts/{contextId}/save-as-template" : {
       "post" : {
         "operationId" : "contextTemplateSaveFromContext",
@@ -3164,6 +3441,110 @@
           }
         },
         "tags" : [ "Principal" ]
+      }
+    },
+    "/api/v1/me/preferences" : {
+      "get" : {
+        "operationId" : "preferenceForUser",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/UserPreferenceResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Preference" ]
+      }
+    },
+    "/api/v1/me/preferences/{key}" : {
+      "delete" : {
+        "operationId" : "preferenceClearForUser",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Preference" ]
+      },
+      "put" : {
+        "operationId" : "preferenceSetForUser",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetPreferenceRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserPreferenceResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Preference" ]
       }
     },
     "/api/v1/numbering-schemes" : {
@@ -3853,6 +4234,46 @@
           }
         },
         "tags" : [ "Policy" ]
+      }
+    },
+    "/api/v1/preferences/effective" : {
+      "get" : {
+        "operationId" : "preferenceEffective",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "contextId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/EffectiveResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Preference" ]
       }
     },
     "/api/v1/principals" : {
@@ -4909,6 +5330,8 @@
     "name" : "Lifecycle"
   }, {
     "name" : "Policy"
+  }, {
+    "name" : "Preference"
   }, {
     "name" : "Principal"
   }, {

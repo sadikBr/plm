@@ -29,7 +29,9 @@ export function Layout() {
           <span className="avatar" aria-hidden>
             {initials(me?.user.displayName)}
           </span>
-          <span data-testid="current-user">{me?.user.displayName}</span>
+          <Link to="/preferences" className="topbar-link" title="My preferences" data-testid="current-user">
+            {me?.user.displayName}
+          </Link>
           <button
             className="icon-btn"
             aria-label="Sign out"

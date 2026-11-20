@@ -21,6 +21,7 @@ import com.plm.platform.error.PlmException
 import com.plm.platform.error.ValidationException
 import com.plm.platform.id.PrincipalId
 import com.plm.platform.id.TenantId
+import com.plm.preferences.api.PreferenceService
 import com.plm.types.api.AttributeService
 import com.plm.types.api.AttributeSettings
 import com.plm.types.api.CreateNumberingScheme
@@ -68,6 +69,7 @@ class VersioningServiceIT(
     @Autowired private val lifecycles: LifecycleService,
     @Autowired private val jdbc: JdbcClient,
     @Autowired private val clock: MutableClock,
+    @Autowired private val preferences: PreferenceService,
 ) {
     private val admin = Actor(TenantId.DEFAULT, PrincipalId("site-admin"), siteAdmin = true)
     private val alice = Actor(TenantId.DEFAULT, PrincipalId("alice"))
@@ -813,6 +815,41 @@ class VersioningServiceIT(
                 .update()
 
             assertThat(versioning.get(alice, obj.id).latest.state).isEqualTo("RELEASED")
+        }
+    }
+
+    @Nested
+    inner class Preferences {
+        @Test
+        fun `a context can require check-in comments`() {
+            val obj = newPart()
+            preferences.setForContext(manager, product, "versioning.checkInCommentRequired", true, locked = false)
+            versioning.checkOut(bob, obj.id)
+
+            assertCode(
+                ValidationException::class.java,
+                "CHECK_IN_COMMENT_REQUIRED",
+            ) { versioning.checkIn(bob, obj.id, "  ") }
+            assertThat(versioning.checkIn(bob, obj.id, "Thicker flange").latest.comment).isEqualTo("Thicker flange")
+        }
+
+        @Test
+        fun `a context's numbering scheme numbers types that have none`() {
+            val prefix =
+                "P" +
+                    UUID
+                        .randomUUID()
+                        .toString()
+                        .take(4)
+                        .uppercase() + "-"
+            val scheme = typeRules.createNumberingScheme(admin, CreateNumberingScheme("Ctx $prefix", prefix, 3))
+            preferences.setForContext(manager, product, "numbering.defaultScheme", scheme.name, locked = false)
+
+            assertThat(newPart().number).isEqualTo("${prefix}001")
+            assertThat(newPart().number).isEqualTo("${prefix}002")
+            assertCode(ValidationException::class.java, "INVALID_PREFERENCE_VALUE") {
+                preferences.setForContext(manager, product, "numbering.defaultScheme", "No such scheme", locked = false)
+            }
         }
     }
 

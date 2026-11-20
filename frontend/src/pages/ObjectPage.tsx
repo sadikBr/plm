@@ -11,6 +11,7 @@ import {
   useObject,
   useObjectActions,
   useRenameObject,
+  useEffectivePreferences,
   usePermissions,
   useLayout,
   useTypeAttributes,
@@ -84,6 +85,8 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
   const [comment, setComment] = useState("");
   const [stateChange, setStateChange] = useState<{ to: string; override: boolean } | null>(null);
   const [renaming, setRenaming] = useState(false);
+  const { data: prefs } = useEffectivePreferences(obj.contextId);
+  const commentRequired = prefs?.get("versioning.checkInCommentRequired") === true;
 
   const mine = !!myId && obj.checkedOutBy === myId;
   const free = !obj.checkedOutBy;
@@ -295,7 +298,8 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
             </button>
             <button
               className="btn primary"
-              disabled={busy}
+              disabled={busy || (commentRequired && !comment.trim())}
+              title={commentRequired && !comment.trim() ? "A comment is required here" : undefined}
               onClick={() =>
                 actions.checkIn.mutate(comment, {
                   onSuccess: () => {
@@ -311,9 +315,13 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
         }
       >
         <div className="field">
-          <label htmlFor="checkin-comment">Comment</label>
+          <div className="label-row">
+            <label htmlFor="checkin-comment">Comment</label>
+            {commentRequired && <span aria-hidden className="required">*</span>}
+          </div>
           <textarea
             id="checkin-comment"
+            required={commentRequired}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="What changed?"

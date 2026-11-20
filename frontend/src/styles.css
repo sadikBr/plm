@@ -440,3 +440,11 @@ tr.inactive td { color: var(--text-3); }
 .tag.change-update { background: var(--info-soft); color: var(--info); font-weight: 600; }
 .tag.change-conflict { background: var(--danger-soft); color: var(--danger); font-weight: 600; }
 .tag.change-unchanged { color: var(--text-3); }
+.pref-label { font-weight: 600; color: var(--text); }
+.pref-source { font-size: 12px; color: var(--text-3); display: inline-flex; gap: 3px; align-items: center; }
+.pref-source.own { color: var(--accent); }
+.pref-source.locked { color: var(--warn); }
+.grid.prefs { table-layout: fixed; }
+.grid.prefs td { vertical-align: top; padding-top: 8px; padding-bottom: 8px; }
+.grid.prefs .row > input, .grid.prefs .row > select { flex: 1 1 auto; min-width: 0; }
+.grid.prefs .check { white-space: nowrap; flex: none; }

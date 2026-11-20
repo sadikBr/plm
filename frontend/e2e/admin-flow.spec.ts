@@ -12,7 +12,7 @@ test("alice models a Bolt type in the admin UI, then creates one", async ({ brow
   const prefix = `B${suffix.slice(-3).toUpperCase()}-`;
 
   // ---- a value list ----
-  await alice.getByRole("link", { name: "Admin" }).click();
+  await alice.getByRole("link", { name: "Admin", exact: true }).click();
   await sections.getByRole("link", { name: "Value lists" }).click();
   await alice.getByRole("button", { name: "New list" }).click();
   const list = alice.getByRole("form", { name: "New value list" });

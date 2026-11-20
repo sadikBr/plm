@@ -3,6 +3,7 @@ package com.plm.versioning.domain
 import com.plm.access.api.AccessColumns
 import com.plm.access.api.AccessService
 import com.plm.access.api.AccessTarget
+import com.plm.access.api.ContextId
 import com.plm.access.api.ContextService
 import com.plm.access.api.Permission
 import com.plm.identity.api.PrincipalDirectory
@@ -16,7 +17,9 @@ import com.plm.platform.error.ValidationException
 import com.plm.platform.events.DomainEvents
 import com.plm.platform.id.PrincipalId
 import com.plm.platform.id.UuidV7
+import com.plm.preferences.api.PreferenceService
 import com.plm.types.api.AttributeValidator
+import com.plm.types.api.NumberingSchemeId
 import com.plm.types.api.TypeRuleService
 import com.plm.types.api.TypeService
 import com.plm.versioning.api.CheckOutUndone
@@ -66,6 +69,7 @@ internal class DefaultVersioningService(
     private val attributeValidator: AttributeValidator,
     private val typeRules: TypeRuleService,
     private val lifecycles: LifecycleService,
+    private val preferences: PreferenceService,
     private val clock: Clock,
 ) : VersioningService {
     override fun create(
@@ -96,6 +100,7 @@ internal class DefaultVersioningService(
         val number =
             command.number
                 ?: rules.numberingSchemeId?.let { typeRules.nextNumber(actor, it) }
+                ?: contextScheme(actor, context.id)?.let { typeRules.nextNumber(actor, it) }
                 ?: repository.nextNumber()
 
         val now = clock.instant()
@@ -273,6 +278,12 @@ internal class DefaultVersioningService(
         val master = findMaster(actor, id, forUpdate = true)
         authorize(actor, master, Permission.MODIFY)
         val workingCopy = ownWorkingCopy(actor, master)
+        if (trimmed == null && preferences.value(actor, master.contextId, CHECK_IN_COMMENT_REQUIRED) == true) {
+            throw ValidationException(
+                "CHECK_IN_COMMENT_REQUIRED",
+                "Say what changed: a check-in comment is required here",
+            )
+        }
         // Re-validate: definitions may have changed since check-out (e.g. a newly required attribute).
         val attributes = attributeValidator.validate(actor, master.typeId, workingCopy.attributes, basedOn(workingCopy))
         if (attributes != workingCopy.attributes) repository.updateAttributes(workingCopy.id, attributes)
@@ -506,6 +517,15 @@ internal class DefaultVersioningService(
             nextStates = if (canPromote) lifecycle.nextStates(latest.state).map { it.key } else emptyList(),
             canOverride = actor.siteAdmin,
         )
+    }
+
+    /** The numbering scheme the context's preferences choose for types without their own, if any. */
+    private fun contextScheme(
+        actor: Actor,
+        context: ContextId,
+    ): NumberingSchemeId? {
+        val name = preferences.value(actor, context, DEFAULT_NUMBERING_SCHEME) as? String ?: return null
+        return typeRules.numberingSchemes(actor).find { it.name == name }?.id
     }
 
     private fun lifecycleOf(

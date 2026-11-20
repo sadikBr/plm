@@ -61,8 +61,10 @@ code**. Every later phase builds on this. See [PARITY.md](PARITY.md) §2–§5.
       existing context as a template; templates travel in configuration bundles. Shared teams:
       maintained once, attached to any number of contexts. (Folders, preferences and per-context
       numbering join templates when those features exist: Phase 3, 1.13.)
-- [ ] 1.13 Preferences framework: typed preferences declared by each module, set at site,
-      organization, context and user level, and lockable at any level so lower levels can't change them.
+- [x] 1.13 Preferences framework: typed preferences declared by each module, set at site,
+      organization/product/library/project and user level, lockable at any context level so
+      nothing below (users included) can change them. Preferences tab on contexts, My preferences.
+      First preferences: rows per page, check-in comment required, per-context numbering scheme.
 - [ ] 1.14 Delegated administration: organization and context administrators who manage types,
       lifecycles, teams and policies within their scope, without being site administrators.
 - [ ] 1.15 Lifecycle template management: copy, edit and version templates (objects keep the

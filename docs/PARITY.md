@@ -40,7 +40,7 @@ search summaries; those are marked *(to confirm)*. The list is about **what** us
 | Delegated administrators: site, organization and context admins | 🟡 | Site admin ✅ · org and context admins ⬜ [1.14] |
 | Users, groups, organizations; sync with LDAP/AD/SCIM via the identity provider | 🟡 | Users from OIDC ✅ · groups and sync [9] |
 | Profiles: what actions and UI a group of users sees (e.g. a "viewer" profile) | ⬜ [2] | Combined with action visibility rules |
-| **Preferences** with levels (site → organization → context → user) and locking at a level | ⬜ [1.13] | Typed registry; every module declares its preferences |
+| **Preferences** with levels (site → organization → context → user) and locking at a level | ✅ | Declared by modules; Preferences tab on each context and My preferences |
 | Folders (cabinets) inside contexts, folder-level defaults | ⬜ [3] | |
 | Security labels (e.g. export control, proprietary) with clearance, and agreements that grant temporary access | ⬜ [9] | Combined with policy checks in the SQL predicate |
 | Audit trail of every change; configurable audit events and reports | 🟡 | Append-only log ✅ · admin reports and filters [3] |
@@ -65,7 +65,7 @@ search summaries; those are marked *(to confirm)*. The list is about **what** us
 | Multi-valued attributes | ✅ | |
 | Layouts: attribute groups and order per type, for create / edit / info / table / search | 🟡 | Create, edit, info ✅ (inherited, hidden attributes, 1–2 columns) · admin editor with live preview ✅ · table/search columns [3] |
 | Initialization rules per type: numbering, revision scheme, defaults, lifecycle, folder, team | 🟡 | Numbering, revision, lifecycle, defaults ✅ · folder [3] · team via context templates ✅ |
-| Numbering per context or per subtype; pluggable numbering strategies | 🟡 | Per type ✅ · per context [1.13, as a preference] · scripted [5] |
+| Numbering per context or per subtype; pluggable numbering strategies | 🟡 | Per type ✅ · per context ✅ (preference) · scripted [5] |
 | Classification (class hierarchy with class-specific attributes) | ⬜ [7] | |
 | Admin UI for all of the above, with live form preview | ✅ | Administration page for site admins |
 | Move configuration between environments (dev → test → prod) | ✅ | One JSON bundle; plan with diffs, then all-or-nothing apply |
@@ -354,7 +354,7 @@ Full design: [EXTENSIBILITY.md](EXTENSIBILITY.md) and [ADR 0018](adr/0018-extens
 | Types, attributes, constraints, enumerations, layouts | Admin configuration (no code) | ✅ Types, attributes, layouts, all in the admin UI |
 | Object initialization rules, numbering | Type rules + numbering strategies (scripts for edge cases) | 🟡 [1.5 ✅, 5] |
 | Lifecycle and workflow templates | Admin editors, versioned templates | 🟡 [1.15, 5] |
-| Preferences | Typed preference registry with levels and locks | ⬜ [1.13] |
+| Preferences | Typed preference registry with levels and locks | ✅ |
 | Moving configuration between systems | Configuration bundles (diff, validate, apply) | ✅ |
 | New actions in menus and toolbars | **Custom actions** declared in an extension manifest | ⬜ [2] |
 | Rules that hide or disable actions | Action visibility conditions (expressions) | ⬜ [2] |
