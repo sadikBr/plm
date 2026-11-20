@@ -4,6 +4,10 @@ import com.plm.access.api.ContextId
 import com.plm.access.api.ContextKind
 import com.plm.access.api.ContextService
 import com.plm.access.api.CreateContext
+import com.plm.access.api.TeamRole
+import com.plm.access.api.TeamService
+import com.plm.identity.api.PrincipalDirectory
+import com.plm.identity.api.SignIn
 import com.plm.platform.actor.Actor
 import com.plm.platform.error.ConflictException
 import com.plm.platform.error.ForbiddenException
@@ -37,20 +41,29 @@ import java.util.concurrent.TimeUnit
 class VersioningServiceIT(
     @Autowired private val versioning: VersioningService,
     @Autowired private val contexts: ContextService,
+    @Autowired private val teams: TeamService,
+    @Autowired private val directory: PrincipalDirectory,
     @Autowired private val jdbc: JdbcClient,
     @Autowired private val clock: MutableClock,
 ) {
+    private val admin = Actor(TenantId.DEFAULT, PrincipalId("site-admin"), siteAdmin = true)
     private val alice = Actor(TenantId.DEFAULT, PrincipalId("alice"))
     private val bob = Actor(TenantId.DEFAULT, PrincipalId("bob"))
+    private val viewer = Actor(TenantId.DEFAULT, PrincipalId("victor-viewer"))
+    private val outsider = Actor(TenantId.DEFAULT, PrincipalId("olga-outsider"))
     private val product: ContextId by lazy { createProduct() }
 
     private fun createProduct(): ContextId {
         val org =
             contexts.create(
-                alice,
+                admin,
                 CreateContext(ContextId.DEFAULT_SITE, ContextKind.ORGANIZATION, "Org ${UUID.randomUUID()}"),
             )
-        return contexts.create(alice, CreateContext(org.id, ContextKind.PRODUCT, "Drone")).id
+        val product = contexts.create(admin, CreateContext(org.id, ContextKind.PRODUCT, "Drone")).id
+        teams.put(admin, product, alice.principal, TeamRole.MEMBER)
+        teams.put(admin, product, bob.principal, TeamRole.MEMBER)
+        teams.put(admin, org.id, viewer.principal, TeamRole.VIEWER)
+        return product
     }
 
     private fun newPart(attributes: Map<String, Any?> = mapOf("material" to "AL6061")) =
@@ -98,7 +111,7 @@ class VersioningServiceIT(
         @Test
         fun `objects cannot live directly in an organization or the site`() {
             assertCode(ValidationException::class.java, "INVALID_CONTEXT") {
-                versioning.create(alice, CreateVersionedObject(TypeId.PART, ContextId.DEFAULT_SITE, "Nope"))
+                versioning.create(admin, CreateVersionedObject(TypeId.PART, ContextId.DEFAULT_SITE, "Nope"))
             }
         }
 
@@ -208,7 +221,8 @@ class VersioningServiceIT(
         @Test
         fun `concurrent check-outs - exactly one wins`() {
             val obj = newPart()
-            val users = (1..8).map { Actor(TenantId.DEFAULT, PrincipalId("user$it")) }
+            val users = (1..8).map { Actor(TenantId.DEFAULT, PrincipalId("user$it-${UUID.randomUUID()}")) }
+            users.forEach { teams.put(admin, product, it.principal, TeamRole.MEMBER) }
             val start = CountDownLatch(1)
             val pool = Executors.newFixedThreadPool(users.size)
 
@@ -258,6 +272,111 @@ class VersioningServiceIT(
             versioning.checkOut(alice, obj.id)
 
             assertCode(ConflictException::class.java, "CHECKED_OUT") { versioning.revise(alice, obj.id) }
+        }
+    }
+
+    @Nested
+    inner class AccessControl {
+        @Test
+        fun `viewers can read but not change`() {
+            val obj = newPart()
+
+            assertThat(versioning.get(viewer, obj.id).latest.version).isEqualTo("A.1")
+            assertThat(versioning.history(viewer, obj.id)).hasSize(1)
+            assertCode(ForbiddenException::class.java, "ACCESS_DENIED") { versioning.checkOut(viewer, obj.id) }
+            assertCode(ForbiddenException::class.java, "ACCESS_DENIED") { versioning.revise(viewer, obj.id) }
+            assertCode(ForbiddenException::class.java, "ACCESS_DENIED") {
+                versioning.create(viewer, CreateVersionedObject(TypeId.PART, product, "Sneaky"))
+            }
+        }
+
+        @Test
+        fun `outsiders cannot tell the object exists`() {
+            val obj = newPart()
+
+            assertCode(NotFoundException::class.java, "OBJECT_NOT_FOUND") { versioning.get(outsider, obj.id) }
+            assertCode(NotFoundException::class.java, "OBJECT_NOT_FOUND") { versioning.history(outsider, obj.id) }
+            assertCode(NotFoundException::class.java, "OBJECT_NOT_FOUND") { versioning.checkOut(outsider, obj.id) }
+            assertCode(NotFoundException::class.java, "CONTEXT_NOT_FOUND") { versioning.list(outsider, product) }
+        }
+
+        @Test
+        fun `list returns readable objects in pages`() {
+            val created = (1..5).map { newPart(mapOf("n" to it)) }
+
+            val firstPage = versioning.list(viewer, product, limit = 2)
+            val secondPage = versioning.list(viewer, product, limit = 2, after = firstPage.last().id)
+            val all = versioning.list(alice, product)
+
+            assertThat(all.map { it.id }).containsExactlyElementsOf(created.map { it.id })
+            assertThat(firstPage.map { it.id }).containsExactlyElementsOf(created.take(2).map { it.id })
+            assertThat(secondPage.map { it.id }).containsExactlyElementsOf(created.drop(2).take(2).map { it.id })
+        }
+
+        @Test
+        fun `list shows who has an object checked out`() {
+            val obj = newPart()
+            versioning.checkOut(bob, obj.id)
+
+            assertThat(versioning.list(viewer, product).single { it.id == obj.id }.checkedOutBy).isEqualTo("bob")
+        }
+
+        @Test
+        fun `conflict messages use display names`() {
+            directory.recordSignIn(SignIn(TenantId.DEFAULT, alice.principal, "alice", "Alice Admin", null))
+            val obj = newPart()
+            versioning.checkOut(alice, obj.id)
+
+            assertThatThrownBy { versioning.checkOut(bob, obj.id) }.hasMessageContaining("checked out by Alice Admin")
+        }
+    }
+
+    @Nested
+    inner class Events {
+        private fun outbox(id: MasterId) =
+            jdbc
+                .sql(
+                    "select event_type, payload::text as payload from outbox_event where aggregate_id = :id order by seq",
+                ).param("id", id.value)
+                .query { rs, _ -> rs.getString("event_type") to rs.getString("payload") }
+                .list()
+
+        @Test
+        fun `every change publishes an event, in order`() {
+            val obj = newPart()
+            versioning.checkOut(alice, obj.id)
+            versioning.updateWorkingCopy(alice, obj.id, mapOf("material" to "Ti"))
+            versioning.checkIn(alice, obj.id, "done")
+            versioning.revise(alice, obj.id)
+            versioning.checkOut(alice, obj.id)
+            versioning.undoCheckOut(alice, obj.id)
+
+            val events = outbox(obj.id)
+            assertThat(events.map { it.first }).containsExactly(
+                "versioning.ObjectCreated.v1",
+                "versioning.ObjectCheckedOut.v1",
+                "versioning.WorkingCopyUpdated.v1",
+                "versioning.ObjectCheckedIn.v1",
+                "versioning.ObjectRevised.v1",
+                "versioning.ObjectCheckedOut.v1",
+                "versioning.CheckOutUndone.v1",
+            )
+            val updated = events[2].second
+            assertThat(updated).contains("\"before\": {\"material\": \"AL6061\"}", "\"after\": {\"material\": \"Ti\"}")
+            assertThat(events.map { it.second }).noneMatch { it.contains("aggregateType") || it.contains("eventType") }
+        }
+
+        @Test
+        fun `failed operations publish nothing`() {
+            val obj = newPart()
+            versioning.checkOut(alice, obj.id)
+            runCatching { versioning.checkOut(bob, obj.id) }
+            runCatching { versioning.checkIn(bob, obj.id) }
+
+            assertThat(outbox(obj.id).map { it.first }).containsExactly(
+                "versioning.ObjectCreated.v1",
+                "versioning.ObjectCheckedOut.v1",
+            )
         }
     }
 

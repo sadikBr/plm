@@ -34,6 +34,7 @@ recorded individually in [`adr/`](adr/); changes to them require a new ADR.
 | 10 | Technology stack | [0010](adr/0010-tech-stack.md) |
 | 11 | Build layout, migrations, dev object storage | [0011](adr/0011-build-and-module-layout.md) |
 | 12 | Core implementation conventions (SQL, IDs, errors, actors) | [0012](adr/0012-core-implementation-conventions.md) |
+| 13 | Events, audit, identity and access implementation | [0013](adr/0013-events-identity-access.md) |
 
 ### 2.1 Architecture: modular monolith
 One deployable, strictly separated modules: `identity`, `access`, `types`, `content`, `versioning`,

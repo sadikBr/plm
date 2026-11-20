@@ -1,6 +1,7 @@
 package com.plm.versioning.infra
 
 import com.plm.access.api.ContextId
+import com.plm.access.api.SqlPredicate
 import com.plm.platform.error.ConflictException
 import com.plm.platform.id.TenantId
 import com.plm.types.api.TypeId
@@ -95,6 +96,47 @@ internal class VersioningRepository(
                 .optional()
                 .orElse(null) ?: return null
         return found.copy(checkedOutBy = workingCopy(found.id)?.checkedOutBy)
+    }
+
+    /** One page of masters with their latest iteration, restricted by [filter]. Two queries per page. */
+    fun list(
+        tenant: TenantId,
+        context: ContextId,
+        filter: SqlPredicate,
+        limit: Int,
+        after: MasterId?,
+    ): List<Pair<MasterRow, Iteration>> {
+        val masters =
+            jdbc
+                .sql(
+                    """
+                    select m.*, wc.checked_out_by
+                    from object_master m
+                    join object_iteration i on i.id = m.latest_iteration_id
+                    left join object_iteration wc on wc.master_id = m.id and wc.status = 'WORKING'
+                    where m.tenant_id = :tenant
+                      and m.context_id = :context
+                      and (cast(:after as uuid) is null or m.id > :after)
+                      and ${filter.sql}
+                    order by m.id
+                    limit :limit
+                    """,
+                ).params(filter.params)
+                .param("tenant", tenant.value)
+                .param("context", context.value)
+                .param("after", after?.value)
+                .param("limit", limit)
+                .query(masterMapper)
+                .list()
+        if (masters.isEmpty()) return emptyList()
+        val latest =
+            jdbc
+                .sql("select * from object_iteration where id in (:ids)")
+                .param("ids", masters.map { it.latestIterationId.value })
+                .query(iterationMapper)
+                .list()
+                .associateBy { it.id }
+        return masters.map { it to latest.getValue(it.latestIterationId) }
     }
 
     fun insertMaster(

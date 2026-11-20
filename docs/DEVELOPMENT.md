@@ -6,6 +6,7 @@
 |---|---|---|
 | JDK | 21 (Temurin recommended) | `java -version` |
 | Docker | Docker Desktop, OrbStack or Docker Engine with Compose v2 | `docker compose version` |
+| jq | any (for the curl walkthrough) | `jq --version` |
 | make | optional, every target is a one-line command | `make --version` |
 
 You do **not** need to install Gradle: use `./gradlew` (`gradlew.bat` on Windows).
@@ -21,9 +22,11 @@ This compiles everything (compiler warnings fail the build), runs ktlint and run
 
 - **ArchitectureTest**: enforces module boundaries (ADR 0001). It includes a self-test proving
   the rule catches a deliberate violation.
-- **Module integration tests** (`*IT`): run each module against a throwaway Postgres 18 started by
-  Testcontainers, with every migration applied. Docker must be running. No other setup is needed.
-- **VersioningApiIT**: drives the whole flow over HTTP, the way the UI will.
+- **Module integration tests** (`*IT`): run each module against a throwaway Postgres 18 (and, for
+  the event relay, Redpanda) started by Testcontainers, with every migration applied. Docker must be
+  running. No other setup is needed.
+- **App tests** (`SecurityIT`, `VersioningApiIT`): drive the API over real HTTP with signed bearer
+  tokens, the way the UI will. They mint their own tokens, so no Keycloak is needed.
 
 The first run downloads dependencies and takes a few minutes. Later runs are fast.
 Test reports: `backend/<project>/build/reports/tests/test/index.html`.
@@ -31,8 +34,8 @@ Test reports: `backend/<project>/build/reports/tests/test/index.html`.
 ## 2. Start the dev stack
 
 ```bash
-make up          # postgres, s3, keycloak
-make up-full     # + redpanda, opensearch, temporal (≈3 GB RAM more)
+make up          # postgres, s3, keycloak, redpanda
+make up-full     # + opensearch, temporal (≈3 GB RAM more)
 ```
 
 Without make: `docker compose -f deploy/docker-compose.yml up -d` (add `--profile full` for everything).
@@ -42,12 +45,21 @@ Without make: `docker compose -f deploy/docker-compose.yml up -d` (add `--profil
 | PostgreSQL 18 | `localhost:5432`, db `plm` | `plm` / `plm` |
 | S3 (SeaweedFS) | http://localhost:8333 | access key `plm`, secret `plm-dev-secret` |
 | Keycloak | http://localhost:8180 (admin console) | `admin` / `admin` |
-| Keycloak realm `plm` | users `alice` (admin) and `bob` (user) | password = username |
+| Keycloak realm `plm` | users below | password = username |
 | Redpanda (Kafka API) | `localhost:19092` | none |
 | OpenSearch | http://localhost:9200 | none (security disabled in dev) |
 | Temporal | gRPC `localhost:7233`, UI http://localhost:8233 | none |
 
-These credentials are for local development only.
+Dev users in the `plm` realm (their IDs are fixed, so docs and tests can refer to them):
+
+| User | Role | ID (`sub`) |
+|---|---|---|
+| `alice` | **site admin** (`plm-admin`) | `a11ce000-0000-4000-8000-000000000001` |
+| `bob` | user | `b0b00000-0000-4000-8000-000000000002` |
+| `carol` | user | `ca201000-0000-4000-8000-000000000003` |
+
+These credentials are for local development only. The Keycloak container keeps no state:
+restarting it re-imports the realm.
 
 ## 3. Run the backend
 
@@ -55,7 +67,7 @@ These credentials are for local development only.
 make run         # or: ./gradlew :backend:app:bootRun
 ```
 
-Then check it:
+Then check it. Health needs no login:
 
 ```bash
 curl localhost:8080/actuator/health
@@ -63,89 +75,135 @@ curl localhost:8080/actuator/health
 
 Expected output: `{"groups":["liveness","readiness"],"status":"UP"}`
 
-Override settings with environment variables: `PLM_DB_URL`, `PLM_DB_USER`, `PLM_DB_PASSWORD`, `PLM_PORT`.
+Override settings with environment variables: `PLM_DB_URL`, `PLM_DB_USER`, `PLM_DB_PASSWORD`,
+`PLM_PORT`, `PLM_OIDC_ISSUER`, `PLM_OIDC_AUDIENCE`, `PLM_KAFKA_BOOTSTRAP`, `PLM_EVENTS_RELAY_ENABLED`.
 
-## 4. Try the versioning API
+## 4. Walkthrough: login, teams, versioning, audit
 
-The fastest way is [`docs/api/versioning.http`](api/versioning.http). Open it in IntelliJ IDEA,
-or in VS Code with the *REST Client* extension, and run the requests top to bottom.
+Everything under `/api` needs a Keycloak access token. `scripts/token.sh <user>` prints one (it
+uses the dev-only password grant). Tokens last an hour in dev.
 
-Or use `curl` (with [`jq`](https://jqlang.org) to pick IDs out of responses). With the backend
-running (`make run`), paste these into a terminal one block at a time:
+With the stack and backend running, paste these into a terminal one block at a time.
+
+**Sign in** as all three users, and see who you are:
 
 ```bash
 API=localhost:8080/api/v1
-SITE=$(curl -s $API/contexts/site | jq -r .id)
-ORG=$(curl -s -X POST $API/contexts -H 'Content-Type: application/json' \
-  -d "{\"parentId\":\"$SITE\",\"kind\":\"ORGANIZATION\",\"name\":\"Acme\"}" | jq -r .id)
-PRODUCT=$(curl -s -X POST $API/contexts -H 'Content-Type: application/json' \
-  -d "{\"parentId\":\"$ORG\",\"kind\":\"PRODUCT\",\"name\":\"Drone X1\"}" | jq -r .id)
+ALICE=$(scripts/token.sh alice); BOB=$(scripts/token.sh bob); CAROL=$(scripts/token.sh carol)
+curl -s $API/me -H "Authorization: Bearer $ALICE" | jq
+curl -s -o /dev/null -w "without a token: %{http_code}\n" $API/me
 ```
 
-Create a part. The response shows `"version":"A.1"`:
+**Alice (site admin) sets up** an organization and a product, and puts bob on the product team:
 
 ```bash
-PART=$(curl -s -X POST $API/objects -H 'Content-Type: application/json' \
+SITE=$(curl -s $API/contexts/site -H "Authorization: Bearer $ALICE" | jq -r .id)
+ORG=$(curl -s -X POST $API/contexts -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d "{\"parentId\":\"$SITE\",\"kind\":\"ORGANIZATION\",\"name\":\"Acme\"}" | jq -r .id)
+PRODUCT=$(curl -s -X POST $API/contexts -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d "{\"parentId\":\"$ORG\",\"kind\":\"PRODUCT\",\"name\":\"Drone X1\"}" | jq -r .id)
+curl -s -X PUT $API/contexts/$PRODUCT/members/b0b00000-0000-4000-8000-000000000002 \
+  -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' -d '{"role":"MEMBER"}' | jq
+```
+
+**Bob creates a part** (`A.1`) and checks it out (working copy `A.2`). First he checks what he may do:
+
+```bash
+curl -s $API/contexts/$PRODUCT/permissions -H "Authorization: Bearer $BOB"; echo
+PART=$(curl -s -X POST $API/objects -H "Authorization: Bearer $BOB" -H 'Content-Type: application/json' \
   -d "{\"typeId\":\"00000000-0000-7000-8000-000000000102\",\"contextId\":\"$PRODUCT\",\"name\":\"Motor mount\",\"attributes\":{\"material\":\"AL6061\"}}" \
   | jq -r .id); echo $PART
+curl -s -X POST $API/objects/$PART/checkout -H "Authorization: Bearer $BOB" | jq '{version, status}'
 ```
 
-Check it out as alice, which creates working copy `A.2`. Then try as bob, which gets a `409 ALREADY_CHECKED_OUT`:
+**Alice tries to check it out too.** She gets `409 ALREADY_CHECKED_OUT ... by Bob Builder`:
 
 ```bash
-curl -s -X POST $API/objects/$PART/checkout -H 'X-PLM-User: alice' | jq '{version, status}'
-curl -s -X POST $API/objects/$PART/checkout -H 'X-PLM-User: bob' | jq
+curl -s -X POST $API/objects/$PART/checkout -H "Authorization: Bearer $ALICE" | jq '{status, code, detail}'
 ```
 
-Edit, check in, revise, and look at the history (`B.1`, `A.2`, `A.1`):
+**Carol isn't on the team**, so the product and part don't exist for her (`404`). Then alice adds
+her as a VIEWER: now she can read (`200`) but not check out (`403 ACCESS_DENIED`):
 
 ```bash
-curl -s -X PATCH $API/objects/$PART/working-copy -H 'Content-Type: application/json' \
+curl -s $API/objects/$PART -H "Authorization: Bearer $CAROL" | jq '{status, code}'
+curl -s -X PUT $API/contexts/$PRODUCT/members/ca201000-0000-4000-8000-000000000003 \
+  -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' -d '{"role":"VIEWER"}' > /dev/null
+curl -s -o /dev/null -w "carol reads: %{http_code}\n" $API/objects/$PART -H "Authorization: Bearer $CAROL"
+curl -s -X POST $API/objects/$PART/checkout -H "Authorization: Bearer $CAROL" | jq '{status, code}'
+```
+
+**Bob edits, checks in, revises**, and lists the product (`B.1`, `A.2`, `A.1`):
+
+```bash
+curl -s -X PATCH $API/objects/$PART/working-copy -H "Authorization: Bearer $BOB" -H 'Content-Type: application/json' \
   -d '{"attributes":{"material":"Ti-6Al-4V"}}' | jq '{version, attributes}'
-curl -s -X POST $API/objects/$PART/checkin -H 'Content-Type: application/json' \
+curl -s -X POST $API/objects/$PART/checkin -H "Authorization: Bearer $BOB" -H 'Content-Type: application/json' \
   -d '{"comment":"Switch to titanium"}' | jq '{version, checkedOutBy}'
-curl -s -X POST $API/objects/$PART/revise | jq .version
-curl -s $API/objects/$PART/iterations | jq '.[] | {version, comment, material: .attributes.material}'
+curl -s -X POST $API/objects/$PART/revise -H "Authorization: Bearer $BOB" | jq .version
+curl -s $API/objects/$PART/iterations -H "Authorization: Bearer $BOB" | jq '.[] | {version, comment, material: .attributes.material}'
+curl -s "$API/objects?contextId=$PRODUCT" -H "Authorization: Bearer $BOB" | jq '.[] | {number, name, version}'
 ```
 
-**Who am I?** Until Keycloak login lands (roadmap 0.8), the `X-PLM-User` header says who is calling.
-It defaults to `alice`. This is a development stand-in with **no security**.
+**Alice reads the audit trail.** Every change is there, with who did it and before/after values.
+Only site admins can read it (bob gets `403`):
+
+```bash
+curl -s "$API/audit?aggregateId=$PART" -H "Authorization: Bearer $ALICE" | jq '.[] | {action, actor, occurredAt}'
+curl -s -o /dev/null -w "bob reads audit: %{http_code}\n" "$API/audit" -H "Authorization: Bearer $BOB"
+```
+
+**See the same events on the event bus** (Ctrl-C to stop):
+
+```bash
+make events
+```
+
+### How access works
+
+- **Contexts** form a tree: Site → Organization → Product / Library / Project.
+- **Teams**: each context has members with a role, `VIEWER`, `MEMBER` or `MANAGER`. A role on a
+  context also applies to everything below it.
+- **Policies** say what each role may do. The defaults sit on the site and are inherited
+  everywhere: VIEWER = READ · MEMBER = READ, CREATE, MODIFY, REVISE · MANAGER = all of those + MANAGE.
+  Policies can also be scoped to one type or one lifecycle state (no API for custom policies yet).
+- **Site admins** (Keycloak role `plm-admin`) can do everything, and are the only ones who create
+  organizations, define types and read the audit log.
+- If you can't READ something, it doesn't exist for you (`404`). If you can read it but lack the
+  permission for an action, you get `403 ACCESS_DENIED`.
+- Lists are filtered **inside the SQL query**, so they stay fast and never leak counts.
 
 ### Endpoints
 
 | Method | Path | Does |
 |---|---|---|
+| GET | `/api/v1/me` | The signed-in user, and whether they are a site admin |
+| GET | `/api/v1/principals?username=bob` · `/principals/{id}` | Look up a user (after their first sign-in) |
 | GET | `/api/v1/contexts/site` | Root context |
-| GET | `/api/v1/contexts/{id}` · `/{id}/children` | Read contexts |
-| POST | `/api/v1/contexts` | Create `{parentId, kind, name}`: ORGANIZATION under SITE; PRODUCT / LIBRARY / PROJECT under ORGANIZATION |
-| GET / POST | `/api/v1/types` | List types / create subtype `{parentId, name, displayName}` |
+| GET | `/api/v1/contexts/{id}` · `/{id}/children` | Read contexts (only those on your team's path) |
+| POST | `/api/v1/contexts` | Create `{parentId, kind, name}`. ORGANIZATION: site admin only. Others: MANAGE on the parent. You become MANAGER |
+| GET | `/api/v1/contexts/{id}/members` | Team of this context |
+| PUT / DELETE | `/api/v1/contexts/{id}/members/{principalId}` | Add, change `{role}` or remove a member (needs MANAGE) |
+| GET | `/api/v1/contexts/{id}/permissions[?typeId=]` | What you may do here |
+| GET / POST | `/api/v1/types` | List types / create subtype `{parentId, name, displayName}` (site admin) |
+| GET | `/api/v1/objects?contextId=&limit=&after=` | Objects you can read in a context, paged |
 | POST | `/api/v1/objects` | Create `{typeId, contextId, name, number?, attributes?}` → A.1 |
-| GET | `/api/v1/objects/{id}` | Latest checked-in iteration and who has it checked out |
+| GET | `/api/v1/objects/{id}` | Latest checked-in iteration, and who has it checked out |
 | GET | `/api/v1/objects/{id}/iterations` | History, newest first |
 | POST | `/api/v1/objects/{id}/checkout` | Create your working copy |
 | GET / PATCH | `/api/v1/objects/{id}/working-copy` | Read / replace your working copy's `attributes` |
 | POST | `/api/v1/objects/{id}/checkin` | Optional `{comment}` |
 | POST | `/api/v1/objects/{id}/undo-checkout` | Discard your working copy |
 | POST | `/api/v1/objects/{id}/revise` | Next revision (A.3 → B.1) |
+| GET | `/api/v1/audit[?aggregateId=&limit=&before=]` | Audit trail, newest first (site admin) |
 
 Errors are [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) problem details with a stable `code`,
-e.g. `{"status":409,"code":"ALREADY_CHECKED_OUT","details":{"checkedOutBy":"alice"}}`.
+e.g. `{"status":409,"code":"ALREADY_CHECKED_OUT","details":{"checkedOutBy":"<user id>"}}`.
 
-Look at the raw tables:
+Prefer an editor? [`docs/api/plm.http`](api/plm.http) runs the same flow in VS Code's
+*REST Client* extension.
 
-```bash
-docker compose -f deploy/docker-compose.yml exec postgres psql -U plm -d plm \
-  -c "select revision||'.'||iteration as version, status, attrs, comment from object_iteration order by seq"
-```
-
-## 5. Smoke-test the stack by hand
-
-Get a token for alice from Keycloak (used from roadmap step 0.8 onwards):
-
-```bash
-curl -s -d grant_type=password -d client_id=plm-web -d username=alice -d password=alice \
-  localhost:8180/realms/plm/protocol/openid-connect/token
-```
+## 5. Look under the hood
 
 Open a SQL shell:
 
@@ -153,12 +211,23 @@ Open a SQL shell:
 docker compose -f deploy/docker-compose.yml exec postgres psql -U plm -d plm
 ```
 
+Useful queries:
+
+```sql
+select revision || '.' || iteration as version, status, attrs, comment from object_iteration order by seq;
+select event_type, published_at is not null as relayed from outbox_event order by seq;
+select action, actor, occurred_at from audit_log order by seq desc limit 20;
+select c.name, m.principal_id, m.role from context_member m join context c on c.id = m.context_id;
+```
+
 ## 6. Everyday commands
 
 | Command | What it does |
 |---|---|
 | `make fmt` / `./gradlew ktlintFormat` | Auto-fix code style |
-| `./gradlew :backend:app:test --tests '*ArchitectureTest'` | Run one test class |
+| `./gradlew :backend:app:test --tests '*SecurityIT'` | Run one test class |
+| `scripts/token.sh bob` | Print an access token for a dev user |
+| `make events` | Tail the domain-event topic |
 | `make down` | Stop services, keep data |
 | `make reset` | Stop services and **delete** all local data |
 
@@ -168,7 +237,15 @@ docker compose -f deploy/docker-compose.yml exec postgres psql -U plm -d plm
 - **Docker Hub `429 Too Many Requests`**: pull through a mirror:
   `IMAGE_PREFIX=mirror.gcr.io/ make up`. For Testcontainers, put
   `hub.image.name.prefix=mirror.gcr.io/` in `~/.testcontainers.properties`.
-- **Database in a weird state** after switching branches: `make reset && make up` gives you a fresh, empty database.
+- **`401` on every API call**: the token expired (1 hour), or Keycloak restarted and has new
+  signing keys. Run `scripts/token.sh` again. If the backend started before Keycloak was up,
+  restart the backend too.
+- **`404` for something that exists**: you're not on its team. Ask a manager or a site admin
+  to add you.
+- **Relay warnings in the backend log** (`Outbox relay failed`): Redpanda isn't running. Run
+  `make up`. Events wait safely in the outbox and are sent once it's back.
+- **Database in a weird state** after switching branches: `make reset && make up` gives you a
+  fresh, empty database.
 - **Port already in use**: another local Postgres or Keycloak is running. Stop it, or change the
   left side of the port mapping in `deploy/docker-compose.yml`.
 - **Apple Silicon**: all images are multi-arch. No extra flags needed.

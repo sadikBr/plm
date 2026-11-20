@@ -1,10 +1,13 @@
 package com.plm.types.domain
 
 import com.plm.platform.actor.Actor
+import com.plm.platform.error.ForbiddenException
 import com.plm.platform.error.NotFoundException
 import com.plm.platform.error.ValidationException
+import com.plm.platform.events.DomainEvents
 import com.plm.platform.id.UuidV7
 import com.plm.types.api.CreateSubtype
+import com.plm.types.api.TypeCreated
 import com.plm.types.api.TypeDefinition
 import com.plm.types.api.TypeId
 import com.plm.types.api.TypeService
@@ -19,6 +22,7 @@ private val TYPE_NAME = Regex("^[A-Za-z][A-Za-z0-9_]{0,99}$")
 @Transactional
 internal class DefaultTypeService(
     private val types: TypeRepository,
+    private val events: DomainEvents,
     private val clock: Clock,
 ) : TypeService {
     @Transactional(readOnly = true)
@@ -36,6 +40,9 @@ internal class DefaultTypeService(
         actor: Actor,
         command: CreateSubtype,
     ): TypeDefinition {
+        if (!actor.siteAdmin) {
+            throw ForbiddenException("ADMIN_REQUIRED", "Only site administrators can define types")
+        }
         if (!TYPE_NAME.matches(command.name)) {
             throw ValidationException(
                 "INVALID_TYPE_NAME",
@@ -56,6 +63,7 @@ internal class DefaultTypeService(
                 baseClass = parent.baseClass,
             )
         types.insert(actor.tenant, type, clock.instant())
+        events.publish(actor, TypeCreated(type.id.value, parent.id.value, type.name, type.baseClass))
         return type
     }
 }

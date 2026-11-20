@@ -13,6 +13,7 @@ dependencies {
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.spring.boot.starter.jdbc)
     implementation(libs.spring.boot.starter.flyway)
+    implementation(libs.spring.boot.starter.security.oauth2.resource.server)
     implementation(libs.flyway.postgresql)
     implementation(libs.jackson.kotlin)
     implementation(libs.kotlin.reflect)
@@ -22,4 +23,5 @@ dependencies {
     testImplementation(libs.testcontainers.postgresql)
     testImplementation(libs.testcontainers.junit)
     testImplementation(libs.archunit.junit5)
+    testImplementation(libs.spring.boot.starter.security.test)
 }

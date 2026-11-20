@@ -74,9 +74,16 @@ data class CreateVersionedObject(
  * The generic versioning engine shared by every versioned type (documents, parts, CAD documents,
  * change objects).
  *
- * Error codes: `OBJECT_NOT_FOUND`, `DUPLICATE_NUMBER`, `INVALID_NAME`, `INVALID_NUMBER`,
- * `INVALID_ATTRIBUTES`, `INVALID_CONTEXT`, `ALREADY_CHECKED_OUT`, `NOT_CHECKED_OUT`,
- * `CHECKED_OUT_BY_ANOTHER_USER`, `CHECKED_OUT`.
+ * Access (ADR 0005): reading needs READ, which is evaluated on the latest iteration's state.
+ * Objects the actor cannot read are reported as `OBJECT_NOT_FOUND`, so their existence doesn't
+ * leak. Create needs CREATE in the context. Check-out, edit, check-in and undo need MODIFY.
+ * Revise needs REVISE. A missing permission on a readable object is `ACCESS_DENIED`.
+ *
+ * Error codes: `OBJECT_NOT_FOUND`, `ACCESS_DENIED`, `DUPLICATE_NUMBER`, `INVALID_NAME`,
+ * `INVALID_NUMBER`, `INVALID_ATTRIBUTES`, `INVALID_CONTEXT`, `ALREADY_CHECKED_OUT`,
+ * `NOT_CHECKED_OUT`, `CHECKED_OUT_BY_ANOTHER_USER`, `CHECKED_OUT`.
+ *
+ * Every change publishes a [VersioningEvent].
  */
 interface VersioningService {
     /** Creates the master and its first iteration (A.1), checked in. */
@@ -89,6 +96,17 @@ interface VersioningService {
         actor: Actor,
         id: MasterId,
     ): VersionedObject
+
+    /**
+     * Objects in [contextId] that [actor] can read, ordered by id (creation time). The access
+     * filter runs inside the SQL query. Page with [after] = the last id of the previous page.
+     */
+    fun list(
+        actor: Actor,
+        contextId: ContextId,
+        limit: Int = 50,
+        after: MasterId? = null,
+    ): List<VersionedObject>
 
     /** Checked-in iterations, newest first. */
     fun history(

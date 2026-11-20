@@ -2,9 +2,10 @@
   "realm": "plm",
   "enabled": true,
   "registrationAllowed": false,
+  "accessTokenLifespan": 3600,
   "roles": {
     "realm": [
-      { "name": "plm-admin", "description": "Site administrator" },
+      { "name": "plm-admin", "description": "Site administrator: bypasses context access policies" },
       { "name": "plm-user", "description": "Standard user" }
     ]
   },
@@ -17,11 +18,24 @@
       "directAccessGrantsEnabled": true,
       "redirectUris": ["http://localhost:5173/*", "http://localhost:8080/*"],
       "webOrigins": ["http://localhost:5173", "http://localhost:8080"],
-      "attributes": { "pkce.code.challenge.method": "S256" }
+      "attributes": { "pkce.code.challenge.method": "S256" },
+      "protocolMappers": [
+        {
+          "name": "plm-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "plm-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
     }
   ],
   "users": [
     {
+      "id": "a11ce000-0000-4000-8000-000000000001",
       "username": "alice",
       "email": "alice@example.com",
       "firstName": "Alice",
@@ -32,13 +46,25 @@
       "realmRoles": ["plm-admin", "plm-user"]
     },
     {
+      "id": "b0b00000-0000-4000-8000-000000000002",
       "username": "bob",
       "email": "bob@example.com",
       "firstName": "Bob",
-      "lastName": "User",
+      "lastName": "Builder",
       "enabled": true,
       "emailVerified": true,
       "credentials": [{ "type": "password", "value": "bob", "temporary": false }],
+      "realmRoles": ["plm-user"]
+    },
+    {
+      "id": "ca201000-0000-4000-8000-000000000003",
+      "username": "carol",
+      "email": "carol@example.com",
+      "firstName": "Carol",
+      "lastName": "Contractor",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "carol", "temporary": false }],
       "realmRoles": ["plm-user"]
     }
   ]

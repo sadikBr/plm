@@ -33,6 +33,17 @@ class UuidV7Test {
     }
 
     @Test
+    fun `ids are strictly increasing, even within one millisecond or when the clock goes back`() {
+        val t0 = Instant.parse("2026-11-20T12:00:00Z")
+        val frozen = Clock.fixed(t0, ZoneOffset.UTC)
+        val earlier = Clock.fixed(t0.minusSeconds(5), ZoneOffset.UTC)
+
+        val ids = (1..10_000).map { UuidV7.generate(if (it % 3 == 0) earlier else frozen) }
+
+        assertThat(ids.zipWithNext()).allMatch { (a, b) -> a < b }
+    }
+
+    @Test
     fun `generates unique ids`() {
         val ids = (1..10_000).map { UuidV7.generate() }.toSet()
 

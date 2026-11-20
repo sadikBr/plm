@@ -1,73 +1,22 @@
 package com.plm.app
 
+import com.plm.app.support.ApiTest
+import com.plm.app.support.TestTokens.alice
+import com.plm.app.support.TestTokens.bob
+import com.plm.app.support.TestTokens.carol
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.web.server.LocalServerPort
-import org.springframework.context.annotation.Import
 import org.springframework.http.HttpMethod
-import org.springframework.http.MediaType
-import org.springframework.web.client.RestClient
-import plm.testing.PostgresTestConfiguration
-import tools.jackson.databind.json.JsonMapper
 import java.util.UUID
 
-/** Drives the versioning engine end to end over HTTP, the way the UI and integrations will. */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Import(PostgresTestConfiguration::class)
-class VersioningApiIT {
-    @LocalServerPort
-    private var port: Int = 0
+/** Drives the core flow end to end over HTTP, the way the UI and integrations will. */
+class VersioningApiIT : ApiTest() {
+    private val partType = "00000000-0000-7000-8000-000000000102"
 
-    private val json = JsonMapper.builder().build()
-
-    private data class Reply(
-        val status: Int,
-        val body: Map<String, Any?>,
-        val list: List<Map<String, Any?>> = emptyList(),
-    )
-
-    private fun call(
-        method: HttpMethod,
-        path: String,
-        user: String = "alice",
-        body: Any? = null,
-    ): Reply {
-        val request =
-            RestClient
-                .create("http://localhost:$port")
-                .method(method)
-                .uri(path)
-                .header("X-PLM-User", user)
-        if (body != null) request.contentType(MediaType.APPLICATION_JSON).body(json.writeValueAsString(body))
-        return request.exchange { _, response ->
-            val text = response.body.readAllBytes().decodeToString()
-            val parsed: Any? = if (text.isBlank()) null else json.readValue(text, Any::class.java)
-            @Suppress("UNCHECKED_CAST")
-            Reply(
-                status = response.statusCode.value(),
-                body = (parsed as? Map<String, Any?>) ?: emptyMap(),
-                list = (parsed as? List<Map<String, Any?>>) ?: emptyList(),
-            )
-        }
-    }
-
-    private fun post(
-        path: String,
-        body: Any? = null,
-        user: String = "alice",
-    ) = call(HttpMethod.POST, path, user, body)
-
-    private fun get(
-        path: String,
-        user: String = "alice",
-    ) = call(HttpMethod.GET, path, user)
-
-    @Suppress("UNCHECKED_CAST")
-    private fun Reply.nested(key: String) = body[key] as Map<String, Any?>
-
-    @Test
-    fun `full versioning flow over HTTP`() {
+    /** alice (site admin) sets up Acme / Drone and puts bob on the Drone team as a MEMBER. */
+    private fun setUpProduct(): String {
+        // Make sure bob is in the directory, as he would be after his first sign-in.
+        get("/api/v1/me", as_ = bob)
         val site = get("/api/v1/contexts/site").body
         val org =
             post(
@@ -88,57 +37,106 @@ class VersioningApiIT {
                     "name" to "Drone",
                 ),
             )
-        val partType = get("/api/v1/types").list.single { it["name"] == "Part" }
+        val productId = product.body["id"] as String
+        val member = put("/api/v1/contexts/$productId/members/${bob.sub}", mapOf("role" to "MEMBER"))
+        assertThat(member.status).isEqualTo(200)
+        return productId
+    }
+
+    @Test
+    fun `full versioning flow over HTTP, as a team member`() {
+        val product = setUpProduct()
+        assertThat(call(HttpMethod.GET, "/api/v1/contexts/$product/permissions", as_ = bob).raw)
+            .isEqualTo("[\"CREATE\",\"MODIFY\",\"READ\",\"REVISE\"]")
 
         val created =
             post(
                 "/api/v1/objects",
                 mapOf(
-                    "typeId" to partType["id"],
-                    "contextId" to product.body["id"],
+                    "typeId" to partType,
+                    "contextId" to product,
                     "name" to "Motor mount",
                     "attributes" to mapOf("material" to "AL6061", "massKg" to 0.12),
                 ),
+                as_ = bob,
             )
         assertThat(created.status).isEqualTo(201)
         assertThat(created.body["version"]).isEqualTo("A.1")
+        assertThat(created.body["createdBy"]).isEqualTo(bob.sub)
         val id = created.body["id"]
 
-        val workingCopy = post("/api/v1/objects/$id/checkout")
-        assertThat(workingCopy.status).isEqualTo(200)
+        val workingCopy = post("/api/v1/objects/$id/checkout", as_ = bob)
         assertThat(workingCopy.body["version"]).isEqualTo("A.2")
-        assertThat(workingCopy.body["status"]).isEqualTo("WORKING")
 
-        val bobTries = post("/api/v1/objects/$id/checkout", user = "bob")
-        assertThat(bobTries.status).isEqualTo(409)
-        assertThat(bobTries.body["code"]).isEqualTo("ALREADY_CHECKED_OUT")
-        assertThat(bobTries.body["type"]).isEqualTo("urn:plm:error:ALREADY_CHECKED_OUT")
-        assertThat(bobTries.nested("details")).containsEntry("checkedOutBy", "alice")
-
-        assertThat(post("/api/v1/objects/$id/checkin", user = "bob").status).isEqualTo(403)
+        val aliceTries = post("/api/v1/objects/$id/checkout")
+        assertThat(aliceTries.status).isEqualTo(409)
+        assertThat(aliceTries.body["code"]).isEqualTo("ALREADY_CHECKED_OUT")
+        assertThat(aliceTries.body["detail"] as String).contains("checked out by Bob Builder")
+        assertThat(aliceTries.nested("details")).containsEntry("checkedOutBy", bob.sub)
 
         val patched =
             call(
                 HttpMethod.PATCH,
                 "/api/v1/objects/$id/working-copy",
+                as_ = bob,
                 body =
                     mapOf(
                         "attributes" to mapOf("material" to "Ti"),
                     ),
             )
         assertThat(patched.status).isEqualTo(200)
-
-        val checkedIn = post("/api/v1/objects/$id/checkin", mapOf("comment" to "Titanium"))
+        val checkedIn = post("/api/v1/objects/$id/checkin", mapOf("comment" to "Titanium"), as_ = bob)
         assertThat(checkedIn.body["version"]).isEqualTo("A.2")
-        assertThat(checkedIn.body["checkedOutBy"]).isNull()
-        assertThat(checkedIn.nested("latest")["attributes"]).isEqualTo(mapOf("material" to "Ti"))
+        assertThat(post("/api/v1/objects/$id/revise", as_ = bob).body["version"]).isEqualTo("B.1")
 
-        val revised = post("/api/v1/objects/$id/revise", user = "bob")
-        assertThat(revised.body["version"]).isEqualTo("B.1")
-
-        val history = get("/api/v1/objects/$id/iterations").list
+        val history = get("/api/v1/objects/$id/iterations", as_ = bob).list
         assertThat(history.map { it["version"] }).containsExactly("B.1", "A.2", "A.1")
-        assertThat(history[1]["comment"]).isEqualTo("Titanium")
+
+        val listed = get("/api/v1/objects?contextId=$product", as_ = bob).list
+        assertThat(listed.map { it["id"] }).containsExactly(id)
+
+        val audit = get("/api/v1/audit?aggregateId=$id").list
+        assertThat(audit.map { it["action"] }).containsExactly(
+            "versioning.ObjectRevised.v1",
+            "versioning.ObjectCheckedIn.v1",
+            "versioning.WorkingCopyUpdated.v1",
+            "versioning.ObjectCheckedOut.v1",
+            "versioning.ObjectCreated.v1",
+        )
+        assertThat(audit).allMatch { it["actor"] == bob.sub }
+    }
+
+    @Test
+    fun `people outside the team cannot see the product or its objects`() {
+        val product = setUpProduct()
+        val id =
+            post(
+                "/api/v1/objects",
+                mapOf("typeId" to partType, "contextId" to product, "name" to "Secret"),
+                as_ = bob,
+            ).body["id"]
+
+        assertThat(get("/api/v1/contexts/$product", as_ = carol).status).isEqualTo(404)
+        assertThat(get("/api/v1/objects/$id", as_ = carol).body["code"]).isEqualTo("OBJECT_NOT_FOUND")
+        assertThat(get("/api/v1/objects?contextId=$product", as_ = carol).body["code"]).isEqualTo("CONTEXT_NOT_FOUND")
+        assertThat(post("/api/v1/objects/$id/checkout", as_ = carol).status).isEqualTo(404)
+
+        // Adding carol as a VIEWER lets her read, but not change.
+        put("/api/v1/contexts/$product/members/${carol.sub}", mapOf("role" to "VIEWER"))
+        assertThat(get("/api/v1/objects/$id", as_ = carol).status).isEqualTo(200)
+        val denied = post("/api/v1/objects/$id/checkout", as_ = carol)
+        assertThat(denied.status).isEqualTo(403)
+        assertThat(denied.body["code"]).isEqualTo("ACCESS_DENIED")
+    }
+
+    @Test
+    fun `team members cannot manage the team`() {
+        val product = setUpProduct()
+
+        val attempt = put("/api/v1/contexts/$product/members/${carol.sub}", mapOf("role" to "MANAGER"), as_ = bob)
+        assertThat(attempt.status).isEqualTo(403)
+        assertThat(get("/api/v1/contexts/$product/members").list.map { it["principalId"] })
+            .containsExactlyInAnyOrder(alice.sub, bob.sub)
     }
 
     @Test
@@ -159,7 +157,6 @@ class VersioningApiIT {
         assertThat(invalid.status).isEqualTo(422)
         assertThat(invalid.body["code"]).isEqualTo("INVALID_CONTEXT_HIERARCHY")
 
-        val malformed = call(HttpMethod.POST, "/api/v1/objects", body = "not an object")
-        assertThat(malformed.status).isEqualTo(400)
+        assertThat(post("/api/v1/objects", "not an object").status).isEqualTo(400)
     }
 }

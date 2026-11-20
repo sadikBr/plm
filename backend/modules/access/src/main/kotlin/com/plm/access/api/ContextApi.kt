@@ -51,8 +51,13 @@ data class CreateContext(
     val name: String,
 )
 
+/**
+ * A context is visible to a principal who is on its team, or on the team of any ancestor or
+ * descendant (so users can navigate down to the products they work on). Invisible contexts are
+ * reported as not found.
+ */
 interface ContextService {
-    /** @throws com.plm.platform.error.NotFoundException `CONTEXT_NOT_FOUND` */
+    /** @throws com.plm.platform.error.NotFoundException `CONTEXT_NOT_FOUND` (also when not visible) */
     fun get(
         actor: Actor,
         id: ContextId,
@@ -64,6 +69,10 @@ interface ContextService {
     ): List<Context>
 
     /**
+     * Organizations can only be created by site administrators. Other contexts need MANAGE on the
+     * parent. The creator becomes MANAGER of the new context.
+     *
+     * @throws com.plm.platform.error.ForbiddenException `ACCESS_DENIED`
      * @throws com.plm.platform.error.ValidationException `INVALID_CONTEXT_HIERARCHY`, `INVALID_CONTEXT_NAME`
      * @throws com.plm.platform.error.ConflictException `DUPLICATE_CONTEXT_NAME`
      */
