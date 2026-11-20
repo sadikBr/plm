@@ -8,6 +8,7 @@ a manifest, `plm-extension.yaml`, installed by a site administrator under **Admi
 |---|---|
 | [erp-sync](samples/erp-sync/plm-extension.yaml) | Settings (including a secret), a "Show in ERP" action on Released parts that opens the ERP, and a seed value list and attribute |
 | [erp-sync 1.1](samples/erp-sync/plm-extension-1.1.yaml) | The same extension, one version later: an upgrade adds an action and a permission |
+| [quality-rules](samples/quality-rules/plm-extension.yaml) | Operation rules only: no check-in without a description, no release without a reason, released parts keep their number |
 | [erp-sync 2.0](samples/erp-sync/plm-extension-2.0.yaml) | Webhooks: "Send to ERP" asks for a plant and a quantity and shows the ERP's answer; "ERP cost report" downloads a file |
 
 ## Trying the webhooks

@@ -102,7 +102,7 @@ our own later features are built on the same mechanisms. See [EXTENSIBILITY.md](
       panel. Parameter forms generated from a schema; results (message, refresh, navigate, download).
       (Done: signed webhooks, URLs, forms, results, call log. Starting a workflow comes with the
       workflow engine in Phase 5, panels with UI extension slots in Phase 5.)
-- [ ] 2.5 Pre-operation rules: synchronous validation hooks that can refuse an operation with a
+- [x] 2.5 Pre-operation rules: synchronous validation hooks that can refuse an operation with a
       message (expressions first; scripts in Phase 5).
 - [ ] 2.6 Event subscriptions and webhooks: filters, signing, retries with backoff, dead letters,
       delivery log in the admin UI.

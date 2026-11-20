@@ -9,7 +9,9 @@ package com.plm.platform.expression
  *   `checkedOut`, `attributes` (every attribute of the type, null when unset),
  *   `context` (`name`, `kind`).
  * - `user`: `id`, `siteAdmin`, `permissions` (e.g. `'MODIFY' in user.permissions`).
+ * - `event` (operation rules only): `operation` (e.g. `object.check-in`), and `from`, `to`,
+ *   `comment` for set state, `comment` for check-in, `number` and `name` for rename.
  */
 object ExpressionModel {
-    val VARIABLES = listOf("object", "user")
+    val VARIABLES = listOf("object", "user", "event")
 }

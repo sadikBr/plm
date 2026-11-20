@@ -6,6 +6,7 @@ import com.plm.extensions.api.ExtensionManifest
 import com.plm.platform.error.ValidationException
 import com.plm.platform.expression.ExpressionKind
 import com.plm.platform.expression.Expressions
+import com.plm.versioning.api.GuardedOperation
 import tools.jackson.core.JacksonException
 import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.json.JsonMapper
@@ -127,6 +128,34 @@ internal object Manifests {
                 ) {
                     errors += "$at: a form needs a webhook handler to send its answers to"
                 }
+            }
+        }
+        if (m.rules.isNotEmpty() &&
+            "rules:refuse" !in m.permissions
+        ) {
+            errors += "Rules need the 'rules:refuse' permission"
+        }
+        m.rules
+            .groupBy { it.id }
+            .filterValues { it.size > 1 }
+            .keys
+            .forEach { errors += "Rule '$it' is declared twice" }
+        for (r in m.rules) {
+            val at = "rule '${r.id}'"
+            if (!ACTION_ID.matches(r.id)) errors += "$at: id must be lower case letters, digits and dashes"
+            if (r.on.isEmpty()) errors += "$at: on: name the operations it applies to"
+            r.on.filter { GuardedOperation.of(it) == null }.forEach {
+                errors +=
+                    "$at: unknown operation '$it' (known: ${GuardedOperation.entries.joinToString { o -> o.key }})"
+            }
+            Expressions.check(r.`when`, ExpressionKind.CONDITION).firstOrNull()?.let {
+                errors +=
+                    "$at: when: ${it.message}"
+            }
+            if (r.reject.isBlank() ||
+                r.reject.length > 300
+            ) {
+                errors += "$at: reject must be a message of 1-300 characters"
             }
         }
         return errors

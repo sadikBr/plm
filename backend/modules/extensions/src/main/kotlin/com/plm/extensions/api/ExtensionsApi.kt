@@ -26,6 +26,8 @@ data class ExtensionManifest(
     /** Settings the administrator fills in at install, by key. */
     val config: Map<String, ConfigField> = emptyMap(),
     val actions: List<ManifestAction> = emptyList(),
+    /** Rules that refuse operations (check-in, set state...) when their condition holds. */
+    val rules: List<ManifestRule> = emptyList(),
     /** Configuration it needs (types, attributes, value lists, rules...), imported at install and upgrade. */
     val seed: ConfigBundle? = null,
 )
@@ -150,6 +152,9 @@ data class ExtensionPreview(
     val actionsAdded: List<String>,
     val actionsChanged: List<String>,
     val actionsRemoved: List<String>,
+    val rulesAdded: List<String> = emptyList(),
+    val rulesChanged: List<String> = emptyList(),
+    val rulesRemoved: List<String> = emptyList(),
     /** The seed's configuration changes (a dry run of the import). */
     val seedChanges: List<PlannedChange>,
     /** Settings that are missing or invalid; installing is refused until they're fixed. */
@@ -167,6 +172,7 @@ val EXTENSION_PERMISSIONS: Map<String, String> =
             "Add or change configuration (types, attributes, value lists, rules) when installed or upgraded",
         "objects:read" to "Read the objects its actions are used on",
         "objects:set-state" to "Change the lifecycle state of objects",
+        "rules:refuse" to "Refuse operations (check-in, set state, revise...) that don't meet its rules",
         "events:subscribe" to "Be told about events (object created, state changed...)",
         "webhooks:call" to "Call its own web services",
     )

@@ -1,0 +1,32 @@
+# A sample extension of operation rules (roadmap 2.5): it refuses operations that don't meet the
+# quality department's rules. No settings, no actions, no service: just rules.
+id: acme.quality-rules
+name: Quality rules
+version: 1.0.0
+publisher: Acme Corp
+description: Descriptions before check-in, a reason for every release, and stable identities once released.
+platform: ">=1.0 <2.0"
+
+permissions:
+  - rules:refuse
+
+rules:
+  - id: describe-before-check-in
+    name: Describe before checking in
+    on: [object.check-in]
+    appliesTo:
+      types: [Part]
+    when: "object.attributes.description == null || size(object.attributes.description) < 5"
+    reject: Add a description (5 characters or more) before checking in.
+
+  - id: say-why-released
+    name: Say why it's released
+    on: [object.set-state]
+    when: "event.to == 'RELEASED' && (event.comment == null || event.comment == '')"
+    reject: "Say why it's released: a comment is required to release."
+
+  - id: keep-released-identity
+    name: Released parts keep their number
+    on: [object.rename]
+    when: "object.state == 'RELEASED' && event.number != object.number"
+    reject: A released part keeps its number. Revise it, or ask quality.

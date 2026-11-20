@@ -16,6 +16,7 @@ import {
   type ExtensionManifest,
   type ExtensionPreview,
 } from "./adminQueries";
+import { OPERATION_LABEL } from "./RulesAdmin";
 
 const STATUS: Record<string, { label: string; className: string }> = {
   ACTIVE: { label: "Active", className: "tag allow" },
@@ -174,11 +175,19 @@ function ExtensionDetail({ extension: e }: { extension: Extension }) {
         </Panel>
       )}
 
-      <Panel title="Actions it adds" note="Adjust or hide them under Admin → Actions" flush>
-        <ManifestActions manifest={e.manifest} />
-      </Panel>
+      {(e.manifest.actions?.length ?? 0) > 0 && (
+        <Panel title="Actions it adds" note="Adjust or hide them under Admin → Actions" flush>
+          <ManifestActions manifest={e.manifest} />
+        </Panel>
+      )}
 
-      <RecentCalls extensionId={e.id} />
+      {(e.manifest.rules?.length ?? 0) > 0 && (
+        <Panel title="Rules it adds" note="Listed with the site's under Admin → Rules" flush>
+          <ManifestRules manifest={e.manifest} />
+        </Panel>
+      )}
+
+      {e.manifest.actions?.some((a) => a.handler.webhook) && <RecentCalls extensionId={e.id} />}
 
       <ExtensionHistory auditId={e.auditId} />
     </div>
@@ -266,6 +275,47 @@ function ManifestActions({ manifest, highlight }: { manifest: ExtensionManifest;
                 <code className="wrap-code">{a.handler.url}</code>
               )}
             </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function ManifestRules({ manifest, highlight }: { manifest: ExtensionManifest; highlight?: ExtensionPreview }) {
+  if (!manifest.rules?.length) return null;
+  return (
+    <table className="grid" aria-label="Extension rules">
+      <thead>
+        <tr>
+          <th>Rule</th>
+          <th>Refuses</th>
+          <th>Refuse when</th>
+          <th>Message</th>
+        </tr>
+      </thead>
+      <tbody>
+        {manifest.rules.map((r) => (
+          <tr key={r.id}>
+            <td>
+              <strong>{r.name ?? r.id}</strong>
+              {highlight?.rulesAdded.includes(r.id) && (
+                <span className="tag accent" style={{ marginLeft: 6 }}>
+                  New
+                </span>
+              )}
+              {highlight?.rulesChanged.includes(r.id) && (
+                <span className="tag warn" style={{ marginLeft: 6 }}>
+                  Changed
+                </span>
+              )}
+              <div className="muted small">{r.appliesTo?.types?.length ? r.appliesTo.types.join(", ") : "All types"}</div>
+            </td>
+            <td className="nowrap">{r.on.map((o) => OPERATION_LABEL[o] ?? o).join(", ")}</td>
+            <td>
+              <code className="wrap-code">{r.when}</code>
+            </td>
+            <td>{r.reject}</td>
           </tr>
         ))}
       </tbody>
@@ -534,11 +584,20 @@ function InstallDialog({ onClose }: { onClose: (installedId?: string) => void })
               <Permissions list={p.manifest.permissions} added={p.mode === "UPGRADE" ? p.permissionsAdded : []} />
               {p.permissionsRemoved.length > 0 && <p className="muted small">No longer asks for: {p.permissionsRemoved.join(", ")}</p>}
             </section>
-            <section>
-              <div className="section-label">Actions</div>
-              <ManifestActions manifest={p.manifest} highlight={p.mode === "UPGRADE" ? p : undefined} />
-              {p.actionsRemoved.length > 0 && <p className="muted small">Removed: {p.actionsRemoved.join(", ")}</p>}
-            </section>
+            {((p.manifest.actions?.length ?? 0) > 0 || p.actionsRemoved.length > 0) && (
+              <section>
+                <div className="section-label">Actions</div>
+                <ManifestActions manifest={p.manifest} highlight={p.mode === "UPGRADE" ? p : undefined} />
+                {p.actionsRemoved.length > 0 && <p className="muted small">Removed: {p.actionsRemoved.join(", ")}</p>}
+              </section>
+            )}
+            {(p.manifest.rules?.length ?? 0) > 0 && (
+              <section>
+                <div className="section-label">Rules: it refuses operations when</div>
+                <ManifestRules manifest={p.manifest} highlight={p.mode === "UPGRADE" ? p : undefined} />
+                {p.rulesRemoved.length > 0 && <p className="muted small">Removed: {p.rulesRemoved.join(", ")}</p>}
+              </section>
+            )}
             {p.seedChanges.length > 0 && (
               <section>
                 <div className="section-label">Configuration it adds or changes</div>

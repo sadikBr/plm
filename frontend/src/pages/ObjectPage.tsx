@@ -95,8 +95,8 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
 
   const mine = !!myId && obj.checkedOutBy === myId;
   const busy = Object.values(actions).some((m) => m.isPending);
-  // Set state shows its own errors in its dialog.
-  const failed = Object.entries(actions).find(([key, m]) => key !== "setState" && m.error)?.[1].error;
+  // Set state and check-in show their errors in their dialogs, where the user is looking.
+  const failed = Object.entries(actions).find(([key, m]) => key !== "setState" && key !== "checkIn" && m.error)?.[1].error;
   const label = (state: string) => stateName(lifecycle, state);
   const current = label(obj.latest.state);
 
@@ -181,10 +181,19 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
       <Dialog
         open={checkingIn}
         title={`Check in ${obj.number}`}
-        onClose={() => setCheckingIn(false)}
+        onClose={() => {
+          setCheckingIn(false);
+          actions.checkIn.reset();
+        }}
         footer={
           <>
-            <button className="btn" onClick={() => setCheckingIn(false)}>
+            <button
+              className="btn"
+              onClick={() => {
+                setCheckingIn(false);
+                actions.checkIn.reset();
+              }}
+            >
               Cancel
             </button>
             <button
@@ -205,6 +214,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
           </>
         }
       >
+        <ErrorBanner error={actions.checkIn.error} />
         <div className="field">
           <div className="label-row">
             <label htmlFor="checkin-comment">Comment</label>

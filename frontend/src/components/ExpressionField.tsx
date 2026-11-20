@@ -97,6 +97,11 @@ export function ExpressionField({
             <code>user.id</code>, <code>user.siteAdmin</code>, <code>user.permissions</code>, e.g. <code>'MANAGE' in user.permissions</code>
           </li>
           <li>
+            In operation rules, <code>event.operation</code> (e.g. <code>'object.check-in'</code>), and <code>event.from</code>,{" "}
+            <code>event.to</code>, <code>event.comment</code> for set state, <code>event.comment</code> for check-in,{" "}
+            <code>event.number</code>, <code>event.name</code> for rename
+          </li>
+          <li>
             Examples: <code>object.state == 'RELEASED' &amp;&amp; object.attributes.source == 'make'</code> ·{" "}
             <code>object.attributes.description != null &amp;&amp; size(object.attributes.description) &gt; 10</code> ·{" "}
             <code>double(object.attributes.quantity) * object.attributes.unitCost</code>

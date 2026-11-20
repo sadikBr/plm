@@ -519,6 +519,31 @@ curl -s -X POST $API/extensions/preview -H "Authorization: Bearer $ALICE" -H 'Co
 curl -s -X POST $API/extensions -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' -d @/tmp/ext.json | jq '{id, version, status}'
 ```
 
+### Operation rules
+
+Rules that refuse an operation before it happens (roadmap 2.5): create, check out, check in,
+revise, set state, rename, change lifecycle. A rule names the operations, optionally the types
+(subtypes included), a **Refuse when** expression and the message users see. Besides `object` and
+`user`, rules see `event`: `event.operation`, and `event.from`, `event.to`, `event.comment` for set
+state, `event.comment` for check-in, `event.number`, `event.name` for rename. For create and check-in,
+`object` is the object as it would be stored.
+
+The site's rules are kept under **Admin → Rules**; extensions declare theirs in their manifest
+(`rules:`, with the `rules:refuse` permission) and they're listed there too, with their source. All
+the rules that refuse are reported together (`OPERATION_REFUSED`, `details.refusals`), shown in the
+dialog the user is in. A rule that can't be evaluated refuses (rules fail closed). A site
+administrator's lifecycle override skips them, like gates. Sample: `extensions/samples/quality-rules`.
+
+Validation rules (per type, about data) and operation rules (about when an operation may happen)
+are deliberately separate: a validation rule says what a valid part is; an operation rule can also
+look at who does what (`'MANAGE' in user.permissions`, `event.to == 'RELEASED'`).
+
+```bash
+curl -s -X POST $API/operation-rules -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d '{"name": "Say why it is released", "operations": ["object.set-state"], "condition": "event.to == '"'"'RELEASED'"'"' && event.comment == null",
+       "message": "Say why it is released: a comment is required"}'
+```
+
 ### Webhook actions
 
 An extension action can call the extension's own service (`handler: webhook`, roadmap 2.4). If it
@@ -730,6 +755,8 @@ Rules of the game (see [ADR 0019](adr/0019-configuration-as-code.md)):
 | POST | `/api/v1/extensions/preview` | What installing a manifest would do; changes nothing |
 | GET · DELETE | `/api/v1/extensions/{id}` | One extension / uninstall |
 | PUT | `/api/v1/extensions/{id}/config` · `/enabled` | Change settings / enable or disable |
+| GET · POST | `/api/v1/operation-rules` | The site's and extensions' operation rules / add one (site admin) |
+| PUT / DELETE | `/api/v1/operation-rules/{id}` | Change / delete a site rule |
 | POST | `/api/v1/objects/{id}/actions/{actionId}/invoke` | Run a webhook action (`{parameters}`); the result says what to show and do |
 | GET | `/api/v1/extensions/{id}/invocations` | The latest calls of an extension's actions (site admin) |
 | GET | `/api/v1/objects/{id}/actions` | Actions you see on an object, in order, with reasons for disabled ones |

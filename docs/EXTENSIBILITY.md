@@ -92,7 +92,8 @@ seed: []                        # types, attributes, enumerations it needs (conf
 **Built (roadmap 2.3):** `id`, `name`, `version`, `description`, `publisher`, `platform`,
 `permissions`, `config` (types `string`, `url`, `secret`, `number`, `boolean`, `choice`), `actions`
 with a `url` or `webhook` handler and an optional `form` (roadmap 2.4; webhook contract in
-`extensions/README.md`), and `seed` (a configuration bundle). `rules`, `subscriptions`, `automations`, `ui` and `reports` come with later steps; a
+`extensions/README.md`), `rules` with `id`, `name`, `on`, `appliesTo`, `when` and `reject`
+(roadmap 2.5; expression rules only, webhook rules later), and `seed` (a configuration bundle). `rules`, `subscriptions`, `automations`, `ui` and `reports` come with later steps; a
 manifest using them is refused for now (unknown fields are errors, so typos don't pass silently).
 The platform contract version is `1.0` (`GET /api/v1/platform`). Samples: `extensions/samples`.
 

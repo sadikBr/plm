@@ -67,6 +67,8 @@ internal class DefaultExtensionService(
         val before = existing?.manifest
         val oldActions = before?.actions.orEmpty().associateBy { it.id }
         val newActions = manifest.actions.associateBy { it.id }
+        val oldRules = before?.rules.orEmpty().associateBy { it.id }
+        val newRules = manifest.rules.associateBy { it.id }
         val seedChanges =
             manifest.seed
                 ?.let { configuration.import(actor, it, dryRun = true).changes }
@@ -84,6 +86,9 @@ internal class DefaultExtensionService(
             actionsAdded = (newActions.keys - oldActions.keys).toList(),
             actionsChanged = newActions.keys.filter { it in oldActions && oldActions[it] != newActions[it] },
             actionsRemoved = (oldActions.keys - newActions.keys).toList(),
+            rulesAdded = (newRules.keys - oldRules.keys).toList(),
+            rulesChanged = newRules.keys.filter { it in oldRules && oldRules[it] != newRules[it] },
+            rulesRemoved = (oldRules.keys - newRules.keys).toList(),
             seedChanges = seedChanges,
             configProblems = problems,
         )

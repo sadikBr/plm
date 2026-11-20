@@ -28,6 +28,7 @@ import com.plm.types.api.ValidationRuleService
 import com.plm.versioning.api.ChangeLifecycle
 import com.plm.versioning.api.CheckOutUndone
 import com.plm.versioning.api.CreateVersionedObject
+import com.plm.versioning.api.GuardedOperation
 import com.plm.versioning.api.Iteration
 import com.plm.versioning.api.IterationId
 import com.plm.versioning.api.IterationStatus
@@ -41,6 +42,8 @@ import com.plm.versioning.api.ObjectQuery
 import com.plm.versioning.api.ObjectRenamed
 import com.plm.versioning.api.ObjectRevised
 import com.plm.versioning.api.ObjectStateChanged
+import com.plm.versioning.api.OperationCheck
+import com.plm.versioning.api.OperationGuard
 import com.plm.versioning.api.Rename
 import com.plm.versioning.api.SetState
 import com.plm.versioning.api.VersionedObject
@@ -48,6 +51,7 @@ import com.plm.versioning.api.VersioningService
 import com.plm.versioning.api.WorkingCopyUpdated
 import com.plm.versioning.infra.MasterRow
 import com.plm.versioning.infra.VersioningRepository
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -78,6 +82,7 @@ internal class DefaultVersioningService(
     private val models: ObjectModels,
     private val validationRules: ValidationRuleService,
     private val calculations: Calculations,
+    private val guards: ObjectProvider<OperationGuard>,
     private val clock: Clock,
 ) : VersioningService {
     override fun create(
@@ -138,6 +143,7 @@ internal class DefaultVersioningService(
             )
         val attributes = calculations.apply(actor, facts, previous = null)
         enforceRules(actor, facts.copy(attributes = attributes))
+        guard(actor, GuardedOperation.CREATE, facts.copy(attributes = attributes))
         val now = clock.instant()
         val masterId = MasterId(UuidV7.generate(clock))
         val first =
@@ -250,6 +256,7 @@ internal class DefaultVersioningService(
                 mapOf("state" to latest.state),
             )
         }
+        guard(actor, GuardedOperation.CHECK_OUT, master.facts(latest))
         repository.workingCopy(master.id)?.let { existing ->
             throw ConflictException(
                 "ALREADY_CHECKED_OUT",
@@ -338,6 +345,12 @@ internal class DefaultVersioningService(
             actor,
             master.facts(workingCopy, attributes).copy(checkedOut = false),
         )
+        guard(
+            actor,
+            GuardedOperation.CHECK_IN,
+            master.facts(workingCopy, attributes).copy(checkedOut = false),
+            mapOf("comment" to trimmed),
+        )
         if (attributes != workingCopy.attributes) repository.updateAttributes(workingCopy.id, attributes)
         val checkedIn =
             workingCopy.copy(
@@ -402,6 +415,7 @@ internal class DefaultVersioningService(
                 mapOf("state" to latest.state),
             )
         }
+        guard(actor, GuardedOperation.REVISE, master.facts(latest))
         // State-based series: the state revised from may switch the series (e.g. 1, 2, 3 then A, B).
         val series = lifecycle.state(latest.state)?.revisionScheme ?: master.revisionScheme
         val nextRevision =
@@ -529,6 +543,14 @@ internal class DefaultVersioningService(
                 ),
             )
         }
+        if (!command.override) {
+            guard(
+                actor,
+                GuardedOperation.SET_STATE,
+                master.facts(latest),
+                mapOf("from" to latest.state, "to" to target.key, "comment" to comment),
+            )
+        }
         repository.setState(latest.id, target.key)
         events.publish(
             actor,
@@ -572,6 +594,7 @@ internal class DefaultVersioningService(
         if (number == master.number && name == master.name) {
             throw ValidationException("NO_CHANGE", "${master.number} already has this number and name")
         }
+        guard(actor, GuardedOperation.RENAME, master.facts(latest), mapOf("number" to number, "name" to name))
         repository.rename(master.id, number, name)
         val renamed = master.copy(number = number, name = name)
         events.publish(
@@ -638,6 +661,37 @@ internal class DefaultVersioningService(
                             "rule" to rule.name,
                         )
                     },
+            ),
+        )
+    }
+
+    /**
+     * Asks every [OperationGuard] (the extensions module's rules, roadmap 2.5) whether [operation]
+     * may happen, and refuses it with all their reasons (`OPERATION_REFUSED`). The object model is
+     * built only if a guard needs it.
+     */
+    private fun guard(
+        actor: Actor,
+        operation: GuardedOperation,
+        facts: ObjectFacts,
+        event: Map<String, Any?> = emptyMap(),
+    ) {
+        val all = guards.orderedStream().toList()
+        if (all.isEmpty()) return
+        val check =
+            OperationCheck(
+                operation,
+                facts.typeId,
+                mapOf("operation" to operation.key) + event,
+            ) { models.build(actor, facts) }
+        val refusals = all.flatMap { it.check(actor, check) }
+        if (refusals.isEmpty()) return
+        throw ValidationException(
+            "OPERATION_REFUSED",
+            refusals.joinToString(" · ") { it.message },
+            mapOf(
+                "operation" to operation.key,
+                "refusals" to refusals.map { mapOf("rule" to it.rule, "source" to it.source, "message" to it.message) },
             ),
         )
     }
@@ -728,6 +782,15 @@ internal class DefaultVersioningService(
         ) {
             throw ValidationException("NO_CHANGE", "${master.number} already uses this lifecycle")
         }
+        guard(
+            actor,
+            GuardedOperation.CHANGE_LIFECYCLE,
+            master.facts(latest),
+            mapOf(
+                "lifecycle" to to.name,
+                "to" to state,
+            ),
+        )
         repository.setLifecycle(master.id, to.id)
         if (state != latest.state) repository.setState(latest.id, state)
         events.publish(

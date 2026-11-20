@@ -441,4 +441,49 @@ describe("Administration", () => {
       }),
     );
   });
+
+  it("lists the site's and extensions' operation rules, and adds one", async () => {
+    const calls = api(true, {
+      "GET /api/v1/operation-rules": () => [
+        {
+          id: "acme.quality-rules.say-why-released",
+          name: "Say why it's released",
+          operations: ["object.set-state"],
+          types: [],
+          condition: "event.to == 'RELEASED' && event.comment == null",
+          message: "A comment is required to release",
+          active: true,
+          source: "acme.quality-rules",
+          updatedAt: null,
+          updatedBy: null,
+        },
+      ],
+      "POST /api/v1/expressions/check": () => ({ valid: true, problems: [] }),
+      "POST /api/v1/operation-rules": () => ({}),
+    });
+    renderAt("/admin?tab=rules");
+
+    const table = await screen.findByRole("table", { name: "Operation rules" });
+    expect(within(table).getByText("acme.quality-rules")).toBeInTheDocument();
+    expect(within(table).queryByRole("button", { name: /Edit Say why/ })).not.toBeInTheDocument(); // the extension's
+
+    await userEvent.click(screen.getByRole("button", { name: "New rule" }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.type(within(dialog).getByLabelText("Name"), "Describe before checking in");
+    await userEvent.type(within(dialog).getByLabelText("Refuse when"), "object.attributes.description == null");
+    await userEvent.type(within(dialog).getByLabelText("Message"), "Add a description first");
+    await userEvent.click(within(dialog).getByRole("checkbox", { name: "Part" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(posted(calls, "POST", "/api/v1/operation-rules")).toEqual({
+        name: "Describe before checking in",
+        operations: ["object.check-in"],
+        types: ["Part"],
+        condition: "object.attributes.description == null",
+        message: "Add a description first",
+        active: true,
+      }),
+    );
+  });
 });

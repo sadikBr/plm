@@ -13,6 +13,8 @@ export type EnumerationRequest = Schemas["EnumerationRequest"];
 export type DefineAttribute = Schemas["DefineAttributeRequest"];
 export type AttributeSettings = Schemas["AttributeSettingsRequest"];
 export type ValidationRule = Schemas["ValidationRuleResponse"];
+export type OperationRule = Schemas["OperationRule"];
+export type OperationRuleSettings = Schemas["OperationRuleSettings"];
 export type Extension = Schemas["ExtensionResponse"];
 export type ExtensionPreview = Schemas["PreviewResponse"];
 export type ExtensionManifest = Schemas["ExtensionManifest"];
@@ -32,6 +34,7 @@ const ADMIN_KEYS = [
   "lifecycles",
   "teamRoles",
   "validationRules",
+  "operationRules",
   "extensions",
   "actionRegistry",
   "availableActions",
@@ -233,3 +236,19 @@ export const useExtensionInvocations = (id: string) =>
     queryKey: ["extensions", id, "invocations"],
     queryFn: () => unwrap(api.GET("/api/v1/extensions/{id}/invocations", { params: { path: { id } } })),
   });
+
+// ---------- Operation rules ----------
+
+export const useOperationRules = () =>
+  useQuery({ queryKey: ["operationRules"], queryFn: () => unwrap(api.GET("/api/v1/operation-rules")) });
+
+export const useDefineOperationRule = () =>
+  useAdminMutation((body: OperationRuleSettings) => unwrap(api.POST("/api/v1/operation-rules", { body })));
+
+export const useUpdateOperationRule = () =>
+  useAdminMutation(({ id, body }: { id: string; body: OperationRuleSettings }) =>
+    unwrap(api.PUT("/api/v1/operation-rules/{id}", { params: { path: { id } }, body })),
+  );
+
+export const useDeleteOperationRule = () =>
+  useAdminMutation((id: string) => unwrap(api.DELETE("/api/v1/operation-rules/{id}", { params: { path: { id } } })));

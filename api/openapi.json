@@ -1333,6 +1333,12 @@
           "publisher" : {
             "type" : [ "string", "null" ]
           },
+          "rules" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ManifestRule"
+            },
+            "type" : "array"
+          },
           "seed" : {
             "oneOf" : [ {
               "$ref" : "#/components/schemas/ConfigBundle"
@@ -1344,7 +1350,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "actions", "config", "id", "name", "permissions", "platform", "version" ],
+        "required" : [ "actions", "config", "id", "name", "permissions", "platform", "rules", "version" ],
         "type" : "object"
       },
       "ExtensionResponse" : {
@@ -1892,6 +1898,33 @@
         },
         "type" : "object"
       },
+      "ManifestRule" : {
+        "properties" : {
+          "appliesTo" : {
+            "$ref" : "#/components/schemas/AppliesTo"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "on" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "reject" : {
+            "type" : "string"
+          },
+          "when" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "appliesTo", "id", "on", "reject", "when" ],
+        "type" : "object"
+      },
       "MeResponse" : {
         "properties" : {
           "siteAdmin" : {
@@ -2065,6 +2098,79 @@
           }
         },
         "required" : [ "contextId", "createdAt", "createdBy", "id", "latest", "name", "number", "typeId", "version" ],
+        "type" : "object"
+      },
+      "OperationRule" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "condition" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "operations" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "types" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "updatedBy" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "active", "condition", "id", "message", "name", "operations", "source", "types" ],
+        "type" : "object"
+      },
+      "OperationRuleSettings" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "condition" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "operations" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "types" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "active", "condition", "message", "name", "operations", "types" ],
         "type" : "object"
       },
       "OwnValueResponse" : {
@@ -2303,6 +2409,24 @@
           "platformVersion" : {
             "type" : "string"
           },
+          "rulesAdded" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "rulesChanged" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "rulesRemoved" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "seedChanges" : {
             "items" : {
               "$ref" : "#/components/schemas/PlannedChange"
@@ -2310,7 +2434,7 @@
             "type" : "array"
           }
         },
-        "required" : [ "actionsAdded", "actionsChanged", "actionsRemoved", "canInstall", "compatible", "configProblems", "manifest", "mode", "permissionsAdded", "permissionsRemoved", "platformVersion", "seedChanges" ],
+        "required" : [ "actionsAdded", "actionsChanged", "actionsRemoved", "canInstall", "compatible", "configProblems", "manifest", "mode", "permissionsAdded", "permissionsRemoved", "platformVersion", "rulesAdded", "rulesChanged", "rulesRemoved", "seedChanges" ],
         "type" : "object"
       },
       "PrincipalResponse" : {
@@ -6306,6 +6430,179 @@
         "tags" : [ "Versioned object" ]
       }
     },
+    "/api/v1/operation-rules" : {
+      "get" : {
+        "operationId" : "operationRuleList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/OperationRule"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Operation rule" ]
+      },
+      "post" : {
+        "operationId" : "operationRuleDefine",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OperationRuleSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OperationRule"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Operation rule" ]
+      }
+    },
+    "/api/v1/operation-rules/operations" : {
+      "get" : {
+        "operationId" : "operationRuleOperations",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "type" : "string"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Operation rule" ]
+      }
+    },
+    "/api/v1/operation-rules/{id}" : {
+      "delete" : {
+        "operationId" : "operationRuleDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Operation rule" ]
+      },
+      "put" : {
+        "operationId" : "operationRuleUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OperationRuleSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OperationRule"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Operation rule" ]
+      }
+    },
     "/api/v1/platform" : {
       "get" : {
         "operationId" : "extensionPlatform",
@@ -7824,6 +8121,8 @@
     "name" : "Layout"
   }, {
     "name" : "Lifecycle"
+  }, {
+    "name" : "Operation rule"
   }, {
     "name" : "Policy"
   }, {
