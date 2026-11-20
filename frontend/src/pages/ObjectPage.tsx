@@ -93,7 +93,8 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
 
   const mine = !!myId && obj.checkedOutBy === myId;
   const busy = Object.values(actions).some((m) => m.isPending);
-  const failed = Object.values(actions).find((m) => m.error)?.error;
+  // Set state shows its own errors in its dialog.
+  const failed = Object.entries(actions).find(([key, m]) => key !== "setState" && m.error)?.[1].error;
   const label = (state: string) => stateName(lifecycle, state);
   const current = label(obj.latest.state);
 
@@ -156,7 +157,12 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
         change={stateChange}
         label={label}
         busy={busy}
-        onCancel={() => setStateChange(null)}
+        // A refusal (a gate, missing required attributes) is shown in the dialog, where the user is looking.
+        error={actions.setState.error}
+        onCancel={() => {
+          setStateChange(null);
+          actions.setState.reset();
+        }}
         onConfirm={(comment) =>
           stateChange &&
           actions.setState.mutate(
@@ -376,9 +382,11 @@ function StateChangeDialog({
   change,
   label,
   busy,
+  error,
   onCancel,
   onConfirm,
 }: {
+  error?: unknown;
   objectNumber: string;
   from: string;
   change: { to: string; override: boolean } | null;
@@ -406,6 +414,7 @@ function StateChangeDialog({
     >
       {change && (
         <>
+          <ErrorBanner error={error} />
           <p style={{ margin: 0 }}>
             {from} → <strong>{label(change.to)}</strong>
           </p>
