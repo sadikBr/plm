@@ -89,6 +89,11 @@ data class AttributeDefinition(
      * [typeId] is the type that uses it; on its own definition, [TypeId.GLOBAL].
      */
     val global: Boolean = false,
+    /**
+     * Calculated attribute: a CEL formula over `object` and `user` computes the value whenever an
+     * object is created, edited or checked in; users can't set it. Null for ordinary attributes.
+     */
+    val formula: String? = null,
 )
 
 /** Settings that can change after an attribute is defined. Name, data type, multi-valued, enumeration and dimension cannot. */
@@ -108,6 +113,7 @@ data class AttributeSettings(
     val active: Boolean = true,
     val dependsOn: String? = null,
     val valueFilter: Map<String, List<String>>? = null,
+    val formula: String? = null,
 )
 
 data class DefineAttribute(

@@ -522,6 +522,21 @@ curl -s -X POST "$API/objects/$PART/expression-model/evaluate" -H "Authorization
   -H 'Content-Type: application/json' -d '{"expression": "object.attributes.material", "kind": "VALUE"}'
 ```
 
+### Calculated attributes
+
+An attribute can be **calculated**: in its dialog, tick *Calculated* and write a formula (an
+expression). The value is computed whenever an object is created, its working copy is edited, or
+it's checked in, and shown read-only in forms; values users send for it are ignored. A formula may
+use other calculated attributes, in any order. When a formula fails (a value it needs is empty),
+the attribute is left empty, like a spreadsheet cell. Calculated attributes can't be required,
+fixed, multi-valued, dependent lists or have a default. Formulas travel in configuration bundles.
+
+```bash
+curl -s -X POST $API/types/$KIT_TYPE/attributes -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d '{"name": "totalCost", "dataType": "REAL", "labels": {"en": "Total cost"},
+       "formula": "double(object.attributes.quantity) * object.attributes.unitCost"}'
+```
+
 ### Validation rules
 
 Under **Admin → Types and attributes → (a type) → Validation**, a site administrator adds rules

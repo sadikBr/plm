@@ -469,6 +469,8 @@ tr.inherited .perm { opacity: 0.8; }
 .subtabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
 tr.inactive td { color: var(--text-3); }
 .small { font-size: 12px; }
+.calc-value { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 0 2px; color: var(--text); }
+.calc-value .tag { font-size: 11px; }
 .wrap-code { white-space: pre-wrap; word-break: break-word; font-size: 12px; }
 /* Expression editor (CEL). */
 textarea.code { font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12.5px; resize: vertical; }

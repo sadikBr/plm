@@ -1203,4 +1203,90 @@ class VersioningServiceIT(
             }
         }
     }
+
+    @Nested
+    inner class CalculatedAttributes {
+        private val kit by lazy {
+            types
+                .createSubtype(
+                    admin,
+                    CreateSubtype(TypeId.PART, "Kit${UUID.randomUUID().toString().take(8)}", "Kit"),
+                ).id
+                .also { kit ->
+                    fun define(
+                        name: String,
+                        type: DataType,
+                        formula: String? = null,
+                    ) = attributeDefinitions.define(
+                        admin,
+                        DefineAttribute(
+                            kit,
+                            name,
+                            type,
+                            settings = AttributeSettings(mapOf("en" to name), formula = formula),
+                        ),
+                    )
+                    define("quantity", DataType.INTEGER)
+                    define("unitCost", DataType.REAL)
+                    define(
+                        "totalCost",
+                        DataType.REAL,
+                        "double(object.attributes.quantity) * object.attributes.unitCost",
+                    )
+                    // Uses the previous formula's result, and the object's number.
+                    define("summary", DataType.STRING, "object.number + ': ' + string(object.attributes.totalCost)")
+                }
+        }
+
+        private fun create(attributes: Map<String, Any?>) =
+            versioning.create(alice, CreateVersionedObject(kit, product, "Kit", attributes = attributes))
+
+        @Test
+        fun `formulas compute values on create, and users can't set them`() {
+            val obj = create(mapOf("quantity" to 4, "unitCost" to 2.5, "totalCost" to 999))
+            assertThat(obj.latest.attributes["totalCost"]).isEqualTo(10.0)
+            assertThat(obj.latest.attributes["summary"]).isEqualTo("${obj.number}: 10.0")
+        }
+
+        @Test
+        fun `a formula without what it needs leaves the value empty`() {
+            val obj = create(mapOf("quantity" to 4))
+            assertThat(obj.latest.attributes).doesNotContainKey("totalCost")
+        }
+
+        @Test
+        fun `editing the working copy and checking in recompute them`() {
+            val obj = create(mapOf("quantity" to 4, "unitCost" to 2.5))
+            versioning.checkOut(alice, obj.id)
+            val edited = versioning.updateWorkingCopy(alice, obj.id, mapOf("quantity" to 10, "unitCost" to 2.5))
+            assertThat(edited.attributes["totalCost"]).isEqualTo(25.0)
+            assertThat(versioning.checkIn(alice, obj.id).latest.attributes["totalCost"]).isEqualTo(25.0)
+        }
+
+        @Test
+        fun `a calculated attribute can't also be required, and its formula must be valid`() {
+            assertCode(ValidationException::class.java, "INVALID_ATTRIBUTE_DEFINITION") {
+                attributeDefinitions.define(
+                    admin,
+                    DefineAttribute(
+                        kit,
+                        "bad",
+                        DataType.REAL,
+                        settings = AttributeSettings(mapOf("en" to "Bad"), required = true, formula = "1.0"),
+                    ),
+                )
+            }
+            assertCode(ValidationException::class.java, "INVALID_ATTRIBUTE_DEFINITION") {
+                attributeDefinitions.define(
+                    admin,
+                    DefineAttribute(
+                        kit,
+                        "bad2",
+                        DataType.REAL,
+                        settings = AttributeSettings(mapOf("en" to "Bad"), formula = "1.0 +"),
+                    ),
+                )
+            }
+        }
+    }
 }

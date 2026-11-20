@@ -256,6 +256,8 @@ internal data class AttributeResponse(
     val valueFilter: Map<String, List<String>>?,
     /** Defined once and shared by several types (changing it changes it everywhere). */
     val global: Boolean,
+    /** Calculated attribute: the CEL formula that computes it (users can't set it). */
+    val formula: String?,
 ) {
     constructor(d: AttributeDefinition, requestedType: TypeId) : this(
         d.id.value,
@@ -283,6 +285,7 @@ internal data class AttributeResponse(
         d.dependsOn,
         d.valueFilter,
         d.global,
+        d.formula,
     )
 }
 
@@ -307,6 +310,7 @@ internal data class DefineAttributeRequest(
     val sortOrder: Int? = null,
     val dependsOn: String? = null,
     val valueFilter: Map<String, List<String>>? = null,
+    val formula: String? = null,
 ) {
     fun settings() =
         AttributeSettings(
@@ -325,6 +329,7 @@ internal data class DefineAttributeRequest(
             active = true,
             dependsOn = dependsOn,
             valueFilter = valueFilter,
+            formula = formula,
         )
 }
 
@@ -344,6 +349,7 @@ internal data class AttributeSettingsRequest(
     val active: Boolean? = null,
     val dependsOn: String? = null,
     val valueFilter: Map<String, List<String>>? = null,
+    val formula: String? = null,
 ) {
     fun settings() =
         AttributeSettings(
@@ -362,6 +368,7 @@ internal data class AttributeSettingsRequest(
             active ?: true,
             dependsOn,
             valueFilter,
+            formula,
         )
 }
 

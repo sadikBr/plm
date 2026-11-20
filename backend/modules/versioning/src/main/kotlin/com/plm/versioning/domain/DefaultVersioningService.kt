@@ -77,6 +77,7 @@ internal class DefaultVersioningService(
     private val preferences: PreferenceService,
     private val models: ObjectModels,
     private val validationRules: ValidationRuleService,
+    private val calculations: Calculations,
     private val clock: Clock,
 ) : VersioningService {
     override fun create(
@@ -110,15 +111,20 @@ internal class DefaultVersioningService(
         }
         val lifecycle = lifecycles.forType(actor, type.id)
         access.require(actor, AccessTarget(context.id, type.id, lifecycle.initialState), Permission.CREATE)
-        val attributes = attributeValidator.validate(actor, type.id, command.attributes, previous = null)
+        val entered =
+            attributeValidator.validate(
+                actor,
+                type.id,
+                calculations.userValues(actor, type.id, command.attributes),
+                previous = null,
+            )
         val number =
             command.number
                 ?: rules.numberingSchemeId?.let { typeRules.nextNumber(actor, it) }
                 ?: contextScheme(actor, context.id)?.let { typeRules.nextNumber(actor, it) }
                 ?: repository.nextNumber()
 
-        enforceRules(
-            actor,
+        val facts =
             ObjectFacts(
                 typeId = type.id,
                 contextId = context.id,
@@ -128,9 +134,10 @@ internal class DefaultVersioningService(
                 revision = rules.revisionScheme.first,
                 iteration = 1,
                 checkedOut = false,
-                attributes = attributes,
-            ),
-        )
+                attributes = entered,
+            )
+        val attributes = calculations.apply(actor, facts, previous = null)
+        enforceRules(actor, facts.copy(attributes = attributes))
         val now = clock.instant()
         val masterId = MasterId(UuidV7.generate(clock))
         val first =
@@ -275,7 +282,14 @@ internal class DefaultVersioningService(
         val master = findMaster(actor, id, forUpdate = true)
         authorize(actor, master, Permission.MODIFY)
         val workingCopy = ownWorkingCopy(actor, master)
-        val normalized = attributeValidator.validate(actor, master.typeId, attributes, basedOn(workingCopy))
+        val entered =
+            attributeValidator.validate(
+                actor,
+                master.typeId,
+                calculations.userValues(actor, master.typeId, attributes),
+                basedOn(workingCopy),
+            )
+        val normalized = calculations.apply(actor, master.facts(workingCopy, entered), basedOn(workingCopy))
         repository.updateAttributes(workingCopy.id, normalized)
         val updated = workingCopy.copy(attributes = normalized)
         events.publish(
@@ -313,7 +327,13 @@ internal class DefaultVersioningService(
             )
         }
         // Re-validate: definitions may have changed since check-out (e.g. a newly required attribute).
-        val attributes = attributeValidator.validate(actor, master.typeId, workingCopy.attributes, basedOn(workingCopy))
+        val validated = attributeValidator.validate(actor, master.typeId, workingCopy.attributes, basedOn(workingCopy))
+        val attributes =
+            calculations.apply(
+                actor,
+                master.facts(workingCopy, validated).copy(checkedOut = false),
+                basedOn(workingCopy),
+            )
         enforceRules(
             actor,
             master.facts(workingCopy, attributes).copy(checkedOut = false),

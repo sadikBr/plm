@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
+import { ExpressionField } from "../components/ExpressionField";
 import type { AttributeDefinition, Attributes, DataType } from "../api/queries";
 import { AttributeForm, pickLabel } from "../components/AttributeForm";
 import { Dialog, ErrorBanner } from "../components/common";
@@ -35,12 +36,14 @@ export function dataTypeLabel(a: AttributeDefinition): string {
 
 export function constraintSummary(a: AttributeDefinition): string {
   const parts: string[] = [];
+  if (a.formula) parts.push(`Calculated: ${a.formula}`);
   if (a.required) parts.push("Required");
   if (a.immutable) parts.push("Fixed after creation");
   if (a.minLength != null || a.maxLength != null) parts.push(`Length ${a.minLength ?? 0}–${a.maxLength ?? "∞"}`);
   if (a.pattern) parts.push(`Pattern ${a.pattern}`);
   if (a.minValue != null || a.maxValue != null) parts.push(`Range ${a.minValue ?? "−∞"} – ${a.maxValue ?? "∞"}`);
-  if (a.defaultValue != null) parts.push(`Default ${typeof a.defaultValue === "object" ? JSON.stringify(a.defaultValue) : String(a.defaultValue)}`);
+  if (a.defaultValue != null)
+    parts.push(`Default ${typeof a.defaultValue === "object" ? JSON.stringify(a.defaultValue) : String(a.defaultValue)}`);
   return parts.join(" · ");
 }
 
@@ -100,6 +103,8 @@ export function AttributeDialog({
   const [active, setActive] = useState(attribute?.active ?? true);
   const [dependsOn, setDependsOn] = useState(attribute?.dependsOn ?? "");
   const [valueFilter, setValueFilter] = useState<Record<string, string[]>>(attribute?.valueFilter ?? {});
+  const [calculated, setCalculated] = useState(!!attribute?.formula);
+  const [formula, setFormula] = useState(attribute?.formula ?? "");
   // Value lists it may depend on: single-value list attributes it lives with.
   const siblings = (isGlobal ? (globals ?? []).map((g) => g.attribute) : (typeAttributes ?? [])).filter(
     (a) => a.dataType === "ENUMERATION" && !a.multiValued && a.name !== (attribute?.name ?? "") && a.active,
@@ -149,18 +154,21 @@ export function AttributeDialog({
   const settings = {
     labels: { ...(attribute?.labels ?? {}), en: label.trim() },
     description: description.trim() || null,
-    required,
-    immutable,
+    // A calculated attribute's value comes from its formula: it can't be required, fixed or defaulted.
+    required: calculated ? false : required,
+    immutable: calculated ? false : immutable,
+    formula: calculated ? formula.trim() || null : null,
     minLength: TEXTUAL.has(dataType) ? intOrNull(minLength) : null,
     maxLength: TEXTUAL.has(dataType) || dataType === "URL" ? intOrNull(maxLength) : null,
     pattern: TEXTUAL.has(dataType) ? pattern.trim() || null : null,
     minValue: NUMERIC.has(dataType) ? numberOrNull(minValue) : null,
     maxValue: NUMERIC.has(dataType) ? numberOrNull(maxValue) : null,
     displayUnit: dataType === "QUANTITY" ? displayUnit || null : null,
-    defaultValue: defaultValue ?? null,
+    defaultValue: calculated ? null : (defaultValue ?? null),
     sortOrder: attribute?.sortOrder ?? 0,
     dependsOn: dataType === "ENUMERATION" && dependsOn ? dependsOn : null,
-    valueFilter: dataType === "ENUMERATION" && dependsOn ? Object.fromEntries(Object.entries(valueFilter).filter(([, v]) => v.length > 0)) : null,
+    valueFilter:
+      dataType === "ENUMERATION" && dependsOn ? Object.fromEntries(Object.entries(valueFilter).filter(([, v]) => v.length > 0)) : null,
   };
 
   const submit = (e: FormEvent) => {
@@ -198,7 +206,12 @@ export function AttributeDialog({
           <button className="btn" type="button" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn primary" type="submit" form="attribute-form" disabled={mutation.isPending || !label.trim() || !effectiveName}>
+          <button
+            className="btn primary"
+            type="submit"
+            form="attribute-form"
+            disabled={mutation.isPending || !label.trim() || !effectiveName}
+          >
             {editing ? "Save" : "Add attribute"}
           </button>
         </>
@@ -240,7 +253,12 @@ export function AttributeDialog({
           </div>
           <div className="field wide">
             <label htmlFor="attr-description">Description</label>
-            <input id="attr-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Shown as help next to the field" />
+            <input
+              id="attr-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Shown as help next to the field"
+            />
           </div>
           <div className="field">
             <label htmlFor="attr-type">Data type</label>
@@ -255,7 +273,12 @@ export function AttributeDialog({
           <div className="field">
             <span className="label-spacer" aria-hidden />
             <label className="check">
-              <input type="checkbox" checked={multiValued} disabled={editing || dataType === "BOOLEAN"} onChange={(e) => setMultiValued(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={multiValued}
+                disabled={editing || dataType === "BOOLEAN"}
+                onChange={(e) => setMultiValued(e.target.checked)}
+              />
               Several values
             </label>
           </div>
@@ -325,21 +348,56 @@ export function AttributeDialog({
                 ))}
               </select>
             </div>
-            {parent && <DependencyMatrix parent={parent} childListId={enumerationId} value={valueFilter} onChange={setValueFilter} lists={lists ?? []} />}
+            {parent && (
+              <DependencyMatrix
+                parent={parent}
+                childListId={enumerationId}
+                value={valueFilter}
+                onChange={setValueFilter}
+                lists={lists ?? []}
+              />
+            )}
+          </fieldset>
+        )}
+
+        {!multiValued && dataType !== "ENUMERATION" && (
+          <fieldset className="attr-group">
+            <legend className="section-label">Value</legend>
+            <div className="attr-form">
+              <label className="check wide">
+                <input type="checkbox" checked={calculated} onChange={(e) => setCalculated(e.target.checked)} />
+                Calculated: a formula computes the value whenever the object is saved; users can't change it
+              </label>
+              {calculated && (
+                <ExpressionField
+                  id="attr-formula"
+                  label="Formula"
+                  kind="VALUE"
+                  value={formula}
+                  onChange={setFormula}
+                  placeholder="double(object.attributes.quantity) * object.attributes.unitCost"
+                  hint="Its result becomes the value; if it fails (a value it needs is empty), the attribute is left empty."
+                />
+              )}
+            </div>
           </fieldset>
         )}
 
         <fieldset className="attr-group">
           <legend className="section-label">Rules</legend>
           <div className="attr-form cols-2">
-            <label className="check">
-              <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} />
-              Required
-            </label>
-            <label className="check">
-              <input type="checkbox" checked={immutable} onChange={(e) => setImmutable(e.target.checked)} />
-              Fixed once the object is created
-            </label>
+            {!calculated && (
+              <>
+                <label className="check">
+                  <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} />
+                  Required
+                </label>
+                <label className="check">
+                  <input type="checkbox" checked={immutable} onChange={(e) => setImmutable(e.target.checked)} />
+                  Fixed once the object is created
+                </label>
+              </>
+            )}
             {TEXTUAL.has(dataType) && (
               <>
                 <div className="field">
@@ -375,7 +433,7 @@ export function AttributeDialog({
               </>
             )}
           </div>
-          {(dataType !== "ENUMERATION" || enumerationId) && (dataType !== "QUANTITY" || dimension) && (
+          {!calculated && (dataType !== "ENUMERATION" || enumerationId) && (dataType !== "QUANTITY" || dimension) && (
             <AttributeForm
               idPrefix="attr-default"
               definitions={[preview]}
@@ -434,7 +492,7 @@ function DependencyMatrix({
             <tr key={p.key}>
               <th scope="row">
                 {pickLabel(p.labels, p.key)}
-                {!(value[p.key]?.length) && <span className="muted"> · all</span>}
+                {!value[p.key]?.length && <span className="muted"> · all</span>}
               </th>
               {childValues.map((c) => (
                 <td key={c.key}>

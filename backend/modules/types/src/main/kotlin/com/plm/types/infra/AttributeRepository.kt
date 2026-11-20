@@ -58,6 +58,7 @@ internal class AttributeRepository(
                 active = rs.getBoolean("active"),
                 system = rs.getBoolean("system"),
                 dependsOn = rs.getString("depends_on"),
+                formula = rs.getString("formula"),
                 valueFilter = rs.getString("value_filter")?.let { json.readValue(it, filterType) },
                 global = rs.getBoolean("global"),
             )
@@ -184,11 +185,11 @@ internal class AttributeRepository(
                     insert into attribute_def
                         (id, tenant_id, type_id, name, labels, description, data_type, multi_valued, required,
                          immutable, min_length, max_length, pattern, min_value, max_value, enumeration_id, dimension,
-                         display_unit, default_value, sort_order, active, system, depends_on, value_filter, global)
+                         display_unit, default_value, sort_order, active, system, depends_on, value_filter, global, formula)
                     values (:id, :tenant, :type, :name, cast(:labels as jsonb), :description, :dataType, :multi,
                             :required, :immutable, :minLength, :maxLength, :pattern, :minValue, :maxValue,
                             :enumeration, :dimension, :displayUnit, cast(:defaultValue as jsonb), :sortOrder,
-                            :active, false, :dependsOn, cast(:valueFilter as jsonb), :global)
+                            :active, false, :dependsOn, cast(:valueFilter as jsonb), :global, :formula)
                     """,
                 ).params(columns(def))
                 .param("tenant", tenant.value)
@@ -218,7 +219,7 @@ internal class AttributeRepository(
                     immutable = :immutable, min_length = :minLength, max_length = :maxLength, pattern = :pattern,
                     min_value = :minValue, max_value = :maxValue, display_unit = :displayUnit,
                     default_value = cast(:defaultValue as jsonb), sort_order = :sortOrder, active = :active,
-                    depends_on = :dependsOn, value_filter = cast(:valueFilter as jsonb)
+                    depends_on = :dependsOn, value_filter = cast(:valueFilter as jsonb), formula = :formula
                 where id = :id
                 """,
             ).params(columns(def))
@@ -230,6 +231,7 @@ internal class AttributeRepository(
             "id" to def.id.value,
             "labels" to json.writeValueAsString(def.labels),
             "dependsOn" to def.dependsOn,
+            "formula" to def.formula,
             "valueFilter" to def.valueFilter?.let { json.writeValueAsString(it) },
             "description" to def.description,
             "required" to def.required,

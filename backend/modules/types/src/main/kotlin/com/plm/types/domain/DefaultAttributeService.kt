@@ -6,6 +6,8 @@ import com.plm.platform.error.ForbiddenException
 import com.plm.platform.error.NotFoundException
 import com.plm.platform.error.ValidationException
 import com.plm.platform.events.DomainEvents
+import com.plm.platform.expression.ExpressionKind
+import com.plm.platform.expression.Expressions
 import com.plm.platform.id.UuidV7
 import com.plm.types.api.AttributeDefined
 import com.plm.types.api.AttributeDefinition
@@ -292,6 +294,14 @@ internal class DefaultAttributeService(
     ): List<String> {
         val errors = mutableListOf<String>()
         errors += dependencyErrors(actor, def, siblings)
+        def.formula?.let { formula ->
+            Expressions.check(formula, ExpressionKind.VALUE).firstOrNull()?.let { errors += "formula: ${it.message}" }
+            if (def.required || def.immutable || def.defaultValue != null || def.multiValued || def.dependsOn != null) {
+                errors +=
+                    "A calculated attribute can't be required, immutable, multi-valued, dependent or have a default: " +
+                    "its value comes from the formula"
+            }
+        }
         if (def.labels["en"].isNullOrBlank()) errors += "An English label (labels.en) is required"
         if (def.labels.values.any { it.length > 200 }) errors += "Labels must be at most 200 characters"
 
@@ -461,6 +471,7 @@ private fun AttributeSettings.applyTo(def: AttributeDefinition) =
         active = active,
         dependsOn = dependsOn?.trim()?.ifEmpty { null },
         valueFilter = valueFilter?.takeIf { it.isNotEmpty() },
+        formula = formula?.trim()?.ifEmpty { null },
     )
 
 private fun AttributeDefinition.settingsMap(): Map<String, Any?> =
@@ -476,6 +487,7 @@ private fun AttributeDefinition.settingsMap(): Map<String, Any?> =
         "maxValue" to maxValue?.toPlainString(),
         "displayUnit" to displayUnit,
         "defaultValue" to defaultValue,
+        "formula" to formula,
         "sortOrder" to sortOrder,
         "active" to active,
         "dependsOn" to dependsOn,

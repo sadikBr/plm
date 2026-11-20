@@ -202,4 +202,24 @@ describe("Dependent value lists", () => {
     expect(within(select).getByRole("option", { name: "Buy" })).toBeInTheDocument();
     expect(within(select).queryByRole("option", { name: "Make" })).not.toBeInTheDocument();
   });
+
+  it("shows calculated attributes as read-only values", () => {
+    fakeApi(attributeRoutes);
+    const total = {
+      ...defs.find((d) => d.dataType === "STRING")!,
+      name: "total",
+      labels: { en: "Total" },
+      formula: "1 + 1",
+      required: false,
+    };
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <AttributeForm definitions={[total]} values={{ total: "2" }} onChange={() => {}} />
+      </QueryClientProvider>,
+    );
+    const output = screen.getByLabelText("Total");
+    expect(output.tagName).toBe("OUTPUT");
+    expect(output).toHaveTextContent("2Calculated");
+    expect(screen.queryByRole("textbox", { name: "Total" })).not.toBeInTheDocument();
+  });
 });

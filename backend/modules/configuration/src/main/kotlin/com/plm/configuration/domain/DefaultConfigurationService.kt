@@ -905,6 +905,7 @@ internal class DefaultConfigurationService(
         "active" to (d.active to a.active),
         "dependsOn" to (d.dependsOn to a.dependsOn),
         "valueFilter" to (d.valueFilter to a.valueFilter),
+        "formula" to (d.formula to a.formula),
     )
 }
 
@@ -936,6 +937,7 @@ private fun AttributeConfig.settings() =
         active = active,
         dependsOn = dependsOn,
         valueFilter = valueFilter,
+        formula = formula,
     )
 
 private fun TypeConfig.properties() = TypeProperties(displayName, description, labels, icon, instantiable)
@@ -962,6 +964,7 @@ private fun AttributeDefinition.toConfig(enumNames: Map<com.plm.types.api.Enumer
         active = active,
         dependsOn = dependsOn,
         valueFilter = valueFilter,
+        formula = formula,
     )
 
 private fun LifecycleConfig.toCommand() =

@@ -28,11 +28,19 @@ export function fieldErrors(error: unknown): Record<string, string> {
   return Object.fromEntries(list.map((e) => [e.attribute, e.message]));
 }
 
+/** A calculated value as text; empty until the object is saved (or when its formula has no result). */
+function formatCalculated(value: unknown): string {
+  if (value == null) return "Computed when saved";
+  if (typeof value === "object" && value && "value" in value) {
+    const q = value as { value: unknown; unit?: string };
+    return `${String(q.value)} ${q.unit ?? ""}`.trim();
+  }
+  return String(value);
+}
+
 /** Values to start a create form with: each attribute's default. */
 export function defaultValues(definitions: AttributeDefinition[]): Attributes {
-  return Object.fromEntries(
-    definitions.filter((d) => d.active && d.defaultValue != null).map((d) => [d.name, d.defaultValue]),
-  );
+  return Object.fromEntries(definitions.filter((d) => d.active && d.defaultValue != null).map((d) => [d.name, d.defaultValue]));
 }
 
 interface Quantity {
@@ -40,8 +48,7 @@ interface Quantity {
   unit: string;
 }
 
-const isQuantity = (v: unknown): v is Quantity =>
-  typeof v === "object" && v !== null && "value" in v && "unit" in v;
+const isQuantity = (v: unknown): v is Quantity => typeof v === "object" && v !== null && "value" in v && "unit" in v;
 
 /** ISO instant ⇄ the local "YYYY-MM-DDTHH:mm" an <input type="datetime-local"> uses. */
 export function toLocalInput(iso: unknown): string {
@@ -59,11 +66,7 @@ export function fromLocalInput(local: string): string | undefined {
 }
 
 /** Human-readable value, with enumeration labels and units. */
-export function formatAttribute(
-  def: AttributeDefinition | undefined,
-  value: unknown,
-  enumerations?: Map<string, Enumeration>,
-): string {
+export function formatAttribute(def: AttributeDefinition | undefined, value: unknown, enumerations?: Map<string, Enumeration>): string {
   if (value === null || value === undefined) return "—";
   if (Array.isArray(value)) return value.map((v) => formatAttribute(def, v, enumerations)).join(", ");
   if (isQuantity(value)) return `${value.value} ${value.unit}`;
@@ -199,7 +202,11 @@ export function AttributeForm({
           // The asterisk stays outside the label: the input's `required` attribute is what assistive tech announces.
           <div className="label-row">
             <label htmlFor={id}>{pickLabel(def.labels, def.name)}</label>
-            {def.required && <span aria-hidden className="required">*</span>}
+            {def.required && (
+              <span aria-hidden className="required">
+                *
+              </span>
+            )}
             {def.description && (
               <span title={def.description} className="info">
                 <Info size={12} aria-hidden />
@@ -212,15 +219,23 @@ export function AttributeForm({
             {def.description}
           </span>
         )}
-        <Input
-          id={id}
-          def={def}
-          value={values[def.name]}
-          onChange={(v) => set(def.name, v)}
-          enumeration={def.enumerationId ? allowedValues(def, enumerations?.get(def.enumerationId), values) : undefined}
-          units={units ?? []}
-          invalid={!!error}
-        />
+        {def.formula ? (
+          // Calculated: the server computes it on save, so it's shown, not edited.
+          <output id={id} className="calc-value" title={`Calculated: ${def.formula}`}>
+            {formatCalculated(values[def.name])}
+            <span className="tag">Calculated</span>
+          </output>
+        ) : (
+          <Input
+            id={id}
+            def={def}
+            value={values[def.name]}
+            onChange={(v) => set(def.name, v)}
+            enumeration={def.enumerationId ? allowedValues(def, enumerations?.get(def.enumerationId), values) : undefined}
+            units={units ?? []}
+            invalid={!!error}
+          />
+        )}
         {error && (
           <span className="field-error" role="alert">
             {error}

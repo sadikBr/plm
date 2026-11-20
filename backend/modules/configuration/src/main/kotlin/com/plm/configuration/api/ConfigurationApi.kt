@@ -156,6 +156,8 @@ data class AttributeConfig(
     val active: Boolean = true,
     val dependsOn: String? = null,
     val valueFilter: Map<String, List<String>>? = null,
+    /** Calculated attribute: its CEL formula. */
+    val formula: String? = null,
 )
 
 /** Null fields inherit from the parent type. */
