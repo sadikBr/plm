@@ -13,9 +13,13 @@ data class ConfigBundle(
     /** `plm-config/1`. Bundles with another format are refused. */
     val format: String = FORMAT,
     val teamRoles: List<TeamRoleConfig> = emptyList(),
+    /** Units added by administrators (the out-of-the-box ones exist everywhere). */
+    val units: List<UnitConfig> = emptyList(),
     val enumerations: List<EnumerationConfig> = emptyList(),
     val numberingSchemes: List<NumberingSchemeConfig> = emptyList(),
     val lifecycles: List<LifecycleConfig> = emptyList(),
+    /** Attributes defined once and used by several types (see [TypeConfig.globalAttributes]). */
+    val globalAttributes: List<AttributeConfig> = emptyList(),
     /** Parents before children. Includes the out-of-the-box base types, matched by name. */
     val types: List<TypeConfig> = emptyList(),
     /** Site-wide templates for new organizations, products, libraries and projects (organizations' own templates stay with them). */
@@ -34,6 +38,14 @@ data class ContextTemplateConfig(
     val content: com.plm.access.api.TemplateContent =
         com.plm.access.api
             .TemplateContent(),
+)
+
+data class UnitConfig(
+    val code: String,
+    val dimension: String,
+    val labels: Map<String, String>,
+    val factor: BigDecimal,
+    val offset: BigDecimal = BigDecimal.ZERO,
 )
 
 data class TeamRoleConfig(
@@ -92,6 +104,13 @@ data class TypeConfig(
     /** Parent type name; null for base types. */
     val parent: String? = null,
     val baseClass: String,
+    val description: String? = null,
+    /** Translations of the display name. */
+    val labels: Map<String, String> = emptyMap(),
+    val icon: String? = null,
+    val instantiable: Boolean = true,
+    /** Names of the global attributes this type uses itself. */
+    val globalAttributes: List<String> = emptyList(),
     /** Attributes defined on this type (inherited ones are on its ancestors). */
     val attributes: List<AttributeConfig> = emptyList(),
     /** This type's own rule overrides; null: none (the type inherits all its rules). */
@@ -123,6 +142,8 @@ data class AttributeConfig(
     val defaultValue: Any? = null,
     val sortOrder: Int = 0,
     val active: Boolean = true,
+    val dependsOn: String? = null,
+    val valueFilter: Map<String, List<String>>? = null,
 )
 
 /** Null fields inherit from the parent type. */

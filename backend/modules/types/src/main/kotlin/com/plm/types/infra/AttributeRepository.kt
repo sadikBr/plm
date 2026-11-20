@@ -26,6 +26,7 @@ internal class AttributeRepository(
 ) {
     private val json = JsonMapper.builder().build()
     private val labelsType = object : TypeReference<Map<String, String>>() {}
+    private val filterType = object : TypeReference<Map<String, List<String>>>() {}
 
     private fun ResultSet.labels(column: String): Labels = json.readValue(getString(column), labelsType)
 
@@ -35,7 +36,8 @@ internal class AttributeRepository(
         RowMapper { rs, _ ->
             AttributeDefinition(
                 id = AttributeId(rs.getObject("id", UUID::class.java)),
-                typeId = TypeId(rs.getObject("type_id", UUID::class.java)),
+                // owner_type: the type a definition applies to (for a global one, the type using it).
+                typeId = rs.getObject("owner_type", UUID::class.java)?.let(::TypeId) ?: TypeId.GLOBAL,
                 name = rs.getString("name"),
                 labels = rs.labels("labels"),
                 description = rs.getString("description"),
@@ -55,6 +57,9 @@ internal class AttributeRepository(
                 sortOrder = rs.getInt("sort_order"),
                 active = rs.getBoolean("active"),
                 system = rs.getBoolean("system"),
+                dependsOn = rs.getString("depends_on"),
+                valueFilter = rs.getString("value_filter")?.let { json.readValue(it, filterType) },
+                global = rs.getBoolean("global"),
             )
         }
 
@@ -103,18 +108,65 @@ internal class AttributeRepository(
     fun definitionsOf(types: List<TypeId>): List<AttributeDefinition> {
         if (types.isEmpty()) return emptyList()
         return jdbc
-            .sql("select * from attribute_def where type_id in (:types)")
-            .param("types", types.map { it.value })
+            .sql(
+                """
+                select d.*, d.type_id as owner_type from attribute_def d where d.type_id in (:types)
+                union all
+                select d.*, u.type_id as owner_type from attribute_def d
+                join attribute_usage u on u.attribute_id = d.id
+                where u.type_id in (:types)
+                """,
+            ).param("types", types.map { it.value })
             .query(definitionMapper)
             .list()
     }
+
+    /** Global attributes' own definitions (typeId = [TypeId.GLOBAL]). */
+    fun globals(tenant: TenantId): List<AttributeDefinition> =
+        jdbc
+            .sql(
+                "select d.*, null::uuid as owner_type from attribute_def d where d.tenant_id = :tenant and d.global order by d.name",
+            ).param("tenant", tenant.value)
+            .query(definitionMapper)
+            .list()
+
+    fun usages(attribute: AttributeId): List<TypeId> =
+        jdbc
+            .sql("select type_id from attribute_usage where attribute_id = :id order by added_at")
+            .param("id", attribute.value)
+            .query { rs, _ -> TypeId(rs.getObject("type_id", UUID::class.java)) }
+            .list()
+
+    fun attach(
+        tenant: TenantId,
+        attribute: AttributeId,
+        type: TypeId,
+    ) {
+        jdbc
+            .sql(
+                "insert into attribute_usage (attribute_id, type_id, tenant_id) values (:a, :t, :tenant) on conflict do nothing",
+            ).param("a", attribute.value)
+            .param("t", type.value)
+            .param("tenant", tenant.value)
+            .update()
+    }
+
+    fun detach(
+        attribute: AttributeId,
+        type: TypeId,
+    ): Int =
+        jdbc
+            .sql("delete from attribute_usage where attribute_id = :a and type_id = :t")
+            .param("a", attribute.value)
+            .param("t", type.value)
+            .update()
 
     fun findDefinition(
         tenant: TenantId,
         id: AttributeId,
     ): AttributeDefinition? =
         jdbc
-            .sql("select * from attribute_def where tenant_id = :tenant and id = :id")
+            .sql("select d.*, d.type_id as owner_type from attribute_def d where d.tenant_id = :tenant and d.id = :id")
             .param("tenant", tenant.value)
             .param("id", id.value)
             .query(definitionMapper)
@@ -132,15 +184,16 @@ internal class AttributeRepository(
                     insert into attribute_def
                         (id, tenant_id, type_id, name, labels, description, data_type, multi_valued, required,
                          immutable, min_length, max_length, pattern, min_value, max_value, enumeration_id, dimension,
-                         display_unit, default_value, sort_order, active, system)
+                         display_unit, default_value, sort_order, active, system, depends_on, value_filter, global)
                     values (:id, :tenant, :type, :name, cast(:labels as jsonb), :description, :dataType, :multi,
                             :required, :immutable, :minLength, :maxLength, :pattern, :minValue, :maxValue,
                             :enumeration, :dimension, :displayUnit, cast(:defaultValue as jsonb), :sortOrder,
-                            :active, false)
+                            :active, false, :dependsOn, cast(:valueFilter as jsonb), :global)
                     """,
                 ).params(columns(def))
                 .param("tenant", tenant.value)
-                .param("type", def.typeId.value)
+                .param("type", if (def.global) null else def.typeId.value)
+                .param("global", def.global)
                 .param("name", def.name)
                 .param("dataType", def.dataType.name)
                 .param("multi", def.multiValued)
@@ -164,7 +217,8 @@ internal class AttributeRepository(
                     labels = cast(:labels as jsonb), description = :description, required = :required,
                     immutable = :immutable, min_length = :minLength, max_length = :maxLength, pattern = :pattern,
                     min_value = :minValue, max_value = :maxValue, display_unit = :displayUnit,
-                    default_value = cast(:defaultValue as jsonb), sort_order = :sortOrder, active = :active
+                    default_value = cast(:defaultValue as jsonb), sort_order = :sortOrder, active = :active,
+                    depends_on = :dependsOn, value_filter = cast(:valueFilter as jsonb)
                 where id = :id
                 """,
             ).params(columns(def))
@@ -175,6 +229,8 @@ internal class AttributeRepository(
         mapOf(
             "id" to def.id.value,
             "labels" to json.writeValueAsString(def.labels),
+            "dependsOn" to def.dependsOn,
+            "valueFilter" to def.valueFilter?.let { json.writeValueAsString(it) },
             "description" to def.description,
             "required" to def.required,
             "immutable" to def.immutable,
@@ -287,6 +343,36 @@ internal class AttributeRepository(
                     labels = rs.labels("labels"),
                     factor = rs.getBigDecimal("factor"),
                     offset = rs.getBigDecimal("offset"),
+                    system = rs.getBoolean("system"),
                 )
             }.list()
+
+    fun insertUnit(
+        tenant: TenantId,
+        unit: UnitOfMeasure,
+    ) {
+        try {
+            jdbc
+                .sql(
+                    """
+                    insert into unit_of_measure (tenant_id, code, dimension, labels, factor, "offset", system)
+                    values (:tenant, :code, :dimension, cast(:labels as jsonb), :factor, :offset, false)
+                    """,
+                ).param("tenant", tenant.value)
+                .param("code", unit.code)
+                .param("dimension", unit.dimension)
+                .param("labels", json.writeValueAsString(unit.labels))
+                .param("factor", unit.factor)
+                .param("offset", unit.offset)
+                .update()
+        } catch (e: DuplicateKeyException) {
+            throw ConflictException(
+                "DUPLICATE_UNIT",
+                "A unit '${unit.code}' already exists",
+                mapOf("code" to unit.code),
+            ).apply {
+                initCause(e)
+            }
+        }
+    }
 }

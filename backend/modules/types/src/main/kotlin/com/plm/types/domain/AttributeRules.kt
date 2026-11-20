@@ -100,6 +100,25 @@ internal class AttributeRules(
             }
             if (normalized != null) out[def.name] = normalized
         }
+        // Dependent value lists: the parent's value decides which values are allowed.
+        for (def in definitions) {
+            val filter = def.valueFilter ?: continue
+            val parentValue = out[def.dependsOn ?: continue] as? String ?: continue
+            val allowed = filter[parentValue] ?: continue
+            val chosen = (out[def.name] as? List<*>) ?: listOfNotNull(out[def.name])
+            val refused = chosen.filter { it !in allowed }
+            if (refused.isNotEmpty() && errors.none { it.attribute == def.name }) {
+                val parent = byName[def.dependsOn]
+                errors +=
+                    FieldError(
+                        def.name,
+                        "NOT_ALLOWED_FOR_PARENT",
+                        "${refused.joinToString()} is not allowed for ${label(
+                            def,
+                        )} when ${parent?.let(::label) ?: def.dependsOn} is $parentValue",
+                    )
+            }
+        }
         return ValidationResult(out, errors)
     }
 

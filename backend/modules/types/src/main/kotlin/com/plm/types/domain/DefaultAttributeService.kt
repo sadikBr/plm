@@ -1,6 +1,7 @@
 package com.plm.types.domain
 
 import com.plm.platform.actor.Actor
+import com.plm.platform.error.ConflictException
 import com.plm.platform.error.ForbiddenException
 import com.plm.platform.error.NotFoundException
 import com.plm.platform.error.ValidationException
@@ -15,6 +16,7 @@ import com.plm.types.api.AttributeUpdated
 import com.plm.types.api.AttributeValidator
 import com.plm.types.api.DataType
 import com.plm.types.api.DefineAttribute
+import com.plm.types.api.GlobalAttribute
 import com.plm.types.api.TypeId
 import com.plm.types.infra.AttributeRepository
 import org.springframework.stereotype.Service
@@ -112,7 +114,7 @@ internal class DefaultAttributeService(
         if (related.any { it.name.equals(name, ignoreCase = true) }) {
             errors += "An attribute named '$name' already exists on this type, a parent type or a subtype"
         }
-        errors += definitionErrors(actor, def)
+        errors += definitionErrors(actor, def, repository.definitionsOf(lineage))
         failIfAny(errors)
 
         repository.insertDefinition(actor.tenant, def)
@@ -136,7 +138,15 @@ internal class DefaultAttributeService(
                     ),
                 )
         val after = settings.applyTo(before)
-        failIfAny(definitionErrors(actor, after))
+        val siblings =
+            if (before.global) {
+                repository.globals(
+                    actor.tenant,
+                )
+            } else {
+                repository.definitionsOf(lineage(actor, before.typeId))
+            }
+        failIfAny(definitionErrors(actor, after, siblings))
         repository.updateDefinition(after)
         events.publish(
             actor,
@@ -145,12 +155,143 @@ internal class DefaultAttributeService(
         return after
     }
 
-    /** Whether the constraints fit the data type and refer to things that exist. */
+    @Transactional(readOnly = true)
+    override fun globals(actor: Actor): List<GlobalAttribute> =
+        repository.globals(actor.tenant).map { GlobalAttribute(it, repository.usages(it.id)) }
+
+    override fun defineGlobal(
+        actor: Actor,
+        command: DefineAttribute,
+    ): AttributeDefinition {
+        requireAdmin(actor)
+        val name = command.name.trim()
+        val def =
+            command.settings.applyTo(
+                AttributeDefinition(
+                    id = AttributeId(UuidV7.generate()),
+                    typeId = TypeId.GLOBAL,
+                    name = name,
+                    labels = emptyMap(),
+                    description = null,
+                    dataType = command.dataType,
+                    multiValued = command.multiValued,
+                    required = false,
+                    immutable = false,
+                    minLength = null,
+                    maxLength = null,
+                    pattern = null,
+                    minValue = null,
+                    maxValue = null,
+                    enumerationId = command.enumerationId,
+                    dimension = command.dimension?.trim()?.uppercase(),
+                    displayUnit = null,
+                    defaultValue = null,
+                    sortOrder = 0,
+                    active = true,
+                    system = false,
+                    global = true,
+                ),
+            )
+        val errors = mutableListOf<String>()
+        if (!ATTRIBUTE_NAME.matches(name)) {
+            errors += "Name must be camelCase: start with a lowercase letter, then letters and digits (max 63)"
+        }
+        val globals = repository.globals(actor.tenant)
+        if (globals.any { it.name.equals(name, ignoreCase = true) }) {
+            errors +=
+                "A global attribute named '$name' already exists"
+        }
+        errors += definitionErrors(actor, def, globals)
+        failIfAny(errors)
+        repository.insertDefinition(actor.tenant, def)
+        events.publish(actor, AttributeDefined(def.id.value, TypeId.GLOBAL.value, def.name, def.dataType))
+        return def
+    }
+
+    override fun attachGlobal(
+        actor: Actor,
+        id: AttributeId,
+        typeId: TypeId,
+    ) {
+        requireAdmin(actor)
+        val def = global(actor, id)
+        val lineage = lineage(actor, typeId)
+        val related = repository.definitionsOf((lineage + repository.subtree(typeId)).distinct())
+        if (related.any { it.id == def.id }) {
+            throw ConflictException(
+                "ALREADY_USED",
+                "${def.name} is already used by this type, a parent type or a subtype",
+                mapOf("name" to def.name),
+            )
+        }
+        if (related.any { it.name.equals(def.name, ignoreCase = true) }) {
+            throw ConflictException(
+                "DUPLICATE_ATTRIBUTE_NAME",
+                "An attribute named '${def.name}' already exists on this type, a parent type or a subtype",
+                mapOf("name" to def.name),
+            )
+        }
+        repository.attach(actor.tenant, id, typeId)
+        events.publish(
+            actor,
+            AttributeUpdated(
+                def.id.value,
+                typeId.value,
+                def.name,
+                emptyMap(),
+                mapOf(
+                    "usedBy" to typeId.value,
+                ),
+            ),
+        )
+    }
+
+    override fun detachGlobal(
+        actor: Actor,
+        id: AttributeId,
+        typeId: TypeId,
+    ) {
+        requireAdmin(actor)
+        val def = global(actor, id)
+        if (repository.detach(id, typeId) == 0) {
+            throw NotFoundException(
+                "ATTRIBUTE_NOT_FOUND",
+                "${def.name} isn't used by that type",
+                mapOf(
+                    "attributeId" to id.value,
+                ),
+            )
+        }
+        events.publish(
+            actor,
+            AttributeUpdated(def.id.value, typeId.value, def.name, mapOf("usedBy" to typeId.value), emptyMap()),
+        )
+    }
+
+    private fun global(
+        actor: Actor,
+        id: AttributeId,
+    ): AttributeDefinition =
+        repository.findDefinition(actor.tenant, id)?.takeIf { it.global }
+            ?: throw NotFoundException(
+                "ATTRIBUTE_NOT_FOUND",
+                "There is no global attribute $id",
+                mapOf(
+                    "attributeId" to id.value,
+                ),
+            )
+
+    /**
+     * Whether the constraints fit the data type and refer to things that exist. [siblings]: the
+     * attributes it lives with (its type's lineage, or the other globals), for dependent lists.
+     */
     private fun definitionErrors(
         actor: Actor,
         def: AttributeDefinition,
+        siblings: List<AttributeDefinition>,
     ): List<String> {
         val errors = mutableListOf<String>()
+        errors += dependencyErrors(actor, def, siblings)
         if (def.labels["en"].isNullOrBlank()) errors += "An English label (labels.en) is required"
         if (def.labels.values.any { it.length > 200 }) errors += "Labels must be at most 200 characters"
 
@@ -205,6 +346,50 @@ internal class DefaultAttributeService(
             rules(actor, listOf(def)).check(def, def.defaultValue)?.let { errors += "Default value: ${it.message}" }
         }
         return errors
+    }
+
+    private fun dependencyErrors(
+        actor: Actor,
+        def: AttributeDefinition,
+        siblings: List<AttributeDefinition>,
+    ): List<String> {
+        if (def.dependsOn == null) {
+            return if (def.valueFilter !=
+                null
+            ) {
+                listOf("A value filter needs dependsOn: the attribute it depends on")
+            } else {
+                emptyList()
+            }
+        }
+        if (def.dataType != DataType.ENUMERATION) return listOf("Only value-list attributes can depend on another one")
+        val parent = siblings.find { it.name == def.dependsOn && it.id != def.id }
+        if (parent == null || parent.dataType != DataType.ENUMERATION || parent.multiValued) {
+            return listOf(
+                "dependsOn must name a single-value value-list attribute of the same type (or, for a global one, another global)",
+            )
+        }
+        val ids = listOfNotNull(parent.enumerationId, def.enumerationId)
+        val lists = repository.enumerations(actor.tenant, ids).associateBy { it.id }
+        val parentKeys =
+            lists[parent.enumerationId]
+                ?.values
+                ?.map { it.key }
+                .orEmpty()
+                .toSet()
+        val ownKeys =
+            lists[def.enumerationId]
+                ?.values
+                ?.map { it.key }
+                .orEmpty()
+                .toSet()
+        return def.valueFilter.orEmpty().flatMap { (parentKey, allowed) ->
+            listOfNotNull("'$parentKey' is not a value of ${parent.name}".takeIf { parentKey !in parentKeys }) +
+                allowed
+                    .filter {
+                        it !in ownKeys
+                    }.map { "'$it' (allowed with $parentKey) is not a value of ${def.name}" }
+        }
     }
 
     private fun failIfAny(errors: List<String>) {
@@ -274,6 +459,8 @@ private fun AttributeSettings.applyTo(def: AttributeDefinition) =
         defaultValue = defaultValue,
         sortOrder = sortOrder,
         active = active,
+        dependsOn = dependsOn?.trim()?.ifEmpty { null },
+        valueFilter = valueFilter?.takeIf { it.isNotEmpty() },
     )
 
 private fun AttributeDefinition.settingsMap(): Map<String, Any?> =
@@ -291,4 +478,6 @@ private fun AttributeDefinition.settingsMap(): Map<String, Any?> =
         "defaultValue" to defaultValue,
         "sortOrder" to sortOrder,
         "active" to active,
+        "dependsOn" to dependsOn,
+        "valueFilter" to valueFilter,
     )

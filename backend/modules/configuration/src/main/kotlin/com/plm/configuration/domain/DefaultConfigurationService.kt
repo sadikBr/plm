@@ -25,6 +25,7 @@ import com.plm.configuration.api.PlannedChange
 import com.plm.configuration.api.TeamRoleConfig
 import com.plm.configuration.api.TypeConfig
 import com.plm.configuration.api.TypeRulesConfig
+import com.plm.configuration.api.UnitConfig
 import com.plm.lifecycle.api.CreateLifecycleTemplate
 import com.plm.lifecycle.api.LifecycleService
 import com.plm.lifecycle.api.LifecycleState
@@ -52,9 +53,11 @@ import com.plm.types.api.RevisionScheme
 import com.plm.types.api.SaveLayout
 import com.plm.types.api.TypeDefinition
 import com.plm.types.api.TypeId
+import com.plm.types.api.TypeProperties
 import com.plm.types.api.TypeRuleService
 import com.plm.types.api.TypeRuleSettings
 import com.plm.types.api.TypeService
+import com.plm.types.api.UnitOfMeasure
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.TransactionDefinition
@@ -93,8 +96,14 @@ internal class DefaultConfigurationService(
             val lifecycleList = lifecycles.list(actor)
             val lifecycleNames = lifecycleList.associate { l -> l.id to l.name }
             val ownLifecycles = lifecycles.assignments(actor)
+            val globalList = attributes.globals(actor).sortedBy { g -> g.definition.name }
 
             ConfigBundle(
+                units =
+                    enumerations.units(actor).filter { u -> !u.system }.sortedBy { u -> u.code }.map { u ->
+                        UnitConfig(u.code, u.dimension, u.labels.sorted(), u.factor, u.offset)
+                    },
+                globalAttributes = globalList.map { g -> g.definition.toConfig(enumNames) },
                 teamRoles =
                     roles.list(actor).sortedBy { r -> r.role.key }.map { r ->
                         TeamRoleConfig(r.role.key, r.labels.sorted(), r.description, r.active, r.sortOrder)
@@ -136,10 +145,19 @@ internal class DefaultConfigurationService(
                             displayName = t.displayName,
                             parent = t.parentId?.let(typeNames::getValue),
                             baseClass = t.baseClass.name,
+                            description = t.description,
+                            labels = t.labels.toSortedMap(),
+                            icon = t.icon,
+                            instantiable = t.instantiable,
+                            globalAttributes =
+                                globalList
+                                    .filter { g ->
+                                        t.id in g.usedBy
+                                    }.map { g -> g.definition.name },
                             attributes =
                                 attributes
                                     .effective(actor, t.id, includeInactive = true)
-                                    .filter { a -> a.typeId == t.id }
+                                    .filter { a -> a.typeId == t.id && !a.global }
                                     .map { a -> a.toConfig(enumNames) },
                             rules =
                                 if (ownKeys.isEmpty()) {
@@ -229,11 +247,14 @@ internal class DefaultConfigurationService(
 
         fun run(): List<PlannedChange> {
             importRoles()
+            importUnits()
             importEnumerations()
             importSchemes()
             importLifecycles()
+            importGlobals()
             val typeIds = importTypes()
             for (t in bundle.types) typeIds[t.name]?.let { importAttributes(t, it) }
+            for (t in bundle.types) typeIds[t.name]?.let { importGlobalUsages(t, it) }
             for (t in bundle.types) typeIds[t.name]?.let { importRules(t, it) }
             for (t in bundle.types) typeIds[t.name]?.let { importTypeLifecycle(t, it) }
             for (t in bundle.types) typeIds[t.name]?.let { importLayouts(t, it) }
@@ -445,16 +466,22 @@ internal class DefaultConfigurationService(
                                     "exists as a ${current.baseClass} type under ${parentName ?: "no parent"}; a type's place in the hierarchy can't change",
                                 ),
                             )
-                        current.displayName != t.displayName ->
+                        else -> {
+                            val diff =
+                                diff(
+                                    "displayName" to (current.displayName to t.displayName),
+                                    "description" to (current.description to t.description),
+                                    "labels" to (current.labels to t.labels),
+                                    "icon" to (current.icon to t.icon),
+                                    "instantiable" to (current.instantiable to t.instantiable),
+                                )
                             change(
                                 "type",
                                 t.name,
-                                ChangeAction.CONFLICT,
-                                listOf(
-                                    "display name differs (${current.displayName} → ${t.displayName}); renaming types isn't supported yet",
-                                ),
-                            )
-                        else -> change("type", t.name, ChangeAction.UNCHANGED)
+                                updateOrNot(diff),
+                                diff,
+                            ) { types.update(actor, current.id, t.properties()) }
+                        }
                     }
                     continue
                 }
@@ -472,7 +499,16 @@ internal class DefaultConfigurationService(
                 }
                 var created: TypeDefinition? = null
                 change("type", t.name, ChangeAction.CREATE, listOf("subtype of ${t.parent}")) {
-                    created = types.createSubtype(actor, CreateSubtype(parentId, t.name, t.displayName))
+                    created =
+                        types.createSubtype(actor, CreateSubtype(parentId, t.name, t.displayName)).let {
+                            if (t.properties() ==
+                                TypeProperties(t.displayName)
+                            ) {
+                                it
+                            } else {
+                                types.update(actor, it.id, t.properties())
+                            }
+                        }
                 }
                 created?.let {
                     ids[t.name] = it.id
@@ -480,6 +516,114 @@ internal class DefaultConfigurationService(
                 }
             }
             return ids
+        }
+
+        fun importUnits() {
+            val existing = enumerations.units(actor).associateBy { it.code }
+            for (u in bundle.units) {
+                val current = existing[u.code]
+                when {
+                    current == null ->
+                        change("unit", u.code, ChangeAction.CREATE) {
+                            enumerations.createUnit(
+                                actor,
+                                UnitOfMeasure(u.code, u.dimension, u.labels, u.factor, u.offset, system = false),
+                            )
+                        }
+                    current.dimension != u.dimension.uppercase() ||
+                        current.factor.compareTo(u.factor) != 0 ||
+                        current.offset.compareTo(u.offset) != 0 ->
+                        change(
+                            "unit",
+                            u.code,
+                            ChangeAction.CONFLICT,
+                            listOf(
+                                "exists with a different dimension or conversion; units can't change once values may use them",
+                            ),
+                        )
+                    else -> change("unit", u.code, ChangeAction.UNCHANGED)
+                }
+            }
+        }
+
+        fun importGlobals() {
+            val enumIds = enumerations.list(actor).associate { it.name to it.id }
+            val existing = attributes.globals(actor).associateBy { it.definition.name }
+            for (a in bundle.globalAttributes) {
+                val key = "global.${a.name}"
+                val dataType = runCatching { DataType.valueOf(a.dataType) }.getOrNull()
+                val enumerationId = a.enumeration?.let { enumIds[it] }
+                if (dataType == null || (a.enumeration != null && enumerationId == null)) {
+                    change("globalAttribute", key, ChangeAction.CONFLICT, listOf("unknown data type or value list"))
+                    continue
+                }
+                val current = existing[a.name]?.definition
+                if (current == null) {
+                    change("globalAttribute", key, ChangeAction.CREATE) {
+                        attributes.defineGlobal(
+                            actor,
+                            DefineAttribute(
+                                TypeId.GLOBAL,
+                                a.name,
+                                dataType,
+                                a.multiValued,
+                                enumerationId,
+                                a.dimension,
+                                a.settings(),
+                            ),
+                        )
+                    }
+                    continue
+                }
+                val fixed =
+                    diff(
+                        "dataType" to (current.dataType.name to a.dataType),
+                        "multiValued" to (current.multiValued to a.multiValued),
+                        "enumeration" to (current.enumerationId to enumerationId),
+                        "dimension" to (current.dimension to a.dimension?.uppercase()),
+                    )
+                if (fixed.isNotEmpty()) {
+                    change(
+                        "globalAttribute",
+                        key,
+                        ChangeAction.CONFLICT,
+                        fixed.map { "$it (can't change after definition)" },
+                    )
+                    continue
+                }
+                val diff = settingsDiff(current, a)
+                change(
+                    "globalAttribute",
+                    key,
+                    updateOrNot(diff),
+                    diff,
+                ) { attributes.update(actor, current.id, a.settings()) }
+            }
+        }
+
+        fun importGlobalUsages(
+            t: TypeConfig,
+            typeId: TypeId,
+        ) {
+            val globals = attributes.globals(actor).associateBy { it.definition.name }
+            for (name in t.globalAttributes) {
+                val key = "${t.name}.$name"
+                val global = globals[name]
+                when {
+                    global == null ->
+                        change(
+                            "globalAttributeUse",
+                            key,
+                            ChangeAction.CONFLICT,
+                            listOf("no global attribute '$name'"),
+                        )
+                    typeId in global.usedBy -> change("globalAttributeUse", key, ChangeAction.UNCHANGED)
+                    else ->
+                        change("globalAttributeUse", key, ChangeAction.CREATE) {
+                            attributes.attachGlobal(actor, global.definition.id, typeId)
+                        }
+                }
+            }
         }
 
         fun importAttributes(
@@ -715,6 +859,8 @@ internal class DefaultConfigurationService(
         "defaultValue" to (normalizeJson(d.defaultValue) to normalizeJson(a.defaultValue)),
         "sortOrder" to (d.sortOrder to a.sortOrder),
         "active" to (d.active to a.active),
+        "dependsOn" to (d.dependsOn to a.dependsOn),
+        "valueFilter" to (d.valueFilter to a.valueFilter),
     )
 }
 
@@ -744,7 +890,11 @@ private fun AttributeConfig.settings() =
         defaultValue = defaultValue,
         sortOrder = sortOrder,
         active = active,
+        dependsOn = dependsOn,
+        valueFilter = valueFilter,
     )
+
+private fun TypeConfig.properties() = TypeProperties(displayName, description, labels, icon, instantiable)
 
 private fun AttributeDefinition.toConfig(enumNames: Map<com.plm.types.api.EnumerationId, String>) =
     AttributeConfig(
@@ -766,6 +916,8 @@ private fun AttributeDefinition.toConfig(enumNames: Map<com.plm.types.api.Enumer
         defaultValue = defaultValue,
         sortOrder = sortOrder,
         active = active,
+        dependsOn = dependsOn,
+        valueFilter = valueFilter,
     )
 
 private fun LifecycleConfig.toCommand() =

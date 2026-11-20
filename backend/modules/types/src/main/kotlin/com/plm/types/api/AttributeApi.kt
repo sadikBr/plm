@@ -80,6 +80,15 @@ data class AttributeDefinition(
     val active: Boolean,
     /** Shipped out of the box: can be constrained or deactivated, never removed. */
     val system: Boolean,
+    /** For a dependent value list: the ENUMERATION attribute whose value decides the allowed values. */
+    val dependsOn: String? = null,
+    /** For a dependent value list: parent value key → allowed keys. Parent values not listed allow every value. */
+    val valueFilter: Map<String, List<String>>? = null,
+    /**
+     * A global attribute: defined once and used by several types. In a type's effective attributes,
+     * [typeId] is the type that uses it; on its own definition, [TypeId.GLOBAL].
+     */
+    val global: Boolean = false,
 )
 
 /** Settings that can change after an attribute is defined. Name, data type, multi-valued, enumeration and dimension cannot. */
@@ -97,6 +106,8 @@ data class AttributeSettings(
     val defaultValue: Any? = null,
     val sortOrder: Int = 0,
     val active: Boolean = true,
+    val dependsOn: String? = null,
+    val valueFilter: Map<String, List<String>>? = null,
 )
 
 data class DefineAttribute(
@@ -130,6 +141,8 @@ data class UnitOfMeasure(
     /** value in the base unit = value × factor + offset */
     val factor: BigDecimal,
     val offset: BigDecimal,
+    /** Shipped out of the box. */
+    val system: Boolean = true,
 )
 
 /**
@@ -157,7 +170,39 @@ interface AttributeService {
         id: AttributeId,
         settings: AttributeSettings,
     ): AttributeDefinition
+
+    /** Global attributes with the types that use them. */
+    fun globals(actor: Actor): List<GlobalAttribute>
+
+    /** Defines a global attribute ([DefineAttribute.typeId] is ignored). Site administrators only. */
+    fun defineGlobal(
+        actor: Actor,
+        command: DefineAttribute,
+    ): AttributeDefinition
+
+    /**
+     * Adds a global attribute to a type (and so its subtypes). Its name must be free along the type's
+     * hierarchy (`DUPLICATE_ATTRIBUTE_NAME`). Site administrators only.
+     */
+    fun attachGlobal(
+        actor: Actor,
+        id: AttributeId,
+        typeId: TypeId,
+    )
+
+    /** Values already stored stay with the objects, shown as values without a definition. */
+    fun detachGlobal(
+        actor: Actor,
+        id: AttributeId,
+        typeId: TypeId,
+    )
 }
+
+data class GlobalAttribute(
+    val definition: AttributeDefinition,
+    /** Types that use it directly (their subtypes inherit it). */
+    val usedBy: List<TypeId>,
+)
 
 /**
  * Validates attribute values against a type's definitions, applies defaults and normalizes
@@ -210,4 +255,15 @@ interface EnumerationService {
     ): Enumeration
 
     fun units(actor: Actor): List<UnitOfMeasure>
+
+    /**
+     * Adds a unit (site administrators). In an existing dimension it converts to that dimension's base
+     * unit with [UnitOfMeasure.factor] and [UnitOfMeasure.offset]; the first unit of a new dimension is
+     * its base unit (factor 1, offset 0). Units can't be changed or removed once stored values may use
+     * them. `INVALID_UNIT`, `DUPLICATE_UNIT`.
+     */
+    fun createUnit(
+        actor: Actor,
+        unit: UnitOfMeasure,
+    ): UnitOfMeasure
 }

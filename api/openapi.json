@@ -20,6 +20,9 @@
             "type" : "string"
           },
           "defaultValue" : { },
+          "dependsOn" : {
+            "type" : [ "string", "null" ]
+          },
           "description" : {
             "type" : [ "string", "null" ]
           },
@@ -70,6 +73,15 @@
           "sortOrder" : {
             "format" : "int32",
             "type" : "integer"
+          },
+          "valueFilter" : {
+            "additionalProperties" : {
+              "items" : {
+                "type" : "string"
+              },
+              "type" : "array"
+            },
+            "type" : [ "object", "null" ]
           }
         },
         "required" : [ "active", "dataType", "immutable", "labels", "multiValued", "name", "required", "sortOrder" ],
@@ -85,6 +97,9 @@
             "type" : "string"
           },
           "defaultValue" : { },
+          "dependsOn" : {
+            "type" : [ "string", "null" ]
+          },
           "description" : {
             "type" : [ "string", "null" ]
           },
@@ -97,6 +112,9 @@
           "enumerationId" : {
             "format" : "uuid",
             "type" : [ "string", "null" ]
+          },
+          "global" : {
+            "type" : "boolean"
           },
           "id" : {
             "format" : "uuid",
@@ -150,9 +168,18 @@
           "typeId" : {
             "format" : "uuid",
             "type" : "string"
+          },
+          "valueFilter" : {
+            "additionalProperties" : {
+              "items" : {
+                "type" : "string"
+              },
+              "type" : "array"
+            },
+            "type" : [ "object", "null" ]
           }
         },
-        "required" : [ "active", "dataType", "id", "immutable", "inherited", "labels", "multiValued", "name", "required", "sortOrder", "system", "typeId" ],
+        "required" : [ "active", "dataType", "global", "id", "immutable", "inherited", "labels", "multiValued", "name", "required", "sortOrder", "system", "typeId" ],
         "type" : "object"
       },
       "AttributeSettingsRequest" : {
@@ -161,6 +188,9 @@
             "type" : [ "boolean", "null" ]
           },
           "defaultValue" : { },
+          "dependsOn" : {
+            "type" : [ "string", "null" ]
+          },
           "description" : {
             "type" : [ "string", "null" ]
           },
@@ -199,6 +229,15 @@
           "sortOrder" : {
             "format" : "int32",
             "type" : [ "integer", "null" ]
+          },
+          "valueFilter" : {
+            "additionalProperties" : {
+              "items" : {
+                "type" : "string"
+              },
+              "type" : "array"
+            },
+            "type" : [ "object", "null" ]
           }
         },
         "required" : [ "labels" ],
@@ -277,6 +316,12 @@
           "format" : {
             "type" : "string"
           },
+          "globalAttributes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AttributeConfig"
+            },
+            "type" : "array"
+          },
           "lifecycles" : {
             "items" : {
               "$ref" : "#/components/schemas/LifecycleConfig"
@@ -300,9 +345,15 @@
               "$ref" : "#/components/schemas/TypeConfig"
             },
             "type" : "array"
+          },
+          "units" : {
+            "items" : {
+              "$ref" : "#/components/schemas/UnitConfig"
+            },
+            "type" : "array"
           }
         },
-        "required" : [ "contextTemplates", "enumerations", "format", "lifecycles", "numberingSchemes", "teamRoles", "types" ],
+        "required" : [ "contextTemplates", "enumerations", "format", "globalAttributes", "lifecycles", "numberingSchemes", "teamRoles", "types", "units" ],
         "type" : "object"
       },
       "ContextPreferenceResponse" : {
@@ -590,6 +641,30 @@
         "required" : [ "displayName", "name", "parentId" ],
         "type" : "object"
       },
+      "CreateUnitRequest" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "dimension" : {
+            "type" : "string"
+          },
+          "factor" : {
+            "type" : [ "number", "null" ]
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "offset" : {
+            "type" : [ "number", "null" ]
+          }
+        },
+        "required" : [ "code", "dimension", "labels" ],
+        "type" : "object"
+      },
       "DefineAttributeRequest" : {
         "properties" : {
           "dataType" : {
@@ -597,6 +672,9 @@
             "type" : "string"
           },
           "defaultValue" : { },
+          "dependsOn" : {
+            "type" : [ "string", "null" ]
+          },
           "description" : {
             "type" : [ "string", "null" ]
           },
@@ -648,6 +726,15 @@
           "sortOrder" : {
             "format" : "int32",
             "type" : [ "integer", "null" ]
+          },
+          "valueFilter" : {
+            "additionalProperties" : {
+              "items" : {
+                "type" : "string"
+              },
+              "type" : "array"
+            },
+            "type" : [ "object", "null" ]
           }
         },
         "required" : [ "dataType", "labels", "name" ],
@@ -814,6 +901,22 @@
           }
         },
         "required" : [ "contextId", "permissions", "principalId", "roles", "siteAdmin" ],
+        "type" : "object"
+      },
+      "GlobalAttributeResponse" : {
+        "properties" : {
+          "attribute" : {
+            "$ref" : "#/components/schemas/AttributeResponse"
+          },
+          "usedBy" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "attribute", "usedBy" ],
         "type" : "object"
       },
       "ImportPlanResponse" : {
@@ -1893,8 +1996,29 @@
           "baseClass" : {
             "type" : "string"
           },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
           "displayName" : {
             "type" : "string"
+          },
+          "globalAttributes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "instantiable" : {
+            "type" : "boolean"
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
           },
           "layouts" : {
             "items" : {
@@ -1919,7 +2043,31 @@
             } ]
           }
         },
-        "required" : [ "attributes", "baseClass", "displayName", "layouts", "name" ],
+        "required" : [ "attributes", "baseClass", "displayName", "globalAttributes", "instantiable", "labels", "layouts", "name" ],
+        "type" : "object"
+      },
+      "TypePropertiesRequest" : {
+        "properties" : {
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "instantiable" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : [ "object", "null" ]
+          }
+        },
+        "required" : [ "displayName" ],
         "type" : "object"
       },
       "TypeResponse" : {
@@ -1927,12 +2075,27 @@
           "baseClass" : {
             "type" : "string"
           },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
           "displayName" : {
             "type" : "string"
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
           },
           "id" : {
             "format" : "uuid",
             "type" : "string"
+          },
+          "instantiable" : {
+            "type" : "boolean"
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
           },
           "name" : {
             "type" : "string"
@@ -1942,7 +2105,7 @@
             "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "baseClass", "displayName", "id", "name" ],
+        "required" : [ "baseClass", "displayName", "id", "instantiable", "labels", "name" ],
         "type" : "object"
       },
       "TypeRuleRequest" : {
@@ -2003,7 +2166,7 @@
         "required" : [ "allowManualNumber", "inheritedFrom", "revisionScheme", "typeId" ],
         "type" : "object"
       },
-      "UnitResponse" : {
+      "UnitConfig" : {
         "properties" : {
           "code" : {
             "type" : "string"
@@ -2025,6 +2188,33 @@
           }
         },
         "required" : [ "code", "dimension", "factor", "labels", "offset" ],
+        "type" : "object"
+      },
+      "UnitResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "dimension" : {
+            "type" : "string"
+          },
+          "factor" : {
+            "type" : "number"
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "offset" : {
+            "type" : "number"
+          },
+          "system" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "code", "dimension", "factor", "labels", "offset", "system" ],
         "type" : "object"
       },
       "UpdatePolicyRequest" : {
@@ -2115,6 +2305,120 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
+    "/api/v1/attributes/global" : {
+      "get" : {
+        "operationId" : "globalAttributeList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/GlobalAttributeResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Global attribute" ]
+      },
+      "post" : {
+        "operationId" : "globalAttributeDefine",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DefineAttributeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AttributeResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Global attribute" ]
+      }
+    },
+    "/api/v1/attributes/global/{attributeId}" : {
+      "put" : {
+        "operationId" : "globalAttributeUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "attributeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttributeSettingsRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AttributeResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Global attribute" ]
+      }
+    },
     "/api/v1/audit" : {
       "get" : {
         "operationId" : "auditList",
@@ -5120,6 +5424,51 @@
           }
         },
         "tags" : [ "Type" ]
+      },
+      "put" : {
+        "operationId" : "typeUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TypePropertiesRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TypeResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Type" ]
       }
     },
     "/api/v1/types/{typeId}/attributes" : {
@@ -5268,6 +5617,80 @@
           }
         },
         "tags" : [ "Attribute" ]
+      }
+    },
+    "/api/v1/types/{typeId}/global-attributes/{attributeId}" : {
+      "delete" : {
+        "operationId" : "globalAttributeDetach",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "typeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "attributeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Global attribute" ]
+      },
+      "put" : {
+        "operationId" : "globalAttributeAttach",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "typeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "attributeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Global attribute" ]
       }
     },
     "/api/v1/types/{typeId}/layouts" : {
@@ -5637,6 +6060,42 @@
           }
         },
         "tags" : [ "Reference data" ]
+      },
+      "post" : {
+        "operationId" : "referenceDataCreateUnit",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateUnitRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UnitResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Reference data" ]
       }
     }
   },
@@ -5653,6 +6112,8 @@
     "name" : "Context"
   }, {
     "name" : "Context template"
+  }, {
+    "name" : "Global attribute"
   }, {
     "name" : "Layout"
   }, {

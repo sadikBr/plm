@@ -4,11 +4,13 @@ import com.plm.platform.actor.Actor
 import com.plm.types.api.CreateSubtype
 import com.plm.types.api.TypeDefinition
 import com.plm.types.api.TypeId
+import com.plm.types.api.TypeProperties
 import com.plm.types.api.TypeService
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
@@ -37,7 +39,37 @@ internal class TypeController(
     ) = TypeResponse(
         types.createSubtype(actor, CreateSubtype(TypeId(request.parentId), request.name, request.displayName)),
     )
+
+    /** Changes a type's display name, translations, description, icon and whether it can be created. Site admins only. */
+    @PutMapping("/{id}")
+    fun update(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: TypePropertiesRequest,
+    ) = TypeResponse(
+        types.update(
+            actor,
+            TypeId(id),
+            TypeProperties(
+                request.displayName,
+                request.description,
+                request.labels.orEmpty(),
+                request.icon,
+                request.instantiable ?: true,
+            ),
+        ),
+    )
 }
+
+internal data class TypePropertiesRequest(
+    val displayName: String,
+    val description: String? = null,
+    /** Translations of the display name by language tag, e.g. `{"fr": "Pièce"}`. */
+    val labels: Map<String, String>? = null,
+    val icon: String? = null,
+    /** False: an abstract type that only groups subtypes. */
+    val instantiable: Boolean? = null,
+)
 
 internal data class CreateTypeRequest(
     val parentId: UUID,
@@ -51,6 +83,20 @@ internal data class TypeResponse(
     val name: String,
     val displayName: String,
     val baseClass: String,
+    val description: String?,
+    val labels: Map<String, String>,
+    val icon: String?,
+    val instantiable: Boolean,
 ) {
-    constructor(t: TypeDefinition) : this(t.id.value, t.parentId?.value, t.name, t.displayName, t.baseClass.name)
+    constructor(t: TypeDefinition) : this(
+        t.id.value,
+        t.parentId?.value,
+        t.name,
+        t.displayName,
+        t.baseClass.name,
+        t.description,
+        t.labels,
+        t.icon,
+        t.instantiable,
+    )
 }

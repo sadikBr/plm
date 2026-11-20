@@ -13,3 +13,14 @@ data class TypeCreated(
     override val aggregateType = "type"
     override val aggregateId = typeId
 }
+
+data class TypePropertiesChanged(
+    val typeId: java.util.UUID,
+    val name: String,
+    val displayName: String,
+    val instantiable: Boolean,
+) : com.plm.platform.events.DomainEvent {
+    override val eventType = "types.TypePropertiesChanged.v1"
+    override val aggregateType = "type"
+    override val aggregateId = typeId
+}

@@ -13,6 +13,9 @@ value class TypeId(
         /** Seeded built-in base types for the default tenant. */
         val DOCUMENT = TypeId(UUID.fromString("00000000-0000-7000-8000-000000000101"))
         val PART = TypeId(UUID.fromString("00000000-0000-7000-8000-000000000102"))
+
+        /** Stands for "no type" on a global attribute's own definition (it is used by types, not defined on one). */
+        val GLOBAL = TypeId(UUID(0, 0))
     }
 }
 
@@ -23,8 +26,25 @@ data class TypeDefinition(
     val id: TypeId,
     val parentId: TypeId?,
     val name: String,
+    /** The English display name. */
     val displayName: String,
     val baseClass: BaseClass,
+    val description: String? = null,
+    /** Translations of the display name, by language tag (`fr`, `de`…). */
+    val labels: Map<String, String> = emptyMap(),
+    /** An icon key from the UI's icon set (e.g. `bolt`); null: the base class's icon. */
+    val icon: String? = null,
+    /** False for abstract types that only group subtypes: they can't be created. */
+    val instantiable: Boolean = true,
+)
+
+/** The editable properties of a type. The internal name, parent and base class are fixed. */
+data class TypeProperties(
+    val displayName: String,
+    val description: String? = null,
+    val labels: Map<String, String> = emptyMap(),
+    val icon: String? = null,
+    val instantiable: Boolean = true,
 )
 
 data class CreateSubtype(
@@ -57,5 +77,12 @@ interface TypeService {
     fun createSubtype(
         actor: Actor,
         command: CreateSubtype,
+    ): TypeDefinition
+
+    /** Site administrators only. `INVALID_TYPE_PROPERTIES`. */
+    fun update(
+        actor: Actor,
+        id: TypeId,
+        properties: TypeProperties,
     ): TypeDefinition
 }

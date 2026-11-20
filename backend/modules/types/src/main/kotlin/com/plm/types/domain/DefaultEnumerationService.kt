@@ -19,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional
 
 private val VALUE_KEY = Regex("^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$")
 
+private val UNIT_CODE = Regex("^[^\\s]{1,20}$")
+private val DIMENSION = Regex("^[A-Z][A-Z0-9_]{1,39}$")
+
 @Service
 @Transactional
 internal class DefaultEnumerationService(
@@ -85,6 +88,36 @@ internal class DefaultEnumerationService(
 
     @Transactional(readOnly = true)
     override fun units(actor: Actor): List<UnitOfMeasure> = repository.units(actor.tenant)
+
+    override fun createUnit(
+        actor: Actor,
+        unit: UnitOfMeasure,
+    ): UnitOfMeasure {
+        requireAdmin(actor)
+        val code = unit.code.trim()
+        val dimension = unit.dimension.trim().uppercase()
+        val errors = mutableListOf<String>()
+        if (!UNIT_CODE.matches(code)) errors += "Code: 1-20 characters, no spaces (e.g. mm, lbf, kWh)"
+        if (!DIMENSION.matches(dimension)) errors += "Dimension: UPPER_SNAKE_CASE, e.g. TORQUE"
+        if (unit.labels["en"].isNullOrBlank()) errors += "An English label (labels.en) is required"
+        if (unit.factor.signum() <= 0) errors += "Factor must be greater than 0"
+        val existing = repository.units(actor.tenant).filter { it.dimension == dimension }
+        if (existing.isEmpty() && (unit.factor.compareTo(java.math.BigDecimal.ONE) != 0 || unit.offset.signum() != 0)) {
+            errors += "$dimension is a new dimension: its first unit is the base unit (factor 1, offset 0)"
+        }
+        if (errors.isNotEmpty()) {
+            throw ValidationException(
+                "INVALID_UNIT",
+                errors.joinToString("; "),
+                mapOf(
+                    "errors" to errors,
+                ),
+            )
+        }
+        val created = unit.copy(code = code, dimension = dimension, system = false)
+        repository.insertUnit(actor.tenant, created)
+        return created
+    }
 
     private fun validate(enumeration: Enumeration): List<String> {
         val errors = mutableListOf<String>()

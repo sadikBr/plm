@@ -81,6 +81,13 @@ internal class DefaultVersioningService(
         val name = validName(command.name)
         command.number?.let(::validateNumber)
         val type = types.get(actor, command.typeId)
+        if (!type.instantiable) {
+            throw ValidationException(
+                "TYPE_NOT_INSTANTIABLE",
+                "${type.displayName} only groups other types: create one of its subtypes",
+                mapOf("typeId" to type.id.value),
+            )
+        }
         val context = contexts.get(actor, command.contextId)
         if (!context.kind.holdsObjects) {
             throw ValidationException(

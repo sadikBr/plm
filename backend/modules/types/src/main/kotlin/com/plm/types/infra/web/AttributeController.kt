@@ -15,6 +15,7 @@ import com.plm.types.api.EnumerationValue
 import com.plm.types.api.TypeId
 import com.plm.types.api.UnitOfMeasure
 import org.springframework.http.HttpStatus
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -86,6 +87,75 @@ internal class AttributeController(
 }
 
 @RestController
+internal class GlobalAttributeController(
+    private val attributes: AttributeService,
+) {
+    /** Global attributes and the types that use them. */
+    @GetMapping("/api/v1/attributes/global")
+    fun list(actor: Actor) =
+        attributes.globals(actor).map {
+            GlobalAttributeResponse(
+                AttributeResponse(it.definition, TypeId.GLOBAL),
+                it.usedBy.map { t ->
+                    t.value
+                },
+            )
+        }
+
+    /** Defines a global attribute, to be added to any number of types. Site admins only. */
+    @PostMapping("/api/v1/attributes/global")
+    @ResponseStatus(HttpStatus.CREATED)
+    fun define(
+        actor: Actor,
+        @RequestBody request: DefineAttributeRequest,
+    ) = AttributeResponse(
+        attributes.defineGlobal(
+            actor,
+            DefineAttribute(
+                TypeId.GLOBAL,
+                request.name,
+                request.dataType,
+                request.multiValued ?: false,
+                request.enumerationId?.let(::EnumerationId),
+                request.dimension,
+                request.settings(),
+            ),
+        ),
+        TypeId.GLOBAL,
+    )
+
+    /** Changes a global attribute's settings, for every type using it. Site admins only. */
+    @PutMapping("/api/v1/attributes/global/{attributeId}")
+    fun update(
+        actor: Actor,
+        @PathVariable attributeId: UUID,
+        @RequestBody request: AttributeSettingsRequest,
+    ) = AttributeResponse(attributes.update(actor, AttributeId(attributeId), request.settings()), TypeId.GLOBAL)
+
+    /** Adds a global attribute to a type (and its subtypes). */
+    @PutMapping("/api/v1/types/{typeId}/global-attributes/{attributeId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun attach(
+        actor: Actor,
+        @PathVariable typeId: UUID,
+        @PathVariable attributeId: UUID,
+    ) = attributes.attachGlobal(actor, AttributeId(attributeId), TypeId(typeId))
+
+    @DeleteMapping("/api/v1/types/{typeId}/global-attributes/{attributeId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun detach(
+        actor: Actor,
+        @PathVariable typeId: UUID,
+        @PathVariable attributeId: UUID,
+    ) = attributes.detachGlobal(actor, AttributeId(attributeId), TypeId(typeId))
+}
+
+internal data class GlobalAttributeResponse(
+    val attribute: AttributeResponse,
+    val usedBy: List<UUID>,
+)
+
+@RestController
 internal class ReferenceDataController(
     private val enumerations: EnumerationService,
 ) {
@@ -133,6 +203,25 @@ internal class ReferenceDataController(
 
     @GetMapping("/api/v1/units")
     fun units(actor: Actor) = enumerations.units(actor).map(::UnitResponse)
+
+    /** Adds a unit; the first unit of a new dimension is its base unit. Site admins only. */
+    @PostMapping("/api/v1/units")
+    @ResponseStatus(HttpStatus.CREATED)
+    fun createUnit(
+        actor: Actor,
+        @RequestBody request: CreateUnitRequest,
+    ) = UnitResponse(
+        enumerations.createUnit(
+            actor,
+            UnitOfMeasure(
+                request.code,
+                request.dimension,
+                request.labels,
+                request.factor ?: BigDecimal.ONE,
+                request.offset ?: BigDecimal.ZERO,
+            ),
+        ),
+    )
 }
 
 internal data class AttributeResponse(
@@ -161,6 +250,12 @@ internal data class AttributeResponse(
     val sortOrder: Int,
     val active: Boolean,
     val system: Boolean,
+    /** Dependent value list: the attribute whose value decides the allowed values. */
+    val dependsOn: String?,
+    /** Dependent value list: parent value → allowed values. */
+    val valueFilter: Map<String, List<String>>?,
+    /** Defined once and shared by several types (changing it changes it everywhere). */
+    val global: Boolean,
 ) {
     constructor(d: AttributeDefinition, requestedType: TypeId) : this(
         d.id.value,
@@ -185,6 +280,9 @@ internal data class AttributeResponse(
         d.sortOrder,
         d.active,
         d.system,
+        d.dependsOn,
+        d.valueFilter,
+        d.global,
     )
 }
 
@@ -207,6 +305,8 @@ internal data class DefineAttributeRequest(
     val displayUnit: String? = null,
     val defaultValue: Any? = null,
     val sortOrder: Int? = null,
+    val dependsOn: String? = null,
+    val valueFilter: Map<String, List<String>>? = null,
 ) {
     fun settings() =
         AttributeSettings(
@@ -223,6 +323,8 @@ internal data class DefineAttributeRequest(
             defaultValue,
             sortOrder ?: 0,
             active = true,
+            dependsOn = dependsOn,
+            valueFilter = valueFilter,
         )
 }
 
@@ -240,6 +342,8 @@ internal data class AttributeSettingsRequest(
     val defaultValue: Any? = null,
     val sortOrder: Int? = null,
     val active: Boolean? = null,
+    val dependsOn: String? = null,
+    val valueFilter: Map<String, List<String>>? = null,
 ) {
     fun settings() =
         AttributeSettings(
@@ -256,6 +360,8 @@ internal data class AttributeSettingsRequest(
             defaultValue,
             sortOrder ?: 0,
             active ?: true,
+            dependsOn,
+            valueFilter,
         )
 }
 
@@ -296,6 +402,19 @@ internal data class UnitResponse(
     val labels: Map<String, String>,
     val factor: BigDecimal,
     val offset: BigDecimal,
+    /** Shipped out of the box (as opposed to added by an administrator). */
+    val system: Boolean,
 ) {
-    constructor(u: UnitOfMeasure) : this(u.code, u.dimension, u.labels, u.factor, u.offset)
+    constructor(u: UnitOfMeasure) : this(u.code, u.dimension, u.labels, u.factor, u.offset, u.system)
 }
+
+internal data class CreateUnitRequest(
+    /** e.g. `kN·m`. */
+    val code: String,
+    /** e.g. `TORQUE`; an existing dimension or a new one. */
+    val dimension: String,
+    val labels: Map<String, String>,
+    /** value in the base unit = value × factor + offset. Default 1. */
+    val factor: BigDecimal? = null,
+    val offset: BigDecimal? = null,
+)

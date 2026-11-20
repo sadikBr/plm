@@ -31,6 +31,7 @@ import com.plm.types.api.DataType
 import com.plm.types.api.DefineAttribute
 import com.plm.types.api.RevisionScheme
 import com.plm.types.api.TypeId
+import com.plm.types.api.TypeProperties
 import com.plm.types.api.TypeRuleService
 import com.plm.types.api.TypeRuleSettings
 import com.plm.types.api.TypeService
@@ -987,6 +988,29 @@ class VersioningServiceIT(
             assertCode(ValidationException::class.java, "INVALID_PREFERENCE_VALUE") {
                 preferences.setForContext(manager, product, "numbering.defaultScheme", "No such scheme", locked = false)
             }
+        }
+    }
+
+    @Test
+    fun `abstract types can't be created`() {
+        val type =
+            types.createSubtype(
+                admin,
+                CreateSubtype(
+                    TypeId.PART,
+                    "Abs" +
+                        UUID
+                            .randomUUID()
+                            .toString()
+                            .take(8)
+                            .replace("-", ""),
+                    "Hardware",
+                ),
+            )
+        types.update(admin, type.id, TypeProperties("Hardware", instantiable = false))
+
+        assertCode(ValidationException::class.java, "TYPE_NOT_INSTANTIABLE") {
+            versioning.create(alice, CreateVersionedObject(type.id, product, "Nope"))
         }
     }
 

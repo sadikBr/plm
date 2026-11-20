@@ -9,6 +9,8 @@ import org.springframework.dao.DuplicateKeyException
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.stereotype.Repository
+import tools.jackson.core.type.TypeReference
+import tools.jackson.databind.json.JsonMapper
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
@@ -17,6 +19,9 @@ import java.util.UUID
 internal class TypeRepository(
     private val jdbc: JdbcClient,
 ) {
+    private val json = JsonMapper.builder().build()
+    private val labelsType = object : TypeReference<Map<String, String>>() {}
+
     private val mapper =
         RowMapper { rs, _ ->
             TypeDefinition(
@@ -25,6 +30,10 @@ internal class TypeRepository(
                 name = rs.getString("name"),
                 displayName = rs.getString("display_name"),
                 baseClass = BaseClass.valueOf(rs.getString("base_class")),
+                description = rs.getString("description"),
+                labels = json.readValue(rs.getString("labels"), labelsType),
+                icon = rs.getString("icon"),
+                instantiable = rs.getBoolean("instantiable"),
             )
         }
 
@@ -46,6 +55,23 @@ internal class TypeRepository(
             .param("tenant", tenant.value)
             .query(mapper)
             .list()
+
+    fun update(type: TypeDefinition) {
+        jdbc
+            .sql(
+                """
+                update type_def set display_name = :displayName, description = :description,
+                       labels = cast(:labels as jsonb), icon = :icon, instantiable = :instantiable
+                where id = :id
+                """,
+            ).param("id", type.id.value)
+            .param("displayName", type.displayName)
+            .param("description", type.description)
+            .param("labels", json.writeValueAsString(type.labels))
+            .param("icon", type.icon)
+            .param("instantiable", type.instantiable)
+            .update()
+    }
 
     fun insert(
         tenant: TenantId,
