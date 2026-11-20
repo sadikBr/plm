@@ -1,7 +1,7 @@
 # Local development stack.
 #
-#   docker compose -f deploy/docker-compose.yml up -d                  # core: postgres, s3, keycloak
-#   docker compose -f deploy/docker-compose.yml --profile full up -d   # + redpanda, opensearch, temporal
+#   docker compose -f deploy/docker-compose.yml up -d                  # core: postgres, s3, keycloak, redpanda
+#   docker compose -f deploy/docker-compose.yml --profile full up -d   # + opensearch, temporal
 #
 # IMAGE_PREFIX lets you pull through a registry mirror, e.g. IMAGE_PREFIX=mirror.gcr.io/
 name: plm
@@ -40,8 +40,8 @@ services:
     ports: ["8180:8080"]
     volumes: ["./keycloak:/opt/keycloak/data/import:ro"]
 
+  # Event bus (ADR 0008). Domain events are relayed here from the outbox.
   redpanda:
-    profiles: ["full"]
     image: ${IMAGE_PREFIX:-}redpandadata/redpanda:v26.2.7
     command:
       - redpanda

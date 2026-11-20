@@ -4,11 +4,12 @@ import com.plm.access.api.ContextId
 import com.plm.access.api.ContextKind
 import com.plm.access.api.ContextService
 import com.plm.access.api.CreateContext
-import com.plm.platform.actor.Actor
+import com.plm.access.api.TeamRole
+import com.plm.access.api.TeamService
 import com.plm.platform.error.ConflictException
+import com.plm.platform.error.ForbiddenException
+import com.plm.platform.error.NotFoundException
 import com.plm.platform.error.ValidationException
-import com.plm.platform.id.PrincipalId
-import com.plm.platform.id.TenantId
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
@@ -19,45 +20,87 @@ import java.util.UUID
 @PlmIntegrationTest
 class ContextServiceIT(
     @Autowired private val contexts: ContextService,
+    @Autowired private val teams: TeamService,
 ) {
-    private val actor = Actor(TenantId.DEFAULT, PrincipalId("alice"))
+    private val admin = Actors.admin
 
     private fun org() =
         contexts.create(
-            actor,
+            admin,
             CreateContext(ContextId.DEFAULT_SITE, ContextKind.ORGANIZATION, "Org ${UUID.randomUUID()}"),
         )
 
     @Test
     fun `builds the site - organization - product hierarchy`() {
         val org = org()
-        val product = contexts.create(actor, CreateContext(org.id, ContextKind.PRODUCT, "Drone X1"))
+        val product = contexts.create(admin, CreateContext(org.id, ContextKind.PRODUCT, "Drone X1"))
 
         assertThat(product.parentId).isEqualTo(org.id)
-        assertThat(product.createdBy).isEqualTo("alice")
-        assertThat(contexts.children(actor, org.id).map { it.name }).containsExactly("Drone X1")
-        assertThat(contexts.get(actor, ContextId.DEFAULT_SITE).kind).isEqualTo(ContextKind.SITE)
+        assertThat(contexts.children(admin, org.id).map { it.name }).containsExactly("Drone X1")
+        assertThat(contexts.get(admin, ContextId.DEFAULT_SITE).kind).isEqualTo(ContextKind.SITE)
+    }
+
+    @Test
+    fun `only site admins create organizations, managers create inside them`() {
+        val alice = Actors.user("alice")
+        assertThatThrownBy {
+            contexts.create(alice, CreateContext(ContextId.DEFAULT_SITE, ContextKind.ORGANIZATION, "Mine"))
+        }.isInstanceOf(NotFoundException::class.java) // alice cannot even see the site yet
+
+        val org = org()
+        teams.put(admin, org.id, alice.principal, TeamRole.MANAGER)
+        val product = contexts.create(alice, CreateContext(org.id, ContextKind.PRODUCT, "Alice's product"))
+
+        assertThat(teams.members(alice, product.id).single().role).isEqualTo(TeamRole.MANAGER)
+        assertThatThrownBy {
+            contexts.create(alice, CreateContext(ContextId.DEFAULT_SITE, ContextKind.ORGANIZATION, "Mine"))
+        }.isInstanceOfSatisfying(ForbiddenException::class.java) { assertThat(it.code).isEqualTo("ACCESS_DENIED") }
+    }
+
+    @Test
+    fun `members cannot create sub-contexts`() {
+        val bob = Actors.user("bob")
+        val org = org()
+        teams.put(admin, org.id, bob.principal, TeamRole.MEMBER)
+
+        assertThatThrownBy { contexts.create(bob, CreateContext(org.id, ContextKind.PROJECT, "Bob's project")) }
+            .isInstanceOfSatisfying(ForbiddenException::class.java) { assertThat(it.code).isEqualTo("ACCESS_DENIED") }
+    }
+
+    @Test
+    fun `contexts are visible along the team's path only`() {
+        val carol = Actors.user("carol")
+        val org = org()
+        val p1 = contexts.create(admin, CreateContext(org.id, ContextKind.PRODUCT, "P1"))
+        contexts.create(admin, CreateContext(org.id, ContextKind.PRODUCT, "P2"))
+        teams.put(admin, p1.id, carol.principal, TeamRole.VIEWER)
+
+        // Ancestors are visible so carol can navigate down to P1. The sibling P2 is not.
+        assertThat(contexts.get(carol, org.id).id).isEqualTo(org.id)
+        assertThat(contexts.get(carol, ContextId.DEFAULT_SITE).id).isEqualTo(ContextId.DEFAULT_SITE)
+        assertThat(contexts.children(carol, org.id).map { it.name }).containsExactly("P1")
+        assertThat(contexts.children(admin, org.id).map { it.name }).containsExactly("P1", "P2")
     }
 
     @Test
     fun `enforces which kinds may nest`() {
         val org = org()
-        val library = contexts.create(actor, CreateContext(org.id, ContextKind.LIBRARY, "Fasteners"))
+        val library = contexts.create(admin, CreateContext(org.id, ContextKind.LIBRARY, "Fasteners"))
 
-        assertThatThrownBy { contexts.create(actor, CreateContext(ContextId.DEFAULT_SITE, ContextKind.PRODUCT, "P")) }
+        assertThatThrownBy { contexts.create(admin, CreateContext(ContextId.DEFAULT_SITE, ContextKind.PRODUCT, "P")) }
             .isInstanceOfSatisfying(ValidationException::class.java) {
                 assertThat(it.code).isEqualTo("INVALID_CONTEXT_HIERARCHY")
             }
-        assertThatThrownBy { contexts.create(actor, CreateContext(library.id, ContextKind.PRODUCT, "P")) }
+        assertThatThrownBy { contexts.create(admin, CreateContext(library.id, ContextKind.PRODUCT, "P")) }
             .isInstanceOf(ValidationException::class.java)
     }
 
     @Test
     fun `sibling names are unique`() {
         val org = org()
-        contexts.create(actor, CreateContext(org.id, ContextKind.PRODUCT, "Same"))
+        contexts.create(admin, CreateContext(org.id, ContextKind.PRODUCT, "Same"))
 
-        assertThatThrownBy { contexts.create(actor, CreateContext(org.id, ContextKind.PROJECT, "Same")) }
+        assertThatThrownBy { contexts.create(admin, CreateContext(org.id, ContextKind.PROJECT, "Same")) }
             .isInstanceOfSatisfying(ConflictException::class.java) {
                 assertThat(it.code).isEqualTo("DUPLICATE_CONTEXT_NAME")
             }

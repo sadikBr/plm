@@ -1,0 +1,121 @@
+### PLM API walkthrough for VS Code's "REST Client" extension (humao.rest-client).
+### Start the stack first: `make up` then `make run`. Run the requests top to bottom.
+### IntelliJ's HTTP client uses different syntax for chaining requests: use the curl walkthrough instead.
+
+@api = http://localhost:8080/api/v1
+@token = http://localhost:8180/realms/plm/protocol/openid-connect/token
+@partType = 00000000-0000-7000-8000-000000000102
+@bobId = b0b00000-0000-4000-8000-000000000002
+@carolId = ca201000-0000-4000-8000-000000000003
+
+### 0a. Sign in as alice (site admin)
+# @name alice
+POST {{token}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=plm-web&username=alice&password=alice
+
+### 0b. Sign in as bob
+# @name bob
+POST {{token}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=plm-web&username=bob&password=bob
+
+### 0c. Sign in as carol
+# @name carol
+POST {{token}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=plm-web&username=carol&password=carol
+
+### 1. Who am I?
+GET {{api}}/me
+Authorization: Bearer {{alice.response.body.access_token}}
+
+### 2. The site (root) context
+# @name site
+GET {{api}}/contexts/site
+Authorization: Bearer {{alice.response.body.access_token}}
+
+### 3. Alice creates an organization
+# @name org
+POST {{api}}/contexts
+Authorization: Bearer {{alice.response.body.access_token}}
+Content-Type: application/json
+
+{ "parentId": "{{site.response.body.id}}", "kind": "ORGANIZATION", "name": "Acme {{$guid}}" }
+
+### 4. ...and a product inside it
+# @name product
+POST {{api}}/contexts
+Authorization: Bearer {{alice.response.body.access_token}}
+Content-Type: application/json
+
+{ "parentId": "{{org.response.body.id}}", "kind": "PRODUCT", "name": "Drone X1" }
+
+### 5. Alice puts bob on the product team as a MEMBER
+PUT {{api}}/contexts/{{product.response.body.id}}/members/{{bobId}}
+Authorization: Bearer {{alice.response.body.access_token}}
+Content-Type: application/json
+
+{ "role": "MEMBER" }
+
+### 6. What may bob do here? -> CREATE, MODIFY, READ, REVISE
+GET {{api}}/contexts/{{product.response.body.id}}/permissions
+Authorization: Bearer {{bob.response.body.access_token}}
+
+### 7. Bob creates a part -> A.1
+# @name part
+POST {{api}}/objects
+Authorization: Bearer {{bob.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "typeId": "{{partType}}",
+  "contextId": "{{product.response.body.id}}",
+  "name": "Motor mount",
+  "attributes": { "material": "AL6061", "massKg": 0.12 }
+}
+
+### 8. Bob checks it out -> working copy A.2
+POST {{api}}/objects/{{part.response.body.id}}/checkout
+Authorization: Bearer {{bob.response.body.access_token}}
+
+### 9. Alice tries too -> 409 ALREADY_CHECKED_OUT (by Bob Builder)
+POST {{api}}/objects/{{part.response.body.id}}/checkout
+Authorization: Bearer {{alice.response.body.access_token}}
+
+### 10. Carol is not on the team -> 404
+GET {{api}}/objects/{{part.response.body.id}}
+Authorization: Bearer {{carol.response.body.access_token}}
+
+### 11. Bob edits the working copy
+PATCH {{api}}/objects/{{part.response.body.id}}/working-copy
+Authorization: Bearer {{bob.response.body.access_token}}
+Content-Type: application/json
+
+{ "attributes": { "material": "Ti-6Al-4V", "massKg": 0.09 } }
+
+### 12. Bob checks in -> A.2 is now the latest, immutable iteration
+POST {{api}}/objects/{{part.response.body.id}}/checkin
+Authorization: Bearer {{bob.response.body.access_token}}
+Content-Type: application/json
+
+{ "comment": "Switch to titanium" }
+
+### 13. Bob revises -> B.1
+POST {{api}}/objects/{{part.response.body.id}}/revise
+Authorization: Bearer {{bob.response.body.access_token}}
+
+### 14. History, newest first: B.1, A.2, A.1
+GET {{api}}/objects/{{part.response.body.id}}/iterations
+Authorization: Bearer {{bob.response.body.access_token}}
+
+### 15. Everything bob can read in the product
+GET {{api}}/objects?contextId={{product.response.body.id}}
+Authorization: Bearer {{bob.response.body.access_token}}
+
+### 16. Alice reads the audit trail for the part
+GET {{api}}/audit?aggregateId={{part.response.body.id}}
+Authorization: Bearer {{alice.response.body.access_token}}

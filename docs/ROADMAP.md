@@ -12,9 +12,9 @@ Each phase ends with explicit exit criteria. Don't start a phase until the previ
 - [x] 0.4 `platform` kernel: typed IDs, error model, transaction helpers, clock abstraction
 - [x] 0.5 Flyway baseline: `tenant`, `context`, `type_def`, `object_master`, `object_iteration`
 - [x] 0.6 Generic versioning engine: create, check-out, check-in, undo check-out, revise (+ tests)
-- [ ] 0.7 Outbox table + relay to Redpanda; audit log writer
-- [ ] 0.8 OIDC login via Keycloak; `identity` module maps tokens → principals
-- [ ] 0.9 `AccessService` with SQL-predicate filtering (minimal policy model)
+- [x] 0.7 Outbox table + relay to Redpanda; audit log writer
+- [x] 0.8 OIDC login via Keycloak; `identity` module maps tokens → principals
+- [x] 0.9 `AccessService` with SQL-predicate filtering (minimal policy model)
 - [ ] 0.10 OpenAPI spec + generated TypeScript client
 - [ ] 0.11 React shell: login, context browser, object info page stub
 - [ ] 0.12 OpenTelemetry tracing + Prometheus metrics wired

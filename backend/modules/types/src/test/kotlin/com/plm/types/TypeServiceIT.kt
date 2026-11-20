@@ -2,6 +2,7 @@ package com.plm.types
 
 import com.plm.platform.actor.Actor
 import com.plm.platform.error.ConflictException
+import com.plm.platform.error.ForbiddenException
 import com.plm.platform.error.NotFoundException
 import com.plm.platform.error.ValidationException
 import com.plm.platform.id.PrincipalId
@@ -21,7 +22,7 @@ import java.util.UUID
 class TypeServiceIT(
     @Autowired private val types: TypeService,
 ) {
-    private val actor = Actor(TenantId.DEFAULT, PrincipalId("admin"))
+    private val actor = Actor(TenantId.DEFAULT, PrincipalId("admin"), siteAdmin = true)
 
     private fun uniqueName(prefix: String) =
         prefix +
@@ -56,6 +57,15 @@ class TypeServiceIT(
             .isInstanceOfSatisfying(
                 ConflictException::class.java,
             ) { assertThat(it.code).isEqualTo("DUPLICATE_TYPE_NAME") }
+    }
+
+    @Test
+    fun `only site administrators define types`() {
+        val alice = Actor(TenantId.DEFAULT, PrincipalId("alice"))
+
+        assertThatThrownBy { types.createSubtype(alice, CreateSubtype(TypeId.PART, uniqueName("Nope"), "Nope")) }
+            .isInstanceOfSatisfying(ForbiddenException::class.java) { assertThat(it.code).isEqualTo("ADMIN_REQUIRED") }
+        assertThat(types.list(alice)).isNotEmpty()
     }
 
     @Test

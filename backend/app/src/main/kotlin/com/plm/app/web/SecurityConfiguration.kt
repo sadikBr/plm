@@ -1,0 +1,58 @@
+package com.plm.app.web
+
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import org.springframework.core.convert.converter.Converter
+import org.springframework.security.authentication.AbstractAuthenticationToken
+import org.springframework.security.config.annotation.web.builders.HttpSecurity
+import org.springframework.security.config.http.SessionCreationPolicy
+import org.springframework.security.core.GrantedAuthority
+import org.springframework.security.core.authority.SimpleGrantedAuthority
+import org.springframework.security.oauth2.jwt.Jwt
+import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
+import org.springframework.security.web.SecurityFilterChain
+import org.springframework.web.method.support.HandlerMethodArgumentResolver
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
+
+/**
+ * The API is an OAuth2 resource server (ADR 0010, roadmap 0.8). Every request under `/api` needs a
+ * valid bearer token from the configured issuer (Keycloak in dev), with our audience.
+ * Health probes stay open for orchestrators.
+ */
+@Configuration(proxyBeanMethods = false)
+internal class SecurityConfiguration(
+    private val actorResolver: JwtActorResolver,
+) : WebMvcConfigurer {
+    @Bean
+    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain =
+        http
+            .authorizeHttpRequests {
+                it
+                    .requestMatchers("/actuator/health/**", "/actuator/health", "/actuator/info")
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated()
+            }.oauth2ResourceServer { rs -> rs.jwt { it.jwtAuthenticationConverter(KeycloakJwtConverter()) } }
+            // Stateless bearer-token API: no sessions, so no CSRF exposure.
+            .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+            .csrf { it.disable() }
+            .build()
+
+    override fun addArgumentResolvers(resolvers: MutableList<HandlerMethodArgumentResolver>) {
+        resolvers.add(actorResolver)
+    }
+}
+
+/** Maps Keycloak realm roles (`realm_access.roles`) to `ROLE_<name>` authorities. */
+internal class KeycloakJwtConverter : Converter<Jwt, AbstractAuthenticationToken> {
+    override fun convert(jwt: Jwt): AbstractAuthenticationToken {
+        // Every user is identified by `sub`; a token without one is not ours to accept.
+        val subject =
+            jwt.subject?.takeIf { it.isNotBlank() } ?: throw InvalidBearerTokenException("Token has no subject")
+        val realmAccess = jwt.getClaimAsMap("realm_access").orEmpty()
+        val roles = (realmAccess["roles"] as? Collection<*>).orEmpty().map { it.toString() }
+        val authorities: List<GrantedAuthority> = roles.map { SimpleGrantedAuthority("ROLE_$it") }
+        return JwtAuthenticationToken(jwt, authorities, subject)
+    }
+}

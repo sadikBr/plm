@@ -1,13 +1,23 @@
 package com.plm.access.domain
 
+import com.plm.access.api.AccessService
+import com.plm.access.api.AccessTarget
 import com.plm.access.api.Context
+import com.plm.access.api.ContextCreated
 import com.plm.access.api.ContextId
+import com.plm.access.api.ContextKind
 import com.plm.access.api.ContextService
 import com.plm.access.api.CreateContext
+import com.plm.access.api.Permission
+import com.plm.access.api.TeamMember
+import com.plm.access.api.TeamRole
+import com.plm.access.infra.AccessRepository
 import com.plm.access.infra.ContextRepository
 import com.plm.platform.actor.Actor
+import com.plm.platform.error.ForbiddenException
 import com.plm.platform.error.NotFoundException
 import com.plm.platform.error.ValidationException
+import com.plm.platform.events.DomainEvents
 import com.plm.platform.id.UuidV7
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -19,25 +29,28 @@ private const val MAX_NAME_LENGTH = 200
 @Transactional
 internal class DefaultContextService(
     private val contexts: ContextRepository,
+    private val accessRepository: AccessRepository,
+    private val access: AccessService,
+    private val events: DomainEvents,
     private val clock: Clock,
 ) : ContextService {
     @Transactional(readOnly = true)
     override fun get(
         actor: Actor,
         id: ContextId,
-    ): Context =
-        contexts.find(actor.tenant, id)
-            ?: throw NotFoundException(
-                "CONTEXT_NOT_FOUND",
-                "Context $id does not exist",
-                mapOf("contextId" to id.value),
-            )
+    ): Context {
+        val context = contexts.find(actor.tenant, id)
+        if (context == null || !isVisible(actor, context)) {
+            throw NotFoundException("CONTEXT_NOT_FOUND", "Context $id does not exist", mapOf("contextId" to id.value))
+        }
+        return context
+    }
 
     @Transactional(readOnly = true)
     override fun children(
         actor: Actor,
         parentId: ContextId,
-    ): List<Context> = contexts.children(actor.tenant, get(actor, parentId).id)
+    ): List<Context> = contexts.children(actor.tenant, get(actor, parentId).id).filter { isVisible(actor, it) }
 
     override fun create(
         actor: Actor,
@@ -59,6 +72,11 @@ internal class DefaultContextService(
                 mapOf("parentKind" to parent.kind, "kind" to command.kind),
             )
         }
+        if (command.kind == ContextKind.ORGANIZATION && !actor.siteAdmin) {
+            throw ForbiddenException("ACCESS_DENIED", "Only site administrators can create organizations")
+        }
+        access.require(actor, AccessTarget(parent.id), Permission.MANAGE)
+
         val context =
             Context(
                 id = ContextId(UuidV7.generate(clock)),
@@ -69,6 +87,17 @@ internal class DefaultContextService(
                 createdBy = actor.principal.value,
             )
         contexts.insert(actor.tenant, context)
+        accessRepository.insertClosure(actor.tenant, context.id, parent.id)
+        accessRepository.putMember(
+            actor.tenant,
+            TeamMember(context.id, actor.principal, TeamRole.MANAGER, context.createdAt, actor.principal.value),
+        )
+        events.publish(actor, ContextCreated(context.id.value, parent.id.value, context.kind, context.name))
         return context
     }
+
+    private fun isVisible(
+        actor: Actor,
+        context: Context,
+    ) = actor.siteAdmin || accessRepository.isVisible(actor.tenant, actor.principal, context.id)
 }

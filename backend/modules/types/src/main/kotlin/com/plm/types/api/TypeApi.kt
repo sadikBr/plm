@@ -42,7 +42,12 @@ interface TypeService {
 
     fun list(actor: Actor): List<TypeDefinition>
 
-    /** @throws com.plm.platform.error.ConflictException `DUPLICATE_TYPE_NAME` */
+    /**
+     * Site administrators only.
+     *
+     * @throws com.plm.platform.error.ForbiddenException `ADMIN_REQUIRED`
+     * @throws com.plm.platform.error.ConflictException `DUPLICATE_TYPE_NAME`
+     */
     fun createSubtype(
         actor: Actor,
         command: CreateSubtype,

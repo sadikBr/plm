@@ -18,13 +18,14 @@ Three layers enforce this:
 
 | Module | Responsibility | Depends on |
 |---|---|---|
-| identity | Users, groups, principals from OIDC | — |
-| audit | Append-only audit log | — |
+| identity | User directory (from OIDC sign-ins) | — |
+| audit | Append-only audit log, fed by every domain event | — |
 | types | Type definitions, attribute schemas | — |
 | integration | ERP and external connectors (event consumers) | — |
-| access | Contexts, teams, policies, SQL predicates | identity, types |
+| events | Relays the outbox to Kafka (infrastructure) | — |
+| access | Contexts, teams, policies, permission checks and SQL filters | identity, types |
 | content | File vault metadata, presigned URLs | access |
-| versioning | Master / Version / Iteration engine | types, access, audit |
+| versioning | Master / Version / Iteration engine | types, access, identity |
 | lifecycle | Lifecycle state machines | types, access |
 | documents | Document types | versioning, content, lifecycle |
 | parts | Part types | versioning, lifecycle |

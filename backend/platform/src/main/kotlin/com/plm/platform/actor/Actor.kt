@@ -8,8 +8,12 @@ import com.plm.platform.id.TenantId
  *
  * Every service operation takes an [Actor] explicitly instead of reading thread-local state.
  * That keeps services easy to test and safe to call from async consumers and workflows.
+ *
+ * [siteAdmin] holders bypass context-level access policies (ADR 0005). It comes from the
+ * identity provider (Keycloak realm role `plm-admin`), never from request input.
  */
 data class Actor(
     val tenant: TenantId,
     val principal: PrincipalId,
+    val siteAdmin: Boolean = false,
 )

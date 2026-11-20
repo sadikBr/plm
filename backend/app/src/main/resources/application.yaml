@@ -5,6 +5,20 @@ spring:
     url: ${PLM_DB_URL:jdbc:postgresql://localhost:5432/plm}
     username: ${PLM_DB_USER:plm}
     password: ${PLM_DB_PASSWORD:plm}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Keys are discovered from the issuer on first use, so the app starts even if Keycloak is still booting.
+          issuer-uri: ${PLM_OIDC_ISSUER:http://localhost:8180/realms/plm}
+          # Tokens must be minted for this API (Keycloak audience mapper on the plm-web client).
+          audiences: ${PLM_OIDC_AUDIENCE:plm-api}
+  kafka:
+    bootstrap-servers: ${PLM_KAFKA_BOOTSTRAP:localhost:19092}
+    producer:
+      acks: all
+      properties:
+        enable.idempotence: true
   mvc:
     problemdetails:
       # Framework errors (malformed JSON, unknown routes) also use RFC 9457 problem details.
@@ -26,3 +40,9 @@ management:
     health:
       probes:
         enabled: true
+
+plm:
+  events:
+    topic: plm.domain-events
+    relay:
+      enabled: ${PLM_EVENTS_RELAY_ENABLED:true}
