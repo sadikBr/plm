@@ -3,8 +3,9 @@
 An open Product Lifecycle Management (PLM) platform: documents, parts, multi-level BOMs,
 lifecycles, workflows and change management, built to scale to millions of objects.
 
-> Status: **Phase 0: Foundation**, steps 0.1–0.11 done: versioning, Keycloak login, team-based access
-> control, audit log, domain events, a typed API contract and the first web UI.
+> Status: **Phase 1: Types, attributes and lifecycles**, steps 1.1–1.6 done on top of the Phase 0
+> foundation: typed attributes, enumerations and units, numbering and revision schemes, lifecycles
+> (revise only when Released), team-based access, audit, events, a typed API and the workbench UI.
 
 ![Object page: a checked-out part with its working copy](docs/images/ui-object.png) See the [roadmap](docs/ROADMAP.md).
 
@@ -29,6 +30,7 @@ Then open http://localhost:5173, or follow the [UI tour](docs/DEVELOPMENT.md#4-r
 | [docs/PLAN.md](docs/PLAN.md) | Product scope, architecture, data model, pitfalls |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Phased delivery plan with exit criteria |
 | [docs/PARITY.md](docs/PARITY.md) | Capability matrix against established enterprise PLM: what's done, what's planned, where we aim to be better |
+| [docs/EXTENSIBILITY.md](docs/EXTENSIBILITY.md) | How customers customize the PLM: custom actions, rules, webhooks, scripts, UI slots |
 | [docs/adr/](docs/adr/) | Architecture Decision Records — the *why* behind every foundational choice |
 
 ## Core principles
