@@ -12,6 +12,7 @@ import { FlattenedView, RollupView } from "./Rollup";
 import { SubstitutesEditor } from "./Replacements";
 import { SpecPicker, StructureTree, useDefaultSpec, type Spec } from "./StructureTree";
 import { ImportStructureButton } from "./StructureImport";
+import { ReviseStructureButton } from "./StructureOperations";
 import { BulkProgress } from "../pages/Bulk";
 
 // Product structure (roadmap 4.1, 4.4): the parts a part uses, edited on its working copy.
@@ -99,6 +100,7 @@ export function StructureTab({ obj, editable }: { obj: VersionedObject; editable
             ))}
           </span>
           <SpecPicker spec={spec} onChange={setChosen} partId={obj.id} />
+          <ReviseStructureButton obj={obj} onStarted={setImportJob} />
           <ImportStructureButton obj={obj} onStarted={setImportJob} />
         </>
       }

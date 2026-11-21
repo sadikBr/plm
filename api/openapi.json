@@ -900,7 +900,7 @@
             "type" : "array"
           },
           "operation" : {
-            "enum" : [ "SET_STATE", "MOVE", "DELETE", "SET_ATTRIBUTE" ],
+            "enum" : [ "SET_STATE", "MOVE", "DELETE", "SET_ATTRIBUTE", "REVISE" ],
             "type" : "string"
           },
           "state" : {
@@ -3482,6 +3482,33 @@
           }
         },
         "required" : [ "ids" ],
+        "type" : "object"
+      },
+      "MassReplace" : {
+        "properties" : {
+          "comment" : {
+            "type" : [ "string", "null" ]
+          },
+          "newId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "oldId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "parentIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "reviseReleased" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "newId", "oldId", "parentIds", "reviseReleased" ],
         "type" : "object"
       },
       "MeResponse" : {
@@ -16431,6 +16458,44 @@
         "tags" : [ "Bom" ]
       }
     },
+    "/api/v1/structure-operations/replace" : {
+      "post" : {
+        "operationId" : "structureOperationsReplace",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MassReplace"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Job"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Structure operations" ]
+      }
+    },
     "/api/v1/table-views" : {
       "get" : {
         "operationId" : "tableViewList",
@@ -18021,6 +18086,8 @@
     "name" : "Sharing"
   }, {
     "name" : "Structure import"
+  }, {
+    "name" : "Structure operations"
   }, {
     "name" : "Table view"
   }, {

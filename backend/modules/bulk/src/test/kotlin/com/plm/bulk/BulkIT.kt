@@ -84,6 +84,29 @@ class BulkIT(
     }
 
     @Test
+    fun `objects are revised in one go, those that can't be are reported (roadmap 4_14)`() {
+        val p = product()
+        val ids = parts(p, 3)
+        ids
+            .take(
+                2,
+            ).forEach {
+                versioning.setState(
+                    admin,
+                    it,
+                    com.plm.versioning.api
+                        .SetState("RELEASED", override = true),
+                )
+            }
+        versioning.checkOut(alice, ids[2])
+        val job = bulk.start(alice, BulkRequest(BulkOperation.REVISE, ids.map { it.value }))
+        val result = finished(job.id)
+        assertThat(result["succeeded"]).isEqualTo(2)
+        assertThat(result["failed"]).isEqualTo(1)
+        ids.take(2).forEach { assertThat(versioning.get(alice, it).latest.version).isEqualTo("B.1") }
+    }
+
+    @Test
     fun `a value is changed on many objects, each with its own outcome`() {
         val p = product()
         val ids = parts(p, 3)

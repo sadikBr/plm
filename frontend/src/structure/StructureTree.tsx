@@ -30,7 +30,7 @@ function specQuery(spec: Spec, depth: number) {
   };
 }
 
-async function loadStructure(id: string, spec: Spec, depth: number) {
+export async function loadStructure(id: string, spec: Spec, depth: number) {
   return unwrap(api.GET("/api/v1/objects/{id}/structure", { params: { path: { id }, query: specQuery(spec, depth) } }));
 }
 

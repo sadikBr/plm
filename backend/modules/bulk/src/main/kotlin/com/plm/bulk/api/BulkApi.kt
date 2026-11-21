@@ -16,6 +16,9 @@ enum class BulkOperation {
 
     /** [BulkRequest.attribute] to [BulkRequest.value]: checked out, changed, checked in. */
     SET_ATTRIBUTE,
+
+    /** A new revision of each (roadmap 4.14), e.g. every released part of a structure. */
+    REVISE,
 }
 
 data class BulkRequest(

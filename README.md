@@ -3,11 +3,12 @@
 An open Product Lifecycle Management (PLM) platform: documents, parts, multi-level BOMs,
 lifecycles, workflows and change management, built to scale to millions of objects.
 
-> Status: **Phase 3 complete**: documents with primary content and attachments, folders, search,
-> reports and dashboards, notifications and subscriptions, discussions and sharing, background
-> jobs and long-running extension actions, and an interface in English, French and German, on top
-> of the extensibility platform (Phase 2) and the core model (Phase 1). Next: Phase 4, parts and
-> product structure. See the [roadmap](docs/ROADMAP.md).
+> Status: **Phase 4 complete**: multi-level product structures with configuration specifications,
+> occurrences and reference designators, where-used, part–document links, alternates and
+> substitutes, structure comparison, baselines, roll-ups, reference and alias attributes, BOM
+> import and export, and bulk revise and mass replace; on top of documents, search, reports and
+> collaboration (Phase 3), the extensibility platform (Phase 2) and the core model (Phase 1).
+> Next: Phase 5, workflow and change management. See the [roadmap](docs/ROADMAP.md).
 
 ![Object page: a checked-out part with its working copy](docs/images/ui-object.png) See the [roadmap](docs/ROADMAP.md).
 

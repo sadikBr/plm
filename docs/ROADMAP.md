@@ -202,7 +202,7 @@ of attachments per iteration; parts link to documents (Phase 4, part↔document 
 and access; full-text search with facets, saved searches, views and reports; covered by the e2e
 suite.)
 
-## Phase 4 — Parts and product structure
+## Phase 4 — Parts and product structure (complete)
 
 **Goal:** parts form multi-level product structures that people build, configure, compare,
 baseline and report on, fast at the scale of real products.
@@ -280,11 +280,19 @@ baseline and report on, fast at the scale of real products.
       checks levels, quantities, units, designator counts, cycles and whether each assembly can be
       checked out, line by line; the job creates parts, then sets each assembly's lines exactly
       (matched lines updated, others added or removed), checks in, and reports per object.
-- [ ] 4.14 Bulk revise and structure operations: revise a structure or a selection in one go,
+- [x] 4.14 Bulk revise and structure operations: revise a structure or a selection in one go,
       mass replace across where-used; background jobs with per-object results.
+      Done: Revise is a mass operation on any selection; "Revise…" on a structure lists its parts
+      (released ones ticked) and revises the chosen ones. "Replace everywhere…" on where-used puts
+      another part on every line using this one in the chosen parents (line, find number,
+      quantity and unit kept), revising released parents first when asked; each parent in its
+      own transaction, so a failure leaves it untouched and the others go on.
 
 **Exit:** a 10-level, 50k-line BOM expands in < 2 s with access filtering applied; the e2e suite
 builds, compares, baselines and imports a structure.
+**Met:** StructureTreeIT expands a 10-level, 45k+ line structure in under 2 s with access applied;
+`e2e/structure-flow.spec.ts` builds a structure, imports one from a file, compares it with its
+earlier version and baselines it.
 
 ## Phase 5 — Workflow, change management and extensibility v2
 Temporal integration · process template editor · tasks and inbox, voting, delegation, escalation ·

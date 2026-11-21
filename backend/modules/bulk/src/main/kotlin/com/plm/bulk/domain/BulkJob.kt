@@ -63,7 +63,7 @@ internal class BulkJob(
             BulkOperation.SET_STATE -> if (r.state.isNullOrBlank()) bad("Which state?")
             BulkOperation.MOVE -> if (r.contextId == null) bad("Where to?")
             BulkOperation.SET_ATTRIBUTE -> if (r.attribute.isNullOrBlank()) bad("Which attribute?")
-            BulkOperation.DELETE -> Unit
+            BulkOperation.DELETE, BulkOperation.REVISE -> Unit
         }
     }
 
@@ -76,6 +76,7 @@ internal class BulkJob(
                 BulkOperation.MOVE -> "Move"
                 BulkOperation.DELETE -> "Delete"
                 BulkOperation.SET_ATTRIBUTE -> "Set ${r.attribute}"
+                BulkOperation.REVISE -> "Revise"
             }
         return "$what: $n object${if (n == 1) "" else "s"}"
     }
@@ -138,6 +139,10 @@ internal class BulkJob(
             BulkOperation.DELETE -> {
                 organizing.delete(actor, id)
                 "Deleted"
+            }
+            BulkOperation.REVISE -> {
+                val before = versioning.get(actor, id).latest.version
+                "Revised: $before → ${versioning.revise(actor, id).latest.version}"
             }
             BulkOperation.SET_ATTRIBUTE -> {
                 val wc = versioning.checkOut(actor, id)

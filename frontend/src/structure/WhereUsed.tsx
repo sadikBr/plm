@@ -8,6 +8,8 @@ import { ErrorBanner, Loading, Panel, StateBadge, TypeIcon, stateLabel } from ".
 import { locale, t, tn } from "../i18n/i18n";
 import { useUnits } from "./Structure";
 import { SpecPicker, useDefaultSpec, type Spec } from "./StructureTree";
+import { ReplaceEverywhereButton } from "./StructureOperations";
+import { BulkProgress } from "../pages/Bulk";
 
 const qty = (n: number) => n.toLocaleString(locale(), { maximumFractionDigits: 6 });
 
@@ -16,6 +18,7 @@ export function WhereUsedTab({ obj }: { obj: VersionedObject }) {
   const preferred = useDefaultSpec(obj.contextId);
   const [chosen, setChosen] = useState<Spec | null>(null);
   const [allLevels, setAllLevels] = useState(false);
+  const [job, setJob] = useState<string | null>(null);
   const spec = chosen ?? preferred;
   const units = useUnits();
   const unitLabel = (key: string) => units.find((u) => u.key === key)?.label ?? key;
@@ -80,10 +83,16 @@ export function WhereUsedTab({ obj }: { obj: VersionedObject }) {
             <input type="checkbox" checked={allLevels} onChange={(e) => setAllLevels(e.target.checked)} />{" "}
             {t("All levels, up to the end items")}
           </label>
+          <ReplaceEverywhereButton obj={obj} onStarted={setJob} />
           <button className="btn small" onClick={() => void exportRows()} disabled={!data?.nodes.length}>
             <FileSpreadsheet size={13} aria-hidden /> {t("Export to Excel")}
           </button>
         </div>
+        {job && (
+          <div className="import-progress">
+            <BulkProgress jobId={job} onClose={() => setJob(null)} />
+          </div>
+        )}
         <ErrorBanner error={error} />
         {isLoading ? (
           <Loading />

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRightLeft, ClipboardPlus, FolderInput, PencilLine, Square, Trash2, X } from "lucide-react";
+import { ArrowRightLeft, ClipboardPlus, FolderInput, GitBranchPlus, PencilLine, Square, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
@@ -41,6 +41,9 @@ export function BulkBar({
       </button>
       <button className="btn small" onClick={() => setDialog("SET_ATTRIBUTE")}>
         <PencilLine size={13} aria-hidden /> {t("Change a value…")}
+      </button>
+      <button className="btn small" onClick={() => setDialog("REVISE")}>
+        <GitBranchPlus size={13} aria-hidden /> {t("Revise…")}
       </button>
       <button className="btn small" onClick={() => setDialog("MOVE")}>
         <FolderInput size={13} aria-hidden /> {t("Move…")}
@@ -87,6 +90,8 @@ function bulkTitle(operation: Operation, n: number): string {
       return tn("Move {n} object", "Move {n} objects", n);
     case "DELETE":
       return tn("Delete {n} object", "Delete {n} objects", n);
+    case "REVISE":
+      return tn("Revise {n} object", "Revise {n} objects", n);
   }
   return `${operation} ${n}`;
 }
@@ -237,6 +242,13 @@ function BulkDialog({
             onChange={(c, f) => setTarget({ contextId: c, folderId: f })}
           />
         )}
+        {operation === "REVISE" && (
+          <div className="banner info wide">
+            {t(
+              "Each object gets a new revision, starting from its latest version; those that can't be revised in their state are reported.",
+            )}
+          </div>
+        )}
         {operation === "DELETE" && (
           <div className="banner warn wide">
             {t("Each object and all its versions and files are removed, where the delete rules allow. This can't be undone.")}
@@ -259,6 +271,8 @@ export function BulkProgress({ jobId, onClose }: { jobId: string; onClose: () =>
         void qc.invalidateQueries({ queryKey: ["objects"] });
         void qc.invalidateQueries({ queryKey: ["folders"] });
         void qc.invalidateQueries({ queryKey: ["structure"] });
+        void qc.invalidateQueries({ queryKey: ["object"] });
+        void qc.invalidateQueries({ queryKey: ["whereUsed"] });
         void qc.invalidateQueries({ queryKey: ["usages"] });
         return false;
       }
