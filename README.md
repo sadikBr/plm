@@ -14,19 +14,144 @@ lifecycles, workflows and change management, built to scale to millions of objec
 
 ![Object page: a checked-out part with its working copy](docs/images/ui-object.png) See the [roadmap](docs/ROADMAP.md).
 
-## Quick start
+## Run it on your computer
 
-Requires JDK 21 and Docker. Full guide: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+Every step below is a command to copy. The whole stack runs locally in Docker; nothing needs a
+cloud account. A more detailed guide (environment variables, the curl walkthrough, troubleshooting)
+is in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
+### 1. Install the prerequisites (once)
+
+| Tool | Version | Check it with |
+|---|---|---|
+| JDK | 21 (Temurin recommended) | `java -version` |
+| Docker | Docker Desktop, OrbStack or Docker Engine with Compose v2; give it 8 GB of memory | `docker compose version` |
+| Node.js | 22 LTS | `node --version` |
+| Git | any | `git --version` |
+| make | optional: each target is a one-line command shown in the [Makefile](Makefile) | `make --version` |
+
+You don't need Gradle: the repository's `./gradlew` downloads it (`gradlew.bat` on Windows).
+
+### 2. Get the code and install the dependencies (once)
 
 ```bash
-./gradlew build      # compile, lint, all tests (uses Testcontainers)
-make up              # start postgres, s3, keycloak, redpanda
-make run             # backend on http://localhost:8080
-make ui-install && make ui   # web UI on http://localhost:5173 (sign in as alice / alice)
-make converter-install        # CAD models viewable in the browser (STEP to glTF, Node 22)
+git clone https://github.com/sadikBr/plm.git
 ```
 
-Then open http://localhost:5173, or follow the [UI tour](docs/DEVELOPMENT.md#4-run-the-web-ui) or the [curl walkthrough](docs/DEVELOPMENT.md#5-walkthrough-with-curl-login-teams-versioning-audit): sign in, set up a team, version a part, read the audit trail.
+```bash
+cd plm
+```
+
+```bash
+make ui-install            # the web UI's packages (cd frontend && npm ci)
+```
+
+```bash
+make converter-install     # the CAD converter, STEP to glTF (cd workers/cad-converter && npm ci)
+```
+
+### 3. Start the services
+
+```bash
+make up-full               # Postgres, S3 storage, Keycloak, Redpanda, OpenSearch, Temporal, Mailpit
+```
+
+Wait about a minute, then check that everything is up (every line should say `running` or
+`healthy`):
+
+```bash
+docker compose -f deploy/docker-compose.yml --profile full ps
+```
+
+`make up` starts a lighter set (no OpenSearch, no Temporal): search then uses Postgres and
+workflows run in the backend's own process. Both work; `make up-full` is closest to production.
+
+### 4. Start the backend (keep this terminal open)
+
+```bash
+PLM_SEARCH_ENGINE=opensearch PLM_TEMPORAL_TARGET=localhost:7233 make run
+```
+
+With `make up` instead of `make up-full`, start it with just `make run`. The first start compiles
+the code and takes a few minutes; it's ready when this prints `"status":"UP"`:
+
+```bash
+curl localhost:8080/actuator/health
+```
+
+### 5. Start the web UI (in a second terminal, keep it open)
+
+```bash
+make ui                    # cd frontend && npm run dev
+```
+
+Open http://localhost:5173 and sign in. Dev users (password = user name):
+
+| User | Role |
+|---|---|
+| `alice` | site administrator: sees and administers everything |
+| `bob` | ordinary user: sees what he's on the team of |
+| `carol` | ordinary user, on no team: sees nothing until added |
+
+Other local addresses: mail the platform sends at http://localhost:8025 (Mailpit), workflows at
+http://localhost:8233 (Temporal UI), the API explorer at http://localhost:8080/swagger-ui.html.
+
+### 6. Try it
+
+The database starts empty. As **alice**:
+
+1. **Set up a product.** On the **Site** page click **New organization**; in it, open **Products**
+   and click **New product**. On its **Team** tab add `bob` (he must have signed in once).
+2. **Parts and documents.** In the product, click **New part** and **New document**. **Check out**,
+   change attributes, upload files on a document, **Check in**, **Revise**; see **History**.
+3. **Product structure.** On an assembly part's **Structure** tab add child parts with quantities;
+   try **Where used**, **Compare** and **Baselines**.
+4. **Change management.** Open **Changes** in the top bar (icons only on narrow screens; hover for names): report a problem, raise a change
+   request, approve it from **Tasks** (inbox), make a change notice with the part as its result
+   and set it to *Resolved*: the part becomes *Released*.
+5. **CAD data.** On a product page click **Import STEP…** and choose
+   `backend/modules/cad/src/test/resources/step/as1_pe_203.stp` (keep both boxes ticked). The
+   assembly opens; after a few seconds its **3D view** tab shows the model: hide parts, **Measure**,
+   **Section**, save **Markups**, show **PMI**. A document or CAD drawing with a PDF has a
+   **2D view** tab with markups.
+6. **Administration** (the **Admin** link, a gear icon, in the top bar): types and attributes, lifecycles, numbering, workflows,
+   publishing rules, automations, extensions.
+
+The [UI tour](docs/DEVELOPMENT.md#4-run-the-web-ui) goes further, and each phase's end-to-end test
+in [frontend/e2e](frontend/e2e) is a scripted version of a whole scenario.
+
+### 7. Run the tests
+
+```bash
+./gradlew build            # backend: compile, lint, every test (Docker must be running)
+```
+
+```bash
+make ui-test               # web UI: lint, type check, unit tests
+```
+
+The browser end-to-end tests need steps 3 to 5 running, and Playwright's browser once:
+
+```bash
+cd frontend && npx playwright install chromium && cd ..
+```
+
+```bash
+make e2e                   # every scenario, in a headless browser
+```
+
+### 8. Stop, or start over
+
+```bash
+make down                  # stop the services, keep the data
+```
+
+```bash
+make reset                 # stop the services and delete all local data
+```
+
+Stop the backend and the UI with Ctrl-C in their terminals. If something goes wrong, see
+[Troubleshooting](docs/DEVELOPMENT.md#troubleshooting).
 
 ## Documentation
 
@@ -49,7 +174,7 @@ Then open http://localhost:5173, or follow the [UI tour](docs/DEVELOPMENT.md#4-r
 6. **Everything emits events** through a transactional outbox; side effects are asynchronous.
 7. **Audit everything**, append-only, from day one.
 
-## Planned stack
+## Stack
 
-Kotlin + Spring Boot 3 · PostgreSQL · Flyway · Temporal · Redpanda/Kafka · OpenSearch ·
+Kotlin + Spring Boot 4 · PostgreSQL · Flyway · Temporal · Redpanda/Kafka · OpenSearch ·
 S3 (SeaweedFS in dev) · Keycloak (OIDC) · React + TypeScript + AG Grid · three.js · OpenCascade
