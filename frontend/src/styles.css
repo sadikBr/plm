@@ -667,3 +667,12 @@ table.folders td { padding-top: 7px; padding-bottom: 7px; }
 .saved-row { display: flex; align-items: center; gap: 6px; }
 .saved-row .link-btn { flex: 1; text-align: left; }
 @media (max-width: 900px) { .search-layout { grid-template-columns: 1fr; } }
+
+/* Table views (roadmap 3.7) */
+.view-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--panel-2); }
+.views-menu { min-width: 260px; display: grid; }
+.view-row { display: flex; align-items: center; gap: 4px; }
+.view-row button[role="menuitem"] { flex: 1; text-align: left; }
+.columns-dialog { display: grid; grid-template-columns: 1fr 260px; gap: 14px; }
+.column-order { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; max-height: 300px; overflow: auto; }
+.column-order li { display: flex; align-items: center; gap: 2px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel); font-size: 13px; }

@@ -3706,6 +3706,24 @@
         "required" : [ "name", "query", "shared" ],
         "type" : "object"
       },
+      "SaveTableView" : {
+        "properties" : {
+          "definition" : {
+            "$ref" : "#/components/schemas/TableViewDefinition"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "shared" : {
+            "type" : "boolean"
+          },
+          "table" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "definition", "name", "shared", "table" ],
+        "type" : "object"
+      },
       "SavedSearch" : {
         "properties" : {
           "id" : {
@@ -3979,6 +3997,28 @@
         "required" : [ "createdAt", "id", "members", "name" ],
         "type" : "object"
       },
+      "SheetExport" : {
+        "properties" : {
+          "columns" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "rows" : {
+            "items" : {
+              "items" : { },
+              "type" : "array"
+            },
+            "type" : "array"
+          },
+          "sheetName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "columns", "rows", "sheetName" ],
+        "type" : "object"
+      },
       "StateDto" : {
         "properties" : {
           "editable" : {
@@ -4064,6 +4104,75 @@
           }
         },
         "required" : [ "dead", "delivered", "pending", "subscriptionId" ],
+        "type" : "object"
+      },
+      "TableView" : {
+        "properties" : {
+          "definition" : {
+            "$ref" : "#/components/schemas/TableViewDefinition"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "owner" : {
+            "type" : "string"
+          },
+          "shared" : {
+            "type" : "boolean"
+          },
+          "table" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "definition", "id", "name", "owner", "shared", "table", "updatedAt" ],
+        "type" : "object"
+      },
+      "TableViewDefinition" : {
+        "properties" : {
+          "attributes" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "columns" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "sortColumn" : {
+            "type" : [ "string", "null" ]
+          },
+          "sortDescending" : {
+            "type" : "boolean"
+          },
+          "states" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "text" : {
+            "type" : [ "string", "null" ]
+          },
+          "typeIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "attributes", "columns", "sortDescending", "states", "typeIds" ],
         "type" : "object"
       },
       "TeamRoleConfig" : {
@@ -7169,6 +7278,45 @@
           }
         },
         "tags" : [ "Webhook" ]
+      }
+    },
+    "/api/v1/export/xlsx" : {
+      "post" : {
+        "operationId" : "tableViewXlsx",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SheetExport"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Table view" ]
       }
     },
     "/api/v1/expressions/check" : {
@@ -11052,6 +11200,156 @@
         "tags" : [ "Shared team" ]
       }
     },
+    "/api/v1/table-views" : {
+      "get" : {
+        "operationId" : "tableViewList",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "table",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/TableView"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Table view" ]
+      },
+      "post" : {
+        "operationId" : "tableViewSave",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveTableView"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TableView"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Table view" ]
+      }
+    },
+    "/api/v1/table-views/{id}" : {
+      "delete" : {
+        "operationId" : "tableViewDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Table view" ]
+      },
+      "put" : {
+        "operationId" : "tableViewUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveTableView"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TableView"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Table view" ]
+      }
+    },
     "/api/v1/team-roles" : {
       "get" : {
         "operationId" : "teamRoleList",
@@ -12470,6 +12768,8 @@
     "name" : "Service account"
   }, {
     "name" : "Shared team"
+  }, {
+    "name" : "Table view"
   }, {
     "name" : "Team"
   }, {

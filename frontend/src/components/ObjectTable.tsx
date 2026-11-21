@@ -1,12 +1,27 @@
+import { useQueries } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import { useContextById, useTypes, type VersionedObject } from "../api/queries";
+import { api, unwrap } from "../api/client";
+import { useContextById, useEnumerations, useTypes, type AttributeDefinition, type VersionedObject } from "../api/queries";
+import { formatAttribute, pickLabel } from "./AttributeForm";
 import { formatDate, PrincipalName, StateBadge, stateLabel, TypeIcon, typeLabel } from "./common";
 
-type Column = "number" | "name" | "type" | "version" | "state" | "context" | "checkedOutBy" | "modified";
+/** Built-in columns; attribute columns are `attr:<name>` (roadmap 3.7). */
+export type BuiltinColumn =
+  | "number"
+  | "name"
+  | "type"
+  | "version"
+  | "state"
+  | "context"
+  | "checkedOutBy"
+  | "owner"
+  | "modified"
+  | "created";
+export type ColumnKey = BuiltinColumn | `attr:${string}`;
 
-const LABELS: Record<Column, string> = {
+export const COLUMN_LABELS: Record<BuiltinColumn, string> = {
   number: "Number",
   name: "Name",
   type: "Type",
@@ -14,8 +29,88 @@ const LABELS: Record<Column, string> = {
   state: "State",
   context: "Context",
   checkedOutBy: "Checked out by",
+  owner: "Owner",
   modified: "Last modified",
+  created: "Created",
 };
+
+export const DEFAULT_COLUMNS: ColumnKey[] = ["number", "name", "type", "version", "state", "checkedOutBy", "modified"];
+
+/** Attribute definitions of the types of [objects], by name (the first type's wins on a clash). */
+export function useAttributeDefinitions(typeIds: string[]): Map<string, AttributeDefinition> {
+  const unique = [...new Set(typeIds)].slice(0, 20);
+  return useQueries({
+    queries: unique.map((id) => ({
+      queryKey: ["typeAttributes", id],
+      queryFn: () => unwrap(api.GET("/api/v1/types/{typeId}/attributes", { params: { path: { typeId: id } } })),
+      staleTime: 5 * 60_000,
+    })),
+    combine: (results) => {
+      const map = new Map<string, AttributeDefinition>();
+      for (const r of results) for (const d of r.data ?? []) if (!map.has(d.name)) map.set(d.name, d);
+      return map;
+    },
+  });
+}
+
+/**
+ * What a cell shows as text: for sorting, filtering and the Excel export, so all three agree with
+ * what's on screen.
+ */
+export function useCellText(definitions: Map<string, AttributeDefinition>) {
+  const { data: types } = useTypes();
+  const { data: enumerations } = useEnumerations();
+  return (o: VersionedObject, column: ColumnKey): string => {
+    if (column.startsWith("attr:")) {
+      const name = column.slice(5);
+      const v = (o.latest.attributes as Record<string, unknown>)[name];
+      return v == null ? "" : formatAttribute(definitions.get(name), v, enumerations);
+    }
+    switch (column as BuiltinColumn) {
+      case "number":
+        return o.number;
+      case "name":
+        return o.name;
+      case "type":
+        return typeLabel(types?.find((t) => t.id === o.typeId));
+      case "version":
+        return o.version;
+      case "state":
+        return stateLabel(o.latest.state);
+      case "modified":
+        return o.latest.checkedInAt ?? o.latest.createdAt;
+      case "created":
+        return o.createdAt;
+      case "checkedOutBy":
+        return o.checkedOutBy ?? "";
+      case "owner":
+        return o.owner;
+      default:
+        return o.contextId;
+    }
+  };
+}
+
+export function columnLabel(column: ColumnKey, definitions: Map<string, AttributeDefinition>): string {
+  if (column.startsWith("attr:")) {
+    const name = column.slice(5);
+    return pickLabel(definitions.get(name)?.labels, name);
+  }
+  return COLUMN_LABELS[column as BuiltinColumn] ?? column;
+}
+
+/** Sorts by a column's text: numbers in it compare as numbers ("A.10" after "A.9"). */
+export function sortRows(
+  objects: VersionedObject[],
+  column: ColumnKey,
+  desc: boolean,
+  text: (o: VersionedObject, c: ColumnKey) => string,
+): VersionedObject[] {
+  const key = (o: VersionedObject) =>
+    column === "version" ? o.latest.revision.padStart(4, " ") + String(o.latest.iteration).padStart(6, "0") : text(o, column).toLowerCase();
+  const rows = [...objects].sort((a, b) => key(a).localeCompare(key(b), undefined, { numeric: true }));
+  return desc ? rows.reverse() : rows;
+}
 
 /** Dense, sortable table of versioned objects. Sorting is on the loaded rows. */
 export function ObjectTable({
@@ -25,6 +120,9 @@ export function ObjectTable({
   label = "Objects",
   selected,
   onSelect,
+  columns: chosen,
+  sort: controlledSort,
+  onSort,
 }: {
   objects: VersionedObject[];
   showContext?: boolean;
@@ -33,7 +131,16 @@ export function ObjectTable({
   /** With both, rows can be ticked for mass operations (roadmap 3.5). */
   selected?: Set<string>;
   onSelect?: (ids: Set<string>) => void;
+  /** Which columns, in order (roadmap 3.7); the default set otherwise. */
+  columns?: ColumnKey[];
+  sort?: { column: ColumnKey; desc: boolean };
+  onSort?: (sort: { column: ColumnKey; desc: boolean }) => void;
 }) {
+  const definitions = useAttributeDefinitions(objects.map((o) => o.typeId));
+  const text = useCellText(definitions);
+  const [ownSort, setOwnSort] = useState<{ column: ColumnKey; desc: boolean }>({ column: "number", desc: false });
+  const sort = controlledSort ?? ownSort;
+  const setSort = onSort ?? setOwnSort;
   const selectable = !!selected && !!onSelect;
   const toggle = (id: string) => {
     const next = new Set(selected);
@@ -42,53 +149,84 @@ export function ObjectTable({
     onSelect?.(next);
   };
   const allSelected = selectable && objects.length > 0 && objects.every((o) => selected.has(o.id));
-  const { data: types } = useTypes();
-  const [sort, setSort] = useState<{ column: Column; desc: boolean }>({ column: "number", desc: false });
-  const columns: Column[] = [
-    "number",
-    "name",
-    "type",
-    "version",
-    "state",
-    ...(showContext ? (["context"] as Column[]) : []),
-    "checkedOutBy",
-    "modified",
-  ];
+  const columns: ColumnKey[] =
+    chosen ?? (showContext ? [...DEFAULT_COLUMNS.slice(0, 5), "context", ...DEFAULT_COLUMNS.slice(5)] : DEFAULT_COLUMNS);
 
-  const sorted = useMemo(() => {
-    const typeName = (o: VersionedObject) => typeLabel(types?.find((t) => t.id === o.typeId));
-    const key = (o: VersionedObject): string => {
-      switch (sort.column) {
-        case "number":
-          return o.number;
-        case "name":
-          return o.name.toLowerCase();
-        case "type":
-          return typeName(o);
-        case "version":
-          return o.latest.revision.padStart(4, " ") + String(o.latest.iteration).padStart(6, "0");
-        case "state":
-          return stateLabel(o.latest.state);
-        case "modified":
-          return o.latest.checkedInAt ?? "";
-        default:
-          return o.checkedOutBy ?? "";
-      }
-    };
-    const rows = [...objects].sort((a, b) => key(a).localeCompare(key(b), undefined, { numeric: true }));
-    return sort.desc ? rows.reverse() : rows;
-  }, [objects, sort, types]);
+  const sorted = useMemo(() => sortRows(objects, sort.column, sort.desc, text), [objects, sort, text]);
 
-  const header = (column: Column) => {
+  const header = (column: ColumnKey) => {
     const active = sort.column === column;
     return (
       <th key={column} aria-sort={active ? (sort.desc ? "descending" : "ascending") : undefined}>
         <button className="sort-btn" onClick={() => setSort({ column, desc: active ? !sort.desc : false })}>
-          {LABELS[column]}
+          {columnLabel(column, definitions)}
           {active && (sort.desc ? <ArrowDown size={12} aria-hidden /> : <ArrowUp size={12} aria-hidden />)}
         </button>
       </th>
     );
+  };
+
+  const cell = (o: VersionedObject, column: ColumnKey) => {
+    switch (column) {
+      case "number":
+        return (
+          <td key={column} className="nowrap">
+            <Link className="num-link" to={`/objects/${o.id}`}>
+              {o.number}
+            </Link>
+          </td>
+        );
+      case "name":
+        return (
+          <td key={column}>
+            <Link className="name-link" to={`/objects/${o.id}`}>
+              {o.name}
+            </Link>
+          </td>
+        );
+      case "version":
+        return (
+          <td key={column} className="nowrap version">
+            {o.version}
+          </td>
+        );
+      case "state":
+        return (
+          <td key={column}>
+            <StateBadge state={o.latest.state} />
+          </td>
+        );
+      case "context":
+        return (
+          <td key={column} className="nowrap">
+            <ContextName id={o.contextId} />
+          </td>
+        );
+      case "checkedOutBy":
+      case "owner": {
+        const who = column === "owner" ? o.owner : o.checkedOutBy;
+        return (
+          <td key={column} className="nowrap">
+            {who ? <PrincipalName id={who} /> : <span className="muted">—</span>}
+          </td>
+        );
+      }
+      case "modified":
+      case "created":
+        return (
+          <td key={column} className="nowrap muted date">
+            {formatDate(column === "created" ? o.createdAt : o.latest.checkedInAt)}
+          </td>
+        );
+      default: {
+        const value = text(o, column);
+        return (
+          <td key={column} className={column === "type" ? "nowrap" : undefined}>
+            {value || <span className="muted">—</span>}
+          </td>
+        );
+      }
+    }
   };
 
   return (
@@ -124,28 +262,7 @@ export function ObjectTable({
                 <td className="icon-cell">
                   <TypeIcon typeId={o.typeId} />
                 </td>
-                <td className="nowrap">
-                  <Link className="num-link" to={`/objects/${o.id}`}>
-                    {o.number}
-                  </Link>
-                </td>
-                <td>
-                  <Link className="name-link" to={`/objects/${o.id}`}>
-                    {o.name}
-                  </Link>
-                </td>
-                <td className="nowrap">{typeLabel(types?.find((t) => t.id === o.typeId))}</td>
-                <td className="nowrap version">{o.version}</td>
-                <td>
-                  <StateBadge state={o.latest.state} />
-                </td>
-                {showContext && (
-                  <td className="nowrap">
-                    <ContextName id={o.contextId} />
-                  </td>
-                )}
-                <td className="nowrap">{o.checkedOutBy ? <PrincipalName id={o.checkedOutBy} /> : <span className="muted">—</span>}</td>
-                <td className="nowrap muted date">{formatDate(o.latest.checkedInAt)}</td>
+                {columns.map((c) => cell(o, c))}
               </tr>
             ))}
           </tbody>

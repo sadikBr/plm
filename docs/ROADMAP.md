@@ -154,7 +154,9 @@ platform gets the background machinery (jobs, schedules, notifications) later ph
       (Done: `search` module with OpenSearch or built-in Postgres full-text engines; values, file
       names and the text of text files and PDFs are indexed; results and facet counts only cover
       what the person may read.)
-- [ ] 3.7 Table views: choose columns, filter and sort, save and share views, export to Excel.
+- [x] 3.7 Table views: choose columns, filter and sort, save and share views, export to Excel.
+      (Done: built-in and attribute columns, filters by state, type and attribute, saved views
+      per person or shared, an .xlsx export of the table as shown.)
 - [ ] 3.8 Reports and home page: report definitions (a query and columns), scheduled reports and
       alerts by email, dashboards, a home page each user arranges.
 - [ ] 3.9 Personal tracking: favorites, recent items, subscriptions to objects and folders,

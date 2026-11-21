@@ -41,7 +41,8 @@ import {
 } from "../components/common";
 import { Breadcrumbs, PageHeader, Tabs, useIdParam } from "../components/Layout";
 import { rememberVisit } from "../components/Navigator";
-import { ObjectTable } from "../components/ObjectTable";
+import { ObjectTable, useAttributeDefinitions, useCellText, type ColumnKey } from "../components/ObjectTable";
+import { DEFAULT_VIEW, ViewBar, applyView, exportXlsx, type ViewDefinition } from "../components/TableViews";
 import { AccessTab, TeamTab } from "./ContextAccess";
 import { ContextTable, NewContextDialog } from "./ContextLists";
 import { BulkBar, BulkProgress } from "./Bulk";
@@ -353,15 +354,24 @@ function ObjectsTab({ context, canCreate }: { context: Context; canCreate: boole
   );
   const { data: prefs } = useEffectivePreferences(context.id);
   const objects = useObjects(context.id, (prefs?.get("ui.tablePageSize") as number | undefined) ?? 50, folder ?? "");
-  const [filter, setFilter] = useState("");
+  // Table views (roadmap 3.7): columns, filters and sort; saved views and Excel export.
+  const [view, setView] = useState<ViewDefinition>(DEFAULT_VIEW);
+  const [exporting, setExporting] = useState<unknown>(null);
   // Mass operations (roadmap 3.5): ticked rows, and the job running on them.
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkJob, setBulkJob] = useState<string | null>(null);
   const rows = useMemo(() => objects.data?.pages.flat() ?? [], [objects.data]);
-  const shown = useMemo(() => {
-    const f = filter.trim().toLowerCase();
-    return f ? rows.filter((o) => o.number.toLowerCase().includes(f) || o.name.toLowerCase().includes(f)) : rows;
-  }, [rows, filter]);
+  const presentTypes = useMemo(() => [...new Set(rows.map((o) => o.typeId))], [rows]);
+  const definitions = useAttributeDefinitions(presentTypes);
+  const text = useCellText(definitions);
+  const shown = useMemo(() => applyView(rows, view, text), [rows, view, text]);
+  const doExport = () => {
+    setExporting(true);
+    exportXlsx(context.name, view.columns as ColumnKey[], shown, definitions, text).then(
+      () => setExporting(null),
+      (e: unknown) => setExporting(e),
+    );
+  };
 
   return (
     <Panel
@@ -370,14 +380,6 @@ function ObjectsTab({ context, canCreate }: { context: Context; canCreate: boole
       flush
       actions={
         <>
-          <input
-            className="filter"
-            type="search"
-            aria-label="Filter objects"
-            placeholder="Filter by number or name"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          />
           {canCreate &&
             baseClasses.map((bc) => (
               <button key={bc} className="btn small primary" onClick={() => setCreating(bc)}>
@@ -404,7 +406,16 @@ function ObjectsTab({ context, canCreate }: { context: Context; canCreate: boole
           onStarted={setBulkJob}
         />
       )}
-      <ErrorBanner error={objects.error} />
+      <ViewBar
+        table="objects"
+        view={view}
+        onChange={setView}
+        definitions={definitions}
+        presentTypes={presentTypes}
+        onExport={doExport}
+        exporting={exporting === true}
+      />
+      <ErrorBanner error={objects.error ?? (exporting !== true ? exporting : null)} />
       {objects.isLoading ? (
         <Loading />
       ) : rows.length === 0 ? (
@@ -414,6 +425,9 @@ function ObjectsTab({ context, canCreate }: { context: Context; canCreate: boole
           objects={shown}
           selected={selected}
           onSelect={setSelected}
+          columns={view.columns as ColumnKey[]}
+          sort={{ column: (view.sortColumn ?? "number") as ColumnKey, desc: !!view.sortDescending }}
+          onSort={(s) => setView({ ...view, sortColumn: s.column, sortDescending: s.desc })}
           footer={
             <>
               <span>{shown.length === rows.length ? `${rows.length} objects` : `${shown.length} of ${rows.length} objects`}</span>
