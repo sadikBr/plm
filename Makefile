@@ -1,6 +1,6 @@
 COMPOSE := docker compose -f deploy/docker-compose.yml
 
-.PHONY: up up-full down reset build test run fmt events ui ui-install ui-test e2e api-contract
+.PHONY: up up-full down reset build test run fmt events ui ui-install ui-test e2e api-contract converter-install
 
 up:        ## Start core services (postgres, s3, keycloak, redpanda)
 	$(COMPOSE) up -d
@@ -22,6 +22,8 @@ events:    ## Tail domain events on the bus (Ctrl-C to stop)
 	$(COMPOSE) exec redpanda rpk topic consume plm.domain-events --offset start
 ui-install: ## Install frontend dependencies
 	cd frontend && npm ci
+converter-install: ## Install the CAD converter (STEP to glTF, for the 3D viewer)
+	cd workers/cad-converter && npm ci
 ui:        ## Run the web UI on :5173 (needs `make up` and `make run`)
 	cd frontend && npm run dev
 ui-test:   ## Frontend lint, typecheck and unit tests

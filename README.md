@@ -3,14 +3,14 @@
 An open Product Lifecycle Management (PLM) platform: documents, parts, multi-level BOMs,
 lifecycles, workflows and change management, built to scale to millions of objects.
 
-> Status: **Phase 5 complete**: processes on Temporal (templates drawn in the UI, tasks and an
-> inbox, votes, deadlines and escalation, stand-ins, electronic signatures), promotion requests,
-> change management (problem reports, change requests, change notices and tasks, a change board,
-> implementation plans, templates, association rules, variances, redlines and mass changes, change
-> dashboards) and a release gate; sandboxed server scripts, extension panels, tabs and endpoints,
-> and no-code automations. On top of product structures (Phase 4), documents, search, reports and
-> collaboration (Phase 3), the extensibility platform (Phase 2) and the core model (Phase 1).
-> Next: Phase 6, CAD data and visualization. See the [roadmap](docs/ROADMAP.md).
+> Status: **Phase 6 complete**: CAD models in the PLM: CAD parts, assemblies and drawings with
+> their dependency structure, collected for check-out, family tables, part associations that build
+> the part structure, and STEP import; conversion to glTF on check-in and publishing (stamped PDFs,
+> data sheets, watermarked downloads); in the browser, a 3D viewer (structure, measure, section,
+> saved views and markups, PMI) and a 2D viewer for drawings and PDFs with markups. On top of
+> workflow and change management (Phase 5), product structures (Phase 4), documents, search,
+> reports and collaboration (Phase 3), the extensibility platform (Phase 2) and the core model
+> (Phase 1). Next: Phase 7, configuration. See the [roadmap](docs/ROADMAP.md).
 
 ![Object page: a checked-out part with its working copy](docs/images/ui-object.png) See the [roadmap](docs/ROADMAP.md).
 
@@ -23,6 +23,7 @@ Requires JDK 21 and Docker. Full guide: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.m
 make up              # start postgres, s3, keycloak, redpanda
 make run             # backend on http://localhost:8080
 make ui-install && make ui   # web UI on http://localhost:5173 (sign in as alice / alice)
+make converter-install        # CAD models viewable in the browser (STEP to glTF, Node 22)
 ```
 
 Then open http://localhost:5173, or follow the [UI tour](docs/DEVELOPMENT.md#4-run-the-web-ui) or the [curl walkthrough](docs/DEVELOPMENT.md#5-walkthrough-with-curl-login-teams-versioning-audit): sign in, set up a team, version a part, read the audit trail.

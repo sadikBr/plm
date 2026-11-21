@@ -435,7 +435,7 @@ resolved or a promotion request approved (or an administrator overrides, recorde
 approve it on the change board with their passwords (signed), makes a change notice with the part
 as its result, resolves it, and finds the part Released and the request and report resolved.
 
-## Phase 6 — CAD data and visualization
+## Phase 6 — CAD data and visualization (complete)
 
 **Goal:** CAD models live in the PLM with their structure: assemblies and drawings keep their
 dependencies, travel together through check-out, revise and release, build the part structure,
@@ -536,6 +536,12 @@ seat.
 **Exit:** a STEP assembly is imported as CAD documents associated with parts and builds their
 structure; it is converted on check-in, explored in the browser (structure, measure, section,
 markups); and on release its drawing is published as a watermarked PDF.
+**Met:** `e2e/cad-flow.spec.ts` imports the CAx-IF AS1 STEP assembly from a product page (nine
+CAD documents, each owning a part, the parts' structure built), finds it converted on check-in in
+the 3D view, hides a branch, measures, sections and saves a pinned markup; then a CAD drawing of
+it with its PDF is released by resolving a change notice, the "released drawings" rule publishes
+it, and the published PDF reads the drawing's number, Released and who downloaded it; the drawing
+opens in the 2D view.
 
 ## Phase 7 — Configuration
 Effectivity (date, serial, lot, block; effectivity contexts; pending effectivity via change) ·
