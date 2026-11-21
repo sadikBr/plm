@@ -134,6 +134,22 @@ internal class WorkItemController(
         @RequestParam(defaultValue = "200") limit: Int,
     ) = items.list(actor, WorkItemQuery(all, if (anyStatus) null else status ?: WorkItemStatus.OPEN, limit))
 
+    /** Open and overdue tasks of the caller: the top bar's counter. */
+    @GetMapping("/api/v1/tasks/counts")
+    fun counts(actor: Actor) = items.counts(actor)
+
+    @PostMapping("/api/v1/tasks/{id}/claim")
+    fun claim(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = items.claim(actor, id)
+
+    @PostMapping("/api/v1/tasks/{id}/release")
+    fun release(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = items.release(actor, id)
+
     @GetMapping("/api/v1/tasks/{id}")
     fun get(
         actor: Actor,

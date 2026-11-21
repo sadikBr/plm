@@ -316,8 +316,14 @@ affected objects; and the platform can be extended with scripts, UI slots and no
       condition, branches, waits). The server checks it as you go (missing targets, unreachable
       steps, bad durations or conditions); saving makes a new version. Process templates are part
       of the configuration bundle (export, dry-run import).
-- [ ] 5.3 Tasks and inbox: work items for users, team roles or groups; claim, complete with an
+- [x] 5.3 Tasks and inbox: work items for users, team roles or groups; claim, complete with an
       outcome and comment; an inbox with filters and counts, notifications and mail.
+      Done: a step goes to users, the members of a team role in the object's context, the starter
+      or the owner; each gets a task (notified, mailed per their settings, linking to it). A task
+      given to several people can be taken on by one (the others wait) and given back. The Tasks
+      page lists open, overdue and done tasks with a filter, and shows the selected one with its
+      instructions, object, the process so far and the answer buttons; the top bar counts open
+      tasks (red when some are overdue).
 - [ ] 5.4 Voting, delegation and escalation: reviewer sets with voting rules (all, any, majority);
       reassign and delegate, out-of-office stand-ins; due dates, reminders and escalation.
 - [ ] 5.5 Process assignments: which process runs for which type, lifecycle state or transition,

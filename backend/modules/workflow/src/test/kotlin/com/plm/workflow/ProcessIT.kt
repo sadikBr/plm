@@ -203,6 +203,48 @@ internal class ProcessIT(
     }
 
     @Test
+    fun `a task given to a role is taken on by one member, who can give it back (roadmap 5_3)`() {
+        val p = product()
+        val pool =
+            templates.create(
+                admin,
+                SaveProcessTemplate(
+                    "Pool ${UUID.randomUUID().toString().take(6)}",
+                    definition =
+                        ProcessDefinition(
+                            "check",
+                            listOf(
+                                ProcessNode(
+                                    "check",
+                                    NodeKind.TASK,
+                                    "Check drawing",
+                                    assignees = listOf("role:MEMBER"),
+                                    choices = listOf("DONE"),
+                                    next = "end",
+                                ),
+                                ProcessNode("end", NodeKind.END),
+                            ),
+                        ),
+                ),
+            )
+        val part = versioning.create(alice, CreateVersionedObject(TypeId.PART, p, "Drawing"))
+        val run = processes.start(alice, StartProcess(pool.id, part.id.value))
+        val bobs = task(bob, run.id, "Check drawing")
+        val alices = task(alice, run.id, "Check drawing")
+        assertThat(bobs.sharedWith).isEqualTo(2)
+        assertThat(items.counts(bob).open).isGreaterThanOrEqualTo(1)
+        items.claim(bob, bobs.id)
+        assertThat(items.get(alice, alices.id).claimedBy).isEqualTo(bob.principal.value)
+        assertThatThrownBy {
+            items.complete(alice, alices.id, CompleteWorkItem("DONE"))
+        }.hasMessageContaining("taken this task on")
+        items.release(bob, bobs.id)
+        items.complete(alice, alices.id, CompleteWorkItem("DONE"))
+        assertThat(ended(run.id).status).isEqualTo(ProcessStatus.COMPLETED)
+        assertThat(items.get(bob, bobs.id).status).isEqualTo(WorkItemStatus.CANCELLED)
+    }
+
+    @Test
     fun `templates are checked before they're saved, and each save is a new version`() {
         val broken =
             ProcessDefinition(

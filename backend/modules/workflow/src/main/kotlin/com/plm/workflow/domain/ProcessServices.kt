@@ -444,6 +444,7 @@ internal class DefaultWorkItemService(
         row: WorkItemRow,
         names: Map<UUID, String>,
         subjects: Map<UUID, Pair<String, String>>,
+        shared: Int = 1,
     ) = WorkItem(
         id = row.id,
         instanceId = row.instanceId,
@@ -465,6 +466,8 @@ internal class DefaultWorkItemService(
         dueAt = row.dueAt,
         completedAt = row.completedAt,
         completedBy = row.completedBy,
+        claimedBy = row.claimedBy,
+        sharedWith = shared,
     )
 
     private fun views(
@@ -479,7 +482,13 @@ internal class DefaultWorkItemService(
                 .chunked(500)
                 .flatMap { ids -> versioning.list(actor, ObjectQuery(ids = ids.map(::MasterId), limit = 500)) }
                 .associate { it.id.value to (it.number to it.name) }
-        return rows.map { view(it, names, subjects) }
+        val shares =
+            rows
+                .filter { it.kind == NodeKind.TASK && it.status == WorkItemStatus.OPEN }
+                .map { Triple(it.instanceId, it.nodeId, it.visit) }
+                .distinct()
+                .associateWith { (i, n, v) -> repository.itemsOf(i, n, v).size }
+        return rows.map { view(it, names, subjects, shares[Triple(it.instanceId, it.nodeId, it.visit)] ?: 1) }
     }
 
     @Transactional(readOnly = true)
@@ -526,11 +535,17 @@ internal class DefaultWorkItemService(
         return views(actor, listOf(row)).single()
     }
 
-    override fun complete(
+    @Transactional(readOnly = true)
+    override fun counts(actor: Actor) =
+        com.plm.workflow.api.TaskCounts(
+            repository.openCount(actor.tenant, actor.principal.value),
+            repository.overdueCount(actor.tenant, actor.principal.value, clock.instant()),
+        )
+
+    private fun mine(
         actor: Actor,
         id: UUID,
-        request: CompleteWorkItem,
-    ): WorkItem {
+    ): WorkItemRow {
         val row = repository.item(id)?.takeIf { it.tenantId == actor.tenant.value } ?: notFound()
         if (row.assignee !=
             actor.principal.value
@@ -538,6 +553,65 @@ internal class DefaultWorkItemService(
             throw ForbiddenException("NOT_YOUR_TASK", "This task is someone else's")
         }
         if (row.status != WorkItemStatus.OPEN) throw ConflictException("TASK_CLOSED", "This task is already closed")
+        return row
+    }
+
+    override fun claim(
+        actor: Actor,
+        id: UUID,
+    ): WorkItem {
+        val row = mine(actor, id)
+        if (row.kind !=
+            NodeKind.TASK
+        ) {
+            throw ValidationException("NOT_CLAIMABLE", "Everyone votes: a vote can't be claimed")
+        }
+        if (row.claimedBy != null && row.claimedBy != actor.principal.value) {
+            throw ConflictException("TASK_CLAIMED", "Someone else has taken this task on")
+        }
+        repository.claim(row.instanceId, row.nodeId, row.visit, actor.principal.value, clock.instant())
+        repository.event(
+            row.instanceId,
+            clock.instant(),
+            "CLAIMED",
+            row.nodeId,
+            actor.principal.value,
+            "${row.title}: taken on",
+        )
+        return get(actor, id)
+    }
+
+    override fun release(
+        actor: Actor,
+        id: UUID,
+    ): WorkItem {
+        val row = mine(actor, id)
+        if (row.claimedBy !=
+            actor.principal.value
+        ) {
+            throw ConflictException("NOT_CLAIMED", "You haven't taken this task on")
+        }
+        repository.claim(row.instanceId, row.nodeId, row.visit, null, clock.instant())
+        repository.event(
+            row.instanceId,
+            clock.instant(),
+            "RELEASED",
+            row.nodeId,
+            actor.principal.value,
+            "${row.title}: given back",
+        )
+        return get(actor, id)
+    }
+
+    override fun complete(
+        actor: Actor,
+        id: UUID,
+        request: CompleteWorkItem,
+    ): WorkItem {
+        val row = mine(actor, id)
+        if (row.claimedBy != null && row.claimedBy != actor.principal.value) {
+            throw ConflictException("TASK_CLAIMED", "Someone else has taken this task on")
+        }
         if (request.outcome !in row.choices) {
             throw ValidationException("INVALID_OUTCOME", "Answer one of ${row.choices.joinToString(", ")}")
         }

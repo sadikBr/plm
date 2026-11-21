@@ -41,6 +41,7 @@ const DEFAULTS: Record<string, Handler> = {
   "GET /api/v1/objects/:id/processes": () => [],
   "GET /api/v1/process-templates": () => [],
   "GET /api/v1/tasks": () => [],
+  "GET /api/v1/tasks/counts": () => ({ open: 0, overdue: 0 }),
   "GET /api/v1/objects/:id/structure": () => ({ rootId: "", spec: { type: "LATEST" }, nodes: [], truncated: false, elapsedMs: 0 }),
   "GET /api/v1/preferences/effective": () => [],
 };

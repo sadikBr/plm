@@ -1,6 +1,7 @@
 import { t } from "../i18n/i18n";
 import { ClipboardButton } from "./Clipboard";
 import { NotificationBell } from "../personal/Personal";
+import { InboxLink } from "../workflow/Inbox";
 import { Archive, BarChart3, ChevronRight, LayoutDashboard, LogOut, Settings } from "lucide-react";
 import { type ReactNode } from "react";
 import { Link, NavLink, Outlet, useParams } from "react-router";
@@ -24,6 +25,7 @@ export function Layout() {
         </Link>
         {shows("search") && <GlobalSearch />}
         <div className="spacer" />
+        <InboxLink />
         <NavLink to="/reports" className="topbar-link">
           <BarChart3 size={14} aria-hidden /> {t("Reports")}
         </NavLink>

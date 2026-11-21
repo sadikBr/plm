@@ -5926,6 +5926,20 @@
         "required" : [ "label" ],
         "type" : "object"
       },
+      "TaskCounts" : {
+        "properties" : {
+          "open" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "overdue" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "open", "overdue" ],
+        "type" : "object"
+      },
       "TeamRoleConfig" : {
         "properties" : {
           "active" : {
@@ -6872,6 +6886,9 @@
             },
             "type" : "array"
           },
+          "claimedBy" : {
+            "type" : [ "string", "null" ]
+          },
           "comment" : {
             "type" : [ "string", "null" ]
           },
@@ -6914,6 +6931,10 @@
           "processName" : {
             "type" : "string"
           },
+          "sharedWith" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
           "signature" : {
             "type" : "boolean"
           },
@@ -6935,7 +6956,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "assignee", "choices", "createdAt", "id", "instanceId", "kind", "nodeId", "processName", "signature", "status", "title" ],
+        "required" : [ "assignee", "choices", "createdAt", "id", "instanceId", "kind", "nodeId", "processName", "sharedWith", "signature", "status", "title" ],
         "type" : "object"
       }
     },
@@ -17627,9 +17648,74 @@
         "tags" : [ "Work item" ]
       }
     },
+    "/api/v1/tasks/counts" : {
+      "get" : {
+        "operationId" : "workItemCounts",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaskCounts"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Work item" ]
+      }
+    },
     "/api/v1/tasks/{id}" : {
       "get" : {
         "operationId" : "workItemGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkItem"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Work item" ]
+      }
+    },
+    "/api/v1/tasks/{id}/claim" : {
+      "post" : {
+        "operationId" : "workItemClaim",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -17686,6 +17772,43 @@
           },
           "required" : true
         },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkItem"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Work item" ]
+      }
+    },
+    "/api/v1/tasks/{id}/release" : {
+      "post" : {
+        "operationId" : "workItemRelease",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
         "responses" : {
           "200" : {
             "content" : {

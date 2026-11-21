@@ -182,6 +182,15 @@ data class WorkItem(
     val dueAt: Instant?,
     val completedAt: Instant?,
     val completedBy: String?,
+    /** Who took the step on: only they can answer until they release it (roadmap 5.3). */
+    val claimedBy: String? = null,
+    /** How many people the step was given to. */
+    val sharedWith: Int = 1,
+)
+
+data class TaskCounts(
+    val open: Int,
+    val overdue: Int,
 )
 
 data class CompleteWorkItem(
@@ -279,6 +288,19 @@ interface WorkItemService {
     ): List<WorkItem>
 
     fun get(
+        actor: Actor,
+        id: UUID,
+    ): WorkItem
+
+    fun counts(actor: Actor): TaskCounts
+
+    /** Takes on a step given to several people: theirs wait until it's released or answered. */
+    fun claim(
+        actor: Actor,
+        id: UUID,
+    ): WorkItem
+
+    fun release(
         actor: Actor,
         id: UUID,
     ): WorkItem

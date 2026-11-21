@@ -165,7 +165,7 @@ export function ProcessDetail({ p }: { p: Instance }) {
         <table className="grid compact" aria-label={t("Process tasks")}>
           <tbody>
             {tasks.data?.map((w) => (
-              <TaskLine key={w.id} w={w} mine={w.assignee === me.data?.user.id} />
+              <TaskLine key={w.id} w={w} mine={w.assignee === me.data?.user.id && (!w.claimedBy || w.claimedBy === me.data?.user.id)} />
             ))}
           </tbody>
         </table>

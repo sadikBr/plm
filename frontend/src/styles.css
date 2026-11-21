@@ -914,3 +914,15 @@ table.grid.compact td { padding: 6px 8px; vertical-align: top; }
 .inspector-form { display: grid; gap: 10px 16px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); align-items: start; }
 .inspector-form > .row:first-child, .inspector-form > .row:last-child, .inspector-form .check-list { grid-column: 1 / -1; }
 .inspector-form textarea { width: 100%; }
+
+/* Inbox (roadmap 5.3) */
+.count-badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 9px; background: var(--accent); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+.count-badge.overdue { background: var(--danger, #c62828); }
+.content.inbox { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.content.inbox tr.clickable { cursor: pointer; }
+.content.inbox tr.selected td { background: var(--row-selected); }
+.content.inbox .tag { margin-left: 6px; }
+.overdue-text { color: var(--danger, #c62828); font-weight: 600; }
+.task-panel { display: grid; gap: 12px; }
+.task-panel .instructions { padding: 10px 12px; border-left: 3px solid var(--accent); background: var(--panel-2); border-radius: 4px; }
+.task-panel .process-detail { grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--border); padding-top: 12px; }

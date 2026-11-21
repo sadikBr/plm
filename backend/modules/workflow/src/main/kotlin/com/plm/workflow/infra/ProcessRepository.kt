@@ -56,6 +56,7 @@ internal data class WorkItemRow(
     val dueAt: Instant?,
     val completedAt: Instant?,
     val completedBy: String?,
+    val claimedBy: String? = null,
 )
 
 @Repository
@@ -354,8 +355,48 @@ internal class ProcessRepository(
                 dueAt = rs.instant("due_at"),
                 completedAt = rs.instant("completed_at"),
                 completedBy = rs.getString("completed_by"),
+                claimedBy = rs.getString("claimed_by"),
             )
         }
+
+    /** Sets (or with null, clears) the claim on every open copy of a step pass. */
+    fun claim(
+        instanceId: UUID,
+        nodeId: String,
+        visit: Int,
+        by: String?,
+        at: Instant,
+    ) {
+        jdbc
+            .sql(
+                """
+                update work_item set claimed_by = :by, claimed_at = :at
+                where instance_id = :id and node_id = :node and visit = :visit and status = 'OPEN'
+                """.trimIndent(),
+            ).param("id", instanceId)
+            .param("node", nodeId)
+            .param("visit", visit)
+            .param("by", by)
+            .param("at", by?.let { Timestamp.from(at) })
+            .update()
+    }
+
+    fun overdueCount(
+        tenant: TenantId,
+        assignee: String,
+        now: Instant,
+    ): Int =
+        jdbc
+            .sql(
+                """
+                select count(*) from work_item where tenant_id = :tenant and assignee = :assignee and status = 'OPEN'
+                  and due_at < :now
+                """.trimIndent(),
+            ).param("tenant", tenant.value)
+            .param("assignee", assignee)
+            .param("now", Timestamp.from(now))
+            .query(Int::class.java)
+            .single()
 
     fun insertItem(row: WorkItemRow) {
         jdbc
