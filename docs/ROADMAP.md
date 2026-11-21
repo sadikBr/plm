@@ -544,10 +544,49 @@ it, and the published PDF reads the drawing's number, Released and who downloade
 opens in the 2D view.
 
 ## Phase 7 — Configuration
-Effectivity (date, serial, lot, block; effectivity contexts; pending effectivity via change) ·
-options and variants (option sets, rules, 150% structures, variant specifications, variant
-generation and reuse) · one-off versions · classification with class attributes, classification
-search, find similar.
+
+**Goal:** one product definition answers "what do we build for this unit, on this date, with these
+options": effectivity decides which revisions and lines apply, options and rules turn a 150%
+structure into a buildable variant, one-off versions serve single orders without disturbing the
+main line, and classification makes existing parts easy to find and reuse.
+
+- [ ] 7.1 Effectivity contexts and statements: an end item (a top part) as the context; effectivity
+      by date, serial (unit) number, lot or block ranges, open-ended or closed, on part versions
+      and on usage lines, relative to a context; overlap checks.
+- [ ] 7.2 Effectivity in configuration specs: "as effective on <date> / for serial <n> / lot <l> of
+      <end item>" picks, per part, the revision effective there and keeps only effective lines; in
+      structure, where-used, compare and baselines.
+- [ ] 7.3 Pending effectivity through change: a change notice carries the effectivity of its
+      resulting versions; it takes effect when the notice resolves, closing the superseded
+      revision's range; shown on the notice and the part.
+- [ ] 7.4 Effectivity in the UI: an effectivity panel on parts and lines, an "effective at" picker on
+      structure views, the history of a part's ranges per end item.
+- [ ] 7.5 Options and choices: option sets in libraries (an option with its choices, e.g. Motor:
+      standard, high torque), assigned to configurable products; choices can be retired.
+- [ ] 7.6 Option rules: includes, excludes and requires between choices, and a check of any
+      selection that says which rule it breaks and what would fix it.
+- [ ] 7.7 150% structures: usage lines of configurable parts carry a choice condition (and, or,
+      not over choices); the full structure shows every line with its condition; filtering by a
+      selection leaves the lines that apply.
+- [ ] 7.8 Variant specifications: a named, saved selection of choices (with a configuration spec and
+      effectivity) for a configurable product, checked against the rules; its filtered structure.
+- [ ] 7.9 Variant generation and reuse: generate a variant part whose structure is the filtered
+      result, level by level; before making new parts, find variants already generated for the
+      same selection and reuse them; the variant remembers its specification.
+- [ ] 7.10 One-off versions: a version of a released part made for one order or unit (e.g. `B.2-1`),
+      on a branch that the main line's configuration specs skip unless asked for, traceable to its
+      origin and order.
+- [ ] 7.11 Classification: a class tree (e.g. Fasteners > Screws > Hex screws) with class attributes
+      inherited down the tree (types, units, value lists, required); classify parts, values kept
+      per version; administered in the UI.
+- [ ] 7.12 Classification search and find similar: browse by class and filter by class attribute
+      ranges; from any part, find similar ones (same class, close values), ranked by similarity.
+
+**Exit:** a configurable product with options and rules is configured into a variant whose filtered
+structure is generated as parts, reusing a variant generated earlier for a sub-assembly; a change
+notice makes a new revision effective from a serial number, and the structure for serials below
+and above it differs as planned; a one-off version for one order stays out of the main line; and a
+part is found by class attributes and its similar parts.
 
 ## Phase 8 — Desktop and native CAD
 Office/desktop integration · personal workspaces · native connectors (SolidWorks, Creo, NX,
