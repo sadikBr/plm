@@ -1,16 +1,16 @@
 package com.plm.identity.domain
 
+import com.plm.identity.api.AdministratorKind
 import com.plm.identity.api.Principal
 import com.plm.identity.api.PrincipalDirectory
 import com.plm.identity.api.SignIn
-import com.plm.identity.api.AdministratorKind
 import com.plm.identity.api.SiteAdminSettings
 import com.plm.identity.api.SiteAdministrator
 import com.plm.identity.api.SiteAdministrators
 import com.plm.identity.infra.PrincipalRepository
 import com.plm.identity.infra.ServiceAccountRepository
-import com.plm.platform.error.ForbiddenException
 import com.plm.platform.actor.Actor
+import com.plm.platform.error.ForbiddenException
 import com.plm.platform.error.NotFoundException
 import com.plm.platform.id.PrincipalId
 import com.plm.platform.id.TenantId
@@ -54,7 +54,12 @@ internal class DefaultPrincipalDirectory(
 
     @Transactional(readOnly = true)
     override fun siteAdministrators(actor: Actor): SiteAdministrators {
-        if (!actor.siteAdmin) throw ForbiddenException("ADMIN_REQUIRED", "Only site administrators see who administers the site")
+        if (!actor.siteAdmin) {
+            throw ForbiddenException(
+                "ADMIN_REQUIRED",
+                "Only site administrators see who administers the site",
+            )
+        }
         val builtIn = settings.builtInAdmin
         val users =
             principals.siteAdmins(actor.tenant).map {
@@ -71,7 +76,16 @@ internal class DefaultPrincipalDirectory(
             serviceAccounts
                 .accounts(actor.tenant)
                 .filter { it.siteAdmin && it.active }
-                .map { SiteAdministrator(it.id, it.username, it.displayName, AdministratorKind.SERVICE_ACCOUNT, false, null) }
+                .map {
+                    SiteAdministrator(
+                        it.id,
+                        it.username,
+                        it.displayName,
+                        AdministratorKind.SERVICE_ACCOUNT,
+                        false,
+                        null,
+                    )
+                }
         return SiteAdministrators(
             builtInUsername = builtIn,
             enforced = settings.onlyBuiltIn,
