@@ -11022,6 +11022,46 @@
         "tags" : [ "Change" ]
       }
     },
+    "/api/v1/changes/{id}/effectivity" : {
+      "get" : {
+        "operationId" : "effectivityForChange",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Effectivity"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Effectivity" ]
+      }
+    },
     "/api/v1/changes/{id}/links" : {
       "post" : {
         "operationId" : "changeLink",

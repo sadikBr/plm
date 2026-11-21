@@ -566,9 +566,15 @@ main line, and classification makes existing parts easy to find and reuse.
       Each part is at the latest iteration of its revision effective there (none, if it has
       effectivity but no revision covers it; its latest Released, if it has none), and lines with
       effectivity are kept only where it covers the value.
-- [ ] 7.3 Pending effectivity through change: a change notice carries the effectivity of its
+- [x] 7.3 Pending effectivity through change: a change notice carries the effectivity of its
       resulting versions; it takes effect when the notice resolves, closing the superseded
       revision's range; shown on the notice and the part.
+      Done: a change notice's "Effectivity of the results" panel sets ranges on the revisions of
+      its resulting parts (by whoever may change the notice), pending, as the parts' Effectivity
+      tabs show too. Resolving the notice puts them in effect and ends the range each one starts
+      inside just before it (the day, unit or block before). A range that would replace another
+      revision's whole range, split it, or close a lot range keeps the notice from being resolved,
+      saying why.
 - [ ] 7.4 Effectivity in the UI: an effectivity panel on parts and lines, an "effective at" picker on
       structure views, the history of a part's ranges per end item.
 - [ ] 7.5 Options and choices: option sets in libraries (an option with its choices, e.g. Motor:

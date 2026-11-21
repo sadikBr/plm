@@ -136,7 +136,15 @@ function RangeTable({
                   )}
                 </span>
               ) : (
-                <span className="tag ok">{t("In effect")}</span>
+                <span className="tag ok">
+                  {t("In effect")}
+                  {e.changeId && (
+                    <>
+                      {" · "}
+                      <Link to={`/objects/${e.changeId}?tab=change`}>{t("change")}</Link>
+                    </>
+                  )}
+                </span>
               )}
             </td>
             <td className="muted small nowrap">
@@ -198,7 +206,7 @@ export function EffectivityTab({ obj, mine }: { obj: VersionedObject; mine: bool
   if (!rows) return error ? <ErrorBanner error={error} /> : <Loading />;
   const versionRows = rows.filter((r) => r.target === "VERSION");
   const lineRows = rows.filter((r) => r.target === "LINE");
-  const rev = revision || revisions.at(-1) || "";
+  const rev = revision || [...revisions].sort().at(-1) || "";
   return (
     <>
       <ErrorBanner error={add.error ?? remove.error ?? makeEndItem.error ?? dropEndItem.error} />
@@ -277,5 +285,122 @@ export function EffectivityTab({ obj, mine }: { obj: VersionedObject; mine: bool
         </Panel>
       )}
     </>
+  );
+}
+
+/**
+ * The effectivity a change notice gives its results (roadmap 7.3): pending until the notice is
+ * resolved, then in effect, the range each supersedes closed just before it.
+ */
+export function ChangeEffectivityPanel({ notice, results }: { notice: VersionedObject; results: Schemas["LinkedObject"][] }) {
+  const qc = useQueryClient();
+  const parts = results.filter((r) => r.readable && r.version);
+  const [target, setTarget] = useState("");
+  const chosen = parts.find((p) => p.id === target) ?? parts[0];
+  const key = ["changeEffectivity", notice.id];
+  const { data: rows } = useQuery({
+    queryKey: key,
+    queryFn: () => unwrap(api.GET("/api/v1/changes/{id}/effectivity", { params: { path: { id: notice.id } } })),
+  });
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: key });
+    void qc.invalidateQueries({ queryKey: ["effectivity"] });
+  };
+  const add = useMutation({
+    mutationFn: (r: { kind: EffectivityKind; from: string; to?: string; endItemId?: string }) =>
+      unwrap(
+        api.POST("/api/v1/objects/{id}/effectivity", {
+          params: { path: { id: chosen!.id } },
+          body: { target: "VERSION", revision: chosen!.version!.split(".")[0], changeId: notice.id, ...r },
+        }),
+      ),
+    onSuccess: refresh,
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => unwrap(api.DELETE("/api/v1/effectivity/{effectivityId}", { params: { path: { effectivityId: id } } })),
+    onSuccess: refresh,
+  });
+  const open = !["RESOLVED", "CANCELLED"].includes(notice.latest.state);
+  const byPart = new Map(results.map((r) => [r.id, r]));
+  return (
+    <Panel
+      title={t("Effectivity of the results")}
+      note={
+        open
+          ? t("Pending until this notice is resolved; then it takes effect, and the range it supersedes ends just before it.")
+          : t("In effect since this notice was resolved.")
+      }
+      flush
+    >
+      <ErrorBanner error={add.error ?? remove.error} />
+      {rows && rows.length > 0 ? (
+        <table className="grid" aria-label={t("Effectivity of the results")}>
+          <thead>
+            <tr>
+              <th>{t("Part")}</th>
+              <th>{t("Revision")}</th>
+              <th>{t("Effective by")}</th>
+              <th>{t("Range")}</th>
+              <th>{t("End item")}</th>
+              <th>{t("Status")}</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((e) => (
+              <tr key={e.id}>
+                <td>
+                  <Link to={`/objects/${e.partId}?tab=effectivity`}>
+                    {byPart.get(e.partId)?.number} {byPart.get(e.partId)?.name}
+                  </Link>
+                </td>
+                <td>
+                  <strong>{e.revision}</strong>
+                </td>
+                <td>{effectivityKindLabel(e.kind)}</td>
+                <td className="nowrap num-text">{rangeText(e)}</td>
+                <td>
+                  {e.context ? (
+                    `${e.context.endItem.number ?? ""} ${e.context.endItem.name ?? ""}`
+                  ) : (
+                    <span className="muted">{t("any")}</span>
+                  )}
+                </td>
+                <td>
+                  {e.status === "PENDING" ? (
+                    <span className="tag warn">{t("Pending")}</span>
+                  ) : (
+                    <span className="tag ok">{t("In effect")}</span>
+                  )}
+                </td>
+                <td>
+                  {open && e.status === "PENDING" && (
+                    <button className="icon-btn" aria-label={t("Remove")} onClick={() => remove.mutate(e.id)}>
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <div className="empty small">{parts.length ? t("No effectivity set yet.") : t("Add resulting parts first.")}</div>
+      )}
+      {open && chosen && (
+        <RangeForm busy={add.isPending} onAdd={(r) => add.mutate(r)}>
+          <label className="field">
+            <span>{t("Part")}</span>
+            <select value={chosen.id} onChange={(e) => setTarget(e.target.value)}>
+              {parts.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.number} {p.name} · {p.version?.split(".")[0]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </RangeForm>
+      )}
+    </Panel>
   );
 }

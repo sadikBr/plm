@@ -117,4 +117,10 @@ interface EffectivityService {
         actor: Actor,
         effectivityId: UUID,
     )
+
+    /** What change notice [changeId] sets (pending), or set (in effect since it was resolved). */
+    fun forChange(
+        actor: Actor,
+        changeId: UUID,
+    ): List<Effectivity>
 }

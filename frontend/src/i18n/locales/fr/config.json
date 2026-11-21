@@ -38,5 +38,11 @@
   "On your working copy: kept with the lines when you check in.": "Sur votre copie de travail : conservée avec les lignes à l'archivage.",
   "Check it out to change when its lines apply.": "Extrayez-le pour changer quand ses lignes s'appliquent.",
   "Line effectivity": "Effectivité des lignes",
-  "Effectivity": "Effectivité"
+  "Effectivity": "Effectivité",
+  "Effectivity of the results": "Effectivité des résultats",
+  "Pending until this notice is resolved; then it takes effect, and the range it supersedes ends just before it.": "En attente jusqu'à la résolution de cet avis ; elle entre alors en vigueur, et la plage qu'elle remplace se termine juste avant.",
+  "In effect since this notice was resolved.": "En vigueur depuis la résolution de cet avis.",
+  "Part": "Article",
+  "No effectivity set yet.": "Aucune effectivité définie pour l'instant.",
+  "Add resulting parts first.": "Ajoutez d'abord les articles résultants."
 }

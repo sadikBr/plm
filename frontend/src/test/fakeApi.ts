@@ -62,6 +62,7 @@ const DEFAULTS: Record<string, Handler> = {
   "GET /api/v1/objects/:id/cad/pmi": () => ({ modelId: "x", version: "A.1", views: [] }),
   "GET /api/v1/effectivity-contexts": () => [],
   "GET /api/v1/objects/:id/effectivity": () => [],
+  "GET /api/v1/changes/:id/effectivity": () => [],
   "GET /api/v1/publish-settings": () => ({ watermarkDownloads: false }),
   "GET /api/v1/objects/:id/publications": () => [],
   "GET /api/v1/publish-rules": () => [],

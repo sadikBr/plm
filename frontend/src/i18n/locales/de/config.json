@@ -38,5 +38,11 @@
   "On your working copy: kept with the lines when you check in.": "Auf Ihrer Arbeitskopie: bleibt beim Einchecken bei den Positionen.",
   "Check it out to change when its lines apply.": "Checken Sie es aus, um die Gültigkeit seiner Positionen zu ändern.",
   "Line effectivity": "Positionsgültigkeit",
-  "Effectivity": "Gültigkeit"
+  "Effectivity": "Gültigkeit",
+  "Effectivity of the results": "Gültigkeit der Ergebnisse",
+  "Pending until this notice is resolved; then it takes effect, and the range it supersedes ends just before it.": "Ausstehend, bis diese Mitteilung erledigt ist; dann tritt sie in Kraft, und der ersetzte Bereich endet direkt davor.",
+  "In effect since this notice was resolved.": "In Kraft, seit diese Mitteilung erledigt ist.",
+  "Part": "Teil",
+  "No effectivity set yet.": "Noch keine Gültigkeit festgelegt.",
+  "Add resulting parts first.": "Fügen Sie zuerst die resultierenden Teile hinzu."
 }

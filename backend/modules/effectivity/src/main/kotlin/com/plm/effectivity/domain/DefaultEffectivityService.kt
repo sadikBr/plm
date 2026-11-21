@@ -395,10 +395,11 @@ internal class DefaultEffectivityService(
                 } else {
                     bad("Choose the end item ${request.kind.name.lowercase()} numbers count in")
                 }
+        request.changeId?.let { checkNotice(actor, it, partId, request.target) }
         val (revision, lineId) =
             when (request.target) {
                 EffectivityTarget.VERSION -> {
-                    requireModify(actor, o)
+                    if (request.changeId == null) requireModify(actor, o)
                     val rev = request.revision?.trim()?.takeIf { it.isNotEmpty() } ?: bad("Choose the revision")
                     val exists =
                         jdbc
@@ -443,6 +444,43 @@ internal class DefaultEffectivityService(
         if (row.status == EffectivityStatus.ACTUAL) checkOverlap(row)
         insert(row)
         return view(actor, rows("id = :id", mapOf("id" to id))).single()
+    }
+
+    /**
+     * Effectivity set through a change (roadmap 7.3): on a version, by a change notice that isn't
+     * resolved yet and has the part among its results, by someone who may change the notice.
+     */
+    private fun checkNotice(
+        actor: Actor,
+        changeId: UUID,
+        partId: UUID,
+        target: EffectivityTarget,
+    ) {
+        if (target != EffectivityTarget.VERSION) bad("A change sets the effectivity of versions")
+        val notice = versioning.get(actor, MasterId(changeId))
+        if (TypeId.CHANGE_NOTICE !in types.lineage(actor, notice.typeId)) bad("${notice.number} isn't a change notice")
+        if (notice.latest.state in setOf("RESOLVED", "CANCELLED")) bad("${notice.number} is closed")
+        requireModify(actor, notice)
+        val result =
+            jdbc
+                .sql("select count(*) from change_link where change_id = :c and target_id = :p and role = 'RESULTING'")
+                .param("c", changeId)
+                .param("p", partId)
+                .query(Int::class.java)
+                .single() > 0
+        if (!result) bad("The part isn't one of ${notice.number}'s results")
+    }
+
+    /** Effectivity a change sets or set (roadmap 7.3). */
+    @Transactional(readOnly = true)
+    override fun forChange(
+        actor: Actor,
+        changeId: UUID,
+    ): List<Effectivity> {
+        versioning.get(actor, MasterId(changeId))
+        val rows = rows("change_id = :c", mapOf("c" to changeId))
+        val visible = readable(actor, rows.map { it.masterId })
+        return view(actor, rows.filter { it.masterId in visible })
     }
 
     internal fun insert(row: Row) {
@@ -500,6 +538,8 @@ internal class DefaultEffectivityService(
                     .query(Int::class.java)
                     .single() > 0
             if (!onIt) bad("Change a line's effectivity on your working copy")
+        } else if (row.changeId != null && row.status == EffectivityStatus.PENDING) {
+            requireModify(actor, versioning.get(actor, MasterId(row.changeId)))
         } else {
             requireModify(actor, o)
         }

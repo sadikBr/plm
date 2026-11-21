@@ -1,3 +1,4 @@
+import { ChangeEffectivityPanel } from "../effectivity/EffectivityTab";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ClipboardList, PencilRuler, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -381,6 +382,7 @@ export function ChangeTab({ obj, kind }: { obj: VersionedObject; kind: Kind }) {
       )}
       {(kind === "CHANGE_NOTICE" || kind === "CHANGE_TASK") &&
         section("RESULTING", t("Resulting objects"), t("The new versions the change produces."))}
+      {kind === "CHANGE_NOTICE" && <ChangeEffectivityPanel notice={obj} results={of("RESULTING").map((l) => l.target)} />}
       {kind === "VARIANCE" && <VarianceScopePanel changeId={obj.id} />}
       {kind !== "CHANGE_TASK" && kind !== "VARIANCE" && section("END_ITEM", t("End items"), t("The products concerned."))}
     </div>

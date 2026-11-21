@@ -50,6 +50,13 @@ internal class EffectivityController(
         @RequestParam(defaultValue = "false") workingCopy: Boolean,
     ) = effectivity.forPart(actor, id, workingCopy)
 
+    /** The effectivity a change notice sets on its results (roadmap 7.3). */
+    @GetMapping("/api/v1/changes/{id}/effectivity")
+    fun forChange(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = effectivity.forChange(actor, id)
+
     @PostMapping("/api/v1/objects/{id}/effectivity")
     @ResponseStatus(HttpStatus.CREATED)
     fun add(
