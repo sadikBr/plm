@@ -12,6 +12,12 @@ type View = "iso" | "front" | "top" | "right";
 
 const SELECTED = new THREE.Color("#2a78d6");
 
+const isShown = (o: THREE.Object3D | null): boolean => !o || (o.visible && isShown(o.parent));
+
+/** A hit on the part of a body a section plane cuts away doesn't count. */
+const isClipped = (hit: THREE.Intersection) =>
+  ((hit.object as THREE.Mesh).material as THREE.Material).clippingPlanes?.some((p) => p.distanceToPoint(hit.point) < 0) ?? false;
+
 /** The objects a viewer page works with, shared with measuring, sections and markups (6.9, 6.10). */
 export type ViewerHandle = {
   scene: THREE.Scene;
@@ -22,7 +28,17 @@ export type ViewerHandle = {
   render: () => void;
   /** The model's size, for scaling markers. */
   radius: number;
+  /** From viewer coordinates (metres, Y up) to the model's own (its units, as authored). */
+  toModel: THREE.Matrix4;
+  fromModel: THREE.Matrix4;
+  /** A layer over the canvas, for a tool's labels and panels. */
+  overlay: HTMLDivElement;
+  /** While set, clicks on the model go to [fn] instead of selecting. */
+  setPicker: (fn: ((hit: THREE.Intersection) => void) | null) => void;
 };
+
+/** True for objects tools add to the scene (markers, caps): never picked, never part of the tree. */
+export const isHelper = (o: THREE.Object3D) => !!o.userData.helper;
 
 /**
  * The web 3D viewer (roadmap 6.8): a model's glTF with its structure tree, orbit, standard views,
@@ -33,14 +49,11 @@ export function Viewer3D({
   title,
   onReady,
   tools,
-  onPick,
 }: {
   url: string;
   title: string;
   onReady?: (h: ViewerHandle) => void;
   tools?: (h: ViewerHandle) => React.ReactNode;
-  /** A click on the model, with the point hit (model coordinates) and its normal; false to let selection happen. */
-  onPick?: (hit: THREE.Intersection) => boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const [handle, setHandle] = useState<ViewerHandle | null>(null);
@@ -49,13 +62,14 @@ export function Viewer3D({
   const [selected, setSelected] = useState<string | null>(null);
   const [transparent, setTransparent] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const onPickRef = useRef(onPick);
-  onPickRef.current = onPick;
+  const overlay = useRef<HTMLDivElement>(null);
+  const picker = useRef<((hit: THREE.Intersection) => void) | null>(null);
+  const [picking, setPicking] = useState(false);
 
   // Scene, camera, renderer, controls: once per model.
   useEffect(() => {
     const el = host.current!;
-    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, stencil: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.localClippingEnabled = true;
     el.appendChild(renderer.domElement);
@@ -107,16 +121,35 @@ export function Viewer3D({
         controls.target.copy(sphere.center);
         camera.near = sphere.radius / 100;
         camera.far = sphere.radius * 100;
-        const h: ViewerHandle = { scene, camera, renderer, controls, model, render, radius: sphere.radius };
+        model.updateMatrixWorld(true);
+        // The converter's root node turns the model's units and Z up into metres and Y up.
+        const root = (model.children.length === 1 && model.children[0]) || model;
+        const fromModel = root.matrixWorld.clone();
+        const h: ViewerHandle = {
+          scene,
+          camera,
+          renderer,
+          controls,
+          model,
+          render,
+          radius: sphere.radius,
+          fromModel,
+          toModel: fromModel.clone().invert(),
+          overlay: overlay.current!,
+          setPicker: (fn) => {
+            picker.current = fn;
+            setPicking(!!fn);
+          },
+        };
         setHandle(h);
         // The tree: named groups, depth first.
         const out: TreeItem[] = [];
         const walk = (o: THREE.Object3D, depth: number) => {
           const meshes: THREE.Mesh[] = [];
-          o.traverse((c) => c instanceof THREE.Mesh && meshes.push(c));
+          o.traverse((c) => c instanceof THREE.Mesh && !isHelper(c) && meshes.push(c));
           const named = !!o.name && !(o instanceof THREE.Mesh);
           if (named && meshes.length) out.push({ id: o.uuid, name: o.name.replace(/_/g, " "), depth, object: o, meshes });
-          o.children.forEach((c) => walk(c, named ? depth + 1 : depth));
+          o.children.filter((c) => !isHelper(c)).forEach((c) => walk(c, named ? depth + 1 : depth));
         };
         walk(model, 0);
         setItems(out);
@@ -171,7 +204,7 @@ export function Viewer3D({
     items.filter((i) => hidden.has(i.id)).forEach((i) => i.meshes.forEach((m) => hiddenMeshes.add(m)));
     const chosen = new Set(items.find((i) => i.id === selected)?.meshes ?? []);
     handle.model.traverse((o) => {
-      if (!(o instanceof THREE.Mesh)) return;
+      if (!(o instanceof THREE.Mesh) || isHelper(o)) return;
       o.visible = !hiddenMeshes.has(o);
       const m = o.material as THREE.MeshStandardMaterial;
       m.color.copy(chosen.has(o) ? SELECTED : (m.userData.color as THREE.Color));
@@ -197,8 +230,10 @@ export function Viewer3D({
         new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1),
         handle.camera,
       );
-      const hit = ray.intersectObject(handle.model, true).find((h) => h.object.visible && h.object instanceof THREE.Mesh);
-      if (hit && onPickRef.current?.(hit)) return;
+      const hit = ray
+        .intersectObject(handle.model, true)
+        .find((h) => h.object instanceof THREE.Mesh && !isHelper(h.object) && isShown(h.object) && !isClipped(h));
+      if (picker.current) return hit && picker.current(hit);
       if (!hit) return setSelected(null);
       let o: THREE.Object3D | null = hit.object;
       while (o && !items.some((i) => i.object === o)) o = o.parent;
@@ -227,7 +262,7 @@ export function Viewer3D({
   const toggle = (id: string) => setHidden((s) => (s.has(id) ? new Set([...s].filter((x) => x !== id)) : new Set([...s, id])));
   const stats = useMemo(() => {
     let meshes = 0;
-    handle?.model.traverse((o) => o instanceof THREE.Mesh && meshes++);
+    handle?.model.traverse((o) => o instanceof THREE.Mesh && !isHelper(o) && meshes++);
     return meshes;
   }, [handle]);
 
@@ -284,7 +319,8 @@ export function Viewer3D({
           </button>
           {handle && tools?.(handle)}
         </div>
-        <div className="viewer-canvas" ref={host}>
+        <div className={`viewer-canvas ${picking ? "picking" : ""}`} ref={host}>
+          <div className="viewer-overlay" ref={overlay} />
           {!handle && !error && <div className="viewer-loading">{t("Loading the model…")}</div>}
           {error && <div className="banner error">{t("The model couldn't be shown: {error}", { error })}</div>}
           {chosen && <div className="viewer-chip">{chosen.name}</div>}

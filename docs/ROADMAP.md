@@ -501,8 +501,14 @@ seat.
       shows the converted glTF (three.js, loaded on demand) with the model's assembly tree: show
       or hide each branch, select from the tree or by clicking the model, isolate, zoom to, fit,
       iso, front, top and right views, orbit, pan and zoom, and a see-through mode.
-- [ ] 6.9 Measure and section: distances, angles and coordinates between points and faces;
+- [x] 6.9 Measure and section: distances, angles and coordinates between points and faces;
       section planes along the axes or any face, with a cap.
+      Done: the 3D view's Measure tool gives a point's coordinates, the distance between two
+      points (with its X, Y, Z components, and the gap between two parallel faces) and the angle
+      between two faces, in the model's own coordinates (mm), marked on the model. Section cuts
+      along the model's X, Y or Z or through a clicked face, moved with a slider, flipped, and
+      capped so cut solids read as solid (stencil caps; where two solids overlap, the cap shows
+      gaps).
 - [ ] 6.10 3D markups and saved views: annotations pinned on the model, with a camera, saved per
       version, shared and discussed.
 - [ ] 6.11 2D/PDF viewer with markups: drawings and PDFs rendered in the browser with pages and

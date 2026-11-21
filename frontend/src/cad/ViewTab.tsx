@@ -7,6 +7,7 @@ import { config } from "../config";
 import { useViewable } from "./Viewable";
 
 const Viewer3D = lazy(() => import("./Viewer3D").then((m) => ({ default: m.Viewer3D })));
+const InspectTools = lazy(() => import("./Inspect").then((m) => ({ default: m.InspectTools })));
 
 /** The 3D tab (roadmap 6.8): the model's viewable in the browser. [modelId]: the model to show. */
 export function ViewTab({ obj, modelId }: { obj: VersionedObject; modelId: string }) {
@@ -26,7 +27,11 @@ export function ViewTab({ obj, modelId }: { obj: VersionedObject; modelId: strin
   }
   return (
     <Suspense fallback={<Loading />}>
-      <Viewer3D url={data.url.startsWith("/") ? config.apiBase + data.url : data.url} title={`${obj.number} · ${data.version}`} />
+      <Viewer3D
+        url={data.url.startsWith("/") ? config.apiBase + data.url : data.url}
+        title={`${obj.number} · ${data.version}`}
+        tools={(h) => <InspectTools h={h} />}
+      />
     </Suspense>
   );
 }
