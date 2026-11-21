@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
-# plm: start, stop and look after the whole platform on this computer.
+# plm: install, start, stop and look after the whole platform on this computer.
 #
-#   ./plm setup            check the prerequisites, install the dependencies, build the backend
+#   ./plm install [--lite] [--yes] [--dry-run]
+#                          install what's missing (Git, Docker, JDK 21, Node.js), build, start,
+#                          and choose the site administrator's password: the one command to begin with
 #   ./plm start [--lite]   start the services, the backend and the web UI, and wait until they're ready
 #   ./plm stop             stop the web UI, the backend and the services (data is kept)
 #   ./plm restart [--lite] stop, then start
 #   ./plm status           what's running, and where
 #   ./plm logs [backend|ui|services]   follow a log (Ctrl-C to stop following)
+#   ./plm admin-password   change the site administrator's (plmadmin's) password, or set a forgotten one
+#   ./plm setup            only check the prerequisites, install the dependencies, build the backend
 #   ./plm reset            stop everything and delete all local data (asks first)
 #
-# --lite starts fewer services (no OpenSearch, no Temporal): search uses Postgres, workflows run
-# inside the backend. It needs about 3 GB less memory. On Windows, use plm.cmd (same commands).
+# --lite starts fewer services (no OpenSearch, no Temporal): about 3 GB less memory. --yes answers
+# yes to every question; --dry-run only shows what install would do. On Windows, use plm.cmd.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,6 +23,19 @@ mkdir -p "$STATE"
 COMPOSE=(docker compose -f "$ROOT/deploy/docker-compose.yml")
 UI_URL="http://localhost:5173"
 API_URL="http://localhost:8080"
+KEYCLOAK="http://localhost:8180"
+ADMIN_USER="plmadmin"
+
+LITE=0
+ASSUME_YES=0
+DRY_RUN=0
+for arg in "$@"; do
+  case "$arg" in
+    --lite) LITE=1 ;;
+    --yes | -y) ASSUME_YES=1 ;;
+    --dry-run) DRY_RUN=1 ;;
+  esac
+done
 
 bold() { printf '\033[1m%s\033[0m\n' "$*"; }
 ok() { printf '  \033[32m✓\033[0m %s\n' "$*"; }
@@ -26,6 +43,61 @@ warn() { printf '  \033[33m!\033[0m %s\n' "$*"; }
 fail() {
   printf '  \033[31m✗\033[0m %s\n' "$*" >&2
   exit 1
+}
+
+# Asks a yes/no question; $2 is the answer when nobody can be asked (Y or N).
+confirm() {
+  local question="$1" default="${2:-Y}" answer hint="[Y/n]"
+  [[ "$default" == N ]] && hint="[y/N]"
+  if [[ "$ASSUME_YES" == 1 ]]; then return 0; fi
+  if [[ ! -t 0 ]]; then [[ "$default" == Y ]]; return; fi
+  read -r -p "  $question $hint " answer
+  answer="${answer:-$default}"
+  [[ "$answer" =~ ^[Yy] ]]
+}
+
+# Runs a command as root (with sudo unless we are root); --dry-run only prints it.
+as_root() {
+  if [[ "$DRY_RUN" == 1 ]]; then
+    printf '    would run: %s\n' "$*"
+    return 0
+  fi
+  if [[ "$(id -u)" == 0 ]]; then "$@"; else sudo "$@"; fi
+}
+# The same for a shell snippet (pipes, redirections).
+as_root_sh() {
+  if [[ "$DRY_RUN" == 1 ]]; then
+    printf '    would run: %s\n' "$1"
+    return 0
+  fi
+  if [[ "$(id -u)" == 0 ]]; then bash -o pipefail -c "$1"; else sudo bash -o pipefail -c "$1"; fi
+}
+# Downloads an installer script and runs it as root; a failed download stops (unlike curl | sh).
+run_installer() {
+  local url="$1" script
+  shift
+  if [[ "$DRY_RUN" == 1 ]]; then
+    printf '    would run: the installer from %s\n' "$url"
+    return 0
+  fi
+  script="$(mktemp)"
+  curl -fsSL --retry 3 -o "$script" "$url" || {
+    rm -f "$script"
+    warn "Couldn't download $url"
+    return 1
+  }
+  as_root bash "$script" "$@"
+  local code=$?
+  rm -f "$script"
+  return $code
+}
+# A command as this user (Homebrew refuses to run as root); --dry-run only prints it.
+as_me() {
+  if [[ "$DRY_RUN" == 1 ]]; then
+    printf '    would run: %s\n' "$*"
+    return 0
+  fi
+  "$@"
 }
 
 # ---- processes we started: a pid file each ----
@@ -65,24 +137,225 @@ wait_for() {
 port_open() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
 http_ok() { curl -fsS -o /dev/null --max-time 3 "$1"; }
 
-# ---- prerequisites ----
+# ---- what this computer has ----
+OS="$(uname -s)"
+is_wsl() { [[ "$OS" == Linux ]] && grep -qi microsoft /proc/version 2>/dev/null; }
+
+# The system's package manager: brew, apt, dnf, pacman, or empty.
+package_manager() {
+  if [[ "$OS" == Darwin ]]; then
+    echo brew
+  elif command -v apt-get >/dev/null 2>&1; then
+    echo apt
+  elif command -v dnf >/dev/null 2>&1; then
+    echo dnf
+  elif command -v pacman >/dev/null 2>&1; then
+    echo pacman
+  fi
+}
+
+# Java: the one on PATH if it's 21 or newer, else a JDK 21+ installed beside an older default
+# (then JAVA_HOME points at it, for the build too).
+JAVA=""
+java_major() { "$1" -version 2>&1 | awk -F'"' '/version/ {print $2; exit}' | sed 's/^1\./1/' | cut -d. -f1; }
+find_java() {
+  local c v
+  for c in "$(command -v java 2>/dev/null || true)" ${JAVA_HOME:+"$JAVA_HOME/bin/java"} \
+    /usr/lib/jvm/*/bin/java /Library/Java/JavaVirtualMachines/*/Contents/Home/bin/java \
+    /opt/homebrew/opt/openjdk@21/bin/java /usr/local/opt/openjdk@21/bin/java; do
+    [[ -n "$c" && -x "$c" ]] || continue
+    v="$(java_major "$c")"
+    if [[ "${v:-0}" =~ ^[0-9]+$ && "$v" -ge 21 ]]; then
+      JAVA="$c"
+      if [[ "$c" != "$(command -v java 2>/dev/null || true)" ]]; then
+        JAVA_HOME="$(cd "$(dirname "$c")/.." && pwd)"
+        export JAVA_HOME
+      fi
+      return 0
+    fi
+  done
+  return 1
+}
+node_ok() { command -v node >/dev/null 2>&1 && [[ "$(node -p 'process.versions.node.split(".")[0]')" -ge 22 ]]; }
+git_ok() { git --version >/dev/null 2>&1; }
+docker_installed() { command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; }
+# Docker Desktop on macOS links its commands into PATH only once it has run; until then, they're here.
+docker_desktop_app() { [[ "$OS" == Darwin && -d /Applications/Docker.app ]]; }
+if docker_desktop_app && ! command -v docker >/dev/null 2>&1; then PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"; fi
+
+# ---- prerequisites: check (start) ----
 check_prerequisites() {
   bold "Checking prerequisites"
-  command -v docker >/dev/null || fail "Docker isn't installed: see 'Install the prerequisites' in README.md"
+  command -v docker >/dev/null || fail "Docker isn't installed: run ./plm install, or see README.md"
   docker info >/dev/null 2>&1 || fail "Docker isn't running: start Docker Desktop (or the docker service) and try again"
-  docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is missing: see README.md"
+  docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is missing: run ./plm install, or see README.md"
   ok "Docker $(docker version --format '{{.Server.Version}}' 2>/dev/null)"
-  command -v java >/dev/null || fail "Java isn't installed: install JDK 21 (see README.md)"
-  local jv
-  jv="$(java -version 2>&1 | awk -F'"' '/version/ {print $2}' | cut -d. -f1)"
-  [[ "${jv:-0}" -ge 21 ]] || fail "Java $jv found; JDK 21 or newer is needed (see README.md)"
-  ok "Java $jv"
-  command -v node >/dev/null || fail "Node.js isn't installed: install Node.js 22 (see README.md)"
-  local nv
-  nv="$(node -p 'process.versions.node.split(".")[0]')"
-  [[ "$nv" -ge 22 ]] || fail "Node.js $nv found; 22 or newer is needed (see README.md)"
+  find_java || fail "JDK 21 or newer isn't installed: run ./plm install, or see README.md"
+  ok "Java $(java_major "$JAVA")${JAVA_HOME:+ ($JAVA_HOME)}"
+  node_ok || fail "Node.js 22 or newer isn't installed: run ./plm install, or see README.md"
   ok "Node.js $(node --version)"
-  command -v curl >/dev/null || fail "curl isn't installed (see README.md)"
+  command -v curl >/dev/null || fail "curl isn't installed: run ./plm install"
+}
+
+# ---- prerequisites: install (install) ----
+# Installs one prerequisite ($1: git, curl, java, node, docker) with the package manager $2.
+install_one() {
+  local what="$1" pm="$2"
+  case "$pm:$what" in
+    brew:git) as_me brew install git ;;
+    brew:curl) as_me brew install curl ;;
+    brew:java) as_me brew install --cask temurin@21 ;;
+    brew:node) as_me brew install node ;;
+    brew:docker) as_me brew install --cask docker ;;
+
+    apt:git | apt:curl) as_root apt-get install -y "$what" ca-certificates ;;
+    apt:java)
+      as_root apt-get install -y openjdk-21-jdk-headless || {
+        # Debian 12 and older releases: Eclipse Temurin's repository.
+        as_root apt-get install -y wget gpg ca-certificates
+        as_root_sh "wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor > /etc/apt/trusted.gpg.d/adoptium.gpg"
+        as_root_sh "echo \"deb https://packages.adoptium.net/artifactory/deb \$(. /etc/os-release && echo \$VERSION_CODENAME) main\" > /etc/apt/sources.list.d/adoptium.list"
+        as_root apt-get update
+        as_root apt-get install -y temurin-21-jdk
+      }
+      ;;
+    apt:node | dnf:node)
+      local repo="deb"
+      [[ "$pm" == dnf ]] && repo="rpm"
+      run_installer "https://$repo.nodesource.com/setup_22.x" || return 1
+      if [[ "$pm" == apt ]]; then as_root apt-get install -y nodejs; else as_root dnf install -y nodejs; fi
+      ;;
+    apt:docker | dnf:docker) run_installer https://get.docker.com ;;
+
+    dnf:git | dnf:curl) as_root dnf install -y "$what" ;;
+    dnf:java) as_root dnf install -y java-21-openjdk-devel ;;
+
+    pacman:git | pacman:curl) as_root pacman -S --needed --noconfirm "$what" ;;
+    pacman:java) as_root pacman -S --needed --noconfirm jdk21-openjdk ;;
+    pacman:node) as_root pacman -S --needed --noconfirm nodejs npm ;;
+    pacman:docker) as_root pacman -S --needed --noconfirm docker docker-compose ;;
+    *) return 1 ;;
+  esac
+}
+
+# Makes sure Docker's daemon runs and this user may use it.
+ensure_docker_running() {
+  docker info >/dev/null 2>&1 && return 0
+  if [[ "$OS" == Darwin ]]; then
+    echo "  Starting Docker Desktop (the first time, accept its terms in the window that opens)"
+    [[ "$DRY_RUN" == 1 ]] && return 0
+    open -a Docker 2>/dev/null || open -a OrbStack 2>/dev/null || true
+    wait_for "docker info" 240 "Docker is running" || fail "Docker didn't start: open Docker Desktop, wait until it's ready, and run ./plm install again"
+    return 0
+  fi
+  if is_wsl && ! command -v systemctl >/dev/null 2>&1; then
+    fail "Docker isn't running: start Docker Desktop in Windows (Settings › Resources › WSL integration: on for this distribution)"
+  fi
+  if ! as_root docker info >/dev/null 2>&1; then
+    echo "  Starting the Docker service"
+    as_root systemctl enable --now docker || fail "The Docker service didn't start: sudo systemctl status docker"
+  fi
+  [[ "$DRY_RUN" == 1 ]] && return 0
+  docker info >/dev/null 2>&1 && return 0
+  # The daemon runs, but this user may not use it yet: join the docker group.
+  if ! id -nG | tr ' ' '\n' | grep -qx docker; then
+    echo "  Letting $(id -un) use Docker (the docker group)"
+    as_root usermod -aG docker "$(id -un)"
+  fi
+  # The group counts from the next login; until then, carry on inside it.
+  if command -v sg >/dev/null 2>&1 && [[ -z "${PLM_IN_DOCKER_GROUP:-}" ]]; then
+    echo "  (continuing in the docker group; from your next login it's yours everywhere)"
+    local flags=()
+    [[ "$LITE" == 1 ]] && flags+=(--lite)
+    [[ "$ASSUME_YES" == 1 ]] && flags+=(--yes)
+    export PLM_IN_DOCKER_GROUP=1
+    exec sg docker -c "$(printf '%q ' "$0" install ${flags[@]+"${flags[@]}"})"
+  fi
+  fail "You were added to the docker group: log out and back in, then run ./plm install again"
+}
+
+label() {
+  case "$1" in
+    git) echo "Git" ;;
+    curl) echo "curl" ;;
+    docker) echo "Docker" ;;
+    java) echo "JDK 21" ;;
+    node) echo "Node.js 22" ;;
+  esac
+}
+
+ensure_prerequisites() {
+  bold "Checking prerequisites"
+  local pm missing=()
+  pm="$(package_manager)"
+  git_ok && ok "Git" || missing+=(git)
+  command -v curl >/dev/null 2>&1 && ok "curl" || missing+=(curl)
+  if docker_installed || docker_desktop_app; then ok "Docker"; else missing+=(docker); fi
+  if find_java; then ok "Java $(java_major "$JAVA")"; else missing+=(java); fi
+  if node_ok; then ok "Node.js $(node --version)"; else missing+=(node); fi
+
+  local m
+  if is_wsl && [[ " ${missing[*]-} " == *" docker "* ]]; then
+    warn "In WSL, Docker comes from Docker Desktop for Windows: install it there (winget install Docker.DockerDesktop),"
+    warn "then turn on Settings › Resources › WSL integration for this distribution, and run ./plm install again."
+    local rest=()
+    for m in "${missing[@]}"; do if [[ "$m" != docker ]]; then rest+=("$m"); fi; done
+    missing=(${rest[@]+"${rest[@]}"})
+  fi
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    local names=()
+    for m in "${missing[@]}"; do names+=("$(label "$m")"); done
+    echo
+    if [[ -z "$pm" ]]; then
+      fail "Missing: $(printf '%s, ' "${names[@]}" | sed 's/, $//'). This system has no package manager plm knows (apt, dnf, pacman, Homebrew): install them as README.md says, then run ./plm install again"
+    fi
+    if [[ "$pm" == brew ]] && ! command -v brew >/dev/null 2>&1; then
+      echo "  Missing: $(printf '%s, ' "${names[@]}" | sed 's/, $//'). They're installed with Homebrew, which isn't installed yet."
+      confirm "Install Homebrew first (it asks for your password)?" || fail "Install Homebrew (https://brew.sh), then run ./plm install again"
+      if [[ "$DRY_RUN" == 1 ]]; then
+        echo "    would run: the Homebrew installer from https://brew.sh"
+      else
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        local b
+        for b in /opt/homebrew/bin/brew /usr/local/bin/brew; do [[ -x "$b" ]] && eval "$("$b" shellenv)"; done
+      fi
+    fi
+    local how="with $pm" list
+    if [[ "$pm" != brew && "$(id -u)" != 0 ]]; then how="$how (it asks for your password: sudo)"; fi
+    list="$(printf '%s, ' "${names[@]}")"
+    echo "  To install: ${list%, }; $how."
+    confirm "Install them now?" || fail "Nothing installed. README.md lists the commands to install them yourself."
+    if [[ "$pm" == apt ]]; then as_root apt-get update; fi
+    local failed=()
+    for m in "${missing[@]}"; do
+      bold "Installing $(label "$m")"
+      install_one "$m" "$pm" || failed+=("$(label "$m")")
+    done
+    if [[ ${#failed[@]} -gt 0 ]]; then
+      fail "Installing $(printf '%s, ' "${failed[@]}" | sed 's/, $//') failed: see the messages above, or README.md to do it by hand, then run ./plm install again"
+    fi
+    [[ "$DRY_RUN" == 1 ]] && return 0
+    hash -r
+    git_ok || fail "Git still isn't there: see README.md"
+    docker_installed || docker_desktop_app || fail "Docker still isn't there: see README.md"
+    find_java || fail "JDK 21 still isn't there: see README.md"
+    node_ok || fail "Node.js 22 still isn't there: see README.md"
+    ok "Everything's installed"
+  fi
+  ensure_docker_running
+  [[ "$DRY_RUN" == 1 ]] && return 0
+  docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is missing: update Docker (see README.md)"
+  ok "Docker $(docker version --format '{{.Server.Version}}' 2>/dev/null) is running"
+
+  # Memory: the full set of services wants about 8 GB.
+  local mem
+  mem="$(docker info --format '{{.MemTotal}}' 2>/dev/null || echo 0)"
+  if [[ "$LITE" != 1 && "$mem" =~ ^[0-9]+$ && "$mem" -gt 0 && "$mem" -lt 7000000000 ]]; then
+    warn "Docker has $((mem / 1000000000)) GB of memory; all the services need about 8 GB."
+    if confirm "Start with fewer services (--lite: search in Postgres, workflows in the backend)?"; then
+      LITE=1
+    fi
+  fi
 }
 
 install_dependencies() {
@@ -109,26 +382,24 @@ build_backend() {
 
 # ---- start ----
 start_services() {
-  local lite="$1"
   bold "Starting the services"
-  if [[ "$lite" == 1 ]]; then
+  if [[ "$LITE" == 1 ]]; then
     "${COMPOSE[@]}" up -d >/dev/null 2>&1 || "${COMPOSE[@]}" up -d
   else
     "${COMPOSE[@]}" --profile full up -d >/dev/null 2>&1 || "${COMPOSE[@]}" --profile full up -d
   fi
   wait_for "port_open 5432" 120 "PostgreSQL on :5432" || fail "PostgreSQL didn't start: ./plm logs services"
-  wait_for "http_ok http://localhost:8180/realms/plm/.well-known/openid-configuration" 180 "Keycloak on :8180" ||
+  wait_for "http_ok $KEYCLOAK/realms/plm/.well-known/openid-configuration" 180 "Keycloak on :8180" ||
     fail "Keycloak didn't start: ./plm logs services"
   wait_for "port_open 8333" 60 "S3 storage on :8333" || warn "S3 storage isn't answering yet"
   wait_for "port_open 19092" 60 "Redpanda on :19092" || warn "Redpanda isn't answering yet (events wait in the outbox)"
-  if [[ "$lite" != 1 ]]; then
+  if [[ "$LITE" != 1 ]]; then
     wait_for "http_ok http://localhost:9200" 180 "OpenSearch on :9200" || fail "OpenSearch didn't start: try ./plm start --lite"
     wait_for "port_open 7233" 120 "Temporal on :7233" || fail "Temporal didn't start: try ./plm start --lite"
   fi
 }
 
 start_backend() {
-  local lite="$1"
   bold "Starting the backend"
   if running backend; then
     ok "already running (pid $(pid_of backend))"
@@ -136,12 +407,12 @@ start_backend() {
   fi
   port_open 8080 && fail "Something else is using port 8080: stop it first"
   local env=()
-  if [[ "$lite" != 1 ]]; then env=(PLM_SEARCH_ENGINE=opensearch PLM_TEMPORAL_TARGET=localhost:7233); fi
-  echo "$lite" >"$STATE/mode"
+  if [[ "$LITE" != 1 ]]; then env=(PLM_SEARCH_ENGINE=opensearch PLM_TEMPORAL_TARGET=localhost:7233); fi
+  echo "$LITE" >"$STATE/mode"
   # Only the command is put in the background, so $! is its own pid (env and nohup exec into java).
   (
     cd "$ROOT" || exit 1
-    env ${env[@]+"${env[@]}"} nohup java -jar backend/app/build/libs/app.jar >"$STATE/backend.log" 2>&1 </dev/null &
+    env ${env[@]+"${env[@]}"} nohup "$JAVA" -jar backend/app/build/libs/app.jar >"$STATE/backend.log" 2>&1 </dev/null &
     echo $! >"$STATE/backend.pid"
   )
   wait_for "http_ok $API_URL/actuator/health" 240 "Backend on :8080" || {
@@ -168,21 +439,134 @@ start_ui() {
   }
 }
 
-cmd_start() {
-  local lite=0
-  [[ "${1:-}" == "--lite" ]] && lite=1
-  check_prerequisites
+start_everything() {
   install_dependencies
   build_backend
-  start_services "$lite"
-  start_backend "$lite"
+  start_services
+  start_backend
   start_ui
+}
+
+ready_message() {
   echo
   bold "The platform is ready: $UI_URL"
-  echo "  Sign in as plmadmin, the site administrator: the first time, with the password plmadmin,"
-  echo "  after which it asks you to choose your own. Users alice, bob and carol: password = user name."
-  echo "  API $API_URL/swagger-ui.html · mail http://localhost:8025$([[ $lite == 1 ]] || echo ' · workflows http://localhost:8233')"
+  if [[ "${1:-}" == set ]]; then
+    echo "  Sign in as $ADMIN_USER, the site administrator, with the password you chose."
+  else
+    echo "  Sign in as $ADMIN_USER, the site administrator: the first time with the password $ADMIN_USER,"
+    echo "  after which it asks you to choose your own (or run ./plm admin-password)."
+  fi
+  echo "  Users alice, bob and carol: password = user name."
+  echo "  API $API_URL/swagger-ui.html · mail http://localhost:8025$([[ $LITE == 1 ]] || echo ' · workflows http://localhost:8233')"
   echo "  ./plm status · ./plm logs backend · ./plm stop"
+}
+
+cmd_start() {
+  check_prerequisites
+  start_everything
+  ready_message
+}
+
+# ---- the site administrator's password (Keycloak's admin API) ----
+# Reads a JSON value from stdin at a dotted path (0.id).
+json() {
+  node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{let x=JSON.parse(s||"null");for(const k of process.argv[1].split("."))x=x==null?x:x[k];process.stdout.write(x==null?"":typeof x=="object"?JSON.stringify(x):String(x))})' "$1"
+}
+keycloak_admin_token() {
+  curl -fsS --max-time 10 -d client_id=admin-cli -d grant_type=password \
+    --data-urlencode "username=${KEYCLOAK_ADMIN_USER:-admin}" --data-urlencode "password=${KEYCLOAK_ADMIN_PASSWORD:-admin}" \
+    "$KEYCLOAK/realms/master/protocol/openid-connect/token" | json access_token
+}
+# Prints plmadmin's Keycloak user as JSON.
+admin_user() {
+  curl -fsS --max-time 10 -H "Authorization: Bearer $1" "$KEYCLOAK/admin/realms/plm/users?username=$ADMIN_USER&exact=true" | json 0
+}
+
+# Asks for a new password twice; prints it.
+ask_password() {
+  local first second
+  for _ in 1 2 3; do
+    read -r -s -p "  New password for $ADMIN_USER (8 characters or more): " first </dev/tty
+    echo >/dev/tty
+    if [[ ${#first} -lt 8 ]]; then
+      echo "  Too short." >/dev/tty
+      continue
+    fi
+    if [[ "$first" == "$ADMIN_USER" ]]; then
+      echo "  Choose something other than its first password." >/dev/tty
+      continue
+    fi
+    read -r -s -p "  The same again: " second </dev/tty
+    echo >/dev/tty
+    if [[ "$first" != "$second" ]]; then
+      echo "  They differ." >/dev/tty
+      continue
+    fi
+    printf '%s' "$first"
+    return 0
+  done
+  return 1
+}
+
+# Sets plmadmin's password. $1: "ask" (only if it still has its first one) or "always".
+# Succeeds when plmadmin has a password of its own (set now or before), fails if it keeps the first.
+set_admin_password() {
+  local when="$1" token user id first password
+  bold "The site administrator's password"
+  wait_for "http_ok $KEYCLOAK/realms/plm/.well-known/openid-configuration" 120 "Keycloak is answering" ||
+    fail "Keycloak isn't running: ./plm start first"
+  token="$(keycloak_admin_token)" || true
+  [[ -n "$token" ]] || fail "Keycloak's own admin account didn't sign in (KEYCLOAK_ADMIN_USER / KEYCLOAK_ADMIN_PASSWORD)"
+  user="$(admin_user "$token")"
+  id="$(printf '%s' "$user" | json id)"
+  [[ -n "$id" ]] || fail "There's no $ADMIN_USER in Keycloak: see Troubleshooting in docs/DEVELOPMENT.md"
+  first="$(printf '%s' "$user" | json requiredActions)"
+  if [[ "$when" == ask && "$first" != *UPDATE_PASSWORD* ]]; then
+    ok "$ADMIN_USER already has its own password (change it with ./plm admin-password)"
+    return 0
+  fi
+  if [[ -n "${PLM_ADMIN_PASSWORD:-}" && "$PLM_ADMIN_PASSWORD" != "$ADMIN_USER" ]]; then
+    password="$PLM_ADMIN_PASSWORD"
+    echo "  Using PLM_ADMIN_PASSWORD."
+  elif [[ -t 0 ]] && [[ "$ASSUME_YES" != 1 || "$when" == always ]]; then
+    echo "  $ADMIN_USER is the one account that administers the site. Choose its password:"
+    password="$(ask_password)" || fail "No password set: run ./plm admin-password to try again"
+  else
+    warn "$ADMIN_USER keeps its first password, $ADMIN_USER: it asks for a new one at the first sign-in"
+    return 1
+  fi
+  PLM_NEW_PASSWORD="$password" node -e 'process.stdout.write(JSON.stringify({type:"password",value:process.env.PLM_NEW_PASSWORD,temporary:false}))' |
+    curl -fsS --max-time 10 -X PUT -H "Authorization: Bearer $token" -H 'Content-Type: application/json' --data-binary @- \
+      "$KEYCLOAK/admin/realms/plm/users/$id/reset-password" ||
+    fail "Keycloak refused the password"
+  # The first-sign-in request for a new password is done with.
+  curl -fsS --max-time 10 -X PUT -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
+    -d '{"requiredActions":[]}' "$KEYCLOAK/admin/realms/plm/users/$id" || true
+  ok "$ADMIN_USER's password is set"
+  echo "  (scripts and end-to-end tests read it from PLM_ADMIN_PASSWORD)"
+  return 0
+}
+
+cmd_admin_password() {
+  command -v node >/dev/null || fail "Node.js is needed: run ./plm install"
+  if ! http_ok "$KEYCLOAK/realms/plm/.well-known/openid-configuration"; then
+    echo "  Starting Keycloak"
+    "${COMPOSE[@]}" up -d keycloak >/dev/null 2>&1 || fail "Keycloak didn't start: is Docker running?"
+  fi
+  set_admin_password always || true
+}
+
+cmd_install() {
+  bold "Installing the PLM platform on this computer"
+  [[ "$DRY_RUN" == 1 ]] && echo "  (dry run: nothing is installed or changed)"
+  ensure_prerequisites
+  if [[ "$DRY_RUN" == 1 ]]; then
+    echo
+    bold "Then: install the web UI's packages, build the backend, start everything, ask for $ADMIN_USER's password."
+    return 0
+  fi
+  start_everything
+  if set_admin_password ask; then ready_message set; else ready_message; fi
 }
 
 cmd_stop() {
@@ -220,32 +604,34 @@ cmd_logs() {
 }
 
 cmd_reset() {
-  read -r -p "This deletes all local data (database, files, search index). Type 'reset' to go on: " answer
+  read -r -p "This deletes all local data (database, files, search index, passwords). Type 'reset' to go on: " answer
   [[ "$answer" == "reset" ]] || fail "Nothing deleted"
   stop_process ui
   stop_process backend
   "${COMPOSE[@]}" --profile full down -v
-  ok "Everything stopped, all local data deleted. ./plm start begins afresh."
+  ok "Everything stopped, all local data deleted. ./plm install begins afresh."
 }
 
 case "${1:-}" in
+  install) cmd_install ;;
   setup)
     check_prerequisites
     install_dependencies
     build_backend
     bold "Ready: ./plm start"
     ;;
-  start) cmd_start "${2:-}" ;;
+  start) cmd_start ;;
   stop) cmd_stop ;;
   restart)
     cmd_stop
-    cmd_start "${2:-}"
+    cmd_start
     ;;
   status) cmd_status ;;
   logs) cmd_logs "${2:-backend}" ;;
+  admin-password) cmd_admin_password ;;
   reset) cmd_reset ;;
   *)
-    sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'
     exit 1
     ;;
 esac

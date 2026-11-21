@@ -38,7 +38,11 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
     ports: ["8180:8080"]
-    volumes: ["./keycloak:/opt/keycloak/data/import:ro"]
+    # Its own database (users, passwords) lives in keycloak-data, so recreating the container keeps
+    # them; the realm file is imported only into an empty one (the first start, or after plm reset).
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+      - ./keycloak:/opt/keycloak/data/import:ro
 
   # Event bus (ADR 0008). Domain events are relayed here from the outbox.
   redpanda:
@@ -78,5 +82,6 @@ services:
 
 volumes:
   postgres-data:
+  keycloak-data:
   s3-data:
   opensearch-data:

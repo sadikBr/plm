@@ -34,8 +34,9 @@ Test reports: `backend/<project>/build/reports/tests/test/index.html`.
 
 ## 2. Start the dev stack
 
-> **Just want to use it?** `./plm start` (Windows: `plm start`) does sections 2 to 4 in one go,
-> waits until everything answers, and `./plm stop` stops it all; see the README. The sections
+> **Just want to use it?** `./plm install` (Windows: `plm install`) installs the prerequisites
+> and does sections 2 to 4 in one go; afterwards `./plm start` and `./plm stop` start and stop it
+> all; see the README. The sections
 > below run each piece yourself, which is handier while changing code.
 
 ```bash
@@ -68,9 +69,10 @@ Dev users in the `plm` realm (their IDs are fixed, so docs and tests can refer t
 
 These credentials are for local development only. `plmadmin` starts with the password `plmadmin`
 and must choose a new one at its first sign-in, as at an installation; give that password to the
-scripts and end-to-end tests as `PLM_ADMIN_PASSWORD`. Keycloak keeps its users while its container
-lives (`./plm stop` and `start` keep them); `./plm reset` re-imports the realm, and with it the
-first password.
+scripts and end-to-end tests as `PLM_ADMIN_PASSWORD`. `./plm install` asks for it straight away,
+and `./plm admin-password` changes it later. Keycloak keeps its users in its own volume
+(`keycloak-data`), so stopping, starting or recreating it keeps them; `./plm reset` deletes it, and
+the next start imports the realm again, with the first password.
 
 **One site administrator.** `plmadmin` is meant to be the site's only administrator: everyone
 else gets what they need from their roles in organizations and products (an organization's
@@ -894,10 +896,15 @@ select c.name, m.principal_id, m.role from context_member m join context c on c.
   UI started by hand (`make run`, `make ui`). Stop it, or use that one instead of `plm`.
 - **`plm start` stops at a service**: `./plm logs services` shows why; on a machine short of
   memory, `./plm start --lite` leaves out OpenSearch and Temporal.
-- **Forgot `plmadmin`'s password, or `plmadmin` doesn't exist** (a copy set up before it was
-  added): load the realm afresh, which puts every dev user back to its first password, `plmadmin`
-  included (your PLM data is kept):
-  `docker compose -f deploy/docker-compose.yml up -d --force-recreate keycloak`.
+- **Forgot `plmadmin`'s password**: `./plm admin-password` sets a new one.
+- **`plmadmin` doesn't exist** (a copy set up before it was added): load the realm afresh, which
+  puts every dev user back to its first password (your PLM data is kept):
+  `docker compose -f deploy/docker-compose.yml rm -sf keycloak`, then
+  `docker volume rm plm_keycloak-data` (if it says there's no such volume, that's fine) and
+  `./plm install`.
+- **`plm install` can't install something** (no network to that site, an unusual Linux): it says
+  which; install that one as [the README](../README.md#4-installing-the-prerequisites-yourself)
+  shows, then run `./plm install` again.
 
 - **`Could not find a valid Docker environment`**: Docker isn't running. Start Docker Desktop.
 - **Docker Hub `429 Too Many Requests`**: pull through a mirror:

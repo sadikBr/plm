@@ -17,15 +17,115 @@ lifecycles, workflows and change management, built to scale to millions of objec
 ## Run it on your computer
 
 The whole platform runs locally: its services in Docker, the backend and the web UI as two local
-processes, all started and stopped by one command, `plm`. Nothing needs a cloud account. More
+processes, all installed, started and stopped by one command, `plm`. Nothing needs a cloud account. More
 detail (environment variables, the curl walkthrough, troubleshooting) is in
 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
-### 1. Install the prerequisites (once)
+### 1. Get the code (once)
 
-You need **Git**, **Docker** (with Compose v2), **JDK 21** and **Node.js 22 or newer**. Install
-them with your system's package manager, or from the official sites linked below. You don't need
-Gradle: the repository brings its own (`./gradlew`).
+With Git:
+
+```bash
+git clone https://github.com/sadikBr/plm.git
+```
+
+```bash
+cd plm
+```
+
+No Git yet? Install it with one command (Windows: `winget install Git.Git`, then open a new
+terminal; macOS: `xcode-select --install`; Ubuntu/Debian: `sudo apt install git`; Fedora:
+`sudo dnf install git`; Arch: `sudo pacman -S git`), or download the code as a ZIP from
+GitHub (**Code › Download ZIP**), unpack it and open a terminal in the folder.
+
+### 2. Install and start (once)
+
+On macOS, Linux or WSL:
+
+```bash
+./plm install
+```
+
+On Windows (Command Prompt; in PowerShell, type `.\plm install`):
+
+```powershell
+plm install
+```
+
+It does everything, asking before it changes your system:
+
+1. **Checks the prerequisites**: Git, Docker (with Compose v2), JDK 21 and Node.js 22 or newer.
+2. **Installs the missing ones** with your system's package manager: winget on Windows, Homebrew
+   on macOS (it offers to install Homebrew first), apt, dnf or pacman on Linux. On Linux it uses
+   `sudo`, so it asks for your password.
+3. **Starts Docker** (Docker Desktop on Windows and macOS: the first time, accept its terms in the
+   window that opens) and, on Linux, lets your user use it. With less than 8 GB of memory for
+   Docker it offers `--lite` (fewer services).
+4. **Builds and starts the platform**: the web UI's packages, the backend, the services, and
+   waits until each answers.
+5. **Asks you to choose the password** of `plmadmin`, the site administrator.
+
+The first install downloads a few GB and takes 10 to 20 minutes. If it stops, it says why; fix
+that and run it again: it carries on from where it got to.
+
+A few things need you:
+
+- **Windows**: Docker Desktop needs WSL 2. If it isn't set up, `plm install` asks you to run it
+  from an administrator PowerShell (right-click › Run as administrator) once, to set up WSL, and
+  then to restart Windows. Docker Desktop may also ask you to sign out and back in.
+- **Linux**: after you're added to the `docker` group, `plm install` carries on, but other
+  terminals only see it after you log out and back in.
+- **WSL**: install Docker Desktop on Windows (`winget install Docker.DockerDesktop`) and turn on
+  *Settings › Resources › WSL integration* for your distribution; `plm install` does the rest.
+
+`./plm install --dry-run` shows what it would install without doing it; `--yes` answers yes to
+every question (for scripts: then give the password as `PLM_ADMIN_PASSWORD`).
+
+Then open **http://localhost:5173** and sign in as **`plmadmin`**, the site administrator made
+with the installation, with the password you chose. (Skipped choosing one? Its first password is
+`plmadmin`, and the first sign-in asks for a new one. Forgot it? `./plm admin-password` sets a new one.)
+
+| User | Password | Role |
+|---|---|---|
+| `plmadmin` | the one you chose | **the site administrator**: sees and administers everything |
+| `alice` | `alice` | ordinary user |
+| `bob` | `bob` | ordinary user: sees what he's on the team of |
+| `carol` | `carol` | ordinary user, on no team: sees nothing until added |
+
+Like other enterprise PLM systems, the platform is meant to have **one site administrator**:
+everyone else gets what they need from their roles in organizations and products (an
+organization's managers administer it). More are possible but not recommended; **Administration ›
+Site administrators** lists them and warns while there are more (see
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#2-start-the-dev-stack) for making it a rule).
+
+Other local addresses: the API explorer at http://localhost:8080/swagger-ui.html, the mail the
+platform sends at http://localhost:8025, workflows at http://localhost:8233.
+
+### 3. Everyday commands
+
+| Command (Windows: `plm …`) | What it does |
+|---|---|
+| `./plm install` | Installs what's missing, builds, starts, asks for the administrator's password (run it again any time) |
+| `./plm start` | Starts everything and waits until it's ready (does nothing to what's already running) |
+| `./plm start --lite` | The same with fewer services (no OpenSearch, no Temporal): less memory |
+| `./plm status` | What's running, and where |
+| `./plm stop` | Stops the web UI, the backend and the services; your data is kept |
+| `./plm restart` | Stop, then start (after pulling new code, say) |
+| `./plm logs backend` | Follows the backend's log (`ui` and `services` too); Ctrl-C to stop following |
+| `./plm admin-password` | Changes `plmadmin`'s password (or sets a forgotten one) |
+| `./plm setup` | Only checks the prerequisites, installs and builds |
+| `./plm reset` | Stops everything and deletes all local data, passwords included (asks first) |
+
+Logs are kept in `.plm/`. If something goes wrong, `./plm status` and `./plm logs backend` say
+where; see also [Troubleshooting](docs/DEVELOPMENT.md#troubleshooting).
+
+### 4. Installing the prerequisites yourself
+
+Only if you'd rather not let `plm install` do it, or it can't on your system.
+
+You need **Git**, **Docker** (with Compose v2), **JDK 21** and **Node.js 22 or newer**: install
+them with these commands, or from the official sites linked below, then run `plm install`
+(or `plm start`). You don't need Gradle: the repository brings its own (`./gradlew`).
 
 **Windows 10/11** (in PowerShell or Command Prompt; Docker Desktop needs WSL 2):
 
@@ -141,73 +241,8 @@ java -version
 node --version
 ```
 
-Give Docker at least **8 GB of memory** (Docker Desktop: Settings › Resources); `--lite` below
-needs about 5 GB.
-
-### 2. Get the code (once)
-
-```bash
-git clone https://github.com/sadikBr/plm.git
-```
-
-```bash
-cd plm
-```
-
-### 3. Start the platform
-
-On macOS, Linux or WSL:
-
-```bash
-./plm start
-```
-
-On Windows (Command Prompt; in PowerShell, type `.\plm start`):
-
-```powershell
-plm start
-```
-
-It checks the prerequisites, installs what the web UI and the CAD converter need, builds the
-backend, starts the services, the backend and the web UI, waits until each answers, and says
-where to go. The first start downloads a few GB (Docker images, libraries) and takes 5 to 15
-minutes; later ones take about a minute.
-
-Then open **http://localhost:5173** and sign in as **`plmadmin`**, the site administrator made
-with the installation. Its first password is `plmadmin`; at the first sign-in it asks you to
-choose your own. (Forgot it? See [Troubleshooting](docs/DEVELOPMENT.md#troubleshooting).)
-
-| User | Password | Role |
-|---|---|---|
-| `plmadmin` | yours (first `plmadmin`) | **the site administrator**: sees and administers everything |
-| `alice` | `alice` | ordinary user |
-| `bob` | `bob` | ordinary user: sees what he's on the team of |
-| `carol` | `carol` | ordinary user, on no team: sees nothing until added |
-
-Like other enterprise PLM systems, the platform is meant to have **one site administrator**:
-everyone else gets what they need from their roles in organizations and products (an
-organization's managers administer it). More are possible but not recommended; **Administration ›
-Site administrators** lists them and warns while there are more (see
-[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#2-start-the-dev-stack) for making it a rule).
-
-Other local addresses: the API explorer at http://localhost:8080/swagger-ui.html, the mail the
-platform sends at http://localhost:8025, workflows at http://localhost:8233.
-
-### 4. Everyday commands
-
-| Command (Windows: `plm …`) | What it does |
-|---|---|
-| `./plm start` | Starts everything and waits until it's ready (does nothing to what's already running) |
-| `./plm start --lite` | The same with fewer services (no OpenSearch, no Temporal): less memory |
-| `./plm status` | What's running, and where |
-| `./plm stop` | Stops the web UI, the backend and the services; your data is kept |
-| `./plm restart` | Stop, then start (after pulling new code, say) |
-| `./plm logs backend` | Follows the backend's log (`ui` and `services` too); Ctrl-C to stop following |
-| `./plm setup` | Only checks the prerequisites, installs and builds |
-| `./plm reset` | Stops everything and deletes all local data (asks first) |
-
-Logs are kept in `.plm/`. If something goes wrong, `./plm status` and `./plm logs backend` say
-where; see also [Troubleshooting](docs/DEVELOPMENT.md#troubleshooting).
+Give Docker at least **8 GB of memory** (Docker Desktop: Settings › Resources); `--lite` needs
+about 5 GB.
 
 ### 5. Running the pieces yourself (for development)
 

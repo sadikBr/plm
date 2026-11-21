@@ -1,16 +1,21 @@
-# plm: start, stop and look after the whole platform on this computer (Windows).
+# plm: install, start, stop and look after the whole platform on this computer (Windows).
 # Run it through plm.cmd:
 #
-#   plm setup            check the prerequisites, install the dependencies, build the backend
+#   plm install [--lite] [--yes] [--dry-run]
+#                        install what's missing (Git, Docker Desktop, JDK 21, Node.js) with winget, build,
+#                        start, and choose the site administrator's password: the one command to begin with
 #   plm start [--lite]   start the services, the backend and the web UI, and wait until they're ready
 #   plm stop             stop the web UI, the backend and the services (data is kept)
 #   plm restart [--lite] stop, then start
 #   plm status           what's running, and where
 #   plm logs [backend|ui|services]   follow a log (Ctrl-C to stop following)
+#   plm admin-password   change the site administrator's (plmadmin's) password, or set a forgotten one
+#   plm setup            only check the prerequisites, install the dependencies, build the backend
 #   plm reset            stop everything and delete all local data (asks first)
 #
-# --lite starts fewer services (no OpenSearch, no Temporal). Works with Windows PowerShell 5.1 and
-# PowerShell 7. On macOS, Linux and WSL, use ./plm (same commands).
+# --lite starts fewer services (no OpenSearch, no Temporal): about 3 GB less memory. --yes answers
+# yes to every question; --dry-run only shows what install would do. Works with Windows PowerShell
+# 5.1 and PowerShell 7. On macOS, Linux and WSL, use ./plm (same commands).
 $ErrorActionPreference = 'Stop'
 
 $Root = $PSScriptRoot
@@ -19,6 +24,12 @@ New-Item -ItemType Directory -Force -Path $State | Out-Null
 $ComposeFile = Join-Path $Root 'deploy\docker-compose.yml'
 $UiUrl = 'http://localhost:5173'
 $ApiUrl = 'http://localhost:8080'
+$Keycloak = 'http://localhost:8180'
+$AdminUser = 'plmadmin'
+$script:Lite = ($args -contains '--lite')
+$script:AssumeYes = (($args -contains '--yes') -or ($args -contains '-y'))
+$script:DryRun = ($args -contains '--dry-run')
+$script:Java = $null
 
 function Say([string]$text) { Write-Host $text -ForegroundColor White }
 function Ok([string]$text) { Write-Host "  [ok] $text" -ForegroundColor Green }
@@ -86,25 +97,180 @@ function WaitFor([scriptblock]$check, [int]$seconds, [string]$what) {
   return $false
 }
 
-# ---- prerequisites ----
+# Asks a yes/no question; $default is the answer with --yes or when nobody can be asked.
+function AskYesNo([string]$question, [bool]$default = $true) {
+  if ($script:AssumeYes) { return $true }
+  if (-not [Environment]::UserInteractive) { return $default }
+  $hint = '[Y/n]'
+  if (-not $default) { $hint = '[y/N]' }
+  $answer = Read-Host "  $question $hint"
+  if (-not $answer) { return $default }
+  return $answer -match '^[Yy]'
+}
+
+# Commands installed a moment ago are on the machine's PATH, not yet this session's.
+function RefreshPath {
+  $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+}
+
+function JavaMajor([string]$exe) {
+  # java prints its version on stderr: read it without letting 'Stop' turn that into an error.
+  $ErrorActionPreference = 'Continue'
+  $line = (& $exe -version 2>&1 | ForEach-Object { "$_" } | Where-Object { $_ -match 'version' } | Select-Object -First 1)
+  if ($line -match '"1\.(\d+)') { return [int]$Matches[1] }
+  if ($line -match '"(\d+)') { return [int]$Matches[1] }
+  return 0
+}
+
+# Java: the one on PATH if it's 21 or newer, else a JDK 21+ installed beside an older default
+# (then JAVA_HOME points at it, for the build too).
+function FindJava {
+  $onPath = Get-Command java -ErrorAction SilentlyContinue
+  $candidates = @()
+  if ($onPath) { $candidates += $onPath.Source }
+  if ($env:JAVA_HOME) { $candidates += (Join-Path $env:JAVA_HOME 'bin\java.exe') }
+  foreach ($dir in @("$env:ProgramFiles\Eclipse Adoptium", "$env:ProgramFiles\Java", "$env:ProgramFiles\Microsoft")) {
+    if (Test-Path $dir) {
+      Get-ChildItem $dir -Directory -ErrorAction SilentlyContinue | ForEach-Object { $candidates += (Join-Path $_.FullName 'bin\java.exe') }
+    }
+  }
+  foreach ($c in $candidates) {
+    if (-not (Test-Path $c)) { continue }
+    if ((JavaMajor $c) -ge 21) {
+      $script:Java = $c
+      if (-not $onPath -or $c -ne $onPath.Source) { $env:JAVA_HOME = Split-Path (Split-Path $c -Parent) -Parent }
+      return $true
+    }
+  }
+  return $false
+}
+function NodeOk {
+  if (-not (Get-Command node -ErrorAction SilentlyContinue)) { return $false }
+  return [int](& node -p 'process.versions.node.split(".")[0]') -ge 22
+}
+function GitOk { return $null -ne (Get-Command git -ErrorAction SilentlyContinue) }
+function DockerInstalled {
+  if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { return $false }
+  $ErrorActionPreference = 'Continue'
+  & docker compose version *> $null
+  return $LASTEXITCODE -eq 0
+}
+function DockerRunning {
+  if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { return $false }
+  $ErrorActionPreference = 'Continue'
+  & docker info *> $null
+  return $LASTEXITCODE -eq 0
+}
+
+# ---- prerequisites: check (start) ----
 function CheckPrerequisites {
   Say 'Checking prerequisites'
-  if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Fail "Docker isn't installed: see 'Install the prerequisites' in README.md" }
-  & docker info *> $null
-  if ($LASTEXITCODE -ne 0) { Fail "Docker isn't running: start Docker Desktop and try again" }
-  & docker compose version *> $null
-  if ($LASTEXITCODE -ne 0) { Fail 'Docker Compose v2 is missing: update Docker Desktop' }
+  if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Fail "Docker isn't installed: run plm install, or see README.md" }
+  if (-not (DockerRunning)) { Fail "Docker isn't running: start Docker Desktop and try again" }
+  if (-not (DockerInstalled)) { Fail 'Docker Compose v2 is missing: update Docker Desktop' }
   Ok 'Docker'
-  if (-not (Get-Command java -ErrorAction SilentlyContinue)) { Fail "Java isn't installed: install JDK 21 (see README.md)" }
-  $versionLine = (cmd /c 'java -version 2>&1' | Select-Object -First 1)
-  $major = 0
-  if ($versionLine -match '"(\d+)') { $major = [int]$Matches[1] }
-  if ($major -lt 21) { Fail "Java $major found; JDK 21 or newer is needed (see README.md)" }
-  Ok "Java $major"
-  if (-not (Get-Command node -ErrorAction SilentlyContinue)) { Fail "Node.js isn't installed: install Node.js 22 (see README.md)" }
-  $nodeMajor = [int](& node -p 'process.versions.node.split(".")[0]')
-  if ($nodeMajor -lt 22) { Fail "Node.js $nodeMajor found; 22 or newer is needed (see README.md)" }
+  if (-not (FindJava)) { Fail "JDK 21 or newer isn't installed: run plm install, or see README.md" }
+  Ok "Java $(JavaMajor $script:Java)"
+  if (-not (NodeOk)) { Fail "Node.js 22 or newer isn't installed: run plm install, or see README.md" }
   Ok "Node.js $(& node --version)"
+}
+
+# ---- prerequisites: install (install) ----
+$Packages = [ordered]@{
+  git = @('Git', 'Git.Git')
+  docker = @('Docker Desktop', 'Docker.DockerDesktop')
+  java = @('JDK 21', 'EclipseAdoptium.Temurin.21.JDK')
+  node = @('Node.js', 'OpenJS.NodeJS.LTS')
+}
+
+function WslReady {
+  if (-not (Get-Command wsl -ErrorAction SilentlyContinue)) { return $false }
+  $ErrorActionPreference = 'Continue'
+  & wsl --status *> $null
+  return $LASTEXITCODE -eq 0
+}
+function IsAdministrator {
+  $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+  return (New-Object Security.Principal.WindowsPrincipal $id).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function EnsureDockerRunning {
+  if (DockerRunning) { return }
+  $desktop = Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe'
+  if (-not (Test-Path $desktop)) { Fail "Docker Desktop isn't installed: run plm install again, or see README.md" }
+  Write-Host '  Starting Docker Desktop (the first time, accept its terms in the window that opens)'
+  if ($script:DryRun) { return }
+  Start-Process $desktop
+  RefreshPath
+  if (-not (WaitFor { DockerRunning } 300 'Docker is running')) {
+    Fail "Docker didn't start: open Docker Desktop, wait until it's ready (if it asks you to sign out or restart, do so), then run plm install again"
+  }
+}
+
+function EnsurePrerequisites {
+  Say 'Checking prerequisites'
+  $missing = @()
+  if (GitOk) { Ok 'Git' } else { $missing += 'git' }
+  if ((DockerInstalled) -or (Test-Path (Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe'))) { Ok 'Docker Desktop' } else { $missing += 'docker' }
+  if (FindJava) { Ok "Java $(JavaMajor $script:Java)" } else { $missing += 'java' }
+  if (NodeOk) { Ok "Node.js $(& node --version)" } else { $missing += 'node' }
+
+  # Docker Desktop runs on WSL 2.
+  if (($missing -contains 'docker') -and -not (WslReady)) {
+    Warn 'Docker Desktop needs WSL 2, which is not set up yet.'
+    if (-not (IsAdministrator)) {
+      Fail 'Open PowerShell as administrator (right-click, Run as administrator), run "wsl --install", restart Windows, then run plm install again'
+    }
+    if (AskYesNo 'Set up WSL 2 now (Windows must restart afterwards)?') {
+      if ($script:DryRun) { Write-Host '    would run: wsl --install --no-distribution' } else { & wsl --install --no-distribution }
+      Fail 'Restart Windows, then run plm install again'
+    }
+    Fail 'Set up WSL 2 ("wsl --install" as administrator), restart, then run plm install again'
+  }
+
+  if ($missing.Count -gt 0) {
+    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+      Fail 'winget is missing: install "App Installer" from the Microsoft Store, or install the prerequisites as README.md says'
+    }
+    $names = ($missing | ForEach-Object { $Packages[$_][0] }) -join ', '
+    Write-Host ''
+    Write-Host "  To install: $names; with winget (Windows may ask for permission)."
+    if (-not (AskYesNo 'Install them now?')) { Fail 'Nothing installed. README.md lists the commands to install them yourself.' }
+    $failed = @()
+    foreach ($m in $missing) {
+      $name = $Packages[$m][0]
+      $id = $Packages[$m][1]
+      Say "Installing $name"
+      if ($script:DryRun) {
+        Write-Host "    would run: winget install --id $id -e"
+        continue
+      }
+      & winget install --id $id -e --accept-source-agreements --accept-package-agreements | Out-Host
+      # winget answers -1978335189 when it's already there.
+      if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne -1978335189) { $failed += $name }
+    }
+    if ($failed.Count -gt 0) {
+      Fail "Installing $($failed -join ', ') failed: see the messages above, or README.md to do it by hand, then run plm install again"
+    }
+    if ($script:DryRun) { return }
+    RefreshPath
+    if (-not (GitOk)) { Fail "Git still isn't there: open a new terminal and run plm install again" }
+    if (-not (FindJava)) { Fail "JDK 21 still isn't there: open a new terminal and run plm install again" }
+    if (-not (NodeOk)) { Fail "Node.js still isn't there: open a new terminal and run plm install again" }
+    Ok "Everything's installed"
+  }
+  EnsureDockerRunning
+  if ($script:DryRun) { return }
+  if (-not (DockerInstalled)) { Fail 'Docker Compose v2 is missing: update Docker Desktop' }
+  Ok 'Docker is running'
+
+  # Memory: the full set of services wants about 8 GB.
+  $mem = 0
+  try { $mem = [int64](& docker info --format '{{.MemTotal}}') } catch { $mem = 0 }
+  if (-not $script:Lite -and $mem -gt 0 -and $mem -lt 7000000000) {
+    Warn "Docker has $([math]::Round($mem / 1GB)) GB of memory; all the services need about 8 GB (Docker Desktop: Settings > Resources)."
+    if (AskYesNo 'Start with fewer services (--lite: search in Postgres, workflows in the backend)?') { $script:Lite = $true }
+  }
 }
 
 function NeedsInstall([string]$dir) {
@@ -146,7 +312,8 @@ function BuildBackend {
 }
 
 # ---- start ----
-function StartServices([bool]$lite) {
+function StartServices {
+  $lite = $script:Lite
   Say 'Starting the services'
   if ($lite) { $code = Compose @('up', '-d') } else { $code = Compose @('--profile', 'full', 'up', '-d') }
   if ($code -ne 0) { Fail "The services didn't start: plm logs services" }
@@ -162,7 +329,8 @@ function StartServices([bool]$lite) {
   }
 }
 
-function StartBackend([bool]$lite) {
+function StartBackend {
+  $lite = $script:Lite
   Say 'Starting the backend'
   if (IsRunning 'backend') {
     Ok "already running (pid $(PidOf 'backend'))"
@@ -175,7 +343,7 @@ function StartBackend([bool]$lite) {
     $env:PLM_SEARCH_ENGINE = 'opensearch'
     $env:PLM_TEMPORAL_TARGET = 'localhost:7233'
   }
-  $p = Start-Process -FilePath 'java' -ArgumentList @('-jar', 'backend\app\build\libs\app.jar') -WorkingDirectory $Root `
+  $p = Start-Process -FilePath $script:Java -ArgumentList @('-jar', 'backend\app\build\libs\app.jar') -WorkingDirectory $Root `
     -RedirectStandardOutput (Join-Path $State 'backend.log') -RedirectStandardError (Join-Path $State 'backend.err.log') `
     -WindowStyle Hidden -PassThru
   Set-Content -Path (Join-Path $State 'backend.pid') -Value $p.Id
@@ -203,20 +371,127 @@ function StartUi {
   }
 }
 
-function StartAll([bool]$lite) {
-  CheckPrerequisites
+function StartEverything {
   InstallDependencies
   BuildBackend
-  StartServices $lite
-  StartBackend $lite
+  StartServices
+  StartBackend
   StartUi
+}
+
+function ReadyMessage([bool]$passwordSet) {
   Write-Host ''
   Say "The platform is ready: $UiUrl"
-  Write-Host '  Sign in as plmadmin, the site administrator: the first time, with the password plmadmin,'
-  Write-Host '  after which it asks you to choose your own. Users alice, bob and carol: password = user name.'
+  if ($passwordSet) {
+    Write-Host "  Sign in as $AdminUser, the site administrator, with the password you chose."
+  } else {
+    Write-Host "  Sign in as $AdminUser, the site administrator: the first time with the password $AdminUser,"
+    Write-Host '  after which it asks you to choose your own (or run plm admin-password).'
+  }
+  Write-Host '  Users alice, bob and carol: password = user name.'
   Write-Host "  API $ApiUrl/swagger-ui.html - mail http://localhost:8025"
   Write-Host '  plm status - plm logs backend - plm stop'
   Start-Process $UiUrl
+}
+
+function StartAll {
+  CheckPrerequisites
+  StartEverything
+  ReadyMessage $false
+}
+
+# ---- the site administrator's password (Keycloak's admin API) ----
+function KeycloakAdminToken {
+  $user = 'admin'
+  $password = 'admin'
+  if ($env:KEYCLOAK_ADMIN_USER) { $user = $env:KEYCLOAK_ADMIN_USER }
+  if ($env:KEYCLOAK_ADMIN_PASSWORD) { $password = $env:KEYCLOAK_ADMIN_PASSWORD }
+  $body = @{ client_id = 'admin-cli'; grant_type = 'password'; username = $user; password = $password }
+  return (Invoke-RestMethod -Method Post -Uri "$Keycloak/realms/master/protocol/openid-connect/token" -Body $body).access_token
+}
+
+function PlainText([Security.SecureString]$secure) {
+  $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+  try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
+}
+
+function AskPassword {
+  for ($i = 0; $i -lt 3; $i++) {
+    $first = PlainText (Read-Host "  New password for $AdminUser (8 characters or more)" -AsSecureString)
+    if ($first.Length -lt 8) { Write-Host '  Too short.'; continue }
+    if ($first -eq $AdminUser) { Write-Host '  Choose something other than its first password.'; continue }
+    $second = PlainText (Read-Host '  The same again' -AsSecureString)
+    if ($first -ne $second) { Write-Host '  They differ.'; continue }
+    return $first
+  }
+  return $null
+}
+
+# Sets plmadmin's password. $when: 'ask' (only if it still has its first one) or 'always'.
+# True when plmadmin has a password of its own (set now or before), false if it keeps the first.
+function SetAdminPassword([string]$when) {
+  Say "The site administrator's password"
+  if (-not (WaitFor { HttpOk "$Keycloak/realms/plm/.well-known/openid-configuration" } 120 'Keycloak is answering')) {
+    Fail "Keycloak isn't running: plm start first"
+  }
+  try { $token = KeycloakAdminToken } catch { Fail "Keycloak's own admin account didn't sign in (KEYCLOAK_ADMIN_USER / KEYCLOAK_ADMIN_PASSWORD)" }
+  $headers = @{ Authorization = "Bearer $token" }
+  $users = @(Invoke-RestMethod -Uri "$Keycloak/admin/realms/plm/users?username=$AdminUser&exact=true" -Headers $headers)
+  if ($users.Count -eq 0) { Fail "There's no $AdminUser in Keycloak: see Troubleshooting in docs/DEVELOPMENT.md" }
+  $id = $users[0].id
+  $first = @($users[0].requiredActions) -contains 'UPDATE_PASSWORD'
+  if ($when -eq 'ask' -and -not $first) {
+    Ok "$AdminUser already has its own password (change it with plm admin-password)"
+    return $true
+  }
+  if ($env:PLM_ADMIN_PASSWORD -and $env:PLM_ADMIN_PASSWORD -ne $AdminUser) {
+    $password = $env:PLM_ADMIN_PASSWORD
+    Write-Host '  Using PLM_ADMIN_PASSWORD.'
+  } elseif ([Environment]::UserInteractive -and (-not $script:AssumeYes -or $when -eq 'always')) {
+    Write-Host "  $AdminUser is the one account that administers the site. Choose its password:"
+    $password = AskPassword
+    if (-not $password) { Fail 'No password set: run plm admin-password to try again' }
+  } else {
+    Warn "$AdminUser keeps its first password, ${AdminUser}: it asks for a new one at the first sign-in"
+    return $false
+  }
+  $body = @{ type = 'password'; value = $password; temporary = $false } | ConvertTo-Json
+  try {
+    Invoke-RestMethod -Method Put -Uri "$Keycloak/admin/realms/plm/users/$id/reset-password" -Headers $headers `
+      -ContentType 'application/json' -Body $body | Out-Null
+  } catch {
+    Fail "Keycloak refused the password: $($_.Exception.Message)"
+  }
+  # The first-sign-in request for a new password is done with.
+  try {
+    Invoke-RestMethod -Method Put -Uri "$Keycloak/admin/realms/plm/users/$id" -Headers $headers `
+      -ContentType 'application/json' -Body '{"requiredActions":[]}' | Out-Null
+  } catch { }
+  Ok "$AdminUser's password is set"
+  Write-Host '  (scripts and end-to-end tests read it from PLM_ADMIN_PASSWORD)'
+  return $true
+}
+
+function AdminPassword {
+  if (-not (HttpOk "$Keycloak/realms/plm/.well-known/openid-configuration")) {
+    Write-Host '  Starting Keycloak'
+    if ((Compose @('up', '-d', 'keycloak')) -ne 0) { Fail "Keycloak didn't start: is Docker running?" }
+  }
+  $null = SetAdminPassword 'always'
+}
+
+function InstallAll {
+  Say 'Installing the PLM platform on this computer'
+  if ($script:DryRun) { Write-Host '  (dry run: nothing is installed or changed)' }
+  EnsurePrerequisites
+  if ($script:DryRun) {
+    Write-Host ''
+    Say "Then: install the web UI's packages, build the backend, start everything, ask for $AdminUser's password."
+    return
+  }
+  StartEverything
+  $set = SetAdminPassword 'ask'
+  ReadyMessage $set
 }
 
 function StopAll {
@@ -254,37 +529,38 @@ function ShowLogs([string]$which) {
 }
 
 function ResetAll {
-  $answer = Read-Host "This deletes all local data (database, files, search index). Type 'reset' to go on"
+  $answer = Read-Host "This deletes all local data (database, files, search index, passwords). Type 'reset' to go on"
   if ($answer -ne 'reset') { Fail 'Nothing deleted' }
   StopProcess 'ui'
   StopProcess 'backend'
   $null = Compose @('--profile', 'full', 'down', '-v')
-  Ok 'Everything stopped, all local data deleted. plm start begins afresh.'
+  Ok 'Everything stopped, all local data deleted. plm install begins afresh.'
 }
 
 $command = if ($args.Count -gt 0) { $args[0] } else { '' }
-$lite = ($args -contains '--lite')
 switch ($command) {
+  'install' { InstallAll }
   'setup' {
     CheckPrerequisites
     InstallDependencies
     BuildBackend
     Say 'Ready: plm start'
   }
-  'start' { StartAll $lite }
+  'start' { StartAll }
   'stop' { StopAll }
   'restart' {
     StopAll
-    StartAll $lite
+    StartAll
   }
   'status' { ShowStatus }
   'logs' {
     $which = if ($args.Count -gt 1) { $args[1] } else { 'backend' }
     ShowLogs $which
   }
+  'admin-password' { AdminPassword }
   'reset' { ResetAll }
   default {
-    Get-Content $PSCommandPath -TotalCount 12 | Select-Object -Skip 3 | ForEach-Object { $_ -replace '^# ?', '' }
+    Get-Content $PSCommandPath -TotalCount 19 | Select-Object -Skip 3 | ForEach-Object { $_ -replace '^# ?', '' }
     exit 1
   }
 }
