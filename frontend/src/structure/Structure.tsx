@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Lock, Pencil, Plus, Trash2, X } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { ArrowDown, ArrowUp, Check, ClipboardPaste, Copy, Lock, Pencil, Plus, Repeat, Trash2, X } from "lucide-react";
+import { useState, useSyncExternalStore, type FormEvent } from "react";
 import { Link } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
 import { useEnumerations, useObjectSearch, useTypes, type VersionedObject } from "../api/queries";
@@ -9,9 +9,10 @@ import { ErrorBanner, Loading, Panel, StateBadge, TypeIcon } from "../components
 import { locale, t, tn } from "../i18n/i18n";
 import { SpecPicker, StructureTree, useDefaultSpec, type Spec } from "./StructureTree";
 
-// Product structure (roadmap 4.1): the parts a part uses, edited on its working copy.
+// Product structure (roadmap 4.1, 4.4): the parts a part uses, edited on its working copy.
 
 type UsageLine = Schemas["UsageLine"];
+const PART_TYPE = "00000000-0000-7000-8000-000000000102";
 
 export const useUsages = (objectId: string, workingCopy: boolean) =>
   useQuery({
@@ -27,6 +28,39 @@ export function useUnits(): { key: string; label: string }[] {
 }
 
 const qty = (n: number) => n.toLocaleString(locale(), { maximumFractionDigits: 6 });
+
+// ---------- Copied lines (roadmap 4.4), kept in this browser ----------
+
+type Copied = { ids: string[]; from: string };
+const KEY = "plm.structure.copied";
+const listeners = new Set<() => void>();
+let cached: Copied | null | undefined;
+function readCopied(): Copied | null {
+  if (cached === undefined) {
+    try {
+      cached = JSON.parse(localStorage.getItem(KEY) ?? "null") as Copied | null;
+    } catch {
+      cached = null;
+    }
+  }
+  return cached;
+}
+export function copyLines(c: Copied | null) {
+  cached = c;
+  try {
+    if (c) localStorage.setItem(KEY, JSON.stringify(c));
+    else localStorage.removeItem(KEY);
+  } catch {
+    // Kept for this session only.
+  }
+  listeners.forEach((l) => l());
+}
+export function useCopiedLines(): Copied | null {
+  return useSyncExternalStore((l) => {
+    listeners.add(l);
+    return () => listeners.delete(l);
+  }, readCopied);
+}
 
 /**
  * The Structure tab of a part: the multi-level tree under a configuration specification, or, for
@@ -45,32 +79,66 @@ export function StructureTab({ obj, editable }: { obj: VersionedObject; editable
 }
 
 function EditableStructure({ obj }: { obj: VersionedObject }) {
-  const editable = true;
   const qc = useQueryClient();
-  const { data, error, isLoading } = useUsages(obj.id, editable);
+  const { data, error, isLoading } = useUsages(obj.id, true);
   const units = useUnits();
+  const copied = useCopiedLines();
   const [editing, setEditing] = useState<string | null>(null);
+  const [replacing, setReplacing] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const refresh = () => void qc.invalidateQueries({ queryKey: ["usages", obj.id] });
-  const remove = useMutation({
+  const removeLine = useMutation({
     mutationFn: (usageId: string) =>
       unwrap(api.DELETE("/api/v1/objects/{id}/usages/{usageId}", { params: { path: { id: obj.id, usageId } } })),
     onSuccess: refresh,
   });
+  const reorder = useMutation({
+    mutationFn: (usageIds: string[]) =>
+      unwrap(api.PUT("/api/v1/objects/{id}/usages/order", { params: { path: { id: obj.id } }, body: { usageIds } })),
+    onSuccess: refresh,
+  });
+  const paste = useMutation({
+    mutationFn: (usageIds: string[]) =>
+      unwrap(api.POST("/api/v1/objects/{id}/usages/paste", { params: { path: { id: obj.id } }, body: { usageIds } })),
+    onSuccess: refresh,
+  });
+  const move = (i: number, by: number) => {
+    if (!data) return;
+    const ids = data.map((l) => l.id);
+    const [id] = ids.splice(i, 1);
+    ids.splice(i + by, 0, id!);
+    reorder.mutate(ids);
+  };
   const unitLabel = (key: string) => units.find((u) => u.key === key)?.label ?? key;
+  const toggle = (id: string) => {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelected(next);
+  };
 
   return (
     <Panel
       title={t("Structure")}
-      note={
-        editable
-          ? t("Your working copy: changes become the part's at check-in")
-          : data
-            ? tn("{n} line", "{n} lines", data.length)
-            : undefined
+      note={t("Your working copy: changes become the part's at check-in")}
+      actions={
+        <>
+          {selected.size > 0 && (
+            <button className="btn small" onClick={() => (copyLines({ ids: [...selected], from: obj.number }), setSelected(new Set()))}>
+              <Copy size={12} aria-hidden /> {tn("Copy {n} line", "Copy {n} lines", selected.size)}
+            </button>
+          )}
+          {copied && copied.ids.length > 0 && (
+            <button className="btn small" onClick={() => paste.mutate(copied.ids)} disabled={paste.isPending}>
+              <ClipboardPaste size={12} aria-hidden />{" "}
+              {tn("Paste {n} line from {from}", "Paste {n} lines from {from}", copied.ids.length, { from: copied.from })}
+            </button>
+          )}
+        </>
       }
       flush
     >
-      <ErrorBanner error={error ?? remove.error} />
+      <ErrorBanner error={error ?? removeLine.error ?? reorder.error ?? paste.error} />
       {isLoading ? (
         <Loading />
       ) : (
@@ -78,6 +146,14 @@ function EditableStructure({ obj }: { obj: VersionedObject }) {
           <table className="grid structure" aria-label={t("Structure")}>
             <thead>
               <tr>
+                <th className="check-cell">
+                  <input
+                    type="checkbox"
+                    aria-label={t("Select all lines")}
+                    checked={!!data?.length && selected.size === data.length}
+                    onChange={() => setSelected(selected.size === data?.length ? new Set() : new Set(data?.map((l) => l.id)))}
+                  />
+                </th>
                 <th className="num">{t("Line")}</th>
                 <th>{t("Find no.")}</th>
                 <th className="icon-cell" />
@@ -87,21 +163,48 @@ function EditableStructure({ obj }: { obj: VersionedObject }) {
                 <th>{t("State")}</th>
                 <th className="num">{t("Quantity")}</th>
                 <th>{t("Unit")}</th>
-                {editable && <th />}
+                <th />
               </tr>
             </thead>
             <tbody>
-              {data?.map((l) =>
+              {data?.map((l, i) =>
                 editing === l.id ? (
                   <EditRow key={l.id} obj={obj} line={l} units={units} onDone={() => (setEditing(null), refresh())} />
                 ) : (
-                  <tr key={l.id}>
+                  <tr key={l.id} className={selected.has(l.id) ? "selected" : undefined}>
+                    <td className="check-cell">
+                      <input
+                        type="checkbox"
+                        aria-label={t("Select line {line}", { line: l.lineNumber })}
+                        checked={selected.has(l.id)}
+                        onChange={() => toggle(l.id)}
+                      />
+                    </td>
                     <td className="num">{l.lineNumber}</td>
                     <td>{l.findNumber ?? <span className="muted">—</span>}</td>
                     <td className="icon-cell">
                       {l.child.typeId ? <TypeIcon typeId={l.child.typeId} /> : <Lock size={14} className="icon-muted" />}
                     </td>
-                    {l.child.readable ? (
+                    {replacing === l.id ? (
+                      <td colSpan={4}>
+                        <PartPicker
+                          exclude={obj.id}
+                          contextId={obj.contextId}
+                          label={t("Replace with")}
+                          onPick={async (part) => {
+                            await unwrap(
+                              api.PUT("/api/v1/objects/{id}/usages/{usageId}/child", {
+                                params: { path: { id: obj.id, usageId: l.id } },
+                                body: { childId: part.id },
+                              }),
+                            );
+                            setReplacing(null);
+                            refresh();
+                          }}
+                          onCancel={() => setReplacing(null)}
+                        />
+                      </td>
+                    ) : l.child.readable ? (
                       <>
                         <td className="nowrap">
                           <Link className="num-link" to={`/objects/${l.child.id}`}>
@@ -119,31 +222,52 @@ function EditableStructure({ obj }: { obj: VersionedObject }) {
                     )}
                     <td className="num">{qty(l.quantity)}</td>
                     <td>{unitLabel(l.unit)}</td>
-                    {editable && (
-                      <td className="nowrap" style={{ width: 1 }}>
-                        <button
-                          className="icon-btn"
-                          aria-label={t("Edit line {line}", { line: l.lineNumber })}
-                          onClick={() => setEditing(l.id)}
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        <button
-                          className="icon-btn"
-                          aria-label={t("Remove line {line}", { line: l.lineNumber })}
-                          onClick={() => remove.mutate(l.id)}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </td>
-                    )}
+                    <td className="nowrap" style={{ width: 1 }}>
+                      <button
+                        className="icon-btn"
+                        aria-label={t("Move line {line} up", { line: l.lineNumber })}
+                        disabled={i === 0}
+                        onClick={() => move(i, -1)}
+                      >
+                        <ArrowUp size={13} />
+                      </button>
+                      <button
+                        className="icon-btn"
+                        aria-label={t("Move line {line} down", { line: l.lineNumber })}
+                        disabled={i === data.length - 1}
+                        onClick={() => move(i, 1)}
+                      >
+                        <ArrowDown size={13} />
+                      </button>
+                      <button
+                        className="icon-btn"
+                        aria-label={t("Edit line {line}", { line: l.lineNumber })}
+                        onClick={() => setEditing(l.id)}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        className="icon-btn"
+                        aria-label={t("Replace the part on line {line}", { line: l.lineNumber })}
+                        onClick={() => setReplacing(l.id)}
+                      >
+                        <Repeat size={13} />
+                      </button>
+                      <button
+                        className="icon-btn"
+                        aria-label={t("Remove line {line}", { line: l.lineNumber })}
+                        onClick={() => removeLine.mutate(l.id)}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </td>
                   </tr>
                 ),
               )}
               {data?.length === 0 && (
                 <tr>
-                  <td colSpan={editable ? 10 : 9} className="empty">
-                    {editable ? t("No parts yet: add the first one below.") : t("This part uses no other parts.")}
+                  <td colSpan={11} className="empty">
+                    {t("No parts yet: add the first one below.")}
                   </td>
                 </tr>
               )}
@@ -151,7 +275,7 @@ function EditableStructure({ obj }: { obj: VersionedObject }) {
           </table>
         </div>
       )}
-      {editable && <AddLine obj={obj} units={units} onAdded={refresh} />}
+      <AddLine obj={obj} units={units} onAdded={refresh} />
     </Panel>
   );
 }
@@ -189,6 +313,7 @@ function EditRow({
   });
   return (
     <tr className="editing">
+      <td />
       <td>
         <input
           aria-label={t("Line")}
@@ -237,17 +362,87 @@ function EditRow({
   );
 }
 
-/** Find a part by number or name and add it as a new line. */
-function AddLine({ obj, units, onAdded }: { obj: VersionedObject; units: { key: string; label: string }[]; onAdded: () => void }) {
+/**
+ * Finds a part by number or name; with nothing matching, offers to create one in [contextId] with
+ * the typed name (roadmap 4.4).
+ */
+function PartPicker({
+  exclude,
+  contextId,
+  label,
+  onPick,
+  onCancel,
+}: {
+  exclude: string;
+  contextId: string;
+  label: string;
+  onPick: (part: VersionedObject) => void | Promise<void>;
+  onCancel?: () => void;
+}) {
   const [text, setText] = useState("");
+  const [error, setError] = useState<unknown>();
+  const { data: types } = useTypes();
+  const search = useObjectSearch(text, 8);
+  const isPart = (o: VersionedObject) => types?.find((ty) => ty.id === o.typeId)?.baseClass === "PART";
+  const matches = (search.data?.pages.flat() ?? []).filter((o) => isPart(o) && o.id !== exclude);
+  const pick = async (o: VersionedObject) => {
+    try {
+      await onPick(o);
+      setText("");
+    } catch (e) {
+      setError(e);
+    }
+  };
+  const create = async () => {
+    try {
+      const part = await unwrap(api.POST("/api/v1/objects", { body: { typeId: PART_TYPE, contextId, name: text.trim(), attributes: {} } }));
+      await pick(part);
+    } catch (e) {
+      setError(e);
+    }
+  };
+  return (
+    <div className="add-line-pick">
+      <span className="row" style={{ gap: 4 }}>
+        <input
+          aria-label={label}
+          placeholder={t("Find a part by number or name")}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          autoFocus={!!onCancel}
+        />
+        {onCancel && (
+          <button type="button" className="icon-btn" aria-label={t("Cancel")} onClick={onCancel}>
+            <X size={13} />
+          </button>
+        )}
+      </span>
+      {text.trim() && (
+        <ul className="add-line-results" role="listbox" aria-label={t("Matching parts")}>
+          {matches.length === 0 && !search.isFetching && <li className="muted">{t("No part matches")}</li>}
+          {matches.map((o) => (
+            <li key={o.id} role="option" aria-selected={false} onClick={() => void pick(o)}>
+              <TypeIcon typeId={o.typeId} /> <strong>{o.number}</strong> {o.name} <span className="muted">{o.version}</span>
+            </li>
+          ))}
+          {!search.isFetching && (
+            <li role="option" aria-selected={false} className="create" onClick={() => void create()}>
+              <Plus size={13} aria-hidden /> {t("Create “{name}” as a new part", { name: text.trim() })}
+            </li>
+          )}
+        </ul>
+      )}
+      <ErrorBanner error={error} />
+    </div>
+  );
+}
+
+/** Find (or create) a part and add it as a new line. */
+function AddLine({ obj, units, onAdded }: { obj: VersionedObject; units: { key: string; label: string }[]; onAdded: () => void }) {
   const [chosen, setChosen] = useState<VersionedObject | null>(null);
   const [quantity, setQuantity] = useState("1");
   const [unit, setUnit] = useState("");
   const [find, setFind] = useState("");
-  const { data: types } = useTypes();
-  const search = useObjectSearch(chosen ? "" : text, 8);
-  const isPart = (o: VersionedObject) => types?.find((ty) => ty.id === o.typeId)?.baseClass === "PART";
-  const matches = (search.data?.pages.flat() ?? []).filter((o) => isPart(o) && o.id !== obj.id);
   const add = useMutation({
     mutationFn: () =>
       unwrap(
@@ -258,7 +453,6 @@ function AddLine({ obj, units, onAdded }: { obj: VersionedObject; units: { key: 
       ),
     onSuccess: () => {
       setChosen(null);
-      setText("");
       setQuantity("1");
       setFind("");
       onAdded();
@@ -270,33 +464,18 @@ function AddLine({ obj, units, onAdded }: { obj: VersionedObject; units: { key: 
   };
   return (
     <form className="add-line" onSubmit={submit} aria-label={t("Add a part")}>
-      <div className="add-line-pick">
-        {chosen ? (
+      {chosen ? (
+        <div className="add-line-pick">
           <span className="chosen">
             <TypeIcon typeId={chosen.typeId} /> <strong>{chosen.number}</strong> {chosen.name}
             <button type="button" className="icon-btn" aria-label={t("Choose another part")} onClick={() => setChosen(null)}>
               <X size={12} />
             </button>
           </span>
-        ) : (
-          <input
-            aria-label={t("Part to add")}
-            placeholder={t("Find a part by number or name")}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-        )}
-        {!chosen && text.trim() && (
-          <ul className="add-line-results" role="listbox" aria-label={t("Matching parts")}>
-            {matches.length === 0 && !search.isFetching && <li className="muted">{t("No part matches")}</li>}
-            {matches.map((o) => (
-              <li key={o.id} role="option" aria-selected={false} onClick={() => setChosen(o)}>
-                <TypeIcon typeId={o.typeId} /> <strong>{o.number}</strong> {o.name} <span className="muted">{o.version}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+        </div>
+      ) : (
+        <PartPicker exclude={obj.id} contextId={obj.contextId} label={t("Part to add")} onPick={setChosen} />
+      )}
       <input
         aria-label={t("Quantity")}
         className="narrow num"

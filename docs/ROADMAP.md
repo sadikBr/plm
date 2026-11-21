@@ -221,8 +221,11 @@ baseline and report on, fast at the scale of real products.
       (Done: tree table that loads levels as they're opened or all at once, draws only the rows in
       view, exports to Excel with levels; access applied per line in SQL. Exit target met: a
       10-level structure of 45k+ lines expands in well under 2 s in the test suite.)
-- [ ] 4.4 Structure editing: add existing or new children, copy and paste lines, replace, remove,
+- [x] 4.4 Structure editing: add existing or new children, copy and paste lines, replace, remove,
       reorder, edit quantities, find in structure; all in the checked-out parent.
+      (Done: add an existing part or create one in place, edit, move up and down, replace,
+      remove; copy lines from any structure you can read and paste them into your working copy;
+      find in structure shows matches with the lines above them.)
 - [ ] 4.5 Occurrences and reference designators: individual instances under a usage line (R1,
       R2…, ranges), checked against the quantity.
 - [ ] 4.6 Where-used: single and multi-level, under a configuration specification, up to end

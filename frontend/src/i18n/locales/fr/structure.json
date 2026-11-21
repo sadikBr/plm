@@ -34,5 +34,18 @@
   "{number} at {version}": "{number} en version {version}",
   "Show": "Afficher",
   "Date": "Date",
-  "Export to Excel": "Exporter vers Excel"
+  "Export to Excel": "Exporter vers Excel",
+  "Copy {n} line": "Copier {n} ligne",
+  "Copy {n} lines": "Copier {n} lignes",
+  "Create “{name}” as a new part": "Créer « {name} » comme nouvelle pièce",
+  "Find in structure": "Rechercher dans la structure",
+  "Move line {line} down": "Descendre la ligne {line}",
+  "Move line {line} up": "Monter la ligne {line}",
+  "Paste {n} line from {from}": "Coller {n} ligne de {from}",
+  "Paste {n} lines from {from}": "Coller {n} lignes de {from}",
+  "Replace the part on line {line}": "Remplacer la pièce de la ligne {line}",
+  "Replace with": "Remplacer par",
+  "Select": "Sélectionner",
+  "Select all lines": "Sélectionner toutes les lignes",
+  "Select line {line}": "Sélectionner la ligne {line}"
 }

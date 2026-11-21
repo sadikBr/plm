@@ -370,4 +370,106 @@ internal class DefaultBomService(
             StructureChanged(parentId.value, wc, "REMOVED", row.lineNumber, row.childMasterId, null, null, null),
         )
     }
+
+    override fun replace(
+        actor: Actor,
+        parentId: MasterId,
+        usageId: UUID,
+        childId: UUID,
+    ): UsageLine {
+        val (wc, row) = own(actor, parentId, usageId)
+        val parent = versioning.get(actor, parentId)
+        val child = versioning.get(actor, MasterId(childId))
+        requirePart(actor, child.typeId, child.number)
+        if (repository.reaches(child.id.value, parent.id.value)) {
+            throw ConflictException("CYCLE", "${child.number} already uses ${parent.number}: it can't also be under it")
+        }
+        repository.replaceChild(usageId, child.id.value)
+        events.publish(
+            actor,
+            StructureChanged(
+                parentId.value,
+                wc,
+                "REPLACED",
+                row.lineNumber,
+                child.id.value,
+                child.number,
+                row.quantity,
+                row.unit,
+            ),
+        )
+        return lines(actor, listOf(repository.link(usageId)!!)).single()
+    }
+
+    override fun reorder(
+        actor: Actor,
+        parentId: MasterId,
+        usageIds: List<UUID>,
+    ): List<UsageLine> {
+        val wc = versioning.workingCopy(actor, parentId).id.value
+        val existing = repository.links(wc)
+        if (usageIds.toSet() != existing.map { it.id }.toSet() || usageIds.size != existing.size) {
+            throw ValidationException("INVALID_USAGE", "Give every line of the working copy once")
+        }
+        usageIds.forEachIndexed { i, id -> repository.renumber(id, (i + 1) * 10) }
+        events.publish(actor, StructureChanged(parentId.value, wc, "REORDERED", 0, parentId.value, null, null, null))
+        return lines(actor, repository.links(wc))
+    }
+
+    override fun paste(
+        actor: Actor,
+        parentId: MasterId,
+        usageIds: List<UUID>,
+    ): List<UsageLine> {
+        if (usageIds.isEmpty() ||
+            usageIds.size > 500
+        ) {
+            throw ValidationException("INVALID_USAGE", "Paste 1 to 500 lines")
+        }
+        val parent = versioning.get(actor, parentId)
+        val wc = versioning.workingCopy(actor, parentId).id.value
+        val sources =
+            usageIds.map {
+                repository.link(it)
+                    ?: throw NotFoundException("USAGE_NOT_FOUND", "There's no such line")
+            }
+        // Only lines of structures the actor may read, of parts they may read.
+        val readableParents = repository.mastersOf(sources.map { it.parentIterationId }.distinct())
+        readableParents.values.distinct().forEach { versioning.get(actor, MasterId(it)) }
+        val children = sources.map { it.childMasterId }.distinct().associateWith { versioning.get(actor, MasterId(it)) }
+        children.values.forEach { c ->
+            if (repository.reaches(c.id.value, parent.id.value)) {
+                throw ConflictException("CYCLE", "${c.number} already uses ${parent.number}: it can't also be under it")
+            }
+        }
+        var next = ((repository.links(wc).maxOfOrNull { it.lineNumber } ?: 0) / 10 + 1) * 10
+        val added =
+            sources.map { src ->
+                val row =
+                    src.copy(
+                        id = UuidV7.generate(clock),
+                        parentIterationId = wc,
+                        lineNumber = next,
+                        createdAt = clock.instant(),
+                        createdBy = actor.principal.value,
+                    )
+                next += 10
+                repository.insert(actor.tenant, row)
+                events.publish(
+                    actor,
+                    StructureChanged(
+                        parent.id.value,
+                        wc,
+                        "ADDED",
+                        row.lineNumber,
+                        row.childMasterId,
+                        children[row.childMasterId]?.number,
+                        row.quantity,
+                        row.unit,
+                    ),
+                )
+                row
+            }
+        return lines(actor, added)
+    }
 }

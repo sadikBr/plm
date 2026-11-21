@@ -815,3 +815,7 @@ table.folders td { padding-top: 7px; padding-bottom: 7px; }
 .tree-cell .tree-toggle { width: 18px; height: 18px; display: inline-grid; place-items: center; border: 0; background: none; padding: 0; cursor: pointer; color: var(--text-2); }
 .tree-cell .tree-spacer { display: inline-block; width: 18px; }
 .spinner.small { width: 11px; height: 11px; border-width: 2px; }
+.tree-find { width: 220px; min-height: 26px; }
+.grid.structure tr.found td { background: color-mix(in srgb, var(--warn) 14%, var(--panel)); }
+.add-line-results li.create { border-top: 1px solid var(--border); color: var(--accent); }
+.grid.structure .check-cell input { width: auto; min-height: 0; }

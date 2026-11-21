@@ -34,5 +34,18 @@
   "{number} at {version}": "{number} in Version {version}",
   "Show": "Anzeigen",
   "Date": "Datum",
-  "Export to Excel": "Nach Excel exportieren"
+  "Export to Excel": "Nach Excel exportieren",
+  "Copy {n} line": "{n} Position kopieren",
+  "Copy {n} lines": "{n} Positionen kopieren",
+  "Create “{name}” as a new part": "„{name}“ als neues Teil anlegen",
+  "Find in structure": "In der Struktur suchen",
+  "Move line {line} down": "Position {line} nach unten",
+  "Move line {line} up": "Position {line} nach oben",
+  "Paste {n} line from {from}": "{n} Position aus {from} einfügen",
+  "Paste {n} lines from {from}": "{n} Positionen aus {from} einfügen",
+  "Replace the part on line {line}": "Teil in Position {line} ersetzen",
+  "Replace with": "Ersetzen durch",
+  "Select": "Auswählen",
+  "Select all lines": "Alle Positionen auswählen",
+  "Select line {line}": "Position {line} auswählen"
 }

@@ -176,6 +176,39 @@ internal class BomRepository(
             .update()
     }
 
+    fun replaceChild(
+        id: UUID,
+        child: UUID,
+    ) {
+        jdbc
+            .sql(
+                "update usage_link set child_master_id = :child where id = :id",
+            ).param("id", id)
+            .param("child", child)
+            .update()
+    }
+
+    fun renumber(
+        id: UUID,
+        line: Int,
+    ) {
+        jdbc
+            .sql(
+                "update usage_link set line_number = :line where id = :id",
+            ).param("id", id)
+            .param("line", line)
+            .update()
+    }
+
+    /** The master of each of these iterations. */
+    fun mastersOf(iterations: Collection<UUID>): Map<UUID, UUID> =
+        jdbc
+            .sql("select id, master_id from object_iteration where id = any(cast(:ids as uuid[]))")
+            .param("ids", iterations.toTypedArray())
+            .query { rs, _ -> rs.getObject("id", UUID::class.java) to rs.getObject("master_id", UUID::class.java) }
+            .list()
+            .toMap()
+
     fun delete(id: UUID) {
         jdbc.sql("delete from usage_link where id = :id").param("id", id).update()
     }

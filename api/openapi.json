@@ -3913,6 +3913,16 @@
         },
         "type" : "object"
       },
+      "ReplaceChild" : {
+        "properties" : {
+          "childId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "childId" ],
+        "type" : "object"
+      },
       "Report" : {
         "properties" : {
           "id" : {
@@ -5429,6 +5439,19 @@
           }
         },
         "required" : [ "expiresAt", "maxSize", "uploadId", "uploadUrl" ],
+        "type" : "object"
+      },
+      "UsageIds" : {
+        "properties" : {
+          "usageIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "usageIds" ],
         "type" : "object"
       },
       "UsageLine" : {
@@ -12348,6 +12371,106 @@
         "tags" : [ "Bom" ]
       }
     },
+    "/api/v1/objects/{id}/usages/order" : {
+      "put" : {
+        "operationId" : "bomReorder",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UsageIds"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/UsageLine"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Bom" ]
+      }
+    },
+    "/api/v1/objects/{id}/usages/paste" : {
+      "post" : {
+        "operationId" : "bomPaste",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UsageIds"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/UsageLine"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Bom" ]
+      }
+    },
     "/api/v1/objects/{id}/usages/{usageId}" : {
       "delete" : {
         "operationId" : "bomRemove",
@@ -12409,6 +12532,61 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/UpdateUsage"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UsageLine"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Bom" ]
+      }
+    },
+    "/api/v1/objects/{id}/usages/{usageId}/child" : {
+      "put" : {
+        "operationId" : "bomReplace",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "usageId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReplaceChild"
               }
             }
           },

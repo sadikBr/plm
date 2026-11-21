@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, FileSpreadsheet, Lock } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy, FileSpreadsheet, Lock } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
 import { useEffectivePreferences, useLifecycles, type VersionedObject } from "../api/queries";
 import { ErrorBanner, Loading, StateBadge, TypeIcon, stateLabel } from "../components/common";
 import { language, locale, t, tn } from "../i18n/i18n";
-import { useUnits } from "./Structure";
+import { copyLines, useUnits } from "./Structure";
 
 // The multi-level structure (roadmap 4.2, 4.3): a tree table under a configuration specification.
 
@@ -90,6 +90,8 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<unknown>();
+  const [find, setFind] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   // In "expand all" mode every line is open except the ones closed since.
   const [closed, setClosed] = useState<Set<string>>(new Set());
   const isOpen = (path: string) => (all ? !closed.has(path) : open.has(path));
@@ -101,17 +103,38 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
     return m;
   }, [top.data, extra]);
 
+  // Find in structure: the matching lines and the lines above them, all open.
+  const needle = find.trim().toLowerCase();
+  const matching = useMemo(() => {
+    if (!needle) return null;
+    const keep = new Set<string>();
+    for (const nodes of children.values())
+      for (const n of nodes) {
+        const c = n.line.child;
+        if ((c.number ?? "").toLowerCase().includes(needle) || (c.name ?? "").toLowerCase().includes(needle)) {
+          let p: string | null = n.path;
+          while (p) {
+            keep.add(p);
+            p = p.includes(".") ? p.slice(0, p.lastIndexOf(".")) : null;
+          }
+        }
+      }
+    return keep;
+  }, [children, needle]);
   const rows = useMemo(() => {
     const out: Node[] = [];
     const walk = (parent: string | null) => {
       for (const n of children.get(parent) ?? []) {
+        if (matching && !matching.has(n.path)) continue;
         out.push(n);
-        if (all ? !closed.has(n.path) : open.has(n.path)) walk(n.path);
+        if (matching || (all ? !closed.has(n.path) : open.has(n.path))) walk(n.path);
       }
     };
     walk(null);
     return out;
-  }, [children, open, closed, all]);
+  }, [children, open, closed, all, matching]);
+  const hit = (n: Node) =>
+    !!needle && ((n.line.child.number ?? "").toLowerCase().includes(needle) || (n.line.child.name ?? "").toLowerCase().includes(needle));
 
   const toggle = async (n: Node) => {
     if (all) {
@@ -207,6 +230,21 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
           {all && top.data && ` · ${t("loaded in {ms} ms", { ms: top.data.elapsedMs })}`}
         </span>
         <span className="grow" />
+        <input
+          className="tree-find"
+          aria-label={t("Find in structure")}
+          placeholder={t("Find in structure")}
+          value={find}
+          onChange={(e) => {
+            setFind(e.target.value);
+            if (e.target.value.trim() && !all) expandAll();
+          }}
+        />
+        {selected.size > 0 && (
+          <button className="btn small" onClick={() => (copyLines({ ids: [...selected], from: obj.number }), setSelected(new Set()))}>
+            <Copy size={13} aria-hidden /> {tn("Copy {n} line", "Copy {n} lines", selected.size)}
+          </button>
+        )}
         <button className="btn small" onClick={expandAll} disabled={top.isFetching}>
           <ChevronsUpDown size={13} aria-hidden /> {t("Expand all")}
         </button>
@@ -224,6 +262,9 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
         <table className="grid structure tree" aria-label={t("Structure")} aria-rowcount={rows.length}>
           <thead>
             <tr>
+              <th className="check-cell">
+                <span className="sr-only">{t("Select")}</span>
+              </th>
               <th>{t("Number")}</th>
               <th>{t("Name")}</th>
               <th>{t("Version")}</th>
@@ -240,7 +281,25 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
               const c = n.line.child;
               const expandable = c.readable && c.hasChildren;
               return (
-                <tr key={n.path} aria-level={n.level} style={{ height: ROW }}>
+                <tr
+                  key={n.path}
+                  aria-level={n.level}
+                  style={{ height: ROW }}
+                  className={hit(n) ? "found" : selected.has(n.line.id) ? "selected" : undefined}
+                >
+                  <td className="check-cell">
+                    <input
+                      type="checkbox"
+                      aria-label={t("Select line {line}", { line: n.path })}
+                      checked={selected.has(n.line.id)}
+                      onChange={() => {
+                        const next = new Set(selected);
+                        if (next.has(n.line.id)) next.delete(n.line.id);
+                        else next.add(n.line.id);
+                        setSelected(next);
+                      }}
+                    />
+                  </td>
                   <td className="nowrap tree-cell" style={{ paddingLeft: 8 + (n.level - 1) * 18 }}>
                     {expandable ? (
                       <button
@@ -286,7 +345,7 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
             {last < rows.length && <tr style={{ height: (rows.length - last) * ROW }} aria-hidden />}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="empty">
+                <td colSpan={9} className="empty">
                   {t("This part uses no other parts.")}
                 </td>
               </tr>

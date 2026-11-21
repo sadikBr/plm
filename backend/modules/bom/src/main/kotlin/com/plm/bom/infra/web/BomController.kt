@@ -71,4 +71,35 @@ internal class BomController(
         @PathVariable id: UUID,
         @PathVariable usageId: UUID,
     ) = bom.remove(actor, MasterId(id), usageId)
+
+    @PutMapping("/api/v1/objects/{id}/usages/{usageId}/child")
+    fun replace(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @PathVariable usageId: UUID,
+        @RequestBody request: ReplaceChild,
+    ) = bom.replace(actor, MasterId(id), usageId, request.childId)
+
+    @PutMapping("/api/v1/objects/{id}/usages/order")
+    fun reorder(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: UsageIds,
+    ) = bom.reorder(actor, MasterId(id), request.usageIds)
+
+    @PostMapping("/api/v1/objects/{id}/usages/paste")
+    @ResponseStatus(HttpStatus.CREATED)
+    fun paste(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: UsageIds,
+    ) = bom.paste(actor, MasterId(id), request.usageIds)
 }
+
+data class ReplaceChild(
+    val childId: UUID,
+)
+
+data class UsageIds(
+    val usageIds: List<UUID>,
+)

@@ -159,4 +159,35 @@ internal class StructureIT(
                 .child.name,
         ).isEqualTo("Secret sensor")
     }
+
+    @Test
+    fun `lines are replaced, reordered and pasted from another structure`() {
+        val p = product()
+        val a = part(p, "Assembly A")
+        val b = part(p, "Assembly B")
+        val (x, y, z) = listOf(part(p, "X"), part(p, "Y"), part(p, "Z"))
+        versioning.checkOut(alice, a)
+        bom.add(alice, a, AddUsage(x.value, BigDecimal("3"), findNumber = "7"))
+        val second = bom.add(alice, a, AddUsage(y.value))
+        val replaced = bom.replace(alice, a, second.id, z.value)
+        assertThat(replaced.child.id).isEqualTo(z.value)
+        assertThat(replaced.lineNumber).isEqualTo(20)
+        val reordered = bom.reorder(alice, a, bom.usages(alice, a, workingCopy = true).map { it.id }.reversed())
+        assertThat(reordered.map { it.child.id to it.lineNumber }).containsExactly(z.value to 10, x.value to 20)
+        assertThatThrownBy { bom.reorder(alice, a, listOf(replaced.id)) }.hasMessageContaining("every line")
+        versioning.checkIn(alice, a)
+
+        versioning.checkOut(alice, b)
+        bom.add(alice, b, AddUsage(y.value))
+        val pasted = bom.paste(alice, b, bom.usages(alice, a).map { it.id })
+        assertThat(pasted.map { it.lineNumber }).containsExactly(20, 30)
+        assertThat(pasted.first { it.child.id == x.value }.quantity).isEqualTo(BigDecimal("3"))
+        assertThat(pasted.first { it.child.id == x.value }.findNumber).isEqualTo("7")
+        versioning.checkIn(alice, b)
+        // Pasting B's lines into one of its own children would loop... and A under Z is fine.
+        versioning.checkOut(alice, z)
+        assertThatThrownBy {
+            bom.replace(alice, z, bom.add(alice, z, AddUsage(y.value)).id, a.value)
+        }.hasMessageContaining("already uses")
+    }
 }

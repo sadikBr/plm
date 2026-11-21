@@ -108,6 +108,32 @@ interface BomService {
         parentId: MasterId,
         usageId: UUID,
     )
+
+    /** Puts another part on a line, keeping its number, quantity and unit (roadmap 4.4). */
+    fun replace(
+        actor: Actor,
+        parentId: MasterId,
+        usageId: UUID,
+        childId: UUID,
+    ): UsageLine
+
+    /** Renumbers the working copy's lines 10, 20, 30... in this order (all its lines, once each). */
+    fun reorder(
+        actor: Actor,
+        parentId: MasterId,
+        usageIds: List<UUID>,
+    ): List<UsageLine>
+
+    /**
+     * Copies lines from any structure the actor can read (child, quantity, unit, find number,
+     * notes) to the end of the working copy (roadmap 4.4). Lines whose child would make a cycle are
+     * refused, as a whole.
+     */
+    fun paste(
+        actor: Actor,
+        parentId: MasterId,
+        usageIds: List<UUID>,
+    ): List<UsageLine>
 }
 
 /** How a structure picks the iteration of each part it uses (roadmap 4.2). */
