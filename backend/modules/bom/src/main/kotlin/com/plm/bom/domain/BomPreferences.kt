@@ -15,7 +15,9 @@ internal class BomPreferences : PreferenceDeclarations {
             PreferenceDefinition(
                 key = "bom.configSpec",
                 label = "Structure shows",
-                description = "Which version of each part a structure shows by default. People can change it while they look.",
+                description =
+                    "Which version of each part a structure shows by default. " +
+                        "People can change it while they look.",
                 category = "Structure",
                 type = PreferenceType.CHOICE,
                 default = "LATEST",

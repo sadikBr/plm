@@ -87,7 +87,8 @@ internal class BomRepository(
         if (masters.isEmpty()) return emptyMap()
         val pick =
             when (spec.type) {
-                com.plm.bom.api.ConfigSpecType.LATEST -> "select * from object_iteration x where x.id = m.latest_iteration_id"
+                com.plm.bom.api.ConfigSpecType.LATEST ->
+                    "select * from object_iteration x where x.id = m.latest_iteration_id"
                 com.plm.bom.api.ConfigSpecType.STATE ->
                     """
                     select * from object_iteration x where x.master_id = m.id and x.status = 'CHECKED_IN' and x.state = :spec_state
