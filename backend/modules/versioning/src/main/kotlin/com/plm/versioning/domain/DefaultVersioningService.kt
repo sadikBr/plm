@@ -86,6 +86,7 @@ internal class DefaultVersioningService(
     private val references: References,
     private val attributes: com.plm.types.api.AttributeService,
     private val guards: ObjectProvider<OperationGuard>,
+    private val numberProviders: ObjectProvider<com.plm.versioning.api.NumberProvider>,
     private val folders: com.plm.versioning.infra.OrganizingRepository,
     private val clock: Clock,
 ) : VersioningService {
@@ -129,6 +130,9 @@ internal class DefaultVersioningService(
             )
         val number =
             command.number
+                ?: numberProviders.orderedStream().toList().firstNotNullOfOrNull {
+                    it.number(actor, com.plm.versioning.api.NumberRequest(type.id, context.id.value, name, entered))
+                }
                 ?: rules.numberingSchemeId?.let { typeRules.nextNumber(actor, it) }
                 ?: contextScheme(actor, context.id)?.let { typeRules.nextNumber(actor, it) }
                 ?: repository.nextNumber()

@@ -972,3 +972,8 @@ table.grid td input[type="date"] { width: 150px; }
 .bar-chart.wide-labels .bar-row { grid-template-columns: minmax(120px, 45%) 1fr; }
 .flow-week.tip-left .viz-tooltip { left: auto; right: 0; transform: none; }
 .release-gate-note .check { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+/* Server scripts (roadmap 5.14). */
+textarea.script-source { min-height: 220px; line-height: 1.45; tab-size: 2; }
+.code-block { margin: 6px 0 0; padding: 8px 10px; background: var(--row-hover); border: 1px solid var(--border); border-radius: 4px; font-family: var(--mono); font-size: 12px; white-space: pre-wrap; max-height: 220px; overflow: auto; }
+.script-result { display: grid; gap: 6px; margin-top: 10px; }
+.check-list.scroll-list { max-height: 150px; overflow: auto; }

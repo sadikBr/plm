@@ -60,3 +60,22 @@ interface OperationGuard {
         check: OperationCheck,
     ): List<Refusal>
 }
+
+/** What a new object's number is asked for (roadmap 5.14). */
+data class NumberRequest(
+    val typeId: TypeId,
+    val contextId: java.util.UUID,
+    val name: String,
+    val attributes: Map<String, Any?>,
+)
+
+/**
+ * Supplies a new object's number ahead of numbering schemes (roadmap 5.14: numbering scripts);
+ * null when it has no say. Not asked when the user typed a number.
+ */
+interface NumberProvider {
+    fun number(
+        actor: Actor,
+        request: NumberRequest,
+    ): String?
+}

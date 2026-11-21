@@ -399,8 +399,15 @@ affected objects; and the platform can be extended with scripts, UI slots and no
       move a part or document to Released except when a change notice is resolved or a promotion
       request approved. A site administrator can still override from the Set state dialog; the
       override is recorded in the object's history and the audit trail.
-- [ ] 5.14 Sandboxed server scripts: JavaScript scripts for validation rules, numbering and
+- [x] 5.14 Sandboxed server scripts: JavaScript scripts for validation rules, numbering and
       automation steps, run with time, memory and API limits.
+      Done: Administration › Scripts holds JavaScript run in an embedded interpreter (Rhino) with no
+      Java, file or network access: validate(ctx) refuses operations, number(ctx) names new
+      objects ahead of numbering schemes, run(ctx) is an automation step. Each run is limited in
+      wall-clock time (per script, at most 2 s), instructions (5 million), allocated memory (64 MB),
+      calls to plm.object/plm.find (25, reading as the user) and output; a limit stops it in a way
+      the script can't catch. A script that fails refuses rather than lets through. Scripts can be
+      tried on sample input, and each run is kept (result, logs, time).
 - [ ] 5.15 UI extension slots and extension endpoints: extensions add panels and tabs to object
       pages (sandboxed frames with a message bridge) and serve their own endpoints through the
       platform.

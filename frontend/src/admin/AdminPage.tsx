@@ -7,6 +7,7 @@ import { PageHeader, Tabs } from "../components/Layout";
 import { t } from "../i18n/i18n";
 import { ActionsAdmin } from "./ActionsAdmin";
 import { ChangesAdmin } from "./ChangesAdmin";
+import { ScriptsAdmin } from "./ScriptsAdmin";
 import { DeleteRulesAdmin } from "./DeleteRulesAdmin";
 import { DocumentTemplatesAdmin } from "./DocumentTemplatesAdmin";
 import { ExtensionsAdmin } from "./ExtensionsAdmin";
@@ -40,6 +41,7 @@ type Section =
   | "document-templates"
   | "actions"
   | "rules"
+  | "scripts"
   | "webhooks"
   | "service-accounts"
   | "profiles"
@@ -64,6 +66,7 @@ const SECTIONS = (): [Section, string][] => [
   ["document-templates", t("Document templates")],
   ["actions", t("Actions")],
   ["rules", t("Rules")],
+  ["scripts", t("Scripts")],
   ["webhooks", t("Webhooks")],
   ["service-accounts", t("Service accounts")],
   ["profiles", t("Profiles")],
@@ -118,6 +121,7 @@ export function AdminPage() {
         {tab === "document-templates" && <DocumentTemplatesAdmin />}
         {tab === "actions" && <ActionsAdmin />}
         {tab === "rules" && <RulesAdmin />}
+        {tab === "scripts" && <ScriptsAdmin />}
         {tab === "webhooks" && <WebhooksAdmin />}
         {tab === "service-accounts" && <ServiceAccountsAdmin />}
         {tab === "profiles" && <ProfilesAdmin />}

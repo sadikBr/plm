@@ -11,6 +11,7 @@ dependencies {
     implementation(project(":backend:modules:identity"))
     implementation(project(":backend:modules:preferences"))
     implementation(project(":backend:modules:jobs"))
+    implementation(libs.rhino)
     implementation(libs.slf4j.api)
     implementation(libs.jackson.yaml)
     implementation(libs.jackson.kotlin)

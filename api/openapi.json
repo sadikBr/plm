@@ -6152,6 +6152,106 @@
         "required" : [ "cron", "enabled", "name", "payload", "timeZone", "type" ],
         "type" : "object"
       },
+      "ScriptRun" : {
+        "properties" : {
+          "actor" : {
+            "type" : "string"
+          },
+          "durationMs" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "error" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "instructions" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "logs" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "ok" : {
+            "type" : "boolean"
+          },
+          "ranAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "result" : { },
+          "scriptId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "trigger" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "actor", "durationMs", "instructions", "logs", "ok", "ranAt", "trigger" ],
+        "type" : "object"
+      },
+      "ScriptSettings" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "operations" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "purpose" : {
+            "enum" : [ "VALIDATION", "NUMBERING", "AUTOMATION" ],
+            "type" : "string"
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "timeoutMs" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "types" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "active", "name", "operations", "purpose", "source", "timeoutMs", "types" ],
+        "type" : "object"
+      },
+      "ScriptTest" : {
+        "properties" : {
+          "input" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          },
+          "purpose" : {
+            "enum" : [ "VALIDATION", "NUMBERING", "AUTOMATION" ],
+            "type" : [ "string", "null" ]
+          },
+          "source" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "input" ],
+        "type" : "object"
+      },
       "SearchHit" : {
         "properties" : {
           "contextId" : {
@@ -6279,6 +6379,55 @@
           }
         },
         "required" : [ "capped", "engine", "facets", "hits", "total" ],
+        "type" : "object"
+      },
+      "ServerScript" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "operations" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "purpose" : {
+            "enum" : [ "VALIDATION", "NUMBERING", "AUTOMATION" ],
+            "type" : "string"
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "timeoutMs" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "types" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "updatedBy" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "id", "name", "operations", "purpose", "source", "timeoutMs", "types", "updatedAt", "updatedBy" ],
         "type" : "object"
       },
       "ServiceAccountResponse" : {
@@ -19333,6 +19482,273 @@
         "tags" : [ "Search" ]
       }
     },
+    "/api/v1/server-scripts" : {
+      "get" : {
+        "operationId" : "serverScriptList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ServerScript"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Server script" ]
+      },
+      "post" : {
+        "operationId" : "serverScriptDefine",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ScriptSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServerScript"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Server script" ]
+      }
+    },
+    "/api/v1/server-scripts/test" : {
+      "post" : {
+        "operationId" : "serverScriptTestDraft",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ScriptTest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ScriptRun"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Server script" ]
+      }
+    },
+    "/api/v1/server-scripts/{id}" : {
+      "delete" : {
+        "operationId" : "serverScriptDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Server script" ]
+      },
+      "put" : {
+        "operationId" : "serverScriptUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ScriptSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServerScript"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Server script" ]
+      }
+    },
+    "/api/v1/server-scripts/{id}/runs" : {
+      "get" : {
+        "operationId" : "serverScriptRuns",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ScriptRun"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Server script" ]
+      }
+    },
+    "/api/v1/server-scripts/{id}/test" : {
+      "post" : {
+        "operationId" : "serverScriptTest",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ScriptTest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ScriptRun"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Server script" ]
+      }
+    },
     "/api/v1/service-accounts" : {
       "get" : {
         "operationId" : "serviceAccountList",
@@ -21795,6 +22211,8 @@
     "name" : "Rollup"
   }, {
     "name" : "Search"
+  }, {
+    "name" : "Server script"
   }, {
     "name" : "Service account"
   }, {
