@@ -8,6 +8,7 @@ import { ViewTab } from "../cad/ViewTab";
 import { SheetTab, useHasPdf } from "../cad/SheetTab";
 import { EffectivityTab } from "../effectivity/EffectivityTab";
 import { PartOptionsPanel } from "../variants/OptionSets";
+import { OneOffBanner, OneOffsPanel } from "../variants/OneOffs";
 import { PublicationsPanel } from "../publishing/Publishing";
 import { ExtensionPanels, ExtensionTab, useUiSlots } from "../extensions/ExtensionFrame";
 import { ReplacementsTab } from "../structure/Replacements";
@@ -152,6 +153,7 @@ function ObjectView({ id }: { id: string }) {
     <>
       <ObjectHeader obj={obj} myId={myId} tabs={<Tabs tabs={tabs} active={tab} onSelect={(k) => setParams({ tab: k })} />} />
       <div className="content">
+        <OneOffBanner obj={obj} />
         {tab === "details" && <DetailsTab obj={obj} myId={myId} />}
         {tab === "cad" && cadKind && <CadTab obj={obj} kind={cadKind} mine={!!myId && obj.checkedOutBy === myId} />}
         {tab === "view2d" && <SheetTab obj={obj} />}
@@ -168,6 +170,7 @@ function ObjectView({ id }: { id: string }) {
         {tab === "change" && changeKind && <ChangeTab obj={obj} kind={changeKind} />}
         {tab === "changes" && <ObjectChangesTab obj={obj} />}
         {tab === "discussion" && <DiscussionTab obj={obj} />}
+        {tab === "history" && isPart && <OneOffsPanel obj={obj} />}
         {tab === "history" && <HistoryTab id={obj.id} />}
         {tab === "audit" && me?.siteAdmin && <AuditTab id={obj.id} />}
         {tab.startsWith("ext:") &&

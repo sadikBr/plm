@@ -4271,6 +4271,13 @@
             "format" : "int32",
             "type" : "integer"
           },
+          "oneOff" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "oneOffFor" : {
+            "type" : [ "string", "null" ]
+          },
           "revision" : {
             "type" : "string"
           },
@@ -4817,6 +4824,19 @@
           }
         },
         "required" : [ "kind", "part" ],
+        "type" : "object"
+      },
+      "MakeOneOff" : {
+        "properties" : {
+          "baseIterationId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "forWhat" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "forWhat" ],
         "type" : "object"
       },
       "ManifestAction" : {
@@ -20187,6 +20207,53 @@
           }
         },
         "tags" : [ "Organizing" ]
+      }
+    },
+    "/api/v1/objects/{id}/one-offs" : {
+      "post" : {
+        "operationId" : "versionedObjectMakeOneOff",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MakeOneOff"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IterationResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Versioned object" ]
       }
     },
     "/api/v1/objects/{id}/options" : {

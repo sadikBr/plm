@@ -131,7 +131,11 @@ internal class DefaultVersioningService(
         val number =
             command.number
                 ?: numberProviders.orderedStream().toList().firstNotNullOfOrNull {
-                    it.number(actor, com.plm.versioning.api.NumberRequest(type.id, context.id.value, name, entered))
+                    it.number(
+                        actor,
+                        com.plm.versioning.api
+                            .NumberRequest(type.id, context.id.value, name, entered),
+                    )
                 }
                 ?: rules.numberingSchemeId?.let { typeRules.nextNumber(actor, it) }
                 ?: contextScheme(actor, context.id)?.let { typeRules.nextNumber(actor, it) }
@@ -425,7 +429,8 @@ internal class DefaultVersioningService(
                 checkedOutBy = null,
             )
         repository.checkIn(checkedIn)
-        repository.setLatest(master.id, checkedIn.id)
+        // A one-off stays beside the main line (roadmap 7.10): the latest doesn't move.
+        if (checkedIn.oneOff == null) repository.setLatest(master.id, checkedIn.id)
         events.publish(
             actor,
             ObjectCheckedIn(
@@ -438,7 +443,76 @@ internal class DefaultVersioningService(
                 checkedIn.comment,
             ),
         )
+        if (checkedIn.oneOff != null) {
+            return master.copy(checkedOutBy = null).toObject(repository.iteration(master.latestIterationId))
+        }
         return master.copy(latestIterationId = checkedIn.id, checkedOutBy = null).toObject(checkedIn)
+    }
+
+    override fun makeOneOff(
+        actor: Actor,
+        id: MasterId,
+        baseIterationId: java.util.UUID?,
+        forWhat: String,
+    ): Iteration {
+        val master = findMaster(actor, id, forUpdate = true)
+        val latest = authorize(actor, master, Permission.MODIFY)
+        val what = forWhat.trim()
+        if (what.isEmpty() || what.length > 200) {
+            throw ValidationException(
+                "INVALID_ONE_OFF",
+                "Say what the one-off is for: an order or a unit (at most 200 characters)",
+            )
+        }
+        val base =
+            if (baseIterationId == null) {
+                latest
+            } else {
+                repository.history(master.id).firstOrNull { it.id.value == baseIterationId }
+                    ?: throw NotFoundException("ITERATION_NOT_FOUND", "There's no such iteration of ${master.number}")
+            }
+        if (base.status != IterationStatus.CHECKED_IN || base.oneOff != null) {
+            throw ConflictException("ONE_OFF_NOT_ALLOWED", "A one-off is made from a checked-in main-line version")
+        }
+        val lifecycle = lifecycleOf(actor, master)
+        if (lifecycle.isEditable(base.state)) {
+            throw ConflictException(
+                "ONE_OFF_NOT_ALLOWED",
+                "${master.number} ${base.version} is ${stateName(lifecycle, base.state)}: change it directly instead",
+                mapOf("state" to base.state),
+            )
+        }
+        repository.workingCopy(master.id)?.let { existing ->
+            throw ConflictException(
+                "ALREADY_CHECKED_OUT",
+                "${master.number} is already checked out by ${nameOf(actor, existing.checkedOutBy)}",
+                mapOf("checkedOutBy" to existing.checkedOutBy),
+            )
+        }
+        val number =
+            repository
+                .history(master.id)
+                .filter { it.revision == base.revision && it.iteration == base.iteration }
+                .mapNotNull { it.oneOff }
+                .maxOrNull()
+                ?.plus(1) ?: 1
+        val oneOff =
+            base.copy(
+                id = IterationId(UuidV7.generate(clock)),
+                status = IterationStatus.WORKING,
+                basedOnId = base.id,
+                comment = null,
+                createdAt = clock.instant(),
+                createdBy = actor.principal.value,
+                checkedInAt = null,
+                checkedOutBy = actor.principal.value,
+                oneOff = number,
+                oneOffFor = what,
+            )
+        repository.insertIteration(actor.tenant, oneOff)
+        // Its structure, files and the rest follow from its base, as for any working copy.
+        events.publish(actor, master.event(oneOff, ::ObjectCheckedOut))
+        return oneOff
     }
 
     override fun undoCheckOut(

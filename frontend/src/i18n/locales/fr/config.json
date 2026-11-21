@@ -142,5 +142,17 @@
   "specification {name}": "spécification {name}",
   "{created} made, {reused} reused.": "{created} créés, {reused} réutilisés.",
   "Open": "Ouvrir",
-  "Outcome": "Résultat"
+  "Outcome": "Résultat",
+  "One-off versions": "Versions uniques",
+  "Made from a released version for one order or unit; the main line and its configurations don't see them.": "Créées à partir d'une version publiée pour une commande ou une unité ; la ligne principale et ses configurations ne les voient pas.",
+  "For": "Pour",
+  "Made by": "Créée par",
+  "No one-off versions.": "Aucune version unique.",
+  "One-off for": "Version unique pour",
+  "What it's for, e.g. Order 4471, or unit 17": "Pour quoi, p. ex. Commande 4471 ou unité 17",
+  "Make a one-off of {version}": "Faire une version unique de {version}",
+  "You're editing one-off {version} for {what}. Checking it in keeps it beside the main line, which stays at {latest}.": "Vous modifiez la version unique {version} pour {what}. L'archiver la garde à côté de la ligne principale, qui reste en {latest}.",
+  "State": "État",
+  "Comment": "Commentaire",
+  "Checked in": "Archivée"
 }

@@ -42,9 +42,13 @@ data class Iteration(
     val createdBy: String,
     val checkedInAt: Instant?,
     val checkedOutBy: String?,
+    /** A one-off version's number on its branch (roadmap 7.10): B.2-1 is the first made from B.2. */
+    val oneOff: Int? = null,
+    /** What the one-off was made for: an order, a unit. */
+    val oneOffFor: String? = null,
 ) {
-    /** Display form, e.g. `B.3`. */
-    val version: String get() = "$revision.$iteration"
+    /** Display form, e.g. `B.3`, or `B.2-1` for a one-off. */
+    val version: String get() = "$revision.$iteration" + (oneOff?.let { "-$it" } ?: "")
 }
 
 data class VersionedObject(
@@ -219,6 +223,21 @@ interface VersioningService {
         actor: Actor,
         id: MasterId,
     ): VersionedObject
+
+    /**
+     * Starts a one-off version (roadmap 7.10): a working copy of [baseIterationId] (the latest by
+     * default), a version that can't be edited any more (Released), made for [forWhat] (an order,
+     * a unit), checked out to the actor on a branch numbered from its base: B.2-1, B.2-2. Edit it
+     * like any working copy; checking it in keeps it beside the main line, whose latest stays where
+     * it is, and which the configuration specifications follow. Needs MODIFY.
+     * Errors: `ONE_OFF_NOT_ALLOWED`, `ALREADY_CHECKED_OUT`, `INVALID_ONE_OFF`.
+     */
+    fun makeOneOff(
+        actor: Actor,
+        id: MasterId,
+        baseIterationId: java.util.UUID? = null,
+        forWhat: String,
+    ): Iteration
 
     /**
      * Starts the next revision from the latest iteration (A.3 -> B.1), in the lifecycle's initial

@@ -74,14 +74,14 @@ internal class EffectivityInStructures(
             """
             select * from (
               (select x.*, 1 as eff_rank from object_iteration x
-               where x.master_id = m.id and x.status = 'CHECKED_IN'
+               where x.master_id = m.id and x.status = 'CHECKED_IN' and x.one_off is null
                  and x.revision = (select e.revision from effectivity e where $any and ${covers(
                 a.kind,
             )} order by e.created_at desc limit 1)
                order by x.seq desc limit 1)
               union all
               (select x.*, 2 from object_iteration x
-               where x.master_id = m.id and x.status = 'CHECKED_IN' and not exists (select 1 from effectivity e where $any)
+               where x.master_id = m.id and x.status = 'CHECKED_IN' and x.one_off is null and not exists (select 1 from effectivity e where $any)
                order by (x.state = 'RELEASED') desc, x.seq desc limit 1)
             ) eff order by eff_rank limit 1
             """.trimIndent()

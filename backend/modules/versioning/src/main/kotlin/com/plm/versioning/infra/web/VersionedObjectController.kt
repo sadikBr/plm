@@ -182,6 +182,14 @@ internal class VersionedObjectController(
         @RequestBody request: RenameRequest,
     ) = ObjectResponse(versioning.rename(actor, MasterId(id), Rename(request.number, request.name, request.comment)))
 
+    /** Starts a one-off version for one order or unit (roadmap 7.10), checked out to you. */
+    @PostMapping("/{id}/one-offs")
+    fun makeOneOff(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: MakeOneOff,
+    ) = IterationResponse(versioning.makeOneOff(actor, MasterId(id), request.baseIterationId, request.forWhat))
+
     @PostMapping("/{id}/revise")
     fun revise(
         actor: Actor,
@@ -252,6 +260,9 @@ internal data class IterationResponse(
     val createdBy: String,
     val checkedInAt: Instant?,
     val checkedOutBy: String?,
+    /** A one-off's number on its branch (roadmap 7.10), and what it was made for. */
+    val oneOff: Int? = null,
+    val oneOffFor: String? = null,
 ) {
     constructor(i: Iteration) : this(
         id = i.id.value,
@@ -267,8 +278,17 @@ internal data class IterationResponse(
         createdBy = i.createdBy,
         checkedInAt = i.checkedInAt,
         checkedOutBy = i.checkedOutBy,
+        oneOff = i.oneOff,
+        oneOffFor = i.oneOffFor,
     )
 }
+
+internal data class MakeOneOff(
+    /** What it's for: an order, a unit. */
+    val forWhat: String,
+    /** The version to start from; the latest by default. */
+    val baseIterationId: UUID? = null,
+)
 
 internal data class SetStateRequest(
     val state: String,

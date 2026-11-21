@@ -113,7 +113,7 @@ internal class BomRepository(
                     "select * from object_iteration x where x.id = m.latest_iteration_id"
                 com.plm.bom.api.ConfigSpecType.STATE ->
                     """
-                    select * from object_iteration x where x.master_id = m.id and x.status = 'CHECKED_IN' and x.state = :spec_state
+                    select * from object_iteration x where x.master_id = m.id and x.status = 'CHECKED_IN' and x.one_off is null and x.state = :spec_state
                     order by x.seq desc limit 1
                     """.trimIndent()
                 com.plm.bom.api.ConfigSpecType.BASELINE ->
@@ -124,7 +124,7 @@ internal class BomRepository(
                 com.plm.bom.api.ConfigSpecType.EFFECTIVITY -> effectivityPick(spec).sql
                 com.plm.bom.api.ConfigSpecType.AS_OF ->
                     """
-                    select * from object_iteration x where x.master_id = m.id and x.status = 'CHECKED_IN' and x.checked_in_at <= :spec_as_of
+                    select * from object_iteration x where x.master_id = m.id and x.status = 'CHECKED_IN' and x.one_off is null and x.checked_in_at <= :spec_as_of
                     order by x.seq desc limit 1
                     """.trimIndent()
             }

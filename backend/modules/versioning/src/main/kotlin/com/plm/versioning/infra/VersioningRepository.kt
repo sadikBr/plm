@@ -83,6 +83,8 @@ internal class VersioningRepository(
                 createdBy = rs.getString("created_by"),
                 checkedInAt = rs.instant("checked_in_at"),
                 checkedOutBy = rs.getString("checked_out_by"),
+                oneOff = rs.getObject("one_off") as Int?,
+                oneOffFor = rs.getString("one_off_for"),
             )
         }
 
@@ -256,9 +258,9 @@ internal class VersioningRepository(
                     """
                     insert into object_iteration
                         (id, tenant_id, master_id, revision, iteration, status, state, attrs, based_on_id,
-                         comment, created_at, created_by, checked_in_at, checked_out_by)
+                         comment, created_at, created_by, checked_in_at, checked_out_by, one_off, one_off_for)
                     values (:id, :tenant, :master, :revision, :iteration, :status, :state, cast(:attrs as jsonb),
-                            :basedOn, :comment, :createdAt, :createdBy, :checkedInAt, :checkedOutBy)
+                            :basedOn, :comment, :createdAt, :createdBy, :checkedInAt, :checkedOutBy, :oneOff, :oneOffFor)
                     """,
                 ).param("id", it.id.value)
                 .param("tenant", tenant.value)
@@ -274,6 +276,8 @@ internal class VersioningRepository(
                 .param("createdBy", it.createdBy)
                 .param("checkedInAt", it.checkedInAt?.let(Timestamp::from))
                 .param("checkedOutBy", it.checkedOutBy)
+                .param("oneOff", it.oneOff)
+                .param("oneOffFor", it.oneOffFor)
                 .update()
         } catch (e: DuplicateKeyException) {
             // Unreachable while the master row lock is held; kept as a safety net.

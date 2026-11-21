@@ -619,9 +619,15 @@ main line, and classification makes existing parts easy to find and reuse.
       options it depends on is reused, so "Expedition" and "Expedition, sand" share one pack
       variant. Generated parts show where they came from (base, version, choices, specification);
       base parts list their variants. Line effectivity isn't copied to variants.
-- [ ] 7.10 One-off versions: a version of a released part made for one order or unit (e.g. `B.2-1`),
+- [x] 7.10 One-off versions: a version of a released part made for one order or unit (e.g. `B.2-1`),
       on a branch that the main line's configuration specs skip unless asked for, traceable to its
       origin and order.
+      Done: "Make a one-off" (a part's History tab) starts a one-off of its latest version, which
+      must be one that can't be changed (Released), for a stated order or unit: a working copy
+      numbered on its own branch (A.2-1, A.2-2) with the base's structure, files and the rest, edited
+      as usual with a banner saying so. Its check-in leaves the main line where it was: latest,
+      Released and as-of specifications, effectivity and revising follow the main line only; the
+      one-off is read by asking for its iteration, and lists its base and what it was for.
 - [ ] 7.11 Classification: a class tree (e.g. Fasteners > Screws > Hex screws) with class attributes
       inherited down the tree (types, units, value lists, required); classify parts, values kept
       per version; administered in the UI.
