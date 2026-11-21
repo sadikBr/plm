@@ -17,5 +17,22 @@
   "This part uses no other parts.": "Dieses Teil verwendet keine anderen Teile.",
   "Your working copy: changes become the part's at check-in": "Ihre Arbeitskopie: Änderungen gelten für das Teil beim Einchecken",
   "{n} line": "{n} Position",
-  "{n} lines": "{n} Positionen"
+  "{n} lines": "{n} Positionen",
+  "(no access)": "(kein Zugriff)",
+  "As of a date": "Zu einem Datum",
+  "Collapse all": "Alle einklappen",
+  "Collapse {number}": "{number} einklappen",
+  "Expand all": "Alle ausklappen",
+  "Expand {number}": "{number} ausklappen",
+  "Latest versions": "Neueste Versionen",
+  "Latest {state}": "Neueste: {state}",
+  "Level": "Ebene",
+  "No version of {number} matches": "Keine Version von {number} passt",
+  "This structure is too large to show in full: the lowest levels were left out.": "Diese Struktur ist zu groß für eine vollständige Anzeige: die untersten Ebenen wurden ausgelassen.",
+  "loaded in {ms} ms": "in {ms} ms geladen",
+  "none": "keine",
+  "{number} at {version}": "{number} in Version {version}",
+  "Show": "Anzeigen",
+  "Date": "Datum",
+  "Export to Excel": "Nach Excel exportieren"
 }

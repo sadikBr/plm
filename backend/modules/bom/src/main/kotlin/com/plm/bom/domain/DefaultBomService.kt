@@ -1,13 +1,21 @@
 package com.plm.bom.domain
 
+import com.plm.access.api.AccessColumns
+import com.plm.access.api.AccessService
+import com.plm.access.api.Permission
 import com.plm.bom.api.AddUsage
 import com.plm.bom.api.BomService
+import com.plm.bom.api.ConfigSpec
+import com.plm.bom.api.ConfigSpecType
 import com.plm.bom.api.StructureChanged
+import com.plm.bom.api.StructureNode
+import com.plm.bom.api.StructureResult
 import com.plm.bom.api.UpdateUsage
 import com.plm.bom.api.UsageLine
 import com.plm.bom.api.UsedPart
 import com.plm.bom.infra.BomRepository
 import com.plm.bom.infra.LinkRow
+import com.plm.bom.infra.Resolved
 import com.plm.platform.actor.Actor
 import com.plm.platform.error.ConflictException
 import com.plm.platform.error.NotFoundException
@@ -20,7 +28,6 @@ import com.plm.types.api.TypeId
 import com.plm.types.api.TypeService
 import com.plm.versioning.api.MasterId
 import com.plm.versioning.api.ObjectQuery
-import com.plm.versioning.api.VersionedObject
 import com.plm.versioning.api.VersioningService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -33,6 +40,7 @@ import java.util.UUID
 internal class DefaultBomService(
     private val repository: BomRepository,
     private val versioning: VersioningService,
+    private val access: AccessService,
     private val types: TypeService,
     private val enumerations: EnumerationService,
     private val events: DomainEvents,
@@ -64,54 +72,130 @@ internal class DefaultBomService(
         return lines(actor, repository.links(iteration))
     }
 
-    /** Lines with their children as [actor] sees them (latest iterations, roadmap 4.2 adds others). */
+    private fun readable(actor: Actor) =
+        access.filter(actor, Permission.READ, AccessColumns("m.context_id", "m.type_id", "li.state", "m.id"))
+
+    /** Lines with their children as [actor] sees them, at the iterations [spec] picks. */
     fun lines(
         actor: Actor,
         links: List<LinkRow>,
+        spec: ConfigSpec = ConfigSpec.LATEST,
     ): List<UsageLine> {
         if (links.isEmpty()) return emptyList()
-        val ids = links.map { it.childMasterId }.distinct()
-        val readable =
-            versioning
-                .list(
-                    actor,
-                    ObjectQuery(ids = ids.map(::MasterId), limit = ids.size.coerceAtMost(500)),
-                ).associateBy {
-                    it.id.value
-                }
-        val parents = repository.withChildren(readable.keys)
-        return links.map { l -> l.toLine(readable[l.childMasterId], l.childMasterId in parents) }
+        val resolved = repository.resolve(links.map { it.childMasterId }.distinct(), spec, readable(actor))
+        return links.map { it.toLine(resolved[it.childMasterId]) }
     }
 
-    private fun LinkRow.toLine(
-        child: VersionedObject?,
-        hasChildren: Boolean,
-    ) = UsageLine(
-        id,
-        parentIterationId,
-        lineNumber,
-        findNumber,
-        quantity,
-        unit,
-        notes,
-        if (child == null) {
-            UsedPart(childMasterId, false, null, null, null, null, null, null, false)
-        } else {
-            UsedPart(
-                childMasterId,
-                true,
-                child.number,
-                child.name,
-                child.typeId.value,
-                child.latest.id.value,
-                child.latest.version,
-                child.latest.state,
-                hasChildren,
-            )
-        },
-        createdAt,
-        createdBy,
-    )
+    private fun LinkRow.toLine(child: Resolved?) =
+        UsageLine(
+            id,
+            parentIterationId,
+            lineNumber,
+            findNumber,
+            quantity,
+            unit,
+            notes,
+            if (child == null) {
+                UsedPart(childMasterId, false, null, null, null, null, null, null, false)
+            } else {
+                UsedPart(
+                    childMasterId,
+                    true,
+                    child.number,
+                    child.name,
+                    child.typeId,
+                    child.iterationId,
+                    child.version,
+                    child.state,
+                    child.hasChildren,
+                )
+            },
+            createdAt,
+            createdBy,
+        )
+
+    @Transactional(readOnly = true)
+    override fun structure(
+        actor: Actor,
+        rootId: MasterId,
+        spec: ConfigSpec,
+        depth: Int,
+        workingCopy: Boolean,
+        limit: Int,
+    ): StructureResult {
+        val started = System.nanoTime()
+        if (spec.type == ConfigSpecType.AS_OF &&
+            spec.asOf == null
+        ) {
+            throw ValidationException("INVALID_SPEC", "Choose a date")
+        }
+        val root = versioning.get(actor, rootId)
+        val (rootIteration, rootVersion) =
+            if (workingCopy) {
+                versioning.workingCopy(actor, rootId).let { it.id.value to it.version }
+            } else {
+                repository.resolve(listOf(root.id.value), spec, readable(actor))[root.id.value].let {
+                    it?.iterationId to
+                        it?.version
+                }
+            }
+        val nodes = ArrayList<StructureNode>()
+        var truncated = false
+        // Breadth first, one level at a time: a query for the lines of the level, one for their children.
+        var frontier: List<Pair<UUID, String?>> = listOfNotNull(rootIteration?.let { it to null })
+        var level = 1
+        val maxLevel = depth.coerceIn(1, 50)
+        while (frontier.isNotEmpty() && level <= maxLevel && !truncated) {
+            val links = repository.linksOf(frontier.map { it.first }.distinct())
+            val children =
+                repository.resolve(
+                    links.values
+                        .flatten()
+                        .map { it.childMasterId }
+                        .distinct(),
+                    spec,
+                    readable(actor),
+                )
+            val next = ArrayList<Pair<UUID, String?>>()
+            for ((iteration, parentPath) in frontier) {
+                for (link in links[iteration].orEmpty()) {
+                    if (nodes.size >= limit) {
+                        truncated = true
+                        break
+                    }
+                    val path = if (parentPath == null) "${link.lineNumber}" else "$parentPath.${link.lineNumber}"
+                    val child = children[link.childMasterId]
+                    nodes += StructureNode(level, path, parentPath, link.toLine(child))
+                    if (child?.iterationId != null && child.hasChildren) next += child.iterationId to path
+                }
+            }
+            frontier = next
+            level++
+        }
+        return StructureResult(
+            root.id.value,
+            rootIteration,
+            rootVersion,
+            spec,
+            // Depth first, as a tree table shows it.
+            treeOrder(nodes),
+            truncated,
+            (System.nanoTime() - started) / 1_000_000,
+        )
+    }
+
+    private fun treeOrder(nodes: List<StructureNode>): List<StructureNode> {
+        val byParent = nodes.groupBy { it.parentPath }
+        val out = ArrayList<StructureNode>(nodes.size)
+        val stack = ArrayDeque<StructureNode>()
+        byParent[null].orEmpty().asReversed().forEach(stack::addLast)
+        while (stack.isNotEmpty()) {
+            val n = stack.removeLast()
+            out += n
+            byParent[n.path].orEmpty().asReversed().forEach(stack::addLast)
+        }
+        return out
+    }
 
     private fun requirePart(
         actor: Actor,

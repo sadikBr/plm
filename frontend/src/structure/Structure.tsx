@@ -7,6 +7,7 @@ import { useEnumerations, useObjectSearch, useTypes, type VersionedObject } from
 import { pickLabel } from "../components/AttributeForm";
 import { ErrorBanner, Loading, Panel, StateBadge, TypeIcon } from "../components/common";
 import { locale, t, tn } from "../i18n/i18n";
+import { SpecPicker, StructureTree, useDefaultSpec, type Spec } from "./StructureTree";
 
 // Product structure (roadmap 4.1): the parts a part uses, edited on its working copy.
 
@@ -19,7 +20,7 @@ export const useUsages = (objectId: string, workingCopy: boolean) =>
   });
 
 /** The `unitOfUse` value list: keys and labels. */
-function useUnits(): { key: string; label: string }[] {
+export function useUnits(): { key: string; label: string }[] {
   const { data } = useEnumerations();
   const list = data && [...data.values()].find((e) => e.name === "unitOfUse");
   return (list?.values ?? []).filter((v) => v.active).map((v) => ({ key: v.key, label: pickLabel(v.labels, v.key) }));
@@ -27,8 +28,24 @@ function useUnits(): { key: string; label: string }[] {
 
 const qty = (n: number) => n.toLocaleString(locale(), { maximumFractionDigits: 6 });
 
-/** The Structure tab of a part: its lines, editable by whoever has it checked out. */
+/**
+ * The Structure tab of a part: the multi-level tree under a configuration specification, or, for
+ * whoever has it checked out, the working copy's lines to edit.
+ */
 export function StructureTab({ obj, editable }: { obj: VersionedObject; editable: boolean }) {
+  const preferred = useDefaultSpec(obj.contextId);
+  const [chosen, setChosen] = useState<Spec | null>(null);
+  if (editable) return <EditableStructure obj={obj} />;
+  const spec = chosen ?? preferred;
+  return (
+    <Panel title={t("Structure")} actions={<SpecPicker spec={spec} onChange={setChosen} />} flush>
+      <StructureTree key={JSON.stringify(spec)} obj={obj} spec={spec} />
+    </Panel>
+  );
+}
+
+function EditableStructure({ obj }: { obj: VersionedObject }) {
+  const editable = true;
   const qc = useQueryClient();
   const { data, error, isLoading } = useUsages(obj.id, editable);
   const units = useUnits();

@@ -1015,6 +1015,23 @@
         "required" : [ "options", "required", "type" ],
         "type" : "object"
       },
+      "ConfigSpec" : {
+        "properties" : {
+          "asOf" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          },
+          "type" : {
+            "enum" : [ "LATEST", "STATE", "AS_OF" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "type" ],
+        "type" : "object"
+      },
       "ConfigureExtensionRequest" : {
         "properties" : {
           "config" : {
@@ -4668,6 +4685,58 @@
           }
         },
         "required" : [ "key", "labels" ],
+        "type" : "object"
+      },
+      "StructureNode" : {
+        "properties" : {
+          "level" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "line" : {
+            "$ref" : "#/components/schemas/UsageLine"
+          },
+          "parentPath" : {
+            "type" : [ "string", "null" ]
+          },
+          "path" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "level", "line", "path" ],
+        "type" : "object"
+      },
+      "StructureResult" : {
+        "properties" : {
+          "elapsedMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "nodes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/StructureNode"
+            },
+            "type" : "array"
+          },
+          "rootId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "rootIterationId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "rootVersion" : {
+            "type" : [ "string", "null" ]
+          },
+          "spec" : {
+            "$ref" : "#/components/schemas/ConfigSpec"
+          },
+          "truncated" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "elapsedMs", "nodes", "rootId", "spec", "truncated" ],
         "type" : "object"
       },
       "SubmitJob" : {
@@ -12061,6 +12130,84 @@
           }
         },
         "tags" : [ "Versioned object" ]
+      }
+    },
+    "/api/v1/objects/{id}/structure" : {
+      "get" : {
+        "operationId" : "bomStructure",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "spec",
+          "required" : false,
+          "schema" : {
+            "default" : "LATEST",
+            "enum" : [ "LATEST", "STATE", "AS_OF" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "state",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "depth",
+          "required" : false,
+          "schema" : {
+            "default" : 1,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "workingCopy",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StructureResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Bom" ]
       }
     },
     "/api/v1/objects/{id}/undo-checkout" : {

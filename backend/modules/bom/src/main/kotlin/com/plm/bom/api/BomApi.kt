@@ -15,7 +15,7 @@ data class UsedPart(
     val number: String?,
     val name: String?,
     val typeId: UUID?,
-    /** The iteration chosen for this reading: the latest, until configuration specifications (4.2). */
+    /** The iteration chosen for this reading by the configuration specification; null when none matches. */
     val iterationId: UUID?,
     val version: String?,
     val state: String?,
@@ -76,6 +76,20 @@ interface BomService {
         workingCopy: Boolean = false,
     ): List<UsageLine>
 
+    /**
+     * The structure under [rootId], [depth] levels deep (1 to 50), each part at the iteration [spec]
+     * picks; with [workingCopy], the top is the caller's working copy. Parts nobody may read below
+     * a placeholder line aren't expanded. At most [limit] lines.
+     */
+    fun structure(
+        actor: Actor,
+        rootId: MasterId,
+        spec: ConfigSpec = ConfigSpec.LATEST,
+        depth: Int = 1,
+        workingCopy: Boolean = false,
+        limit: Int = 100_000,
+    ): StructureResult
+
     fun add(
         actor: Actor,
         parentId: MasterId,
@@ -95,6 +109,52 @@ interface BomService {
         usageId: UUID,
     )
 }
+
+/** How a structure picks the iteration of each part it uses (roadmap 4.2). */
+enum class ConfigSpecType {
+    /** The latest checked-in iteration. */
+    LATEST,
+
+    /** The latest iteration in [ConfigSpec.state] (Released by default). */
+    STATE,
+
+    /** The latest iteration checked in on or before [ConfigSpec.asOf]. */
+    AS_OF,
+}
+
+data class ConfigSpec(
+    val type: ConfigSpecType = ConfigSpecType.LATEST,
+    val state: String? = null,
+    val asOf: Instant? = null,
+) {
+    companion object {
+        val LATEST = ConfigSpec()
+        val RELEASED = ConfigSpec(ConfigSpecType.STATE, "RELEASED")
+    }
+}
+
+/** One line of a multi-level structure: where it sits, and the line itself (roadmap 4.3). */
+data class StructureNode(
+    /** 1 for the top's own lines. */
+    val level: Int,
+    /** Line numbers from the top, e.g. `10.20.10`: unique within the result. */
+    val path: String,
+    /** The path of the line above, null at level 1. */
+    val parentPath: String?,
+    val line: UsageLine,
+)
+
+data class StructureResult(
+    val rootId: UUID,
+    /** The iteration of the top shown, chosen by [spec] (or the caller's working copy). */
+    val rootIterationId: UUID?,
+    val rootVersion: String?,
+    val spec: ConfigSpec,
+    val nodes: List<StructureNode>,
+    /** True when [StructureNode] count reached the limit and lower levels were left out. */
+    val truncated: Boolean,
+    val elapsedMs: Long,
+)
 
 /** A change to a working copy's structure, recorded on the parent's audit trail. */
 data class StructureChanged(

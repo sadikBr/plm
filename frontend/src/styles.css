@@ -805,3 +805,13 @@ table.folders td { padding-top: 7px; padding-bottom: 7px; }
 .add-line-results li { display: flex; gap: 6px; align-items: center; padding: 5px 10px; cursor: pointer; }
 .add-line-results li:hover { background: var(--row-hover); }
 .grid.structure select { width: auto; min-height: 26px; }
+.spec-picker { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.spec-picker select, .spec-picker input { width: auto; min-height: 26px; }
+.tree-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.tree-scroll { overflow: auto; }
+.grid.structure.tree thead th { position: sticky; top: 0; z-index: 1; background: var(--panel-2); }
+.grid.structure.tree td { padding-top: 0; padding-bottom: 0; white-space: nowrap; }
+.tree-cell { display: flex; align-items: center; gap: 4px; height: 32px; }
+.tree-cell .tree-toggle { width: 18px; height: 18px; display: inline-grid; place-items: center; border: 0; background: none; padding: 0; cursor: pointer; color: var(--text-2); }
+.tree-cell .tree-spacer { display: inline-block; width: 18px; }
+.spinner.small { width: 11px; height: 11px; border-width: 2px; }

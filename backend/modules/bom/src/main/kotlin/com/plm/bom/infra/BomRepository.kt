@@ -22,6 +22,19 @@ internal data class LinkRow(
     val createdBy: String,
 )
 
+/** A child as a configuration specification resolved it for a reader (roadmap 4.2). */
+internal data class Resolved(
+    val masterId: UUID,
+    val number: String,
+    val name: String,
+    val typeId: UUID,
+    /** Null: no iteration matches the specification. */
+    val iterationId: UUID?,
+    val version: String?,
+    val state: String?,
+    val hasChildren: Boolean,
+)
+
 @Repository
 internal class BomRepository(
     private val jdbc: JdbcClient,
@@ -48,6 +61,73 @@ internal class BomRepository(
             .param("it", iterationId)
             .query(mapper)
             .list()
+
+    /** The lines of many iterations at once, by iteration. */
+    fun linksOf(iterations: Collection<UUID>): Map<UUID, List<LinkRow>> {
+        if (iterations.isEmpty()) return emptyMap()
+        return jdbc
+            .sql(
+                "select * from usage_link where parent_iteration_id = any(cast(:its as uuid[])) order by parent_iteration_id, line_number",
+            ).param("its", iterations.toTypedArray())
+            .query(mapper)
+            .list()
+            .groupBy { it.parentIterationId }
+    }
+
+    /**
+     * Picks the iteration of each master [spec] asks for, among those the reader may read
+     * ([readable]: an access predicate on `m` and the latest iteration `li`, with its parameters).
+     * Masters the reader may not read are left out.
+     */
+    fun resolve(
+        masters: Collection<UUID>,
+        spec: com.plm.bom.api.ConfigSpec,
+        readable: com.plm.access.api.SqlPredicate,
+    ): Map<UUID, Resolved> {
+        if (masters.isEmpty()) return emptyMap()
+        val pick =
+            when (spec.type) {
+                com.plm.bom.api.ConfigSpecType.LATEST -> "select * from object_iteration x where x.id = m.latest_iteration_id"
+                com.plm.bom.api.ConfigSpecType.STATE ->
+                    """
+                    select * from object_iteration x where x.master_id = m.id and x.status = 'CHECKED_IN' and x.state = :spec_state
+                    order by x.seq desc limit 1
+                    """.trimIndent()
+                com.plm.bom.api.ConfigSpecType.AS_OF ->
+                    """
+                    select * from object_iteration x where x.master_id = m.id and x.status = 'CHECKED_IN' and x.checked_in_at <= :spec_as_of
+                    order by x.seq desc limit 1
+                    """.trimIndent()
+            }
+        return jdbc
+            .sql(
+                """
+                select m.id, m.number, m.name, m.type_id, i.id as iteration_id, i.revision, i.iteration, i.state,
+                       (i.id is not null and exists (select 1 from usage_link ul where ul.parent_iteration_id = i.id)) as has_children
+                from object_master m
+                join object_iteration li on li.id = m.latest_iteration_id
+                left join lateral ($pick) i on true
+                where m.id = any(cast(:ids as uuid[])) and ${readable.sql}
+                """.trimIndent(),
+            ).params(readable.params)
+            .param("ids", masters.toTypedArray())
+            .param("spec_state", spec.state ?: "RELEASED")
+            .param("spec_as_of", Timestamp.from(spec.asOf ?: Instant.now()))
+            .query { rs, _ ->
+                val it = rs.getObject("iteration_id", UUID::class.java)
+                Resolved(
+                    rs.getObject("id", UUID::class.java),
+                    rs.getString("number"),
+                    rs.getString("name"),
+                    rs.getObject("type_id", UUID::class.java),
+                    it,
+                    it?.let { _ -> rs.getString("revision") + "." + rs.getInt("iteration") },
+                    it?.let { _ -> rs.getString("state") },
+                    rs.getBoolean("has_children"),
+                )
+            }.list()
+            .associateBy { it.masterId }
+    }
 
     fun link(id: UUID): LinkRow? =
         jdbc

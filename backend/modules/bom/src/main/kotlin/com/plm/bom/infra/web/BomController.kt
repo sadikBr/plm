@@ -2,6 +2,8 @@ package com.plm.bom.infra.web
 
 import com.plm.bom.api.AddUsage
 import com.plm.bom.api.BomService
+import com.plm.bom.api.ConfigSpec
+import com.plm.bom.api.ConfigSpecType
 import com.plm.bom.api.UpdateUsage
 import com.plm.platform.actor.Actor
 import com.plm.versioning.api.MasterId
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import java.time.Instant
 import java.util.UUID
 
 @RestController
@@ -29,6 +32,21 @@ internal class BomController(
         @RequestParam(required = false) iterationId: UUID?,
         @RequestParam(defaultValue = "false") workingCopy: Boolean,
     ) = bom.usages(actor, MasterId(id), iterationId, workingCopy)
+
+    /**
+     * The multi-level structure (roadmap 4.2, 4.3): `spec` LATEST, STATE (with `state`, Released
+     * by default) or AS_OF (with `asOf`); `depth` levels (1-50).
+     */
+    @GetMapping("/api/v1/objects/{id}/structure")
+    fun structure(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestParam(defaultValue = "LATEST") spec: ConfigSpecType,
+        @RequestParam(required = false) state: String?,
+        @RequestParam(required = false) asOf: Instant?,
+        @RequestParam(defaultValue = "1") depth: Int,
+        @RequestParam(defaultValue = "false") workingCopy: Boolean,
+    ) = bom.structure(actor, MasterId(id), ConfigSpec(spec, state, asOf), depth, workingCopy)
 
     @PostMapping("/api/v1/objects/{id}/usages")
     @ResponseStatus(HttpStatus.CREATED)
