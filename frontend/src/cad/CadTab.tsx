@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Layers, Trash2 } from "lucide-react";
+import { CollectorDialog } from "./Collector";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
@@ -59,8 +60,16 @@ function position(m: number[] | null | undefined): string {
 
 /** The CAD tab (roadmap 6.1): a model's structure, placements and where it's used. */
 export function CadTab({ obj, kind, mine }: { obj: VersionedObject; kind: Kind; mine: boolean }) {
+  const [collecting, setCollecting] = useState(false);
   return (
     <div className="details-stack">
+      <div className="row" style={{ gap: 8 }}>
+        <button className="btn" onClick={() => setCollecting(true)}>
+          <Layers size={14} aria-hidden /> {t("Collect…")}
+        </button>
+        <span className="muted small">{t("Check out, check in, revise or change state together with what goes with it.")}</span>
+      </div>
+      {collecting && <CollectorDialog objectId={obj.id} onClose={() => setCollecting(false)} />}
       {kind !== "PART" && <CadStructure obj={obj} kind={kind} mine={mine} />}
       <CadWhereUsed obj={obj} />
     </div>

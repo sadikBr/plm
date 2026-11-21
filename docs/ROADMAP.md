@@ -451,8 +451,12 @@ seat.
       the working copy and carried into new versions; the Model structure tab shows the tree with
       each model placed in the root, and Where used the versions that depend on a model. Cycles
       are refused and a model others depend on can't be deleted.
-- [ ] 6.2 Collector: act on a CAD document with what it depends on and what depends on it
+- [x] 6.2 Collector: act on a CAD document with what it depends on and what depends on it
       (required, optional, drawings), chosen in one dialog: check out, check in, revise, set state.
+      Done: Collect… on a CAD document gathers the models it needs (or all, optional ones too, to
+      any depth), their drawings and the assemblies that use it; the chosen ones are checked out,
+      checked in, revised or moved to a state together, all or nothing (the error names the model
+      that stopped it), or added to a change notice as its results to be released through it.
 - [ ] 6.3 Family tables: a generic model and its instances (a table of parameters per instance),
       instances sharing the generic's file; adding, editing and using instances in assemblies.
 - [ ] 6.4 Part ↔ CAD association and build rules: a part's owning model and contributing models;

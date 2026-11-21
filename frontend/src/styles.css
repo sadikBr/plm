@@ -998,3 +998,7 @@ textarea.script-source { min-height: 220px; line-height: 1.45; tab-size: 2; }
 .cad-tree .tree-cell { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .cad-tree .tree-toggle { display: inline-grid; place-items: center; width: 18px; height: 18px; padding: 0; }
 .cad-add { padding: 10px 16px; border-top: 1px solid var(--border); }
+.collector-actions { display: grid; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+.collector-options { margin-bottom: 10px; }
+.collector-actions .row > input, .collector-actions .row > select { width: auto; flex: 0 1 280px; }
+table.collected td input[type="checkbox"] { width: 16px; height: 16px; }

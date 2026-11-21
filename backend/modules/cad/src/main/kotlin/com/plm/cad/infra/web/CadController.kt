@@ -66,3 +66,22 @@ internal class CadController(
         @PathVariable dependencyId: UUID,
     ) = cad.remove(actor, id, dependencyId)
 }
+
+/** The collector (roadmap 6.2). */
+@RestController
+internal class CollectorController(
+    private val collector: com.plm.cad.api.CollectorService,
+) {
+    @PostMapping("/api/v1/objects/{id}/cad/collect")
+    fun collect(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody options: com.plm.cad.api.CollectOptions,
+    ) = collector.collect(actor, id, options)
+
+    @PostMapping("/api/v1/cad/collector")
+    fun apply(
+        actor: Actor,
+        @RequestBody request: com.plm.cad.api.CollectorRequest,
+    ) = collector.apply(actor, request)
+}

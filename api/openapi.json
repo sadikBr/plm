@@ -1632,6 +1632,37 @@
         "required" : [ "errors" ],
         "type" : "object"
       },
+      "CollectOptions" : {
+        "properties" : {
+          "dependencies" : {
+            "type" : "string"
+          },
+          "drawings" : {
+            "type" : "boolean"
+          },
+          "parents" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "dependencies", "drawings", "parents" ],
+        "type" : "object"
+      },
+      "CollectedModel" : {
+        "properties" : {
+          "checkedOutBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "model" : {
+            "$ref" : "#/components/schemas/CadModel"
+          },
+          "reason" : {
+            "enum" : [ "SELF", "REQUIRED", "OPTIONAL", "DRAWING", "PARENT" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "model", "reason" ],
+        "type" : "object"
+      },
       "CollectedObject" : {
         "properties" : {
           "item" : {
@@ -1646,6 +1677,51 @@
           }
         },
         "required" : [ "item", "level", "relation" ],
+        "type" : "object"
+      },
+      "CollectorRequest" : {
+        "properties" : {
+          "comment" : {
+            "type" : [ "string", "null" ]
+          },
+          "ids" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "operation" : {
+            "enum" : [ "CHECK_OUT", "CHECK_IN", "UNDO_CHECK_OUT", "REVISE", "SET_STATE" ],
+            "type" : "string"
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "ids", "operation" ],
+        "type" : "object"
+      },
+      "CollectorResult" : {
+        "properties" : {
+          "changed" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "changed", "id", "number", "state", "version" ],
         "type" : "object"
       },
       "Comment" : {
@@ -9533,6 +9609,47 @@
         "tags" : [ "Bulk" ]
       }
     },
+    "/api/v1/cad/collector" : {
+      "post" : {
+        "operationId" : "collectorApply",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CollectorRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/CollectorResult"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Collector" ]
+      }
+    },
     "/api/v1/change-association-rules" : {
       "get" : {
         "operationId" : "changeSetupRules",
@@ -15721,6 +15838,56 @@
           }
         },
         "tags" : [ "Replacement" ]
+      }
+    },
+    "/api/v1/objects/{id}/cad/collect" : {
+      "post" : {
+        "operationId" : "collectorCollect",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CollectOptions"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/CollectedModel"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Collector" ]
       }
     },
     "/api/v1/objects/{id}/cad/dependencies" : {
@@ -23322,6 +23489,8 @@
     "name" : "Change metrics"
   }, {
     "name" : "Change setup"
+  }, {
+    "name" : "Collector"
   }, {
     "name" : "Configuration"
   }, {
