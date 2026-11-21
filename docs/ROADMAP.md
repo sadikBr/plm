@@ -593,9 +593,15 @@ main line, and classification makes existing parts easy to find and reuse.
       excludes them, with a note. Checking a selection (a choice per option) reports required
       options left out, unknown or retired choices, and every broken rule, each with its fix: the
       choices to make or the ones to drop, applied with a click in the set's "Check a selection".
-- [ ] 7.7 150% structures: usage lines of configurable parts carry a choice condition (and, or,
+- [x] 7.7 150% structures: usage lines of configurable parts carry a choice condition (and, or,
       not over choices); the full structure shows every line with its condition; filtering by a
       selection leaves the lines that apply.
+      Done: lines of a configurable part's working copy take conditions such as
+      `MOTOR=HT and not COLOR in (RED, BLUE)` (and, or, not, parentheses, `in` lists), checked
+      against its option set and kept with the line through check-out and revise; options used
+      in conditions can't be removed. The part's Options tab shows the 150% structure, all levels,
+      each line with its condition and whether it applies to the choices made (a line applies only
+      if the lines above it do), and the structure tree tags lines with their conditions.
 - [ ] 7.8 Variant specifications: a named, saved selection of choices (with a configuration spec and
       effectivity) for a configurable product, checked against the rules; its filtered structure.
 - [ ] 7.9 Variant generation and reuse: generate a variant part whose structure is the filtered

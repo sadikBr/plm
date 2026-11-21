@@ -67,6 +67,7 @@ const DEFAULTS: Record<string, Handler> = {
   "GET /api/v1/objects/:id/options": () => ({ partId: "x", optionSet: null }),
   "GET /api/v1/option-sets": () => [],
   "GET /api/v1/option-sets/:id/rules": () => [],
+  "POST /api/v1/line-conditions": () => [],
   "GET /api/v1/publish-settings": () => ({ watermarkDownloads: false }),
   "GET /api/v1/objects/:id/publications": () => [],
   "GET /api/v1/publish-rules": () => [],

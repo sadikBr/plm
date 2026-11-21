@@ -1141,3 +1141,14 @@ table.collected td input[type="checkbox"] { width: 16px; height: 16px; }
 .check-problems { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; color: var(--danger); }
 .check-problems li { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .check-problems .fixes { display: inline-flex; gap: 4px; }
+.tag.cond-mark { margin-left: 6px; background: var(--panel-2, #f1f3f6); color: var(--text-2); font-size: 11px; border: 1px solid var(--border); }
+.configured-choices { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+.configured-choices .selection-checker { border-top: 0; padding-top: 0; }
+.grid.configured tr.excluded td { color: var(--text-3); }
+.grid.configured tr.excluded a { color: var(--text-3); }
+.grid.configured .applies-col { width: 28px; text-align: center; }
+.grid.configured tr:not(.excluded) .applies-col { color: var(--ok); }
+.grid.configured code.condition { font-size: 12px; }
+.condition-input { width: 100%; min-width: 260px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+.condition-input.invalid { border-color: var(--danger); }
+.configured-hint { padding: 8px 14px; margin: 0; }

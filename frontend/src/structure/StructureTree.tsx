@@ -285,6 +285,13 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
     enabled: lineIds.length > 0,
     staleTime: 30_000,
   });
+  const { data: lineConds } = useQuery({
+    queryKey: ["lineConditions", lineIds],
+    queryFn: () => unwrap(api.POST("/api/v1/line-conditions", { body: lineIds })),
+    enabled: lineIds.length > 0,
+    staleTime: 30_000,
+  });
+  const condOf = useMemo(() => new Map((lineConds ?? []).map((c) => [c.lineId, c.expression])), [lineConds]);
   const effOf = useMemo(() => {
     const m = new Map<string, Schemas["Effectivity"][]>();
     for (const e of lineEff ?? []) if (e.lineId) m.set(e.lineId, [...(m.get(e.lineId) ?? []), e]);
@@ -525,6 +532,11 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
                     {c.name}
                     <ReplacementMarks line={n.line} />
                     <LineEffectivityMark items={effOf.get(n.line.id)} />
+                    {condOf.get(n.line.id) && (
+                      <code className="tag cond-mark" title={t("Built when {condition}", { condition: condOf.get(n.line.id)! })}>
+                        {condOf.get(n.line.id)}
+                      </code>
+                    )}
                   </td>
                   <td className="version">{c.version ?? (c.readable ? <span className="muted">{t("none")}</span> : null)}</td>
                   <td>{c.state && <StateBadge state={c.state} />}</td>

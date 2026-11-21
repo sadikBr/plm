@@ -2256,6 +2256,68 @@
         "required" : [ "config" ],
         "type" : "object"
       },
+      "ConfiguredLine" : {
+        "properties" : {
+          "applies" : {
+            "type" : "boolean"
+          },
+          "condition" : {
+            "type" : [ "string", "null" ]
+          },
+          "node" : {
+            "$ref" : "#/components/schemas/StructureNode"
+          }
+        },
+        "required" : [ "applies", "node" ],
+        "type" : "object"
+      },
+      "ConfiguredStructure" : {
+        "properties" : {
+          "applying" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "check" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/SelectionCheck"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "lines" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ConfiguredLine"
+            },
+            "type" : "array"
+          },
+          "optionSet" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/OptionSet"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "rootId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "rootVersion" : {
+            "type" : [ "string", "null" ]
+          },
+          "selection" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "total" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "applying", "lines", "rootId", "selection", "total" ],
+        "type" : "object"
+      },
       "ContentItem" : {
         "properties" : {
           "addedAt" : {
@@ -4606,6 +4668,25 @@
           }
         },
         "required" : [ "from", "to" ],
+        "type" : "object"
+      },
+      "LineCondition" : {
+        "properties" : {
+          "expression" : {
+            "type" : "string"
+          },
+          "lineId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "options" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "expression", "lineId", "options" ],
         "type" : "object"
       },
       "LinkDocument" : {
@@ -7980,6 +8061,14 @@
           }
         },
         "required" : [ "from", "kind" ],
+        "type" : "object"
+      },
+      "SetLineCondition" : {
+        "properties" : {
+          "expression" : {
+            "type" : [ "string", "null" ]
+          }
+        },
         "type" : "object"
       },
       "SetPlan" : {
@@ -16061,6 +16150,51 @@
         "tags" : [ "Lifecycle" ]
       }
     },
+    "/api/v1/line-conditions" : {
+      "post" : {
+        "operationId" : "conditionsForLines",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "items" : {
+                  "format" : "uuid",
+                  "type" : "string"
+                },
+                "type" : "array"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/LineCondition"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Conditions" ]
+      }
+    },
     "/api/v1/line-effectivity" : {
       "post" : {
         "operationId" : "effectivityForLines",
@@ -18778,6 +18912,69 @@
         "tags" : [ "Discussion" ]
       }
     },
+    "/api/v1/objects/{id}/configured-structure" : {
+      "post" : {
+        "operationId" : "conditionsConfigured",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "spec",
+          "required" : false,
+          "schema" : {
+            "default" : "LATEST",
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE", "EFFECTIVITY" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "state",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CheckSelection"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConfiguredStructure"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Conditions" ]
+      }
+    },
     "/api/v1/objects/{id}/content" : {
       "get" : {
         "operationId" : "contentList",
@@ -19599,6 +19796,54 @@
           }
         },
         "tags" : [ "Versioned object" ]
+      }
+    },
+    "/api/v1/objects/{id}/line-conditions" : {
+      "get" : {
+        "operationId" : "conditionsConditions",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "workingCopy",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/LineCondition"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Conditions" ]
       }
     },
     "/api/v1/objects/{id}/linking-parts" : {
@@ -21182,6 +21427,61 @@
           }
         },
         "tags" : [ "Bom" ]
+      }
+    },
+    "/api/v1/objects/{id}/usages/{lineId}/condition" : {
+      "put" : {
+        "operationId" : "conditionsSet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "lineId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetLineCondition"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LineCondition"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Conditions" ]
       }
     },
     "/api/v1/objects/{id}/usages/{usageId}" : {
@@ -27062,6 +27362,8 @@
     "name" : "Change setup"
   }, {
     "name" : "Collector"
+  }, {
+    "name" : "Conditions"
   }, {
     "name" : "Configuration"
   }, {

@@ -6,6 +6,7 @@ import { usePermissions, type VersionedObject } from "../api/queries";
 import { ErrorBanner, Loading, Panel } from "../components/common";
 import { t, tn } from "../i18n/i18n";
 import { RulesSection } from "./OptionRules";
+import { ConfiguredStructurePanel } from "./Configured";
 
 type OptionSet = Schemas["OptionSet"];
 
@@ -280,6 +281,7 @@ export function PartOptionsPanel({ obj }: { obj: VersionedObject }) {
           </p>
         )}
       </Panel>
+      {set && <ConfiguredStructurePanel obj={obj} set={set} />}
       {set && <OptionSetCard set={set} canEdit={false} />}
     </>
   );

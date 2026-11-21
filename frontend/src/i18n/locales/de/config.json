@@ -92,5 +92,18 @@
   "optional": "optional",
   "None": "Keine",
   "Problems": "Probleme",
-  "Required": "Erforderlich"
+  "Required": "Erforderlich",
+  "150% structure": "150-%-Struktur",
+  "Applies": "Gilt",
+  "Built when {condition}": "Gebaut, wenn {condition}",
+  "Check it out to write its lines' conditions, e.g. MOTOR=HT and not COLOR in (RED, BLUE).": "Checken Sie es aus, um Bedingungen für seine Positionen zu schreiben, z. B. MOTOR=HT and not COLOR in (RED, BLUE).",
+  "Condition of line {n}": "Bedingung der Position {n}",
+  "Doesn't apply": "Gilt nicht",
+  "Every line, with the condition under which it's built.": "Jede Position mit der Bedingung, unter der sie gebaut wird.",
+  "Only what applies": "Nur was gilt",
+  "always": "immer",
+  "{applying} of {total} lines apply to these choices.": "{applying} von {total} Positionen gelten für diese Auswahl.",
+  "Condition": "Bedingung",
+  "Quantity": "Menge",
+  "Version": "Version"
 }

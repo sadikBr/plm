@@ -150,3 +150,51 @@ internal class OptionRulesController(
         @RequestBody request: CheckSelection,
     ) = rules.check(actor, id, request.selection)
 }
+
+data class SetLineCondition(
+    /** Blank or null: the line always applies. */
+    val expression: String?,
+)
+
+/** 150% structures (roadmap 7.7): conditions on lines, and the structure for a selection. */
+@RestController
+internal class ConditionsController(
+    private val conditions: com.plm.variants.api.ConditionService,
+) {
+    @GetMapping("/api/v1/objects/{id}/line-conditions")
+    fun conditions(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestParam(defaultValue = "false") workingCopy: Boolean,
+    ) = conditions.conditions(actor, id, workingCopy)
+
+    @PostMapping("/api/v1/line-conditions")
+    fun forLines(
+        actor: Actor,
+        @RequestBody lineIds: List<UUID>,
+    ) = conditions.forLines(actor, lineIds)
+
+    @PutMapping("/api/v1/objects/{id}/usages/{lineId}/condition")
+    fun set(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @PathVariable lineId: UUID,
+        @RequestBody request: SetLineCondition,
+    ) = conditions.setCondition(actor, id, lineId, request.expression)
+
+    /** The 150% structure with what applies to `selection` (option code to choice code). */
+    @PostMapping("/api/v1/objects/{id}/configured-structure")
+    fun configured(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: CheckSelection,
+        @RequestParam(defaultValue = "LATEST") spec: com.plm.bom.api.ConfigSpecType,
+        @RequestParam(required = false) state: String?,
+    ) = conditions.configured(
+        actor,
+        id,
+        request.selection,
+        com.plm.bom.api
+            .ConfigSpec(spec, state),
+    )
+}
