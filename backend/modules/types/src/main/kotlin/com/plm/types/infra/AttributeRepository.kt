@@ -59,6 +59,8 @@ internal class AttributeRepository(
                 system = rs.getBoolean("system"),
                 dependsOn = rs.getString("depends_on"),
                 formula = rs.getString("formula"),
+                aliasOf = rs.getString("alias_of"),
+                referenceTypeId = rs.getObject("reference_type_id", UUID::class.java)?.let(::TypeId),
                 valueFilter = rs.getString("value_filter")?.let { json.readValue(it, filterType) },
                 global = rs.getBoolean("global"),
             )
@@ -123,6 +125,13 @@ internal class AttributeRepository(
     }
 
     /** Global attributes' own definitions (typeId = [TypeId.GLOBAL]). */
+    fun referenceNames(tenant: TenantId): Set<String> =
+        jdbc
+            .sql("select distinct name from attribute_def where tenant_id = :tenant and data_type = 'REFERENCE'")
+            .param("tenant", tenant.value)
+            .query { rs, _ -> rs.getString(1) }
+            .set()
+
     fun globals(tenant: TenantId): List<AttributeDefinition> =
         jdbc
             .sql(
@@ -185,11 +194,13 @@ internal class AttributeRepository(
                     insert into attribute_def
                         (id, tenant_id, type_id, name, labels, description, data_type, multi_valued, required,
                          immutable, min_length, max_length, pattern, min_value, max_value, enumeration_id, dimension,
-                         display_unit, default_value, sort_order, active, system, depends_on, value_filter, global, formula)
+                         display_unit, default_value, sort_order, active, system, depends_on, value_filter, global, formula,
+                         alias_of, reference_type_id)
                     values (:id, :tenant, :type, :name, cast(:labels as jsonb), :description, :dataType, :multi,
                             :required, :immutable, :minLength, :maxLength, :pattern, :minValue, :maxValue,
                             :enumeration, :dimension, :displayUnit, cast(:defaultValue as jsonb), :sortOrder,
-                            :active, false, :dependsOn, cast(:valueFilter as jsonb), :global, :formula)
+                            :active, false, :dependsOn, cast(:valueFilter as jsonb), :global, :formula,
+                            :aliasOf, :referenceType)
                     """,
                 ).params(columns(def))
                 .param("tenant", tenant.value)
@@ -200,6 +211,7 @@ internal class AttributeRepository(
                 .param("multi", def.multiValued)
                 .param("enumeration", def.enumerationId?.value)
                 .param("dimension", def.dimension)
+                .param("referenceType", def.referenceTypeId?.value)
                 .update()
         } catch (e: DuplicateKeyException) {
             throw ConflictException(
@@ -219,7 +231,8 @@ internal class AttributeRepository(
                     immutable = :immutable, min_length = :minLength, max_length = :maxLength, pattern = :pattern,
                     min_value = :minValue, max_value = :maxValue, display_unit = :displayUnit,
                     default_value = cast(:defaultValue as jsonb), sort_order = :sortOrder, active = :active,
-                    depends_on = :dependsOn, value_filter = cast(:valueFilter as jsonb), formula = :formula
+                    depends_on = :dependsOn, value_filter = cast(:valueFilter as jsonb), formula = :formula,
+                    alias_of = :aliasOf
                 where id = :id
                 """,
             ).params(columns(def))
@@ -232,6 +245,7 @@ internal class AttributeRepository(
             "labels" to json.writeValueAsString(def.labels),
             "dependsOn" to def.dependsOn,
             "formula" to def.formula,
+            "aliasOf" to def.aliasOf,
             "valueFilter" to def.valueFilter?.let { json.writeValueAsString(it) },
             "description" to def.description,
             "required" to def.required,

@@ -3,6 +3,7 @@ import { ExpressionField } from "../components/ExpressionField";
 import type { AttributeDefinition, Attributes, DataType } from "../api/queries";
 import { AttributeForm, pickLabel } from "../components/AttributeForm";
 import { Dialog, ErrorBanner } from "../components/common";
+import { useTypeAttributes, useTypes } from "../api/queries";
 import { t, tn } from "../i18n/i18n";
 import {
   useAllAttributes,
@@ -27,6 +28,15 @@ const DATA_TYPES = (): { key: DataType; label: string }[] => [
   { key: "TIMESTAMP", label: t("Date and time") },
   { key: "URL", label: t("Web link") },
   { key: "ENUMERATION", label: t("Choice from a value list") },
+  { key: "REFERENCE", label: t("Reference to another object") },
+];
+
+/** What an alias can show of the object it points to, besides its attributes. */
+const ALIAS_PROPERTIES = (): { key: string; label: string }[] => [
+  { key: "number", label: t("Number") },
+  { key: "name", label: t("Name") },
+  { key: "state", label: t("State") },
+  { key: "version", label: t("Version") },
 ];
 
 export function dataTypeLabel(a: AttributeDefinition): string {
@@ -38,6 +48,7 @@ export function dataTypeLabel(a: AttributeDefinition): string {
 export function constraintSummary(a: AttributeDefinition): string {
   const parts: string[] = [];
   if (a.formula) parts.push(t("Calculated: {formula}", { formula: a.formula }));
+  if (a.aliasOf) parts.push(t("Shows {path}", { path: a.aliasOf }));
   if (a.required) parts.push(t("Required"));
   if (a.immutable) parts.push(t("Fixed after creation"));
   if (a.minLength != null || a.maxLength != null) parts.push(t("Length {min}–{max}", { min: a.minLength ?? 0, max: a.maxLength ?? "∞" }));
@@ -108,6 +119,17 @@ export function AttributeDialog({
   const [valueFilter, setValueFilter] = useState<Record<string, string[]>>(attribute?.valueFilter ?? {});
   const [calculated, setCalculated] = useState(!!attribute?.formula);
   const [formula, setFormula] = useState(attribute?.formula ?? "");
+  const [referenceTypeId, setReferenceTypeId] = useState(attribute?.referenceTypeId ?? "");
+  const [alias, setAlias] = useState(!!attribute?.aliasOf);
+  const [aliasReference, setAliasReference] = useState(attribute?.aliasOf?.split(".")[0] ?? "");
+  const [aliasProperty, setAliasProperty] = useState(attribute?.aliasOf?.split(".")[1] ?? "name");
+  const { data: allTypes } = useTypes();
+  // References it can show a value of: single-value reference attributes it lives with.
+  const references = (isGlobal ? (globals ?? []).map((g) => g.attribute) : (typeAttributes ?? [])).filter(
+    (a) => a.dataType === "REFERENCE" && !a.multiValued && a.name !== (attribute?.name ?? ""),
+  );
+  const aliasTarget = references.find((r) => r.name === aliasReference)?.referenceTypeId;
+  const { data: targetAttributes } = useTypeAttributes(aliasTarget ?? undefined);
   // Value lists it may depend on: single-value list attributes it lives with.
   const siblings = (isGlobal ? (globals ?? []).map((g) => g.attribute) : (typeAttributes ?? [])).filter(
     (a) => a.dataType === "ENUMERATION" && !a.multiValued && a.name !== (attribute?.name ?? "") && a.active,
@@ -158,16 +180,17 @@ export function AttributeDialog({
     labels: { ...(attribute?.labels ?? {}), en: label.trim() },
     description: description.trim() || null,
     // A calculated attribute's value comes from its formula: it can't be required, fixed or defaulted.
-    required: calculated ? false : required,
-    immutable: calculated ? false : immutable,
-    formula: calculated ? formula.trim() || null : null,
-    minLength: TEXTUAL.has(dataType) ? intOrNull(minLength) : null,
-    maxLength: TEXTUAL.has(dataType) || dataType === "URL" ? intOrNull(maxLength) : null,
-    pattern: TEXTUAL.has(dataType) ? pattern.trim() || null : null,
-    minValue: NUMERIC.has(dataType) ? numberOrNull(minValue) : null,
-    maxValue: NUMERIC.has(dataType) ? numberOrNull(maxValue) : null,
+    required: calculated || alias ? false : required,
+    immutable: calculated || alias ? false : immutable,
+    formula: calculated && !alias ? formula.trim() || null : null,
+    aliasOf: alias && aliasReference ? `${aliasReference}.${aliasProperty}` : null,
+    minLength: TEXTUAL.has(dataType) && !alias ? intOrNull(minLength) : null,
+    maxLength: (TEXTUAL.has(dataType) || dataType === "URL") && !alias ? intOrNull(maxLength) : null,
+    pattern: TEXTUAL.has(dataType) && !alias ? pattern.trim() || null : null,
+    minValue: NUMERIC.has(dataType) && !alias ? numberOrNull(minValue) : null,
+    maxValue: NUMERIC.has(dataType) && !alias ? numberOrNull(maxValue) : null,
     displayUnit: dataType === "QUANTITY" ? displayUnit || null : null,
-    defaultValue: calculated ? null : (defaultValue ?? null),
+    defaultValue: calculated || alias || dataType === "REFERENCE" ? null : (defaultValue ?? null),
     sortOrder: attribute?.sortOrder ?? 0,
     dependsOn: dataType === "ENUMERATION" && dependsOn ? dependsOn : null,
     valueFilter:
@@ -184,6 +207,7 @@ export function AttributeDialog({
       multiValued,
       enumerationId: dataType === "ENUMERATION" ? enumerationId || null : null,
       dimension: dataType === "QUANTITY" ? dimension || null : null,
+      referenceTypeId: dataType === "REFERENCE" ? referenceTypeId || null : null,
     };
     if (attribute && isGlobal) updateGlobal.mutate({ attributeId: attribute.id, body: { ...settings, active } }, done);
     else if (attribute) update.mutate({ attributeId: attribute.id, body: { ...settings, active } }, done);
@@ -301,6 +325,20 @@ export function AttributeDialog({
               {!editing && <span className="hint">{t("Create lists under Value lists.")}</span>}
             </div>
           )}
+          {dataType === "REFERENCE" && (
+            <div className="field wide">
+              <label htmlFor="attr-reftype">{t("Points to")}</label>
+              <select id="attr-reftype" value={referenceTypeId} disabled={editing} onChange={(e) => setReferenceTypeId(e.target.value)}>
+                <option value="">{t("Any type")}</option>
+                {(allTypes ?? []).map((ty) => (
+                  <option key={ty.id} value={ty.id}>
+                    {ty.displayName}
+                  </option>
+                ))}
+              </select>
+              <span className="hint">{t("Objects of this type or its subtypes can be chosen.")}</span>
+            </div>
+          )}
           {dataType === "QUANTITY" && (
             <>
               <div className="field">
@@ -365,15 +403,62 @@ export function AttributeDialog({
           </fieldset>
         )}
 
-        {!multiValued && dataType !== "ENUMERATION" && (
+        {!multiValued && dataType !== "ENUMERATION" && dataType !== "REFERENCE" && (
           <fieldset className="attr-group">
             <legend className="section-label">{t("Value")}</legend>
             <div className="attr-form">
-              <label className="check wide">
-                <input type="checkbox" checked={calculated} onChange={(e) => setCalculated(e.target.checked)} />
-                {t("Calculated: a formula computes the value whenever the object is saved; users can't change it")}
-              </label>
-              {calculated && (
+              {references.length > 0 && (
+                <label className="check wide">
+                  <input
+                    type="checkbox"
+                    checked={alias}
+                    onChange={(e) => {
+                      setAlias(e.target.checked);
+                      if (e.target.checked) setCalculated(false);
+                      if (!aliasReference) setAliasReference(references[0]!.name);
+                    }}
+                  />
+                  {t("Alias: shows a value of the object a reference points to, always up to date; users can't change it")}
+                </label>
+              )}
+              {alias && (
+                <div className="attr-form cols-2 wide">
+                  <div className="field">
+                    <label htmlFor="attr-alias-ref">{t("Of the object in")}</label>
+                    <select id="attr-alias-ref" value={aliasReference} onChange={(e) => setAliasReference(e.target.value)}>
+                      {references.map((r) => (
+                        <option key={r.name} value={r.name}>
+                          {pickLabel(r.labels, r.name)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label htmlFor="attr-alias-prop">{t("Show its")}</label>
+                    <select id="attr-alias-prop" value={aliasProperty} onChange={(e) => setAliasProperty(e.target.value)}>
+                      {ALIAS_PROPERTIES().map((p) => (
+                        <option key={p.key} value={p.key}>
+                          {p.label}
+                        </option>
+                      ))}
+                      {(targetAttributes ?? [])
+                        .filter((a) => a.dataType !== "REFERENCE")
+                        .map((a) => (
+                          <option key={a.name} value={a.name}>
+                            {pickLabel(a.labels, a.name)}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+              {!alias && (
+                <label className="check wide">
+                  <input type="checkbox" checked={calculated} onChange={(e) => setCalculated(e.target.checked)} />
+                  {t("Calculated: a formula computes the value whenever the object is saved; users can't change it")}
+                </label>
+              )}
+              {calculated && !alias && (
                 <ExpressionField
                   id="attr-formula"
                   label={t("Formula")}
@@ -391,7 +476,7 @@ export function AttributeDialog({
         <fieldset className="attr-group">
           <legend className="section-label">{t("Rules")}</legend>
           <div className="attr-form cols-2">
-            {!calculated && (
+            {!calculated && !alias && (
               <>
                 <label className="check">
                   <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} />
@@ -403,7 +488,7 @@ export function AttributeDialog({
                 </label>
               </>
             )}
-            {TEXTUAL.has(dataType) && (
+            {TEXTUAL.has(dataType) && !alias && (
               <>
                 <div className="field">
                   <label htmlFor="attr-minlen">{t("Minimum length")}</label>
@@ -430,7 +515,7 @@ export function AttributeDialog({
                 <input id="attr-maxlen" type="number" min={1} value={maxLength} onChange={(e) => setMaxLength(e.target.value)} />
               </div>
             )}
-            {NUMERIC.has(dataType) && (
+            {NUMERIC.has(dataType) && !alias && (
               <>
                 <div className="field">
                   <label htmlFor="attr-min">{dataType === "QUANTITY" ? t("Minimum (base unit)") : t("Minimum")}</label>
@@ -443,14 +528,18 @@ export function AttributeDialog({
               </>
             )}
           </div>
-          {!calculated && (dataType !== "ENUMERATION" || enumerationId) && (dataType !== "QUANTITY" || dimension) && (
-            <AttributeForm
-              idPrefix="attr-default"
-              definitions={[preview]}
-              values={defaultValue == null ? {} : { defaultValue }}
-              onChange={(v: Attributes) => setDefaultValue(v.defaultValue ?? null)}
-            />
-          )}
+          {!calculated &&
+            !alias &&
+            dataType !== "REFERENCE" &&
+            (dataType !== "ENUMERATION" || enumerationId) &&
+            (dataType !== "QUANTITY" || dimension) && (
+              <AttributeForm
+                idPrefix="attr-default"
+                definitions={[preview]}
+                values={defaultValue == null ? {} : { defaultValue }}
+                onChange={(v: Attributes) => setDefaultValue(v.defaultValue ?? null)}
+              />
+            )}
         </fieldset>
 
         {editing && (

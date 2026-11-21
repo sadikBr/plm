@@ -262,8 +262,15 @@ baseline and report on, fast at the scale of real products.
       of the top, with own values for assemblies and parts missing a value flagged; a flattened
       structure with total quantities and levels; searches and reports limited to a part's
       structure ("within the structure of"), so the report engine's charts and schedules apply.)
-- [ ] 4.12 Reference and alias attributes: attributes that point to another object, or show a
+- [x] 4.12 Reference and alias attributes: attributes that point to another object, or show a
       value of a related object; filterable and reportable.
+      Done: a REFERENCE data type (optionally limited to a type and its subtypes) checked on save
+      (exists, readable, right type, not itself); alias attributes (`reference.property`: number,
+      name, state, version or any attribute) read live from the referenced object, never stored, and
+      only for those who can read it; the search index refreshes referencing objects when the
+      referenced one changes; "Referenced by" on the object page; referenced objects can't be
+      deleted; object pickers in forms, search and report filters; reference columns show number
+      and name.
 - [ ] 4.13 BOM import and export: Excel/CSV with preview, validation and matching (create or
       update), as a background job.
 - [ ] 4.14 Bulk revise and structure operations: revise a structure or a selection in one go,

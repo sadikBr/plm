@@ -58,6 +58,7 @@ internal class AttributeController(
                 enumerationId = request.enumerationId?.let(::EnumerationId),
                 dimension = request.dimension,
                 settings = request.settings(),
+                referenceTypeId = request.referenceTypeId?.let(::TypeId),
             ),
         ),
         TypeId(typeId),
@@ -119,6 +120,7 @@ internal class GlobalAttributeController(
                 request.enumerationId?.let(::EnumerationId),
                 request.dimension,
                 request.settings(),
+                request.referenceTypeId?.let(::TypeId),
             ),
         ),
         TypeId.GLOBAL,
@@ -258,6 +260,10 @@ internal data class AttributeResponse(
     val global: Boolean,
     /** Calculated attribute: the CEL formula that computes it (users can't set it). */
     val formula: String?,
+    /** For a REFERENCE: the type the object it points to must have (or a subtype). */
+    val referenceTypeId: UUID?,
+    /** Alias attribute: `reference.property`, the value of the referenced object it shows. */
+    val aliasOf: String?,
 ) {
     constructor(d: AttributeDefinition, requestedType: TypeId) : this(
         d.id.value,
@@ -286,6 +292,8 @@ internal data class AttributeResponse(
         d.valueFilter,
         d.global,
         d.formula,
+        d.referenceTypeId?.value,
+        d.aliasOf,
     )
 }
 
@@ -311,6 +319,10 @@ internal data class DefineAttributeRequest(
     val dependsOn: String? = null,
     val valueFilter: Map<String, List<String>>? = null,
     val formula: String? = null,
+    /** For REFERENCE: the type the object must have (or a subtype); null for any. */
+    val referenceTypeId: UUID? = null,
+    /** Alias attribute: `reference.property`. */
+    val aliasOf: String? = null,
 ) {
     fun settings() =
         AttributeSettings(
@@ -330,6 +342,7 @@ internal data class DefineAttributeRequest(
             dependsOn = dependsOn,
             valueFilter = valueFilter,
             formula = formula,
+            aliasOf = aliasOf,
         )
 }
 
@@ -350,6 +363,7 @@ internal data class AttributeSettingsRequest(
     val dependsOn: String? = null,
     val valueFilter: Map<String, List<String>>? = null,
     val formula: String? = null,
+    val aliasOf: String? = null,
 ) {
     fun settings() =
         AttributeSettings(
@@ -369,6 +383,7 @@ internal data class AttributeSettingsRequest(
             dependsOn,
             valueFilter,
             formula,
+            aliasOf,
         )
 }
 

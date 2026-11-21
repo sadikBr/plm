@@ -2,7 +2,8 @@ import { language, t } from "../i18n/i18n";
 import { Info } from "lucide-react";
 import type { ReactNode } from "react";
 import { ApiError } from "../api/client";
-import { Props } from "./common";
+import { Props, StateBadge } from "./common";
+import { ObjectRef, ReferenceInput } from "./References";
 import {
   useEnumerations,
   useUnits,
@@ -103,6 +104,21 @@ export function AttributeValues({
   const item = (name: string): [string, ReactNode] => {
     const def = byName.get(name);
     const value = values[name];
+    // An alias of a lifecycle state shows like any state (roadmap 4.12).
+    if (def?.aliasOf?.endsWith(".state") && typeof value === "string") {
+      return [pickLabel(def.labels, name), <StateBadge key={name} state={value} />];
+    }
+    if (def?.dataType === "REFERENCE" && value != null) {
+      const ids = Array.isArray(value) ? value : [value];
+      return [
+        pickLabel(def.labels, name),
+        <span className="refs" key={name}>
+          {ids.map((id) => (
+            <ObjectRef key={String(id)} id={id} />
+          ))}
+        </span>,
+      ];
+    }
     return [def ? pickLabel(def.labels, name) : name, value == null ? null : formatAttribute(def, value, enumerations)];
   };
   const sections: Section[] = groups
@@ -219,7 +235,13 @@ export function AttributeForm({
             {def.description}
           </span>
         )}
-        {def.formula ? (
+        {def.aliasOf ? (
+          // Alias: shows a value of the object a reference attribute points to, read live (roadmap 4.12).
+          <output id={id} className="calc-value" title={t("Shows {path}", { path: def.aliasOf })}>
+            {values[def.name] == null ? t("Comes from the referenced object") : formatCalculated(values[def.name])}
+            <span className="tag">{t("Alias")}</span>
+          </output>
+        ) : def.formula ? (
           // Calculated: the server computes it on save, so it's shown, not edited.
           <output id={id} className="calc-value" title={t("Calculated: {formula}", { formula: def.formula })}>
             {formatCalculated(values[def.name])}
@@ -406,6 +428,8 @@ function Input({
       );
     case "URL":
       return <input {...common} type="url" value={str(value)} onChange={(e) => onChange(e.target.value)} placeholder="https://" />;
+    case "REFERENCE":
+      return <ReferenceInput id={id} def={def} value={value} onChange={onChange} invalid={invalid} />;
     case "ENUMERATION": {
       const options = (enumeration?.values ?? []).filter((v) => v.active !== false || v.key === value);
       return (

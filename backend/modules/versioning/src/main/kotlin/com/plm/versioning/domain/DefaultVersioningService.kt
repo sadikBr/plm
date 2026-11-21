@@ -44,6 +44,7 @@ import com.plm.versioning.api.ObjectRevised
 import com.plm.versioning.api.ObjectStateChanged
 import com.plm.versioning.api.OperationCheck
 import com.plm.versioning.api.OperationGuard
+import com.plm.versioning.api.Referrer
 import com.plm.versioning.api.Rename
 import com.plm.versioning.api.SetState
 import com.plm.versioning.api.VersionedObject
@@ -82,6 +83,8 @@ internal class DefaultVersioningService(
     private val models: ObjectModels,
     private val validationRules: ValidationRuleService,
     private val calculations: Calculations,
+    private val references: References,
+    private val attributes: com.plm.types.api.AttributeService,
     private val guards: ObjectProvider<OperationGuard>,
     private val folders: com.plm.versioning.infra.OrganizingRepository,
     private val clock: Clock,
@@ -210,7 +213,7 @@ internal class DefaultVersioningService(
     ): VersionedObject {
         val master = findMaster(actor, id, forUpdate = false)
         val latest = readable(actor, master)
-        return master.toObject(latest)
+        return references.fill(actor, listOf(master.toObject(latest))).single()
     }
 
     @Transactional(readOnly = true)
@@ -243,6 +246,7 @@ internal class DefaultVersioningService(
                 query.ids?.map { it.value },
                 query.checkedOutBy,
             ).map { (master, latest) -> master.toObject(latest) }
+            .let { references.fill(actor, it) }
     }
 
     @Transactional(readOnly = true)
@@ -262,7 +266,32 @@ internal class DefaultVersioningService(
     ): Iteration {
         val master = findMaster(actor, id, forUpdate = false)
         readable(actor, master)
-        return ownWorkingCopy(actor, master)
+        return references.fill(actor, master.typeId, ownWorkingCopy(actor, master))
+    }
+
+    @Transactional(readOnly = true)
+    override fun referencedBy(
+        actor: Actor,
+        id: MasterId,
+    ): List<Referrer> {
+        val master = findMaster(actor, id, forUpdate = false)
+        readable(actor, master)
+        val filter =
+            access.filter(
+                actor,
+                Permission.READ,
+                AccessColumns("m.context_id", "m.type_id", "i.state", "m.id"),
+            )
+        val found = repository.referencing(actor.tenant, master.id.value, attributes.referenceNames(actor), filter)
+        if (found.isEmpty()) return emptyList()
+        val latest =
+            repository
+                .list(actor.tenant, null, null, filter, 500, null, ids = found.map { it.first.id.value }.distinct())
+                .associate { it.first.id to it.second }
+        return found.mapNotNull { (m, attribute) ->
+            val it = latest[m.id] ?: return@mapNotNull null
+            Referrer(m.id.value, m.number, m.name, m.typeId.value, it.state, it.version, attribute)
+        }
     }
 
     override fun checkOut(

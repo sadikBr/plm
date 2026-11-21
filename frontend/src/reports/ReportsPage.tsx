@@ -1,3 +1,4 @@
+import { ReferenceInput, useReferenced } from "../components/References";
 import { FavoriteButton } from "../personal/Personal";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BarChart3, CalendarClock, Mail, Pencil, Play, Plus, Share2, Trash2, X } from "lucide-react";
@@ -208,7 +209,8 @@ function ReportView({ report, mine, onEdit }: { report: Report; mine: boolean; o
   });
   const rows = (result?.rows ?? []).map(asObject);
   const definitions = useAttributeDefinitions(rows.map((r) => r.typeId));
-  const text = useCellText(definitions);
+  const text = useCellText(definitions, rows);
+  const { data: referenced } = useReferenced(Object.values(report.settings.query.attributes));
   const bars = useBars(result);
   const [sort, setSort] = useState<{ column: ColumnKey; desc: boolean }>({ column: "number", desc: false });
   const s = report.settings;
@@ -259,7 +261,7 @@ function ReportView({ report, mine, onEdit }: { report: Report; mine: boolean; o
           </div>
           <div style={{ display: "grid", gap: 4, alignContent: "start" }}>
             <span className="muted small">{t("Finds")}</span>
-            <span>{describeQuery(s.query)}</span>
+            <span>{describeQuery(s.query, referenced)}</span>
             {s.cron ? (
               <span className="row" style={{ gap: 6 }}>
                 <Mail size={13} className="icon-muted" aria-hidden />
@@ -345,12 +347,16 @@ export function groupLabel(groupBy: string, definitions: Map<string, Schemas["At
   return groupBy;
 }
 
-function describeQuery(q: Settings["query"]): string {
+function describeQuery(q: Settings["query"], objects?: Map<string, { number: string; name: string }>): string {
   const parts: string[] = [];
   if (q.text) parts.push(`“${q.text}”`);
   if (q.states.length) parts.push(t("in {states}", { states: q.states.map(stateLabel).join(` ${t("or")} `) }));
   if (q.typeIds.length) parts.push(tn("{n} type", "{n} types", q.typeIds.length));
-  for (const [k, v] of Object.entries(q.attributes)) parts.push(t("{name} contains “{value}”", { name: k, value: v }));
+  for (const [k, v] of Object.entries(q.attributes)) {
+    // A reference attribute's value is an object id: name the object instead (roadmap 4.12).
+    const o = objects?.get(v);
+    parts.push(t("{name} contains “{value}”", { name: k, value: o ? `${o.number} — ${o.name}` : v }));
+  }
   if (q.withinStructureOf) parts.push(t("in a part's structure"));
   return parts.length ? parts.join(", ") : t("Everything you can read");
 }
@@ -369,7 +375,10 @@ function ReportEditor({ report, onClose, onSaved }: { report: Report | null; onC
   const { data: lifecycles } = useLifecycles();
   const [s, setS] = useState<Settings>(report?.settings ?? BLANK);
   const [recipients, setRecipients] = useState((report?.settings.recipients ?? []).join(", "));
-  const definitions = useAttributeDefinitions(types?.filter((x) => x.instantiable).map((x) => x.id) ?? []);
+  // The chosen types' attributes; with none chosen, those of every type (up to the first 20).
+  const definitions = useAttributeDefinitions(
+    s.query.typeIds.length ? s.query.typeIds : (types?.filter((x) => x.instantiable).map((x) => x.id) ?? []),
+  );
   const [attr, setAttr] = useState<[string, string]>(Object.entries(s.query.attributes)[0] ?? ["", ""]);
   const states = new Map<string, string>();
   for (const lc of lifecycles ?? []) for (const st of lc.states) if (!states.has(st.key)) states.set(st.key, pickLabel(st.labels, st.key));
@@ -486,7 +495,16 @@ function ReportEditor({ report, onClose, onSaved }: { report: Report | null; onC
         </div>
         <div className="field">
           <label htmlFor="rep-attr-value">{t("Contains")}</label>
-          <input id="rep-attr-value" value={attr[1]} onChange={(e) => setAttr([attr[0], e.target.value])} />
+          {definitions.get(attr[0])?.dataType === "REFERENCE" ? (
+            <ReferenceInput
+              id="rep-attr-value"
+              def={definitions.get(attr[0])!}
+              value={attr[1] || undefined}
+              onChange={(v) => setAttr([attr[0], v == null ? "" : String(v)])}
+            />
+          ) : (
+            <input id="rep-attr-value" value={attr[1]} onChange={(e) => setAttr([attr[0], e.target.value])} />
+          )}
         </div>
         <div className="section-label wide">{t("What it shows")}</div>
         <fieldset className="check-list wide tall">

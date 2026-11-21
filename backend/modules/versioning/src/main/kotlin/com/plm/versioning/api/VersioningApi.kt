@@ -133,6 +133,18 @@ data class CreateVersionedObject(
     val folderId: java.util.UUID? = null,
 )
 
+/** An object whose latest iteration points to another one through a reference attribute (roadmap 4.12). */
+data class Referrer(
+    val id: java.util.UUID,
+    val number: String,
+    val name: String,
+    val typeId: java.util.UUID,
+    val state: String,
+    val version: String,
+    /** The reference attribute that points to it. */
+    val attribute: String,
+)
+
 /**
  * The generic versioning engine shared by every versioned type (documents, parts, CAD documents,
  * change objects).
@@ -148,6 +160,7 @@ data class CreateVersionedObject(
  *
  * Every change publishes a [VersioningEvent].
  */
+
 interface VersioningService {
     /** Creates the master and its first iteration (A.1), checked in. */
     fun create(
@@ -257,6 +270,12 @@ interface VersioningService {
         actor: Actor,
         id: MasterId,
     ): Map<String, Any?>
+
+    /** The objects the actor can read whose latest iteration references [id] (roadmap 4.12). */
+    fun referencedBy(
+        actor: Actor,
+        id: MasterId,
+    ): List<Referrer> = emptyList()
 
     /** Lifecycle, current state and what the actor can do next. Lets the UI explain disabled actions. */
     fun lifecycle(

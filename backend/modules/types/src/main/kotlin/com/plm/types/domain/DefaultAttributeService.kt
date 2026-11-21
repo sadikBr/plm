@@ -98,6 +98,7 @@ internal class DefaultAttributeService(
                     minValue = null,
                     maxValue = null,
                     enumerationId = command.enumerationId,
+                    referenceTypeId = command.referenceTypeId,
                     dimension = command.dimension?.trim()?.uppercase(),
                     displayUnit = null,
                     defaultValue = null,
@@ -158,6 +159,9 @@ internal class DefaultAttributeService(
     }
 
     @Transactional(readOnly = true)
+    override fun referenceNames(actor: Actor): Set<String> = repository.referenceNames(actor.tenant)
+
+    @Transactional(readOnly = true)
     override fun globals(actor: Actor): List<GlobalAttribute> =
         repository.globals(actor.tenant).map { GlobalAttribute(it, repository.usages(it.id)) }
 
@@ -185,6 +189,7 @@ internal class DefaultAttributeService(
                     minValue = null,
                     maxValue = null,
                     enumerationId = command.enumerationId,
+                    referenceTypeId = command.referenceTypeId,
                     dimension = command.dimension?.trim()?.uppercase(),
                     displayUnit = null,
                     defaultValue = null,
@@ -302,6 +307,7 @@ internal class DefaultAttributeService(
                     "its value comes from the formula"
             }
         }
+        errors += referenceErrors(actor, def, siblings)
         if (def.labels["en"].isNullOrBlank()) errors += "An English label (labels.en) is required"
         if (def.labels.values.any { it.length > 200 }) errors += "Labels must be at most 200 characters"
 
@@ -444,6 +450,40 @@ internal class DefaultAttributeService(
         return AttributeRules(definitions, enumerations, units)
     }
 
+    /** Reference and alias attributes (roadmap 4.12). */
+    private fun referenceErrors(
+        actor: Actor,
+        def: AttributeDefinition,
+        siblings: List<AttributeDefinition>,
+    ): List<String> {
+        val errors = mutableListOf<String>()
+        if (def.referenceTypeId != null) {
+            if (def.dataType != DataType.REFERENCE) {
+                errors += "referenceTypeId applies to REFERENCE only"
+            } else if (repository.lineage(actor.tenant, def.referenceTypeId).isEmpty()) {
+                errors += "referenceTypeId must be an existing type"
+            }
+        }
+        val alias = def.aliasOf ?: return errors
+        if (def.formula != null) errors += "An attribute is either calculated or an alias, not both"
+        if (def.dataType == DataType.REFERENCE) errors += "An alias can't itself be a reference"
+        if (def.required || def.immutable || def.defaultValue != null || def.multiValued || def.dependsOn != null) {
+            errors +=
+                "An alias can't be required, immutable, multi-valued, dependent or have a default: " +
+                "its value comes from the object it points to"
+        }
+        val parts = alias.split('.')
+        if (parts.size != 2 || parts.any { !it.matches(Regex("[a-zA-Z][a-zA-Z0-9_]*")) }) {
+            errors += "aliasOf must look like reference.property, e.g. supplier.name"
+            return errors
+        }
+        val reference = siblings.firstOrNull { it.name == parts[0] && it.name != def.name }
+        if (reference == null || reference.dataType != DataType.REFERENCE || reference.multiValued) {
+            errors += "aliasOf must start with a single-valued REFERENCE attribute of the same type"
+        }
+        return errors
+    }
+
     private fun requireAdmin(actor: Actor) {
         if (!actor.siteAdmin) {
             throw ForbiddenException(
@@ -472,6 +512,7 @@ private fun AttributeSettings.applyTo(def: AttributeDefinition) =
         dependsOn = dependsOn?.trim()?.ifEmpty { null },
         valueFilter = valueFilter?.takeIf { it.isNotEmpty() },
         formula = formula?.trim()?.ifEmpty { null },
+        aliasOf = aliasOf?.trim()?.ifEmpty { null },
     )
 
 private fun AttributeDefinition.settingsMap(): Map<String, Any?> =
@@ -488,6 +529,7 @@ private fun AttributeDefinition.settingsMap(): Map<String, Any?> =
         "displayUnit" to displayUnit,
         "defaultValue" to defaultValue,
         "formula" to formula,
+        "aliasOf" to aliasOf,
         "sortOrder" to sortOrder,
         "active" to active,
         "dependsOn" to dependsOn,

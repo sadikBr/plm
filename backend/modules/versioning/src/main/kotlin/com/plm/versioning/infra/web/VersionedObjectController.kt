@@ -68,9 +68,21 @@ internal class VersionedObjectController(
         @RequestParam(required = false) after: UUID?,
         @RequestParam(required = false) folderId: UUID?,
         @RequestParam(defaultValue = "false") topLevelOnly: Boolean,
+        /** Only these objects, e.g. to show what reference attributes point to (roadmap 4.12). */
+        @RequestParam(required = false) ids: List<UUID>?,
     ) = versioning
-        .list(actor, ObjectQuery(contextId?.let(::ContextId), q, limit, after?.let(::MasterId), folderId, topLevelOnly))
-        .map(::ObjectResponse)
+        .list(
+            actor,
+            ObjectQuery(
+                contextId?.let(::ContextId),
+                q,
+                limit,
+                after?.let(::MasterId),
+                folderId,
+                topLevelOnly,
+                ids = ids?.map(::MasterId),
+            ),
+        ).map(::ObjectResponse)
 
     @GetMapping("/{id}")
     fun get(
@@ -115,6 +127,13 @@ internal class VersionedObjectController(
         actor: Actor,
         @PathVariable id: UUID,
     ) = ObjectResponse(versioning.undoCheckOut(actor, MasterId(id)))
+
+    /** The objects whose reference attributes point to this one (roadmap 4.12). */
+    @GetMapping("/{id}/referenced-by")
+    fun referencedBy(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = versioning.referencedBy(actor, MasterId(id))
 
     /** Lifecycle, current state, and what the caller may do next (with reasons for what they may not). */
     @GetMapping("/{id}/lifecycle")

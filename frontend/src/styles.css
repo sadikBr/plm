@@ -851,3 +851,16 @@ td.tree-cell > * { vertical-align: middle; }
 .rollup-total { font-size: 14px; }
 .grid.structure tr.missing td { color: var(--text-2); }
 .tree-bar select { width: auto; min-height: 26px; }
+
+/* Reference attributes (roadmap 4.12) */
+.reference-pick { position: relative; }
+.reference-pick input { width: 100%; }
+.reference-pick .pick-list { position: absolute; z-index: 20; left: 0; right: 0; margin: 2px 0 0; padding: 4px; list-style: none; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12); }
+.reference-pick .pick-list button { width: 100%; }
+.reference-pick .pick-list li.muted { padding: 5px 8px; }
+.reference-value { display: flex; align-items: center; gap: 6px; min-height: 30px; flex-wrap: wrap; }
+.reference-value .object-ref { padding: 3px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel-2); }
+.object-ref .mono, .refs .mono { font-family: var(--mono, ui-monospace, monospace); }
+.refs { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+.referenced-by { margin-top: 16px; }
+

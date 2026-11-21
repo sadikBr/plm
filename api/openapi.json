@@ -517,8 +517,11 @@
           "active" : {
             "type" : "boolean"
           },
+          "aliasOf" : {
+            "type" : [ "string", "null" ]
+          },
           "dataType" : {
-            "enum" : [ "STRING", "TEXT", "INTEGER", "REAL", "QUANTITY", "BOOLEAN", "DATE", "TIMESTAMP", "URL", "ENUMERATION" ],
+            "enum" : [ "STRING", "TEXT", "INTEGER", "REAL", "QUANTITY", "BOOLEAN", "DATE", "TIMESTAMP", "URL", "ENUMERATION", "REFERENCE" ],
             "type" : "string"
           },
           "defaultValue" : { },
@@ -583,6 +586,10 @@
           "pattern" : {
             "type" : [ "string", "null" ]
           },
+          "referenceTypeId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
           "required" : {
             "type" : "boolean"
           },
@@ -614,6 +621,9 @@
         "properties" : {
           "active" : {
             "type" : [ "boolean", "null" ]
+          },
+          "aliasOf" : {
+            "type" : [ "string", "null" ]
           },
           "defaultValue" : { },
           "dependsOn" : {
@@ -1742,8 +1752,11 @@
       },
       "DefineAttributeRequest" : {
         "properties" : {
+          "aliasOf" : {
+            "type" : [ "string", "null" ]
+          },
           "dataType" : {
-            "enum" : [ "STRING", "TEXT", "INTEGER", "REAL", "QUANTITY", "BOOLEAN", "DATE", "TIMESTAMP", "URL", "ENUMERATION" ],
+            "enum" : [ "STRING", "TEXT", "INTEGER", "REAL", "QUANTITY", "BOOLEAN", "DATE", "TIMESTAMP", "URL", "ENUMERATION", "REFERENCE" ],
             "type" : "string"
           },
           "defaultValue" : { },
@@ -1796,6 +1809,10 @@
             "type" : "string"
           },
           "pattern" : {
+            "type" : [ "string", "null" ]
+          },
+          "referenceTypeId" : {
+            "format" : "uuid",
             "type" : [ "string", "null" ]
           },
           "required" : {
@@ -4238,6 +4255,35 @@
           }
         },
         "required" : [ "name", "number", "objectId", "state", "typeId", "version", "visitedAt" ],
+        "type" : "object"
+      },
+      "Referrer" : {
+        "properties" : {
+          "attribute" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "attribute", "id", "name", "number", "state", "typeId", "version" ],
         "type" : "object"
       },
       "RegisteredActionResponse" : {
@@ -11815,6 +11861,17 @@
             "default" : false,
             "type" : "boolean"
           }
+        }, {
+          "in" : "query",
+          "name" : "ids",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -13268,6 +13325,46 @@
           }
         },
         "tags" : [ "Organizing" ]
+      }
+    },
+    "/api/v1/objects/{id}/referenced-by" : {
+      "get" : {
+        "operationId" : "versionedObjectReferencedBy",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Referrer"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Versioned object" ]
       }
     },
     "/api/v1/objects/{id}/release" : {

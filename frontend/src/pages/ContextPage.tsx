@@ -400,7 +400,7 @@ function ObjectsTab({ context, canCreate }: { context: Context; canCreate: boole
   const rows = useMemo(() => objects.data?.pages.flat() ?? [], [objects.data]);
   const presentTypes = useMemo(() => [...new Set(rows.map((o) => o.typeId))], [rows]);
   const definitions = useAttributeDefinitions(presentTypes);
-  const text = useCellText(definitions);
+  const text = useCellText(definitions, rows);
   const shown = useMemo(() => applyView(rows, view, text), [rows, view, text]);
   const doExport = () => {
     setExporting(true);

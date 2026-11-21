@@ -64,7 +64,8 @@ internal class DefaultBaselineService(
             )
         }
 
-    private val select = "select b.*, (select count(*) from baseline_member bm where bm.baseline_id = b.id) as members from baseline b"
+    private val select =
+        "select b.*, (select count(*) from baseline_member bm where bm.baseline_id = b.id) as members from baseline b"
 
     private fun visible(
         actor: Actor,

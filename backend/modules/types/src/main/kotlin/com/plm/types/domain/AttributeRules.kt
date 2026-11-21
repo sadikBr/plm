@@ -278,6 +278,17 @@ internal class AttributeRules(
                 s
             }
 
+            DataType.REFERENCE -> {
+                val s = value as? String ?: throw Invalid("WRONG_TYPE", "$name must be an object id")
+                try {
+                    java.util.UUID
+                        .fromString(s)
+                        .toString()
+                } catch (_: IllegalArgumentException) {
+                    throw Invalid("WRONG_TYPE", "$name must be an object id")
+                }
+            }
+
             DataType.ENUMERATION -> {
                 val key = value as? String ?: throw Invalid("WRONG_TYPE", "$name must be one of its listed values")
                 val enumeration =

@@ -45,6 +45,14 @@ internal class SearchConfiguration {
  * that changed it; the indexer drains the queue every few seconds, reading each object's latest
  * version (values, file names, file contents) and sending it to the engine.
  */
+private val REFERENCED_CHANGES =
+    setOf(
+        "versioning.ObjectCheckedIn.v1",
+        "versioning.ObjectRenamed.v1",
+        "versioning.ObjectStateChanged.v1",
+        "versioning.ObjectRevised.v1",
+    )
+
 @Component
 internal class Indexer(
     private val jdbc: JdbcClient,
@@ -61,6 +69,15 @@ internal class Indexer(
         if (!type.startsWith("versioning.") || type.startsWith("versioning.Folder")) return
         val id = envelope.payload["objectId"]?.toString() ?: return
         queue(UUID.fromString(id), envelope.tenantId, type == "versioning.ObjectDeleted.v1")
+        // Objects referencing this one show its values through alias attributes (roadmap 4.12).
+        if (type in REFERENCED_CHANGES) {
+            val system = Actor(TenantId(envelope.tenantId), PrincipalId("system"), siteAdmin = true)
+            versioning
+                .referencedBy(system, MasterId(UUID.fromString(id)))
+                .map { it.id }
+                .distinct()
+                .forEach { queue(it, envelope.tenantId) }
+        }
     }
 
     fun queue(

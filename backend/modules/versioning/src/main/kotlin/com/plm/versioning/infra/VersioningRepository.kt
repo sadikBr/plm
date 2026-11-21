@@ -172,6 +172,45 @@ internal class VersioningRepository(
         return masters.map { it to latest.getValue(it.latestIterationId) }
     }
 
+    /**
+     * Masters whose latest iteration has [target] as the value (or one of the values) of one of the
+     * reference attributes [names], with that attribute's name. Backed by the GIN index on attrs.
+     */
+    fun referencing(
+        tenant: TenantId,
+        target: UUID,
+        names: Set<String>,
+        filter: SqlPredicate,
+        limit: Int = 500,
+    ): List<Pair<MasterRow, String>> {
+        if (names.isEmpty()) return emptyList()
+        val results = mutableListOf<Pair<MasterRow, String>>()
+        for (name in names.sorted()) {
+            jdbc
+                .sql(
+                    """
+                    select m.*, null as checked_out_by
+                    from object_master m
+                    join object_iteration i on i.id = m.latest_iteration_id
+                    where m.tenant_id = :tenant
+                      and (i.attrs @> jsonb_build_object(cast(:name as text), cast(:target as text))
+                        or i.attrs @> jsonb_build_object(cast(:name as text), jsonb_build_array(cast(:target as text))))
+                      and ${filter.sql}
+                    order by m.number
+                    limit :limit
+                    """,
+                ).params(filter.params)
+                .param("tenant", tenant.value)
+                .param("name", name)
+                .param("target", target.toString())
+                .param("limit", limit)
+                .query(masterMapper)
+                .list()
+                .forEach { results += it to name }
+        }
+        return results
+    }
+
     fun insertMaster(
         tenant: TenantId,
         master: MasterRow,

@@ -1,3 +1,4 @@
+import { ReferenceInput } from "../components/References";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bookmark, Search, Share2, Trash2, X } from "lucide-react";
 import { Fragment, useState, type FormEvent, type ReactNode } from "react";
@@ -355,7 +356,16 @@ function AttributeFilters({
         ))}
       </select>
       <div className="row" style={{ gap: 4 }}>
-        <input aria-label={t("Attribute value")} value={text} onChange={(e) => setText(e.target.value)} placeholder={t("contains…")} />
+        {attributes.find((a) => a.name === name)?.dataType === "REFERENCE" ? (
+          <ReferenceInput
+            id="search-attr-value"
+            def={attributes.find((a) => a.name === name)!}
+            value={text || undefined}
+            onChange={(v) => setText(v == null ? "" : String(v))}
+          />
+        ) : (
+          <input aria-label={t("Attribute value")} value={text} onChange={(e) => setText(e.target.value)} placeholder={t("contains…")} />
+        )}
         <button
           className="btn small"
           disabled={!name || !text.trim()}

@@ -29,6 +29,7 @@ internal class Calculations(
     private val validator: AttributeValidator,
     private val enumerations: EnumerationService,
     private val models: ObjectModels,
+    private val references: References,
 ) {
     fun formulas(
         actor: Actor,
@@ -41,16 +42,20 @@ internal class Calculations(
         typeId: TypeId,
         values: Map<String, Any?>,
     ): Map<String, Any?> {
-        val calculated = formulas(actor, typeId).map { it.name }.toSet()
+        val calculated = (formulas(actor, typeId) + references.aliases(actor, typeId)).map { it.name }.toSet()
         return if (calculated.isEmpty()) values else values - calculated
     }
 
     /** [facts] with its calculated attributes (re)computed and validated like any value. */
     fun apply(
         actor: Actor,
-        facts: ObjectFacts,
+        given: ObjectFacts,
         previous: Map<String, Any?>?,
     ): Map<String, Any?> {
+        // Aliases are read live from the objects referenced (roadmap 4.12), never stored.
+        val aliases = references.aliases(actor, given.typeId).map { it.name }.toSet()
+        val facts = if (aliases.isEmpty()) given else given.copy(attributes = given.attributes - aliases)
+        references.check(actor, facts.typeId, facts.attributes, facts.objectId)
         val formulas = formulas(actor, facts.typeId)
         if (formulas.isEmpty()) return facts.attributes
         val values = (facts.attributes - formulas.map { it.name }.toSet()).toMutableMap()

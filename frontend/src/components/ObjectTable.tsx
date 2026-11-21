@@ -1,3 +1,4 @@
+import { referenceText, useReferenced } from "./References";
 import { useQueries } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
@@ -59,14 +60,23 @@ export function useAttributeDefinitions(typeIds: string[]): Map<string, Attribut
  * What a cell shows as text: for sorting, filtering and the Excel export, so all three agree with
  * what's on screen.
  */
-export function useCellText(definitions: Map<string, AttributeDefinition>) {
+export function useCellText(definitions: Map<string, AttributeDefinition>, rows: VersionedObject[] = []) {
   const { data: types } = useTypes();
   const { data: enumerations } = useEnumerations();
+  // Reference attributes show the number and name of what they point to (roadmap 4.12).
+  const referenceNames = [...definitions.values()].filter((d) => d.dataType === "REFERENCE").map((d) => d.name);
+  const { data: referenced } = useReferenced(
+    referenceNames.length ? rows.flatMap((o) => referenceNames.map((n) => (o.latest.attributes as Record<string, unknown>)[n])) : [],
+  );
   return (o: VersionedObject, column: ColumnKey): string => {
     if (column.startsWith("attr:")) {
       const name = column.slice(5);
       const v = (o.latest.attributes as Record<string, unknown>)[name];
-      return v == null ? "" : formatAttribute(definitions.get(name), v, enumerations);
+      const def = definitions.get(name);
+      if (def?.dataType === "REFERENCE" && v != null) {
+        return (Array.isArray(v) ? v : [v]).map((id) => referenceText(referenced?.get(String(id)), id)).join(", ");
+      }
+      return v == null ? "" : formatAttribute(def, v, enumerations);
     }
     switch (column as BuiltinColumn) {
       case "number":
@@ -161,7 +171,7 @@ export function ObjectTable({
   onSort?: (sort: { column: ColumnKey; desc: boolean }) => void;
 }) {
   const definitions = useAttributeDefinitions(objects.map((o) => o.typeId));
-  const text = useCellText(definitions);
+  const text = useCellText(definitions, objects);
   const [ownSort, setOwnSort] = useState<{ column: ColumnKey; desc: boolean }>({ column: "number", desc: false });
   const sort = controlledSort ?? ownSort;
   const setSort = onSort ?? setOwnSort;

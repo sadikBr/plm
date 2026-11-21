@@ -35,6 +35,9 @@ enum class DataType {
 
     /** One key of the attribute's enumeration. */
     ENUMERATION,
+
+    /** Another object, stored as its id; [AttributeDefinition.referenceTypeId] limits its type (roadmap 4.12). */
+    REFERENCE,
 }
 
 @JvmInline
@@ -94,6 +97,14 @@ data class AttributeDefinition(
      * object is created, edited or checked in; users can't set it. Null for ordinary attributes.
      */
     val formula: String? = null,
+    /** For a REFERENCE: the type (or a subtype of it) the object must have; null for any type. */
+    val referenceTypeId: TypeId? = null,
+    /**
+     * Alias attribute: shows a value of the object a REFERENCE attribute points to, as
+     * `reference.property` (`supplier.name`, `supplier.state`, `supplier.country`). Kept up to
+     * date when that object changes; users can't set it. Null for ordinary attributes.
+     */
+    val aliasOf: String? = null,
 )
 
 /** Settings that can change after an attribute is defined. Name, data type, multi-valued, enumeration and dimension cannot. */
@@ -114,6 +125,7 @@ data class AttributeSettings(
     val dependsOn: String? = null,
     val valueFilter: Map<String, List<String>>? = null,
     val formula: String? = null,
+    val aliasOf: String? = null,
 )
 
 data class DefineAttribute(
@@ -124,6 +136,8 @@ data class DefineAttribute(
     val enumerationId: EnumerationId? = null,
     val dimension: String? = null,
     val settings: AttributeSettings,
+    /** For a REFERENCE: the type the object it points to must have (or a subtype). */
+    val referenceTypeId: TypeId? = null,
 )
 
 data class Enumeration(
@@ -179,6 +193,9 @@ interface AttributeService {
 
     /** Global attributes with the types that use them. */
     fun globals(actor: Actor): List<GlobalAttribute>
+
+    /** Names of every REFERENCE attribute in the actor's tenant, on any type (roadmap 4.12). */
+    fun referenceNames(actor: Actor): Set<String> = emptySet()
 
     /** Defines a global attribute ([DefineAttribute.typeId] is ignored). Site administrators only. */
     fun defineGlobal(
