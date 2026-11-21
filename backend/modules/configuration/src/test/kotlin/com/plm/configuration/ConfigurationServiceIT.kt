@@ -331,7 +331,7 @@ class ConfigurationServiceIT(
         val exported = configuration.export(admin)
 
         assertThat(configuration.export(admin)).isEqualTo(exported)
-        assertThat(exported.types.first().name).isIn("Document", "Part") // base types first
+        assertThat(exported.types.first().name).isIn("Change", "Document", "Part") // base types first
         val plan = configuration.import(admin, exported, dryRun = false)
         assertThat(plan.changes.filter { it.action != UNCHANGED }).isEmpty()
         assertThat(plan.applied).isTrue()
