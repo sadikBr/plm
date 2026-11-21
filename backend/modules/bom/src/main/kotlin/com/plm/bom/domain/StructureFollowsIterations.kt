@@ -21,6 +21,7 @@ import java.util.UUID
 @Component
 internal class StructureFollowsIterations(
     private val repository: BomRepository,
+    private val documentLinks: com.plm.bom.infra.DocumentLinkRepository,
     private val clock: Clock,
 ) {
     @EventListener(EventEnvelope::class)
@@ -30,6 +31,7 @@ internal class StructureFollowsIterations(
         ) {
             val iterationId = UUID.fromString(envelope.payload["iterationId"].toString())
             repository.carryOver(iterationId) { UuidV7.generate(clock) }
+            documentLinks.carryOver(iterationId) { UuidV7.generate(clock) }
         }
     }
 }

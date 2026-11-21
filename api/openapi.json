@@ -1625,6 +1625,55 @@
         "required" : [ "change", "text" ],
         "type" : "object"
       },
+      "DocumentLink" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "document" : {
+            "$ref" : "#/components/schemas/UsedPart"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "DESCRIBED_BY", "REFERENCES" ],
+            "type" : "string"
+          },
+          "newerExists" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "createdAt", "createdBy", "document", "id", "kind", "newerExists" ],
+        "type" : "object"
+      },
+      "DocumentLinkRule" : {
+        "properties" : {
+          "documentTypeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "DESCRIBED_BY", "REFERENCES" ],
+            "type" : "string"
+          },
+          "partTypeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "documentTypeId", "id", "kind", "partTypeId" ],
+        "type" : "object"
+      },
       "DocumentTemplate" : {
         "properties" : {
           "active" : {
@@ -2904,6 +2953,54 @@
           }
         },
         "required" : [ "from", "to" ],
+        "type" : "object"
+      },
+      "LinkDocument" : {
+        "properties" : {
+          "documentId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "DESCRIBED_BY", "REFERENCES" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "documentId", "kind" ],
+        "type" : "object"
+      },
+      "LinkRuleRequest" : {
+        "properties" : {
+          "documentTypeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "DESCRIBED_BY", "REFERENCES" ],
+            "type" : "string"
+          },
+          "partTypeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "documentTypeId", "kind", "partTypeId" ],
+        "type" : "object"
+      },
+      "LinkingPart" : {
+        "properties" : {
+          "documentVersion" : {
+            "type" : [ "string", "null" ]
+          },
+          "kind" : {
+            "enum" : [ "DESCRIBED_BY", "REFERENCES" ],
+            "type" : "string"
+          },
+          "part" : {
+            "$ref" : "#/components/schemas/UsedPart"
+          }
+        },
+        "required" : [ "kind", "part" ],
         "type" : "object"
       },
       "ManifestAction" : {
@@ -8103,6 +8200,103 @@
         "tags" : [ "Organizing" ]
       }
     },
+    "/api/v1/document-link-rules" : {
+      "get" : {
+        "operationId" : "documentLinkRules",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/DocumentLinkRule"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Document link" ]
+      },
+      "post" : {
+        "operationId" : "documentLinkAddRule",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LinkRuleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentLinkRule"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Document link" ]
+      }
+    },
+    "/api/v1/document-link-rules/{ruleId}" : {
+      "delete" : {
+        "operationId" : "documentLinkRemoveRule",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "ruleId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Document link" ]
+      }
+    },
     "/api/v1/document-templates" : {
       "get" : {
         "operationId" : "documentTemplates",
@@ -11549,6 +11743,190 @@
         "tags" : [ "Organizing" ]
       }
     },
+    "/api/v1/objects/{id}/document-links" : {
+      "get" : {
+        "operationId" : "documentLinkLinks",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "iterationId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "workingCopy",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/DocumentLink"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Document link" ]
+      },
+      "post" : {
+        "operationId" : "documentLinkLink",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LinkDocument"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentLink"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Document link" ]
+      }
+    },
+    "/api/v1/objects/{id}/document-links/{linkId}" : {
+      "delete" : {
+        "operationId" : "documentLinkUnlink",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "linkId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Document link" ]
+      }
+    },
+    "/api/v1/objects/{id}/document-links/{linkId}/update-to-latest" : {
+      "post" : {
+        "operationId" : "documentLinkUpdateToLatest",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "linkId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentLink"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Document link" ]
+      }
+    },
     "/api/v1/objects/{id}/expression-model" : {
       "get" : {
         "operationId" : "expressionModel",
@@ -11754,6 +12132,46 @@
           }
         },
         "tags" : [ "Versioned object" ]
+      }
+    },
+    "/api/v1/objects/{id}/linking-parts" : {
+      "get" : {
+        "operationId" : "documentLinkLinkingParts",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/LinkingPart"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Document link" ]
       }
     },
     "/api/v1/objects/{id}/move" : {
@@ -15838,6 +16256,8 @@
     "name" : "Discussion"
   }, {
     "name" : "Document"
+  }, {
+    "name" : "Document link"
   }, {
     "name" : "Expression"
   }, {

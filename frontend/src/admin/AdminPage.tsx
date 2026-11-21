@@ -1,3 +1,4 @@
+import { DocumentLinkRulesAdmin } from "../structure/DocumentLinks";
 import { ScrollText, Settings } from "lucide-react";
 import { Link, useSearchParams } from "react-router";
 import { useMe } from "../api/queries";
@@ -28,6 +29,7 @@ type Section =
   | "numbering"
   | "lifecycles"
   | "delete-rules"
+  | "document-links"
   | "roles"
   | "teams"
   | "templates"
@@ -49,6 +51,7 @@ const SECTIONS = (): [Section, string][] => [
   ["numbering", t("Numbering")],
   ["lifecycles", t("Lifecycles")],
   ["delete-rules", t("Delete rules")],
+  ["document-links", t("Part–document links")],
   ["roles", t("Team roles")],
   ["teams", t("Shared teams")],
   ["templates", t("Context templates")],
@@ -100,6 +103,7 @@ export function AdminPage() {
         {tab === "numbering" && <NumberingAdmin />}
         {tab === "lifecycles" && <LifecyclesAdmin />}
         {tab === "delete-rules" && <DeleteRulesAdmin />}
+        {tab === "document-links" && <DocumentLinkRulesAdmin />}
         {tab === "roles" && <RolesAdmin />}
         {tab === "teams" && <SharedTeamsAdmin />}
         {tab === "templates" && <ContextTemplatesAdmin />}

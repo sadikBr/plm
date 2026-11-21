@@ -825,3 +825,4 @@ table.folders td { padding-top: 7px; padding-bottom: 7px; }
 .tree-bar input[type="checkbox"] { width: auto; min-height: 0; margin: 0; }
 td.tree-cell { display: table-cell; height: auto; }
 td.tree-cell > * { vertical-align: middle; }
+.small-tag { margin-left: 6px; font-size: 10.5px; }

@@ -234,8 +234,11 @@ baseline and report on, fast at the scale of real products.
       items; exportable.
       (Done: one level or all levels up, under any configuration specification, end items
       flagged, unreadable users shown as placeholders and not followed; Where used tab, Excel.)
-- [ ] 4.7 Part↔document links: "described by" (a document iteration) and "references" (a
+- [x] 4.7 Part↔document links: "described by" (a document iteration) and "references" (a
       document master, always its latest), on both sides, carried on revise, allowed type pairs.
+      (Done: links on the part's iteration, carried forward; "newer exists" with an update to the
+      latest; a Documents tab on parts, a Parts tab on documents; admin rules limiting document
+      types per part type, inherited down the type tree.)
 - [ ] 4.8 Alternates and substitutes: a part's global alternates; substitutes on one usage line,
       shown in the BOM and where-used.
 - [ ] 4.9 BOM compare: two iterations, two parts, or one part under two configuration

@@ -1,3 +1,4 @@
+import { DocumentLinksTab, LinkingPartsTab } from "../structure/DocumentLinks";
 import { WhereUsedTab } from "../structure/WhereUsed";
 import { StructureTab } from "../structure/Structure";
 import { auditAction } from "../audit/AuditReport";
@@ -56,7 +57,7 @@ import { NotFoundPage } from "./NotFoundPage";
 import { BackgroundActions, useActionRunner } from "./ActionRunner";
 import { ObjectActionBar, type ActionHandlers } from "./ObjectActions";
 
-type Tab = "details" | "structure" | "where-used" | "discussion" | "history" | "audit";
+type Tab = "details" | "structure" | "where-used" | "documents" | "parts" | "discussion" | "history" | "audit";
 
 /** Remounts per object, so page state never leaks between objects. */
 export function ObjectPage() {
@@ -81,7 +82,15 @@ function ObjectView({ id }: { id: string }) {
   const isPart = allTypes?.find((ty) => ty.id === obj.typeId)?.baseClass === "PART";
   const tabs: [Tab, string][] = [
     ["details", t("Details")],
-    ...(isPart ? [["structure", t("Structure")] as [Tab, string], ["where-used", t("Where used")] as [Tab, string]] : []),
+    ...(isPart
+      ? [
+          ["structure", t("Structure")] as [Tab, string],
+          ["where-used", t("Where used")] as [Tab, string],
+          ["documents", t("Documents")] as [Tab, string],
+        ]
+      : allTypes
+        ? [["parts", t("Parts")] as [Tab, string]]
+        : []),
     ["discussion", discussionCount ? t("Discussion ({count})", { count: discussionCount }) : t("Discussion")],
     ...(shows("object.history") ? [["history", t("History")] as [Tab, string]] : []),
     ...(me?.siteAdmin && shows("object.audit") ? [["audit", t("Audit")] as [Tab, string]] : []),
@@ -97,6 +106,8 @@ function ObjectView({ id }: { id: string }) {
         {tab === "details" && <DetailsTab obj={obj} myId={myId} />}
         {tab === "structure" && <StructureTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}
         {tab === "where-used" && <WhereUsedTab obj={obj} />}
+        {tab === "documents" && <DocumentLinksTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}
+        {tab === "parts" && <LinkingPartsTab obj={obj} />}
         {tab === "discussion" && <DiscussionTab obj={obj} />}
         {tab === "history" && <HistoryTab id={obj.id} />}
         {tab === "audit" && me?.siteAdmin && <AuditTab id={obj.id} />}
