@@ -1629,6 +1629,32 @@
         "required" : [ "permissions", "role" ],
         "type" : "object"
       },
+      "CreatePromotion" : {
+        "properties" : {
+          "comment" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "objectIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "targetState" : {
+            "type" : "string"
+          },
+          "templateId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "name", "objectIds", "targetState" ],
+        "type" : "object"
+      },
       "CreateServiceAccount" : {
         "properties" : {
           "description" : {
@@ -4436,6 +4462,9 @@
       },
       "ProcessInstance" : {
         "properties" : {
+          "about" : {
+            "type" : [ "string", "null" ]
+          },
           "comment" : {
             "type" : [ "string", "null" ]
           },
@@ -4452,6 +4481,9 @@
           "id" : {
             "format" : "uuid",
             "type" : "string"
+          },
+          "link" : {
+            "type" : [ "string", "null" ]
           },
           "name" : {
             "type" : "string"
@@ -4735,6 +4767,86 @@
           }
         },
         "required" : [ "hiddenActions", "hiddenAreas", "members", "name" ],
+        "type" : "object"
+      },
+      "PromotionItem" : {
+        "properties" : {
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "number" : {
+            "type" : [ "string", "null" ]
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "stateBefore" : {
+            "type" : "string"
+          },
+          "stateNow" : {
+            "type" : [ "string", "null" ]
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "objectId", "stateBefore", "version" ],
+        "type" : "object"
+      },
+      "PromotionRequest" : {
+        "properties" : {
+          "comment" : {
+            "type" : [ "string", "null" ]
+          },
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "decidedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "instanceId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PromotionItem"
+            },
+            "type" : "array"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "UNDER_REVIEW", "APPROVED", "REJECTED", "CANCELLED" ],
+            "type" : "string"
+          },
+          "targetState" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "contextId", "createdAt", "createdBy", "id", "items", "name", "number", "status", "targetState" ],
         "type" : "object"
       },
       "PutMemberRequest" : {
@@ -5810,7 +5922,17 @@
       },
       "StartProcess" : {
         "properties" : {
+          "about" : {
+            "type" : [ "string", "null" ]
+          },
           "comment" : {
+            "type" : [ "string", "null" ]
+          },
+          "contextId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "link" : {
             "type" : [ "string", "null" ]
           },
           "subjectId" : {
@@ -7051,6 +7173,9 @@
       },
       "WorkItem" : {
         "properties" : {
+          "about" : {
+            "type" : [ "string", "null" ]
+          },
           "assignee" : {
             "type" : "string"
           },
@@ -7095,6 +7220,9 @@
           "kind" : {
             "enum" : [ "TASK", "VOTE", "ACTION", "CONDITION", "PARALLEL", "JOIN", "TIMER", "END" ],
             "type" : "string"
+          },
+          "link" : {
+            "type" : [ "string", "null" ]
           },
           "nodeId" : {
             "type" : "string"
@@ -14245,6 +14373,46 @@
         "tags" : [ "Process" ]
       }
     },
+    "/api/v1/objects/{id}/promotion-requests" : {
+      "get" : {
+        "operationId" : "promotionForObject",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/PromotionRequest"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Promotion" ]
+      }
+    },
     "/api/v1/objects/{id}/referenced-by" : {
       "get" : {
         "operationId" : "versionedObjectReferencedBy",
@@ -16865,6 +17033,156 @@
           }
         },
         "tags" : [ "Profile" ]
+      }
+    },
+    "/api/v1/promotion-requests" : {
+      "get" : {
+        "operationId" : "promotionList",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "UNDER_REVIEW", "APPROVED", "REJECTED", "CANCELLED" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/PromotionRequest"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Promotion" ]
+      },
+      "post" : {
+        "operationId" : "promotionCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreatePromotion"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PromotionRequest"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Promotion" ]
+      }
+    },
+    "/api/v1/promotion-requests/{id}" : {
+      "get" : {
+        "operationId" : "promotionGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PromotionRequest"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Promotion" ]
+      }
+    },
+    "/api/v1/promotion-requests/{id}/cancel" : {
+      "post" : {
+        "operationId" : "promotionCancel",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PromotionRequest"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Promotion" ]
       }
     },
     "/api/v1/reports" : {
@@ -19811,6 +20129,8 @@
     "name" : "Process template"
   }, {
     "name" : "Profile"
+  }, {
+    "name" : "Promotion"
   }, {
     "name" : "Reference data"
   }, {

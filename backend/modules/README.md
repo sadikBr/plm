@@ -37,7 +37,7 @@ Three layers enforce this:
 | parts | Part types | versioning, lifecycle |
 | bom | Usage links, config specs, where-used | parts |
 | workflow | Processes on Temporal: versioned templates run by one interpreter; tasks, history | access, identity, types, versioning, notifications |
-| change | PR / CR / CN / change tasks | versioning, lifecycle, workflow |
+| change | Promotion requests (and, next, PR / CR / CN / change tasks) | access, types, versioning, lifecycle, workflow |
 | search | Search: indexing from events (OpenSearch or Postgres), queries with facets, saved searches | access, types, versioning, content, jobs |
 | configuration | Export/import of the whole configuration as one bundle (config as code) | types, lifecycle, access |
 | preferences | Typed preferences set per site / organization / context / user, with locking; profiles | access, types |

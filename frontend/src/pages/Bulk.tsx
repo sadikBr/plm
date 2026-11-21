@@ -1,5 +1,6 @@
+import { RequestPromotionDialog } from "../workflow/Promotions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRightLeft, ClipboardPlus, FolderInput, GitBranchPlus, PencilLine, Square, Trash2, X } from "lucide-react";
+import { ArrowUpCircle, ArrowRightLeft, ClipboardPlus, FolderInput, GitBranchPlus, PencilLine, Square, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
@@ -32,6 +33,7 @@ export function BulkBar({
   onStarted: (jobId: string) => void;
 }) {
   const [dialog, setDialog] = useState<Operation | null>(null);
+  const [promoting, setPromoting] = useState(false);
   const clipboard = useClipboard();
   return (
     <div className="bulk-bar" role="toolbar" aria-label={t("Selected objects")}>
@@ -44,6 +46,9 @@ export function BulkBar({
       </button>
       <button className="btn small" onClick={() => setDialog("REVISE")}>
         <GitBranchPlus size={13} aria-hidden /> {t("Revise…")}
+      </button>
+      <button className="btn small" onClick={() => setPromoting(true)}>
+        <ArrowUpCircle size={13} aria-hidden /> {t("Request promotion…")}
       </button>
       <button className="btn small" onClick={() => setDialog("MOVE")}>
         <FolderInput size={13} aria-hidden /> {t("Move…")}
@@ -61,6 +66,7 @@ export function BulkBar({
       <button className="icon-btn" aria-label={t("Clear the selection")} onClick={onClear}>
         <X size={14} />
       </button>
+      {promoting && <RequestPromotionDialog objects={objects} onClose={() => setPromoting(false)} />}
       {dialog && (
         <BulkDialog
           operation={dialog}

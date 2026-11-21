@@ -143,6 +143,8 @@ data class ProcessInstance(
     val comment: String?,
     /** Steps open right now (their labels). */
     val current: List<String>,
+    val about: String? = null,
+    val link: String? = null,
 )
 
 data class ProcessEvent(
@@ -158,6 +160,12 @@ data class StartProcess(
     val templateId: UUID,
     val subjectId: UUID? = null,
     val comment: String? = null,
+    /** Without a subject: where team roles are looked up (roadmap 5.7). */
+    val contextId: UUID? = null,
+    /** Without a subject: what it's about, e.g. "Promotion request PRM-0003". */
+    val about: String? = null,
+    /** Without a subject: the page that shows it, e.g. /promotions/<id>. */
+    val link: String? = null,
 )
 
 enum class WorkItemStatus { OPEN, DONE, CANCELLED }
@@ -180,6 +188,9 @@ data class WorkItem(
     val subjectId: UUID?,
     val subjectNumber: String?,
     val subjectName: String?,
+    /** For a process without a subject: what it's about and where (roadmap 5.7). */
+    val about: String? = null,
+    val link: String? = null,
     val createdAt: Instant,
     val dueAt: Instant?,
     val completedAt: Instant?,

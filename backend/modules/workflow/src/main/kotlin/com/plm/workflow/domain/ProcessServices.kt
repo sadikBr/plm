@@ -299,6 +299,9 @@ internal class DefaultProcessService(
                 endedAt = null,
                 comment = request.comment?.trim()?.ifEmpty { null },
                 current = emptyMap(),
+                contextId = request.contextId,
+                about = request.about,
+                link = request.link,
             )
         repository.insertInstance(row)
         repository.event(
@@ -364,6 +367,8 @@ internal class DefaultProcessService(
         endedAt = row.endedAt,
         comment = row.comment,
         current = row.current.values.toList(),
+        about = row.about,
+        link = row.link,
     )
 
     @Transactional(readOnly = true)
@@ -457,6 +462,7 @@ internal class DefaultWorkItemService(
         shared: Int = 1,
         tallies: Map<Triple<UUID, String, Int>, Map<String, Int>> = emptyMap(),
         rules: Map<Triple<UUID, String, Int>, com.plm.workflow.api.VoteRule?> = emptyMap(),
+        abouts: Map<UUID, Pair<String?, String?>> = emptyMap(),
     ) = WorkItem(
         id = row.id,
         instanceId = row.instanceId,
@@ -474,6 +480,8 @@ internal class DefaultWorkItemService(
         subjectId = row.subjectId,
         subjectNumber = row.subjectId?.let { subjects[it]?.first },
         subjectName = row.subjectId?.let { subjects[it]?.second },
+        about = abouts[row.instanceId]?.first,
+        link = abouts[row.instanceId]?.second,
         createdAt = row.createdAt,
         dueAt = row.dueAt,
         completedAt = row.completedAt,
@@ -489,7 +497,9 @@ internal class DefaultWorkItemService(
         actor: Actor,
         rows: List<WorkItemRow>,
     ): List<WorkItem> {
-        val names = rows.map { it.instanceId }.distinct().associateWith { repository.instance(it)?.name ?: "" }
+        val instances = rows.map { it.instanceId }.distinct().associateWith { repository.instance(it) }
+        val names = instances.mapValues { it.value?.name ?: "" }
+        val abouts = instances.mapValues { it.value?.about to it.value?.link }
         val subjects =
             rows
                 .mapNotNull { it.subjectId }

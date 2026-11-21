@@ -34,6 +34,9 @@ internal data class InstanceRow(
     val endedAt: Instant?,
     val comment: String?,
     val current: Map<String, String>,
+    val contextId: UUID? = null,
+    val about: String? = null,
+    val link: String? = null,
 )
 
 internal data class WorkItemRow(
@@ -205,6 +208,9 @@ internal class ProcessRepository(
                 endedAt = rs.instant("ended_at"),
                 comment = rs.getString("comment"),
                 current = strings(rs.getString("current")),
+                contextId = rs.uuid("context_id"),
+                about = rs.getString("about"),
+                link = rs.getString("link"),
             )
         }
 
@@ -213,8 +219,9 @@ internal class ProcessRepository(
             .sql(
                 """
                 insert into process_instance (id, tenant_id, template_id, template_version, name, subject_id, status,
-                    started_by, started_at, comment)
-                values (:id, :tenant, :template, :version, :name, :subject, :status, :by, :at, :comment)
+                    started_by, started_at, comment, context_id, about, link)
+                values (:id, :tenant, :template, :version, :name, :subject, :status, :by, :at, :comment, :context,
+                    :about, :link)
                 """.trimIndent(),
             ).param("id", row.id)
             .param("tenant", row.tenantId)
@@ -226,6 +233,9 @@ internal class ProcessRepository(
             .param("by", row.startedBy)
             .param("at", Timestamp.from(row.startedAt))
             .param("comment", row.comment)
+            .param("context", row.contextId)
+            .param("about", row.about)
+            .param("link", row.link)
             .update()
     }
 

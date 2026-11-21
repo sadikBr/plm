@@ -346,8 +346,15 @@ affected objects; and the platform can be extended with scripts, UI slots and no
       comment, time, object, exact version and iteration, task and process) is written once into a
       table the database refuses to change or delete, with a SHA-256 hash shown as "intact" on the
       object's Signatures panel. Signatures and refused attempts are domain events, so audited.
-- [ ] 5.7 Promotion requests: ask for a set of objects to move to a target state; a review process
+- [x] 5.7 Promotion requests: ask for a set of objects to move to a target state; a review process
       approves or rejects; objects are locked while under review and promoted on approval.
+      Done: "Request promotion…" on any selection makes a numbered request (PRM-00001) with the
+      versions and states asked; the built-in "Promotion review" (a signed manager approval, or
+      another template) runs on it. Meanwhile a guard refuses check-out, state changes, revisions,
+      moves, renames and deletion of its objects; approval promotes them all (along the lifecycle,
+      or overriding it on the approval's authority), rejection or cancelling leaves them as they
+      were. Processes can now be about something other than one object (a context, a label, a
+      link), which tasks show.
 - [ ] 5.8 Change objects: problem reports, change requests, change notices and change tasks with
       their own types, lifecycles and numbers, linked to each other; affected and resulting objects
       and end items; fast track (notice directly) and full track.

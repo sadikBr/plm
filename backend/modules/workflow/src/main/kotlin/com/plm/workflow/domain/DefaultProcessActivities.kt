@@ -90,10 +90,13 @@ class DefaultProcessActivities internal constructor(
                     a.startsWith(
                         "user:",
                     ) -> listOfNotNull(directory.findByUsername(actor, a.removePrefix("user:"))?.id?.value)
-                    a.startsWith("role:") && subject != null ->
+                    a.startsWith("role:") && (subject != null || instance.contextId != null) ->
                         teams
-                            .effectiveMembers(actor, subject.contextId)
-                            .filter { it.role.key == a.removePrefix("role:") }
+                            .effectiveMembers(
+                                actor,
+                                subject?.contextId ?: com.plm.access.api
+                                    .ContextId(instance.contextId!!),
+                            ).filter { it.role.key == a.removePrefix("role:") }
                             .map { it.principalId.value }
                     else -> emptyList()
                 }
@@ -187,7 +190,7 @@ class DefaultProcessActivities internal constructor(
                 system(instance.tenantId),
                 WorkItemAssigned(id, instance.id, p, label(node), instance.subjectId),
             )
-            val what = subject?.let { " · ${it.number} ${it.name}" }.orEmpty()
+            val what = subject?.let { " · ${it.number} ${it.name}" } ?: instance.about?.let { " · $it" }.orEmpty()
             personal.notify(
                 TenantId(instance.tenantId),
                 p,

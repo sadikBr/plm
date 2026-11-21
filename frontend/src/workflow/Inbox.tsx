@@ -64,7 +64,11 @@ export function InboxPage() {
       <PageHeader
         icon={<InboxIcon size={18} className="icon-muted" aria-hidden />}
         title={<span className="nm">{t("Tasks")}</span>}
-        meta={<span className="sub">{t("What processes ask of you: answer here, or open the object first.")}</span>}
+        meta={
+          <span className="sub">
+            {t("What processes ask of you: answer here, or open the object first.")} <Link to="/promotions">{t("Promotion requests")}</Link>
+          </span>
+        }
       />
       <div className="content inbox">
         <Panel
@@ -135,7 +139,7 @@ export function InboxPage() {
                           <span className="mono">{w.subjectNumber}</span> {w.subjectName}
                         </>
                       ) : (
-                        "—"
+                        (w.about ?? "—")
                       )}
                     </td>
                     <td>{w.processName}</td>
@@ -215,6 +219,11 @@ function TaskPanel({ id }: { id: string }) {
           ) : (
             <div className="muted">{t("About an object you can't open: ask for access, or pass the task on.")}</div>
           ))}
+        {!w.subjectId && w.about && (
+          <div>
+            <span className="label">{t("About")}</span> {w.link ? <Link to={w.link}>{w.about}</Link> : w.about}
+          </div>
+        )}
         {w.instructions && <div className="instructions">{w.instructions}</div>}
         {process.data?.comment && (
           <div className="muted">
