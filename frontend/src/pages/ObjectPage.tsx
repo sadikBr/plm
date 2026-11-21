@@ -107,7 +107,7 @@ function ObjectView({ id }: { id: string }) {
   const tabs: [Tab, string][] = [
     ["details", t("Details")],
     ...(cadKind
-      ? [["cad", cadKind === "PART" ? t("Where used") : cadKind === "DRAWING" ? t("Models") : t("Model structure")] as [Tab, string]]
+      ? [["cad", cadKind === "PART" ? t("Model") : cadKind === "DRAWING" ? t("Models") : t("Model structure")] as [Tab, string]]
       : []),
     ...(isPart
       ? [

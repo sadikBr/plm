@@ -1002,3 +1002,7 @@ textarea.script-source { min-height: 220px; line-height: 1.45; tab-size: 2; }
 .collector-options { margin-bottom: 10px; }
 .collector-actions .row > input, .collector-actions .row > select { width: auto; flex: 0 1 280px; }
 table.collected td input[type="checkbox"] { width: 16px; height: 16px; }
+/* Family tables (roadmap 6.3). */
+.family-columns { display: grid; gap: 6px; margin-bottom: 12px; max-width: 640px; }
+.family-grid td input { width: 100%; min-width: 70px; }
+.family-grid tr.new-row td { background: var(--row-hover); }

@@ -457,8 +457,13 @@ seat.
       any depth), their drawings and the assemblies that use it; the chosen ones are checked out,
       checked in, revised or moved to a state together, all or nothing (the error names the model
       that stopped it), or added to a change notice as its results to be released through it.
-- [ ] 6.3 Family tables: a generic model and its instances (a table of parameters per instance),
+- [x] 6.3 Family tables: a generic model and its instances (a table of parameters per instance),
       instances sharing the generic's file; adding, editing and using instances in assemblies.
+      Done: a CAD part or assembly becomes a generic by having columns (its parameters); each row
+      is an instance, created as a CAD document of the generic's type that shares its file, with
+      one value per column. The table belongs to the generic's version (edited on its working copy,
+      kept in new versions); instances show the table they belong to and are used in assemblies
+      like any model.
 - [ ] 6.4 Part ↔ CAD association and build rules: a part's owning model and contributing models;
       "build" turns the CAD assembly into the part structure (quantities, find numbers), keeping
       lines added by hand.

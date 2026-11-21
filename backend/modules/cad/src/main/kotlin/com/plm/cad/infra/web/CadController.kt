@@ -85,3 +85,51 @@ internal class CollectorController(
         @RequestBody request: com.plm.cad.api.CollectorRequest,
     ) = collector.apply(actor, request)
 }
+
+/** Family tables (roadmap 6.3). */
+@RestController
+internal class FamilyController(
+    private val families: com.plm.cad.api.FamilyService,
+) {
+    @GetMapping("/api/v1/objects/{id}/cad/family")
+    fun membership(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = families.membership(actor, id)
+
+    @GetMapping("/api/v1/objects/{id}/cad/family/table")
+    fun table(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestParam(defaultValue = "false") workingCopy: Boolean,
+    ) = families.table(actor, id, workingCopy)
+
+    @PutMapping("/api/v1/objects/{id}/cad/family/columns")
+    fun columns(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody columns: List<com.plm.cad.api.FamilyColumn>,
+    ) = families.setColumns(actor, id, columns)
+
+    @PostMapping("/api/v1/objects/{id}/cad/family/instances")
+    fun addInstance(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody instance: com.plm.cad.api.NewInstance,
+    ) = families.addInstance(actor, id, instance)
+
+    @PutMapping("/api/v1/objects/{id}/cad/family/instances/{instanceId}")
+    fun setValues(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @PathVariable instanceId: UUID,
+        @RequestBody values: Map<String, Any?>,
+    ) = families.setValues(actor, id, instanceId, values)
+
+    @DeleteMapping("/api/v1/objects/{id}/cad/family/instances/{instanceId}")
+    fun removeInstance(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @PathVariable instanceId: UUID,
+    ) = families.removeInstance(actor, id, instanceId)
+}

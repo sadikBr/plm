@@ -3358,6 +3358,74 @@
         "required" : [ "count", "key" ],
         "type" : "object"
       },
+      "FamilyColumn" : {
+        "properties" : {
+          "label" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "unit" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "name" ],
+        "type" : "object"
+      },
+      "FamilyInstance" : {
+        "properties" : {
+          "model" : {
+            "$ref" : "#/components/schemas/CadModel"
+          },
+          "values" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          }
+        },
+        "required" : [ "model", "values" ],
+        "type" : "object"
+      },
+      "FamilyMembership" : {
+        "properties" : {
+          "role" : {
+            "type" : "string"
+          },
+          "table" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/FamilyTable"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "role" ],
+        "type" : "object"
+      },
+      "FamilyTable" : {
+        "properties" : {
+          "columns" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FamilyColumn"
+            },
+            "type" : "array"
+          },
+          "generic" : {
+            "$ref" : "#/components/schemas/CadModel"
+          },
+          "genericVersion" : {
+            "type" : "string"
+          },
+          "instances" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FamilyInstance"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "columns", "generic", "genericVersion", "instances" ],
+        "type" : "object"
+      },
       "Favorite" : {
         "properties" : {
           "createdAt" : {
@@ -4673,6 +4741,22 @@
           }
         },
         "required" : [ "attributes", "contextId", "name", "templateId" ],
+        "type" : "object"
+      },
+      "NewInstance" : {
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : [ "string", "null" ]
+          },
+          "values" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          }
+        },
+        "required" : [ "name", "values" ],
         "type" : "object"
       },
       "Notification" : {
@@ -16074,6 +16158,284 @@
         "tags" : [ "Cad" ]
       }
     },
+    "/api/v1/objects/{id}/cad/family" : {
+      "get" : {
+        "operationId" : "familyMembership",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FamilyMembership"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Family" ]
+      }
+    },
+    "/api/v1/objects/{id}/cad/family/columns" : {
+      "put" : {
+        "operationId" : "familyColumns",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "items" : {
+                  "$ref" : "#/components/schemas/FamilyColumn"
+                },
+                "type" : "array"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FamilyTable"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Family" ]
+      }
+    },
+    "/api/v1/objects/{id}/cad/family/instances" : {
+      "post" : {
+        "operationId" : "familyAddInstance",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NewInstance"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FamilyTable"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Family" ]
+      }
+    },
+    "/api/v1/objects/{id}/cad/family/instances/{instanceId}" : {
+      "delete" : {
+        "operationId" : "familyRemoveInstance",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "instanceId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FamilyTable"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Family" ]
+      },
+      "put" : {
+        "operationId" : "familySetValues",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "instanceId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "additionalProperties" : { },
+                "type" : "object"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FamilyTable"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Family" ]
+      }
+    },
+    "/api/v1/objects/{id}/cad/family/table" : {
+      "get" : {
+        "operationId" : "familyTable",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "workingCopy",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FamilyTable"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Family" ]
+      }
+    },
     "/api/v1/objects/{id}/cad/tree" : {
       "get" : {
         "operationId" : "cadTree",
@@ -23509,6 +23871,8 @@
     "name" : "Expression"
   }, {
     "name" : "Extension"
+  }, {
+    "name" : "Family"
   }, {
     "name" : "Global attribute"
   }, {

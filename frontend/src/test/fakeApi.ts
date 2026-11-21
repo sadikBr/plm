@@ -55,6 +55,7 @@ const DEFAULTS: Record<string, Handler> = {
   "GET /api/v1/automation-triggers": () => [],
   "GET /api/v1/objects/:id/cad/tree": () => [],
   "GET /api/v1/objects/:id/cad/where-used": () => [],
+  "GET /api/v1/objects/:id/cad/family": () => ({ role: "NONE", table: null }),
   "GET /api/v1/release-gate": () => ({ enabled: false, states: ["RELEASED"], updatedAt: null, updatedBy: null }),
   "GET /api/v1/change-metrics": () => ({ open: 0, byState: [], ages: [], cycleTimes: [], flow: [], mine: [], periodDays: 180 }),
   "GET /api/v1/objects/:id/structure": () => ({ rootId: "", spec: { type: "LATEST" }, nodes: [], truncated: false, elapsedMs: 0 }),

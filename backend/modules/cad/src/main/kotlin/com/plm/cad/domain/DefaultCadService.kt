@@ -115,7 +115,7 @@ internal class DefaultCadService(
             .flatMap { versioning.list(actor, ObjectQuery(ids = it.map(::MasterId), limit = 500)) }
             .associateBy { it.id.value }
 
-    private fun models(
+    internal fun models(
         actor: Actor,
         ids: Collection<UUID>,
     ): Map<UUID, CadModel> {

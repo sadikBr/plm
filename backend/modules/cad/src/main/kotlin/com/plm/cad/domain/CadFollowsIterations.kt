@@ -43,6 +43,27 @@ internal class CadFollowsIterations(
                 .param("id", iteration)
                 .query(Int::class.java)
                 .single()
+        // Family tables (roadmap 6.3) follow too.
+        jdbc
+            .sql(
+                """
+                insert into cad_family (iteration_id, tenant_id, columns)
+                select :it, tenant_id, columns from cad_family where iteration_id = :s on conflict do nothing
+                """.trimIndent(),
+            ).param("it", iteration)
+            .param("s", source)
+            .update()
+        jdbc
+            .sql(
+                """
+                insert into cad_family_row (id, tenant_id, iteration_id, instance_master_id, "values", position)
+                select gen_random_uuid(), tenant_id, :it, instance_master_id, "values", position
+                from cad_family_row where iteration_id = :s
+                on conflict do nothing
+                """.trimIndent(),
+            ).param("it", iteration)
+            .param("s", source)
+            .update()
         if (existing > 0) return
         val ids =
             jdbc

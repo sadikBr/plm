@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Layers, Trash2 } from "lucide-react";
 import { CollectorDialog } from "./Collector";
+import { FamilyPanel } from "./Family";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
@@ -71,6 +72,7 @@ export function CadTab({ obj, kind, mine }: { obj: VersionedObject; kind: Kind; 
       </div>
       {collecting && <CollectorDialog objectId={obj.id} onClose={() => setCollecting(false)} />}
       {kind !== "PART" && <CadStructure obj={obj} kind={kind} mine={mine} />}
+      {kind !== "DRAWING" && <FamilyPanel obj={obj} mine={mine} />}
       <CadWhereUsed obj={obj} />
     </div>
   );
