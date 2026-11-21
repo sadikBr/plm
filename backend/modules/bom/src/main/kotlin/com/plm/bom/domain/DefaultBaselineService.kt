@@ -297,6 +297,11 @@ internal class DefaultBaselineService(
                 limit = 50_000,
             )
         val root = versioning.get(actor, MasterId(request.partId))
+        // The state of the iteration collected, not of the latest.
+        val rootState =
+            structure.rootIterationId?.let { id ->
+                versioning.history(actor, root.id).firstOrNull { it.id.value == id }?.state
+            } ?: root.latest.state
         val out = LinkedHashMap<UUID, CollectedObject>()
         out[root.id.value] =
             CollectedObject(
@@ -308,7 +313,7 @@ internal class DefaultBaselineService(
                     root.typeId.value,
                     structure.rootIterationId,
                     structure.rootVersion,
-                    root.latest.state,
+                    rootState,
                     true,
                 ),
                 "TOP",
