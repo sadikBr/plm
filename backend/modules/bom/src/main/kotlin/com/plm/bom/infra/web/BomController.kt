@@ -36,7 +36,8 @@ internal class BomController(
 
     /**
      * The multi-level structure (roadmap 4.2, 4.3): `spec` LATEST, STATE (with `state`, Released
-     * by default) or AS_OF (with `asOf`); `depth` levels (1-50).
+     * by default), AS_OF (with `asOf`), BASELINE (`baselineId`) or EFFECTIVITY (`effectivityKind`,
+     * `effectiveAt`, `endItemId`: roadmap 7.2); `depth` levels (1-50).
      */
     @GetMapping("/api/v1/objects/{id}/structure")
     fun structure(
@@ -46,9 +47,18 @@ internal class BomController(
         @RequestParam(required = false) state: String?,
         @RequestParam(required = false) asOf: Instant?,
         @RequestParam(required = false) baselineId: UUID?,
+        @RequestParam(required = false) effectivityKind: String?,
+        @RequestParam(required = false) effectiveAt: String?,
+        @RequestParam(required = false) endItemId: UUID?,
         @RequestParam(defaultValue = "1") depth: Int,
         @RequestParam(defaultValue = "false") workingCopy: Boolean,
-    ) = bom.structure(actor, MasterId(id), ConfigSpec(spec, state, asOf, baselineId), depth, workingCopy)
+    ) = bom.structure(
+        actor,
+        MasterId(id),
+        ConfigSpec(spec, state, asOf, baselineId, effectivityKind, effectiveAt, endItemId),
+        depth,
+        workingCopy,
+    )
 
     /** Where the part is used (roadmap 4.6), under a configuration specification, `depth` levels up. */
     @GetMapping("/api/v1/objects/{id}/where-used")
@@ -58,8 +68,23 @@ internal class BomController(
         @RequestParam(defaultValue = "LATEST") spec: ConfigSpecType,
         @RequestParam(required = false) state: String?,
         @RequestParam(required = false) asOf: Instant?,
+        @RequestParam(required = false) effectivityKind: String?,
+        @RequestParam(required = false) effectiveAt: String?,
+        @RequestParam(required = false) endItemId: UUID?,
         @RequestParam(defaultValue = "1") depth: Int,
-    ) = bom.whereUsed(actor, MasterId(id), ConfigSpec(spec, state, asOf), depth)
+    ) = bom.whereUsed(
+        actor,
+        MasterId(id),
+        ConfigSpec(
+            spec,
+            state,
+            asOf,
+            effectivityKind = effectivityKind,
+            effectiveAt = effectiveAt,
+            endItemId = endItemId,
+        ),
+        depth,
+    )
 
     /** Compares two structures (roadmap 4.9): each side a part with `…Iteration` or `…Spec`. */
     @GetMapping("/api/v1/structure-compare")
@@ -73,11 +98,36 @@ internal class BomController(
         @RequestParam(required = false) rightIteration: UUID?,
         @RequestParam(defaultValue = "LATEST") rightSpec: ConfigSpecType,
         @RequestParam(required = false) rightState: String?,
+        /** EFFECTIVITY on either side: what it's by and of, shared; where, per side. */
+        @RequestParam(required = false) effectivityKind: String?,
+        @RequestParam(required = false) endItemId: UUID?,
+        @RequestParam(required = false) leftEffectiveAt: String?,
+        @RequestParam(required = false) rightEffectiveAt: String?,
         @RequestParam(defaultValue = "50") depth: Int,
     ) = bom.compare(
         actor,
-        CompareSide(left, leftIteration, ConfigSpec(leftSpec, leftState)),
-        CompareSide(right, rightIteration, ConfigSpec(rightSpec, rightState)),
+        CompareSide(
+            left,
+            leftIteration,
+            ConfigSpec(
+                leftSpec,
+                leftState,
+                effectivityKind = effectivityKind,
+                effectiveAt = leftEffectiveAt,
+                endItemId = endItemId,
+            ),
+        ),
+        CompareSide(
+            right,
+            rightIteration,
+            ConfigSpec(
+                rightSpec,
+                rightState,
+                effectivityKind = effectivityKind,
+                effectiveAt = rightEffectiveAt,
+                endItemId = endItemId,
+            ),
+        ),
         depth,
     )
 

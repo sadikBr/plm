@@ -7,7 +7,7 @@ import type { VersionedObject } from "../api/queries";
 import { ErrorBanner, Loading, Panel, StateBadge, TypeIcon, stateLabel } from "../components/common";
 import { locale, t, tn } from "../i18n/i18n";
 import { useUnits } from "./Structure";
-import { SpecPicker, useDefaultSpec, type Spec } from "./StructureTree";
+import { SpecPicker, effectivityQuery, useDefaultSpec, type Spec } from "./StructureTree";
 import { ReplaceEverywhereButton } from "./StructureOperations";
 import { BulkProgress } from "../pages/Bulk";
 
@@ -27,6 +27,7 @@ export function WhereUsedTab({ obj }: { obj: VersionedObject }) {
     depth: allLevels ? 50 : 1,
     ...(spec.type === "STATE" ? { state: spec.state ?? "RELEASED" } : {}),
     ...(spec.type === "AS_OF" && spec.asOf ? { asOf: new Date(`${spec.asOf}T23:59:59`).toISOString() } : {}),
+    ...effectivityQuery(spec),
   };
   const { data, error, isLoading } = useQuery({
     queryKey: ["whereUsed", obj.id, query],

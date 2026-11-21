@@ -41,6 +41,7 @@ Three layers enforce this:
 | automation | No-code automations: an event, a condition, actions (set state or a value, notify, start a process, call a webhook, run a script), with a run history | access, types, versioning, workflow, notifications, extensions, identity |
 | cad | CAD documents (part, assembly, drawing) and their versioned dependencies, the collector, family tables, part ↔ CAD association and build | access, types, versioning, bom |
 | publishing | Publishing rules (PDFs on check-in or on reaching a state), stamping, download watermarks, data sheets | access, types, versioning, content, bom, jobs, identity |
+| effectivity | When part versions and structure lines apply: end items, date, serial, lot and block ranges; effectivity configuration specs | access, types, versioning, bom |
 | search | Search: indexing from events (OpenSearch or Postgres), queries with facets, saved searches | access, types, versioning, content, jobs |
 | configuration | Export/import of the whole configuration as one bundle (config as code) | types, lifecycle, access |
 | preferences | Typed preferences set per site / organization / context / user, with locking; profiles | access, types |

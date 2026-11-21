@@ -1089,3 +1089,9 @@ table.collected td input[type="checkbox"] { width: 16px; height: 16px; }
 .pmi-chip { padding: 0 5px; border: 1px solid #0b7285; color: #0b4f5c; font: 600 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .pmi-chip.pmi-datum { background: #0b7285; color: #fff; }
 .row.wrap-tight { flex-wrap: wrap; gap: 4px; }
+/* Effectivity (roadmap 7.1, 7.2). */
+.spec-picker .eff-value { width: 110px; }
+.eff-form { padding: 12px 14px; border-top: 1px solid var(--border); align-items: end; }
+.eff-form .field { flex: 0 1 170px; }
+.num-text { font-variant-numeric: tabular-nums; }
+.tag.ok { background: var(--ok-soft); color: var(--ok); }

@@ -186,6 +186,13 @@ enum class ConfigSpecType {
 
     /** The iteration [ConfigSpec.baselineId] holds; parts not in it have none (roadmap 4.10). */
     BASELINE,
+
+    /**
+     * As effective at [ConfigSpec.effectiveAt] (a date, serial, lot or block, per
+     * [ConfigSpec.effectivityKind]) of the end item [ConfigSpec.endItemId] (roadmap 7.2): each part
+     * at the revision effective there, and only the lines effective there.
+     */
+    EFFECTIVITY,
 }
 
 data class ConfigSpec(
@@ -193,6 +200,12 @@ data class ConfigSpec(
     val state: String? = null,
     val asOf: Instant? = null,
     val baselineId: UUID? = null,
+    /** EFFECTIVITY: DATE, SERIAL, LOT or BLOCK. */
+    val effectivityKind: String? = null,
+    /** EFFECTIVITY: the date (yyyy-mm-dd), serial number, lot or block. */
+    val effectiveAt: String? = null,
+    /** EFFECTIVITY: the end item (a part) serials, lots and blocks count in; dates may have none. */
+    val endItemId: UUID? = null,
 ) {
     companion object {
         val LATEST = ConfigSpec()
@@ -305,4 +318,30 @@ data class StructureChanged(
     override val eventType = "bom.StructureChanged.v1"
     override val aggregateType = "versioned-object"
     override val aggregateId: UUID = objectId
+}
+
+/** A lateral subquery choosing master `m`'s iteration (alias `x`), with its parameters. */
+data class IterationPick(
+    val sql: String,
+    val params: Map<String, Any?>,
+)
+
+/**
+ * Effectivity for configuration specs (roadmap 7.2), provided by the effectivity module: which
+ * revision of each part, and which lines, are effective for an [ConfigSpecType.EFFECTIVITY] spec.
+ */
+interface EffectivityProvider {
+    fun pick(spec: ConfigSpec): IterationPick
+
+    /** Of [lineIds], those not effective under [spec]. */
+    fun ineffectiveLines(
+        lineIds: Collection<UUID>,
+        spec: ConfigSpec,
+    ): Set<UUID>
+}
+
+/** Told when lines are copied to a new iteration (check-out, revise), so data on lines can follow. */
+interface LineCopyListener {
+    /** Pairs of (old line, its copy). */
+    fun copied(lines: List<Pair<UUID, UUID>>)
 }

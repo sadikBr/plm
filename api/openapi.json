@@ -319,6 +319,41 @@
         "required" : [ "childId", "kind", "required" ],
         "type" : "object"
       },
+      "AddEffectivity" : {
+        "properties" : {
+          "changeId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "endItemId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "from" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "DATE", "SERIAL", "LOT", "BLOCK" ],
+            "type" : "string"
+          },
+          "lineId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "revision" : {
+            "type" : [ "string", "null" ]
+          },
+          "target" : {
+            "enum" : [ "VERSION", "LINE" ],
+            "type" : "string"
+          },
+          "to" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "from", "kind", "target" ],
+        "type" : "object"
+      },
       "AddRedline" : {
         "properties" : {
           "attribute" : {
@@ -2134,11 +2169,21 @@
             "format" : "uuid",
             "type" : [ "string", "null" ]
           },
+          "effectiveAt" : {
+            "type" : [ "string", "null" ]
+          },
+          "effectivityKind" : {
+            "type" : [ "string", "null" ]
+          },
+          "endItemId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
           "state" : {
             "type" : [ "string", "null" ]
           },
           "type" : {
-            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE" ],
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE", "EFFECTIVITY" ],
             "type" : "string"
           }
         },
@@ -2332,6 +2377,19 @@
           }
         },
         "required" : [ "kind", "name", "parentId" ],
+        "type" : "object"
+      },
+      "CreateEffectivityContext" : {
+        "properties" : {
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "endItemId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "endItemId" ],
         "type" : "object"
       },
       "CreateLifecycleRequest" : {
@@ -3001,6 +3059,113 @@
           "value" : { }
         },
         "required" : [ "key", "source" ],
+        "type" : "object"
+      },
+      "Effectivity" : {
+        "properties" : {
+          "changeId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "context" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/EffectivityContext"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "from" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "DATE", "SERIAL", "LOT", "BLOCK" ],
+            "type" : "string"
+          },
+          "lineChild" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/EffectivityItem"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "lineId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "lineNumber" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "partId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "revision" : {
+            "type" : [ "string", "null" ]
+          },
+          "status" : {
+            "enum" : [ "ACTUAL", "PENDING" ],
+            "type" : "string"
+          },
+          "target" : {
+            "enum" : [ "VERSION", "LINE" ],
+            "type" : "string"
+          },
+          "to" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "createdAt", "createdBy", "from", "id", "kind", "partId", "status", "target" ],
+        "type" : "object"
+      },
+      "EffectivityContext" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "endItem" : {
+            "$ref" : "#/components/schemas/EffectivityItem"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "createdBy", "endItem", "id" ],
+        "type" : "object"
+      },
+      "EffectivityItem" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "number" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id" ],
         "type" : "object"
       },
       "EnableExtensionRequest" : {
@@ -7500,6 +7665,26 @@
           }
         },
         "required" : [ "active", "createdAt", "createdBy", "displayName", "id", "siteAdmin", "username" ],
+        "type" : "object"
+      },
+      "SetEffectivity" : {
+        "properties" : {
+          "endItemId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "from" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "DATE", "SERIAL", "LOT", "BLOCK" ],
+            "type" : "string"
+          },
+          "to" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "from", "kind" ],
         "type" : "object"
       },
       "SetPlan" : {
@@ -13373,6 +13558,178 @@
         "tags" : [ "Document" ]
       }
     },
+    "/api/v1/effectivity-contexts" : {
+      "get" : {
+        "operationId" : "effectivityContexts",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/EffectivityContext"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Effectivity" ]
+      },
+      "post" : {
+        "operationId" : "effectivityCreateContext",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateEffectivityContext"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EffectivityContext"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Effectivity" ]
+      }
+    },
+    "/api/v1/effectivity-contexts/{id}" : {
+      "delete" : {
+        "operationId" : "effectivityDeleteContext",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Effectivity" ]
+      }
+    },
+    "/api/v1/effectivity/{effectivityId}" : {
+      "delete" : {
+        "operationId" : "effectivityDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "effectivityId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Effectivity" ]
+      },
+      "put" : {
+        "operationId" : "effectivityUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "effectivityId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetEffectivity"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Effectivity"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Effectivity" ]
+      }
+    },
     "/api/v1/enumerations" : {
       "get" : {
         "operationId" : "referenceDataList",
@@ -17823,7 +18180,7 @@
           "required" : false,
           "schema" : {
             "default" : "LATEST",
-            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE" ],
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE", "EFFECTIVITY" ],
             "type" : "string"
           }
         }, {
@@ -17836,6 +18193,28 @@
         }, {
           "in" : "query",
           "name" : "baselineId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "effectivityKind",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "effectiveAt",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "endItemId",
           "required" : false,
           "schema" : {
             "format" : "uuid",
@@ -18431,6 +18810,99 @@
         "tags" : [ "Document link" ]
       }
     },
+    "/api/v1/objects/{id}/effectivity" : {
+      "get" : {
+        "operationId" : "effectivityForPart",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "workingCopy",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Effectivity"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Effectivity" ]
+      },
+      "post" : {
+        "operationId" : "effectivityAdd",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddEffectivity"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Effectivity"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Effectivity" ]
+      }
+    },
     "/api/v1/objects/{id}/expression-model" : {
       "get" : {
         "operationId" : "expressionModel",
@@ -18533,7 +19005,7 @@
           "required" : false,
           "schema" : {
             "default" : "LATEST",
-            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE" ],
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE", "EFFECTIVITY" ],
             "type" : "string"
           }
         }, {
@@ -19346,7 +19818,7 @@
           "required" : false,
           "schema" : {
             "default" : "LATEST",
-            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE" ],
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE", "EFFECTIVITY" ],
             "type" : "string"
           }
         }, {
@@ -19703,7 +20175,7 @@
           "required" : false,
           "schema" : {
             "default" : "LATEST",
-            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE" ],
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE", "EFFECTIVITY" ],
             "type" : "string"
           }
         }, {
@@ -19724,6 +20196,28 @@
         }, {
           "in" : "query",
           "name" : "baselineId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "effectivityKind",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "effectiveAt",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "endItemId",
           "required" : false,
           "schema" : {
             "format" : "uuid",
@@ -20534,7 +21028,7 @@
           "required" : false,
           "schema" : {
             "default" : "LATEST",
-            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE" ],
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE", "EFFECTIVITY" ],
             "type" : "string"
           }
         }, {
@@ -20550,6 +21044,28 @@
           "required" : false,
           "schema" : {
             "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "effectivityKind",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "effectiveAt",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "endItemId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
             "type" : "string"
           }
         }, {
@@ -23512,7 +24028,7 @@
           "required" : false,
           "schema" : {
             "default" : "LATEST",
-            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE" ],
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE", "EFFECTIVITY" ],
             "type" : "string"
           }
         }, {
@@ -23544,12 +24060,41 @@
           "required" : false,
           "schema" : {
             "default" : "LATEST",
-            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE" ],
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE", "EFFECTIVITY" ],
             "type" : "string"
           }
         }, {
           "in" : "query",
           "name" : "rightState",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "effectivityKind",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "endItemId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "leftEffectiveAt",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "rightEffectiveAt",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -25485,6 +26030,8 @@
     "name" : "Document"
   }, {
     "name" : "Document link"
+  }, {
+    "name" : "Effectivity"
   }, {
     "name" : "Expression"
   }, {

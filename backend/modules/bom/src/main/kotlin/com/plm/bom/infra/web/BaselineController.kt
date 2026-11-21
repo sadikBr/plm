@@ -87,7 +87,25 @@ internal class BaselineController(
         @RequestParam(defaultValue = "LATEST") spec: ConfigSpecType,
         @RequestParam(required = false) state: String?,
         @RequestParam(required = false) baselineId: UUID?,
+        @RequestParam(required = false) effectivityKind: String?,
+        @RequestParam(required = false) effectiveAt: String?,
+        @RequestParam(required = false) endItemId: UUID?,
         @RequestParam(defaultValue = "50") depth: Int,
         @RequestParam(defaultValue = "true") documents: Boolean,
-    ) = baselines.collect(actor, CollectRequest(id, ConfigSpec(spec, state, baselineId = baselineId), depth, documents))
+    ) = baselines.collect(
+        actor,
+        CollectRequest(
+            id,
+            ConfigSpec(
+                spec,
+                state,
+                baselineId = baselineId,
+                effectivityKind = effectivityKind,
+                effectiveAt = effectiveAt,
+                endItemId = endItemId,
+            ),
+            depth,
+            documents,
+        ),
+    )
 }

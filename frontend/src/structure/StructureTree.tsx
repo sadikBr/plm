@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy, FileSpreadsheet, Lock } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
 import { useEffectivePreferences, useLifecycles, type VersionedObject } from "../api/queries";
@@ -15,7 +15,27 @@ import { ReplacementMarks, copyLines, useUnits } from "./Structure";
 
 type Node = Schemas["StructureNode"];
 type SpecType = Schemas["ConfigSpec"]["type"];
-export type Spec = { type: SpecType; state?: string; asOf?: string; baselineId?: string };
+export type Spec = {
+  type: SpecType;
+  state?: string;
+  asOf?: string;
+  baselineId?: string;
+  /** EFFECTIVITY (roadmap 7.2): by what, at what, of which end item. */
+  effectivityKind?: EffectivityKind;
+  effectiveAt?: string;
+  endItemId?: string;
+};
+export type EffectivityKind = "DATE" | "SERIAL" | "LOT" | "BLOCK";
+
+/** The query parameters of an effectivity spec (none for other kinds). */
+export const effectivityQuery = (spec: Spec) =>
+  spec.type === "EFFECTIVITY"
+    ? {
+        effectivityKind: spec.effectivityKind ?? "DATE",
+        effectiveAt: spec.effectiveAt ?? "",
+        ...(spec.endItemId ? { endItemId: spec.endItemId } : {}),
+      }
+    : {};
 
 const ROW = 32;
 const qty = (n: number) => n.toLocaleString(locale(), { maximumFractionDigits: 6 });
@@ -27,6 +47,7 @@ function specQuery(spec: Spec, depth: number) {
     ...(spec.type === "STATE" ? { state: spec.state ?? "RELEASED" } : {}),
     ...(spec.type === "AS_OF" && spec.asOf ? { asOf: new Date(`${spec.asOf}T23:59:59`).toISOString() } : {}),
     ...(spec.type === "BASELINE" ? { baselineId: spec.baselineId } : {}),
+    ...effectivityQuery(spec),
   };
 }
 
@@ -40,9 +61,93 @@ export function useDefaultSpec(contextId: string): Spec {
   return data?.get("bom.configSpec") === "RELEASED" ? { type: "STATE", state: "RELEASED" } : { type: "LATEST" };
 }
 
-/** Chooses latest, latest in a state, or as of a date. */
+export const useEffectivityContexts = () =>
+  useQuery({ queryKey: ["effectivityContexts"], queryFn: () => unwrap(api.GET("/api/v1/effectivity-contexts")), staleTime: 60_000 });
+
+export const effectivityKindLabel = (k: EffectivityKind) =>
+  k === "DATE" ? t("Date") : k === "SERIAL" ? t("Serial number") : k === "LOT" ? t("Lot") : t("Block");
+
+/**
+ * What an effectivity spec asks (roadmap 7.2): by date, or by serial, lot or block of an end item.
+ * Values are typed in and applied on Enter or when the field is left, not on every keystroke.
+ */
+function EffectivityFields({
+  spec,
+  onChange,
+  contexts,
+  partId,
+}: {
+  spec: Spec;
+  onChange: (s: Spec) => void;
+  contexts: Schemas["EffectivityContext"][];
+  partId?: string;
+}) {
+  const kind = spec.effectivityKind ?? "DATE";
+  const [draft, setDraft] = useState(spec.effectiveAt ?? "");
+  // Serials, lots and blocks count in an end item: the part itself when it's one, else the first.
+  const fallback = (contexts.find((c) => c.endItem.id === partId) ?? contexts[0])?.endItem.id;
+  useEffect(() => {
+    if (kind !== "DATE" && !spec.endItemId && fallback) onChange({ ...spec, endItemId: fallback });
+  }, [kind, spec, fallback, onChange]);
+  const apply = () => draft !== spec.effectiveAt && onChange({ ...spec, effectiveAt: draft });
+  return (
+    <>
+      <select
+        aria-label={t("Effective by")}
+        value={kind}
+        onChange={(e) => {
+          const k = e.target.value as EffectivityKind;
+          const at = k === "DATE" ? new Date().toISOString().slice(0, 10) : "";
+          setDraft(at);
+          onChange({ ...spec, effectivityKind: k, effectiveAt: at });
+        }}
+      >
+        {(["DATE", "SERIAL", "LOT", "BLOCK"] as EffectivityKind[]).map((k) => (
+          <option key={k} value={k} disabled={k !== "DATE" && !contexts.length}>
+            {effectivityKindLabel(k)}
+          </option>
+        ))}
+      </select>
+      {kind === "DATE" ? (
+        <input
+          aria-label={t("Effective on")}
+          type="date"
+          value={spec.effectiveAt ?? ""}
+          onChange={(e) => onChange({ ...spec, effectiveAt: e.target.value })}
+        />
+      ) : (
+        <input
+          aria-label={t("Effective for")}
+          className="eff-value"
+          placeholder={kind === "LOT" ? t("Lot") : "100"}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={apply}
+          onKeyDown={(e) => e.key === "Enter" && apply()}
+        />
+      )}
+      {(kind !== "DATE" || contexts.length > 0) && (
+        <select
+          aria-label={t("Of end item")}
+          value={spec.endItemId ?? ""}
+          onChange={(e) => onChange({ ...spec, endItemId: e.target.value || undefined })}
+        >
+          {kind === "DATE" && <option value="">{t("Any end item")}</option>}
+          {contexts.map((c) => (
+            <option key={c.id} value={c.endItem.id}>
+              {t("of {item}", { item: `${c.endItem.number ?? ""} ${c.endItem.name ?? ""}`.trim() })}
+            </option>
+          ))}
+        </select>
+      )}
+    </>
+  );
+}
+
+/** Chooses latest, latest in a state, as of a date, as in a baseline, or as effective (7.2). */
 export function SpecPicker({ spec, onChange, partId }: { spec: Spec; onChange: (s: Spec) => void; partId?: string }) {
   const { data: baselines } = useBaselines(partId);
+  const { data: contexts } = useEffectivityContexts();
   const { data: lifecycles } = useLifecycles();
   const states = useMemo(() => {
     const keys = new Map<string, Record<string, string>>();
@@ -62,6 +167,13 @@ export function SpecPicker({ spec, onChange, partId }: { spec: Spec; onChange: (
           if (v.startsWith("STATE:")) onChange({ type: "STATE", state: v.slice(6) });
           else if (v.startsWith("BASELINE:")) onChange({ type: "BASELINE", baselineId: v.slice(9) });
           else if (v === "AS_OF") onChange({ type: "AS_OF", asOf: spec.asOf ?? new Date().toISOString().slice(0, 10) });
+          else if (v === "EFFECTIVITY")
+            onChange({
+              type: "EFFECTIVITY",
+              effectivityKind: contexts?.length ? "SERIAL" : "DATE",
+              effectiveAt: contexts?.length ? "" : new Date().toISOString().slice(0, 10),
+              endItemId: (contexts?.find((c) => c.endItem.id === partId) ?? contexts?.[0])?.endItem.id,
+            });
           else onChange({ type: "LATEST" });
         }}
       >
@@ -72,6 +184,7 @@ export function SpecPicker({ spec, onChange, partId }: { spec: Spec; onChange: (
           </option>
         ))}
         <option value="AS_OF">{t("As of a date")}</option>
+        <option value="EFFECTIVITY">{t("As effective…")}</option>
         {baselines?.map((b) => (
           <option key={b.id} value={`BASELINE:${b.id}`}>
             {t("As in baseline {number} · {name}", { number: b.number, name: b.name })}
@@ -81,6 +194,7 @@ export function SpecPicker({ spec, onChange, partId }: { spec: Spec; onChange: (
       {spec.type === "AS_OF" && (
         <input aria-label={t("Date")} type="date" value={spec.asOf ?? ""} onChange={(e) => onChange({ ...spec, asOf: e.target.value })} />
       )}
+      {spec.type === "EFFECTIVITY" && <EffectivityFields spec={spec} onChange={onChange} contexts={contexts ?? []} partId={partId} />}
     </span>
   );
 }
@@ -96,6 +210,8 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
   const top = useQuery({
     queryKey: ["structure", obj.id, spec, all ? 50 : 1],
     queryFn: () => loadStructure(obj.id, spec, all ? 50 : 1),
+    // An effectivity spec waits for its value.
+    enabled: spec.type !== "EFFECTIVITY" || !!spec.effectiveAt,
   });
   // Lines loaded on demand, by the path of the line they're under.
   const [extra, setExtra] = useState<Map<string, Node[]>>(new Map());
@@ -249,6 +365,12 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
   };
 
   if (top.isLoading) return <Loading />;
+  if (spec.type === "EFFECTIVITY" && !spec.effectiveAt)
+    return (
+      <div className="empty small">
+        {t("Type the {what} to see what's effective there.", { what: effectivityKindLabel(spec.effectivityKind ?? "DATE").toLowerCase() })}
+      </div>
+    );
   return (
     <div className="structure-tree">
       <ErrorBanner error={top.error ?? error} />

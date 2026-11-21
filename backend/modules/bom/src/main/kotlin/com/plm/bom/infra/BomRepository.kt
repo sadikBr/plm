@@ -38,7 +38,29 @@ internal data class Resolved(
 @Repository
 internal class BomRepository(
     private val jdbc: JdbcClient,
+    private val effectivity: org.springframework.beans.factory.ObjectProvider<com.plm.bom.api.EffectivityProvider>,
+    private val lineCopies: org.springframework.beans.factory.ObjectProvider<com.plm.bom.api.LineCopyListener>,
 ) {
+    private val lineCopyListeners get() = lineCopies.orderedStream().toList()
+
+    /** The effectivity module's choice of iteration; refused when it isn't there. */
+    private fun effectivityPick(spec: com.plm.bom.api.ConfigSpec) =
+        (
+            effectivity.ifAvailable
+                ?: throw com.plm.platform.error
+                    .ValidationException("INVALID_SPEC", "Effectivity isn't available")
+        ).pick(spec)
+
+    /** Of [links], those effective under [spec] (all of them, unless it's an effectivity spec). */
+    fun effective(
+        links: List<LinkRow>,
+        spec: com.plm.bom.api.ConfigSpec,
+    ): List<LinkRow> {
+        if (spec.type != com.plm.bom.api.ConfigSpecType.EFFECTIVITY || links.isEmpty()) return links
+        val out = effectivity.ifAvailable?.ineffectiveLines(links.map { it.id }, spec).orEmpty()
+        return if (out.isEmpty()) links else links.filter { it.id !in out }
+    }
+
     private val mapper =
         RowMapper { rs, _ ->
             LinkRow(
@@ -99,6 +121,7 @@ internal class BomRepository(
                     select x.* from baseline_member bm join object_iteration x on x.id = bm.iteration_id
                     where bm.baseline_id = :spec_baseline and bm.master_id = m.id
                     """.trimIndent()
+                com.plm.bom.api.ConfigSpecType.EFFECTIVITY -> effectivityPick(spec).sql
                 com.plm.bom.api.ConfigSpecType.AS_OF ->
                     """
                     select * from object_iteration x where x.master_id = m.id and x.status = 'CHECKED_IN' and x.checked_in_at <= :spec_as_of
@@ -120,7 +143,15 @@ internal class BomRepository(
             .param("spec_state", spec.state ?: "RELEASED")
             .param("spec_as_of", Timestamp.from(spec.asOf ?: Instant.now()))
             .param("spec_baseline", spec.baselineId ?: UUID(0, 0))
-            .query { rs, _ ->
+            .params(
+                if (spec.type ==
+                    com.plm.bom.api.ConfigSpecType.EFFECTIVITY
+                ) {
+                    effectivityPick(spec).params
+                } else {
+                    emptyMap()
+                },
+            ).query { rs, _ ->
                 val it = rs.getObject("iteration_id", UUID::class.java)
                 Resolved(
                     rs.getObject("id", UUID::class.java),
@@ -342,12 +373,15 @@ internal class BomRepository(
                 ).param("id", iterationId)
                 .query { rs, _ -> TenantId(rs.getObject("tenant_id", UUID::class.java)) }
                 .single()
-        rows.forEach {
-            val copy = it.copy(id = newId(), parentIterationId = iterationId)
-            insert(tenant, copy)
-            copyDesignators(it.id, copy.id)
-            copySubstitutes(it.id, copy.id)
-        }
+        val pairs =
+            rows.map {
+                val copy = it.copy(id = newId(), parentIterationId = iterationId)
+                insert(tenant, copy)
+                copyDesignators(it.id, copy.id)
+                copySubstitutes(it.id, copy.id)
+                it.id to copy.id
+            }
+        if (pairs.isNotEmpty()) lineCopyListeners.forEach { it.copied(pairs) }
         return rows.size
     }
 

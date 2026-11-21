@@ -6,6 +6,7 @@ import { CadTab, cadKindOf } from "../cad/CadTab";
 import { PartCadPanel, useOwnerModel } from "../cad/Associations";
 import { ViewTab } from "../cad/ViewTab";
 import { SheetTab, useHasPdf } from "../cad/SheetTab";
+import { EffectivityTab } from "../effectivity/EffectivityTab";
 import { PublicationsPanel } from "../publishing/Publishing";
 import { ExtensionPanels, ExtensionTab, useUiSlots } from "../extensions/ExtensionFrame";
 import { ReplacementsTab } from "../structure/Replacements";
@@ -80,6 +81,7 @@ type Tab =
   | "cad"
   | "view3d"
   | "view2d"
+  | "effectivity"
   | "changes"
   | "discussion"
   | "history"
@@ -127,6 +129,7 @@ function ObjectView({ id }: { id: string }) {
           ["where-used", t("Where used")] as [Tab, string],
           ["documents", t("Documents")] as [Tab, string],
           ["replacements", t("Replacements")] as [Tab, string],
+          ["effectivity", t("Effectivity")] as [Tab, string],
         ]
       : allTypes && !changeKind
         ? [["parts", t("Parts")] as [Tab, string]]
@@ -149,6 +152,7 @@ function ObjectView({ id }: { id: string }) {
         {tab === "details" && <DetailsTab obj={obj} myId={myId} />}
         {tab === "cad" && cadKind && <CadTab obj={obj} kind={cadKind} mine={!!myId && obj.checkedOutBy === myId} />}
         {tab === "view2d" && <SheetTab obj={obj} />}
+        {tab === "effectivity" && <EffectivityTab obj={obj} mine={!!myId && obj.checkedOutBy === myId} />}
         {tab === "view3d" && <ViewTab obj={obj} modelId={cadKind ? obj.id : ownerModel!} mine={!!myId && obj.checkedOutBy === myId} />}
         {tab === "structure" && <PartCadPanel obj={obj} mine={!!myId && obj.checkedOutBy === myId} />}
         {tab === "structure" && <StructureTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}

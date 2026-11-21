@@ -550,12 +550,22 @@ options": effectivity decides which revisions and lines apply, options and rules
 structure into a buildable variant, one-off versions serve single orders without disturbing the
 main line, and classification makes existing parts easy to find and reuse.
 
-- [ ] 7.1 Effectivity contexts and statements: an end item (a top part) as the context; effectivity
+- [x] 7.1 Effectivity contexts and statements: an end item (a top part) as the context; effectivity
       by date, serial (unit) number, lot or block ranges, open-ended or closed, on part versions
       and on usage lines, relative to a context; overlap checks.
-- [ ] 7.2 Effectivity in configuration specs: "as effective on <date> / for serial <n> / lot <l> of
+      Done: any part can be made an end item. A part's Effectivity tab gives each revision ranges
+      of dates (alone or in an end item), serial numbers, lots or blocks (in an end item), closed or
+      open-ended; the lines of its structure get theirs on the working copy and keep them through
+      check-in, check-out and revise. Ranges of one kind in one end item can't overlap between a
+      part's revisions, or on one line.
+- [x] 7.2 Effectivity in configuration specs: "as effective on <date> / for serial <n> / lot <l> of
       <end item>" picks, per part, the revision effective there and keeps only effective lines; in
       structure, where-used, compare and baselines.
+      Done: "As effective…" in the structure and where-used pickers (and the API's compare, with a
+      value per side, and collect for baselines) takes a date, serial, lot or block of an end item.
+      Each part is at the latest iteration of its revision effective there (none, if it has
+      effectivity but no revision covers it; its latest Released, if it has none), and lines with
+      effectivity are kept only where it covers the value.
 - [ ] 7.3 Pending effectivity through change: a change notice carries the effectivity of its
       resulting versions; it takes effect when the notice resolves, closing the superseded
       revision's range; shown on the notice and the part.

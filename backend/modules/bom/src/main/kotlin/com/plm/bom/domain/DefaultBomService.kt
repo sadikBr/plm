@@ -178,7 +178,10 @@ internal class DefaultBomService(
         var level = 1
         val maxLevel = depth.coerceIn(1, 50)
         while (frontier.isNotEmpty() && level <= maxLevel && !truncated) {
-            val links = repository.linksOf(frontier.map { it.first }.distinct())
+            val links =
+                repository
+                    .linksOf(frontier.map { it.first }.distinct())
+                    .mapValues { (_, l) -> repository.effective(l, spec) }
             val children =
                 repository.resolve(
                     links.values
@@ -252,7 +255,9 @@ internal class DefaultBomService(
         var frontier: List<Pair<UUID, String?>> = listOf(child.id.value to null)
         var level = 1
         while (frontier.isNotEmpty() && level <= depth.coerceIn(1, 50) && !truncated) {
-            val using = repository.usingLines(frontier.map { it.first }.distinct())
+            val all = repository.usingLines(frontier.map { it.first }.distinct())
+            val kept = repository.effective(all.map { it.first }, spec).map { it.id }.toSet()
+            val using = all.filter { it.first.id in kept }
             val parents = repository.resolve(using.map { it.second }.distinct(), spec, readable(actor))
             val unreadable = using.map { it.second }.filter { it !in parents }.toSet()
             val byChild = using.groupBy { it.first.childMasterId }
