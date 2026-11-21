@@ -36,7 +36,18 @@ internal class DefaultSearchService(
     private val index: SearchIndex,
     private val versioning: VersioningService,
     private val indexer: Indexer,
+    private val scopes: org.springframework.beans.factory.ObjectProvider<com.plm.search.api.StructureScope>,
 ) : SearchService {
+    /** Turns a structure scope into the ids the index filters on. */
+    private fun scoped(
+        actor: Actor,
+        query: SearchQuery,
+    ): SearchQuery {
+        val root = query.withinStructureOf ?: return query
+        val scope = scopes.getIfAvailable() ?: return query
+        return query.copy(objectIds = scope.partsUnder(actor, root))
+    }
+
     override fun search(
         actor: Actor,
         query: SearchQuery,
@@ -46,7 +57,7 @@ internal class DefaultSearchService(
         ) {
             throw ValidationException("INVALID_QUERY", "Search text must be at most 500 characters")
         }
-        val candidates = index.candidates(actor.tenant, query, CANDIDATES)
+        val candidates = index.candidates(actor.tenant, scoped(actor, query), CANDIDATES)
         // Only what the actor may read: checked in SQL with their access rules, 500 at a time.
         val readable =
             candidates
@@ -86,7 +97,7 @@ internal class DefaultSearchService(
         actor: Actor,
         query: SearchQuery,
     ): SearchMatches {
-        val candidates = index.candidates(actor.tenant, query, CANDIDATES)
+        val candidates = index.candidates(actor.tenant, scoped(actor, query), CANDIDATES)
         val readable =
             candidates
                 .map { it.id }

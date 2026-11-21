@@ -144,6 +144,7 @@ internal class OpenSearchIndex(
                 mapOf("terms" to mapOf("type" to query.typeIds.map { it.toString() }))
         }
         if (query.states.isNotEmpty()) filters += mapOf("terms" to mapOf("state" to query.states))
+        if (query.objectIds != null) filters += mapOf("ids" to mapOf("values" to query.objectIds.map { it.toString() }))
         if (query.contextIds.isNotEmpty()) {
             filters +=
                 mapOf("terms" to mapOf("context" to query.contextIds.map { it.toString() }))

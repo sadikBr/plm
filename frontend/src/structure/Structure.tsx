@@ -8,6 +8,7 @@ import { pickLabel } from "../components/AttributeForm";
 import { ErrorBanner, Loading, Panel, StateBadge, TypeIcon } from "../components/common";
 import { locale, t, tn } from "../i18n/i18n";
 import { formatDesignators } from "./designators";
+import { FlattenedView, RollupView } from "./Rollup";
 import { SubstitutesEditor } from "./Replacements";
 import { SpecPicker, StructureTree, useDefaultSpec, type Spec } from "./StructureTree";
 
@@ -73,11 +74,35 @@ export function StructureTab({ obj, editable }: { obj: VersionedObject; editable
   const [params] = useSearchParams();
   const fromBaseline = params.get("baseline");
   const [chosen, setChosen] = useState<Spec | null>(fromBaseline ? { type: "BASELINE", baselineId: fromBaseline } : null);
+  const [view, setView] = useState<"tree" | "flat" | "rollup">("tree");
   if (editable) return <EditableStructure obj={obj} />;
   const spec = chosen ?? preferred;
   return (
-    <Panel title={t("Structure")} actions={<SpecPicker spec={spec} onChange={setChosen} partId={obj.id} />} flush>
-      <StructureTree key={JSON.stringify(spec)} obj={obj} spec={spec} />
+    <Panel
+      title={t("Structure")}
+      actions={
+        <>
+          <span className="segmented" role="tablist" aria-label={t("View")}>
+            {(
+              [
+                ["tree", t("Tree")],
+                ["flat", t("Flattened")],
+                ["rollup", t("Roll-up")],
+              ] as const
+            ).map(([k, l]) => (
+              <button key={k} role="tab" aria-selected={view === k} className={view === k ? "on" : undefined} onClick={() => setView(k)}>
+                {l}
+              </button>
+            ))}
+          </span>
+          <SpecPicker spec={spec} onChange={setChosen} partId={obj.id} />
+        </>
+      }
+      flush
+    >
+      {view === "tree" && <StructureTree key={JSON.stringify(spec)} obj={obj} spec={spec} />}
+      {view === "flat" && <FlattenedView obj={obj} spec={spec} />}
+      {view === "rollup" && <RollupView obj={obj} spec={spec} />}
     </Panel>
   );
 }
@@ -409,10 +434,12 @@ export function PartPicker({
   label,
   onPick,
   onCancel,
+  allowCreate = true,
 }: {
   exclude: string;
   contextId: string;
   label: string;
+  allowCreate?: boolean;
   onPick: (part: VersionedObject) => void | Promise<void>;
   onCancel?: () => void;
 }) {
@@ -462,7 +489,7 @@ export function PartPicker({
               <TypeIcon typeId={o.typeId} /> <strong>{o.number}</strong> {o.name} <span className="muted">{o.version}</span>
             </li>
           ))}
-          {!search.isFetching && (
+          {allowCreate && !search.isFetching && (
             <li role="option" aria-selected={false} className="create" onClick={() => void create()}>
               <Plus size={13} aria-hidden /> {t("Create “{name}” as a new part", { name: text.trim() })}
             </li>

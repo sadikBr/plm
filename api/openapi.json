@@ -2518,6 +2518,32 @@
         "required" : [ "expiresAt", "url" ],
         "type" : "object"
       },
+      "FlatLine" : {
+        "properties" : {
+          "levels" : {
+            "items" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "type" : "array"
+          },
+          "lines" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "part" : {
+            "$ref" : "#/components/schemas/UsedPart"
+          },
+          "totalQuantity" : {
+            "type" : "number"
+          },
+          "unit" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "levels", "lines", "part", "totalQuantity", "unit" ],
+        "type" : "object"
+      },
       "Folder" : {
         "properties" : {
           "contextId" : {
@@ -4538,6 +4564,83 @@
         "required" : [ "groups", "screen", "typeId" ],
         "type" : "object"
       },
+      "RollupAttribute" : {
+        "properties" : {
+          "dataType" : {
+            "type" : "string"
+          },
+          "dimension" : {
+            "type" : [ "string", "null" ]
+          },
+          "labels" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "dataType", "labels", "name" ],
+        "type" : "object"
+      },
+      "RollupNode" : {
+        "properties" : {
+          "extendedQuantity" : {
+            "type" : "number"
+          },
+          "level" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "lineTotal" : {
+            "type" : [ "number", "null" ]
+          },
+          "missing" : {
+            "type" : "boolean"
+          },
+          "ownValue" : {
+            "type" : [ "number", "null" ]
+          },
+          "part" : {
+            "$ref" : "#/components/schemas/UsedPart"
+          },
+          "path" : {
+            "type" : "string"
+          },
+          "rolledValue" : {
+            "type" : [ "number", "null" ]
+          }
+        },
+        "required" : [ "extendedQuantity", "level", "missing", "part", "path" ],
+        "type" : "object"
+      },
+      "RollupResult" : {
+        "properties" : {
+          "attribute" : {
+            "type" : "string"
+          },
+          "missing" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "nodes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/RollupNode"
+            },
+            "type" : "array"
+          },
+          "total" : {
+            "type" : "number"
+          },
+          "unit" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "attribute", "missing", "nodes", "total" ],
+        "type" : "object"
+      },
       "SaveAs" : {
         "properties" : {
           "contextId" : {
@@ -4761,6 +4864,13 @@
             "format" : "int32",
             "type" : "integer"
           },
+          "objectIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : [ "array", "null" ]
+          },
           "offset" : {
             "format" : "int32",
             "type" : "integer"
@@ -4783,6 +4893,10 @@
               "type" : "string"
             },
             "type" : "array"
+          },
+          "withinStructureOf" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "attributes", "contextIds", "limit", "offset", "states", "typeIds" ],
@@ -12836,6 +12950,70 @@
         "tags" : [ "Expression" ]
       }
     },
+    "/api/v1/objects/{id}/flattened" : {
+      "get" : {
+        "operationId" : "rollupFlatten",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "spec",
+          "required" : false,
+          "schema" : {
+            "default" : "LATEST",
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "state",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "baselineId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/FlatLine"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Rollup" ]
+      }
+    },
     "/api/v1/objects/{id}/iterations" : {
       "get" : {
         "operationId" : "versionedObjectHistory",
@@ -13248,6 +13426,114 @@
           }
         },
         "tags" : [ "Versioned object" ]
+      }
+    },
+    "/api/v1/objects/{id}/rollup" : {
+      "get" : {
+        "operationId" : "rollupRollup",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "attribute",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "spec",
+          "required" : false,
+          "schema" : {
+            "default" : "LATEST",
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "state",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "baselineId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RollupResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Rollup" ]
+      }
+    },
+    "/api/v1/objects/{id}/rollup-attributes" : {
+      "get" : {
+        "operationId" : "rollupAttributes",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/RollupAttribute"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Rollup" ]
       }
     },
     "/api/v1/objects/{id}/save-as" : {
@@ -17416,6 +17702,8 @@
     "name" : "Replacement"
   }, {
     "name" : "Report"
+  }, {
+    "name" : "Rollup"
   }, {
     "name" : "Search"
   }, {

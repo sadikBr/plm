@@ -79,6 +79,10 @@ internal class PostgresSearchIndex(
             where += "state = any(cast(:states as text[]))"
             params["states"] = query.states.toTypedArray()
         }
+        if (query.objectIds != null) {
+            where += "object_id = any(cast(:oids as uuid[]))"
+            params["oids"] = query.objectIds.toTypedArray()
+        }
         if (query.contextIds.isNotEmpty()) {
             where += "context_id = any(cast(:contexts as uuid[]))"
             params["contexts"] = query.contextIds.toTypedArray()

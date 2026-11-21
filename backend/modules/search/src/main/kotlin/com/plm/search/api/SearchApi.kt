@@ -16,7 +16,22 @@ data class SearchQuery(
     val sort: String? = null,
     val offset: Int = 0,
     val limit: Int = 25,
+    /** Only parts in the (latest) structure of this part, at any level (roadmap 4.11). */
+    val withinStructureOf: UUID? = null,
+    /** Only these objects: set by the search itself from [withinStructureOf]. */
+    val objectIds: List<UUID>? = null,
 )
+
+/**
+ * The parts under a part's structure, for [SearchQuery.withinStructureOf]; provided by the module
+ * that owns structures.
+ */
+fun interface StructureScope {
+    fun partsUnder(
+        actor: com.plm.platform.actor.Actor,
+        partId: UUID,
+    ): List<UUID>
+}
 
 data class SearchHit(
     val id: UUID,

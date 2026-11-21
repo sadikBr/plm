@@ -7,6 +7,7 @@ dependencies {
     implementation(project(":backend:modules:types"))
     implementation(project(":backend:modules:versioning"))
     implementation(project(":backend:modules:preferences"))
+    implementation(project(":backend:modules:search"))
     implementation(libs.slf4j.api)
 
     testImplementation(project(":backend:modules:identity"))

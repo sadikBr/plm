@@ -844,3 +844,10 @@ td.tree-cell > * { vertical-align: middle; }
 .page-head .toolbar label input[type="checkbox"], .radio-list select { width: auto; min-height: 0; }
 .radio-list .add-line-pick, .radio-list select { margin-left: 24px; }
 .modal-footer select, dialog footer select, dialog footer input { width: auto; }
+.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; margin-right: 8px; }
+.segmented button { border: 0; background: var(--panel); padding: 3px 10px; font: inherit; font-size: 12px; cursor: pointer; color: var(--text-2); text-transform: none; letter-spacing: 0; }
+.segmented button + button { border-left: 1px solid var(--border); }
+.segmented button.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.rollup-total { font-size: 14px; }
+.grid.structure tr.missing td { color: var(--text-2); }
+.tree-bar select { width: auto; min-height: 26px; }

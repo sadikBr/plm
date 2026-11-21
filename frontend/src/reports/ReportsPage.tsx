@@ -1,10 +1,10 @@
 import { FavoriteButton } from "../personal/Personal";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, CalendarClock, Mail, Pencil, Play, Plus, Share2, Trash2 } from "lucide-react";
+import { BarChart3, CalendarClock, Mail, Pencil, Play, Plus, Share2, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
-import { findPrincipalByUsername, useLifecycles, useMe, useTypes, type VersionedObject } from "../api/queries";
+import { findPrincipalByUsername, useLifecycles, useMe, useObject, useTypes, type VersionedObject } from "../api/queries";
 import { pickLabel } from "../components/AttributeForm";
 import { Dialog, ErrorBanner, Loading, Panel, PrincipalName, formatDate, stateLabel, typeLabel } from "../components/common";
 import { PageHeader } from "../components/Layout";
@@ -20,6 +20,7 @@ import {
 import { exportXlsx } from "../components/TableViews";
 import { describeCron } from "../admin/JobsAdmin";
 import { BarChart, type Bar } from "./BarChart";
+import { PartPicker } from "../structure/Structure";
 import { language, t, tn } from "../i18n/i18n";
 
 type Report = Schemas["Report"];
@@ -350,6 +351,7 @@ function describeQuery(q: Settings["query"]): string {
   if (q.states.length) parts.push(t("in {states}", { states: q.states.map(stateLabel).join(` ${t("or")} `) }));
   if (q.typeIds.length) parts.push(tn("{n} type", "{n} types", q.typeIds.length));
   for (const [k, v] of Object.entries(q.attributes)) parts.push(t("{name} contains “{value}”", { name: k, value: v }));
+  if (q.withinStructureOf) parts.push(t("in a part's structure"));
   return parts.length ? parts.join(", ") : t("Everything you can read");
 }
 
@@ -442,6 +444,13 @@ function ReportEditor({ report, onClose, onSaved }: { report: Report | null; onC
             value={s.query.text ?? ""}
             onChange={(e) => setS({ ...s, query: { ...s.query, text: e.target.value } })}
             placeholder={t("Optional: words in numbers, names, values, files")}
+          />
+        </div>
+        <div className="field wide">
+          <label>{t("Within the structure of")}</label>
+          <StructureScopeField
+            value={s.query.withinStructureOf ?? undefined}
+            onChange={(id) => setS({ ...s, query: { ...s.query, withinStructureOf: id } })}
           />
         </div>
         <fieldset className="check-list wide">
@@ -571,4 +580,19 @@ function ReportEditor({ report, onClose, onSaved }: { report: Report | null; onC
       </div>
     </Dialog>
   );
+}
+
+/** A part whose structure (at every level) limits the report (roadmap 4.11). */
+function StructureScopeField({ value, onChange }: { value?: string; onChange: (id: string | undefined) => void }) {
+  const { data } = useObject(value ?? "");
+  if (value)
+    return (
+      <span className="chosen">
+        <strong>{data?.number}</strong> {data?.name}
+        <button type="button" className="icon-btn" aria-label={t("Any structure")} onClick={() => onChange(undefined)}>
+          <X size={12} />
+        </button>
+      </span>
+    );
+  return <PartPicker exclude="" contextId="" allowCreate={false} label={t("Within the structure of")} onPick={(p) => onChange(p.id)} />;
 }

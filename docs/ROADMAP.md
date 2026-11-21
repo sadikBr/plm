@@ -256,8 +256,12 @@ baseline and report on, fast at the scale of real products.
       read their context; "as in baseline" as a configuration specification; collecting a part
       with its structure under any specification and its linked documents, into a baseline or
       onto the clipboard; a Baselines page.)
-- [ ] 4.11 Roll-ups and multi-level reports: values summed up the tree (mass, cost, counts), a
+- [x] 4.11 Roll-ups and multi-level reports: values summed up the tree (mass, cost, counts), a
       flattened BOM with total quantities, multi-level reports in the report engine (3.8).
+      (Done: roll-ups of any numeric attribute (quantities converted to base units) for one piece
+      of the top, with own values for assemblies and parts missing a value flagged; a flattened
+      structure with total quantities and levels; searches and reports limited to a part's
+      structure ("within the structure of"), so the report engine's charts and schedules apply.)
 - [ ] 4.12 Reference and alias attributes: attributes that point to another object, or show a
       value of a related object; filterable and reportable.
 - [ ] 4.13 BOM import and export: Excel/CSV with preview, validation and matching (create or
