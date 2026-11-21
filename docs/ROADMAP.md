@@ -581,8 +581,12 @@ main line, and classification makes existing parts easy to find and reuse.
       colour per revision, pending ranges hatched and open ones running on; the structure tree
       tags lines that have effectivity with their ranges; "As effective…" picks the date, serial,
       lot or block in structure and where-used views; change notices show what they set.
-- [ ] 7.5 Options and choices: option sets in libraries (an option with its choices, e.g. Motor:
+- [x] 7.5 Options and choices: option sets in libraries (an option with its choices, e.g. Motor:
       standard, high torque), assigned to configurable products; choices can be retired.
+      Done: libraries and products have an Options tab of option sets: options (code, name,
+      required or optional) with their choices (code, name), retired with a click and kept for
+      what already uses them. A part's Options tab makes it configurable with a set (a set in use
+      can't be deleted). Codes (MOTOR, HT) are what conditions and rules refer to.
 - [ ] 7.6 Option rules: includes, excludes and requires between choices, and a check of any
       selection that says which rule it breaks and what would fix it.
 - [ ] 7.7 150% structures: usage lines of configurable parts carry a choice condition (and, or,

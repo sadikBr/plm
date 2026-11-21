@@ -532,6 +532,15 @@
         "required" : [ "lifecycleId" ],
         "type" : "object"
       },
+      "AssignOptionSet" : {
+        "properties" : {
+          "optionSetId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
       "Associate" : {
         "properties" : {
           "cadId" : {
@@ -1752,6 +1761,29 @@
         "required" : [ "errors" ],
         "type" : "object"
       },
+      "Choice" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "position" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "retired" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "code", "id", "name", "position", "retired" ],
+        "type" : "object"
+      },
       "CollectOptions" : {
         "properties" : {
           "dependencies" : {
@@ -2471,6 +2503,22 @@
           }
         },
         "required" : [ "contextId", "name", "typeId" ],
+        "type" : "object"
+      },
+      "CreateOptionSet" : {
+        "properties" : {
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "contextId", "name" ],
         "type" : "object"
       },
       "CreatePolicyRequest" : {
@@ -5382,6 +5430,76 @@
         "required" : [ "active", "condition", "message", "name", "operations", "types" ],
         "type" : "object"
       },
+      "OptionDef" : {
+        "properties" : {
+          "choices" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Choice"
+            },
+            "type" : "array"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "position" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "required" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "choices", "code", "id", "name", "position", "required" ],
+        "type" : "object"
+      },
+      "OptionSet" : {
+        "properties" : {
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "options" : {
+            "items" : {
+              "$ref" : "#/components/schemas/OptionDef"
+            },
+            "type" : "array"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "usedBy" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "contextId", "createdAt", "createdBy", "id", "name", "options", "updatedAt", "usedBy" ],
+        "type" : "object"
+      },
       "OwnValueResponse" : {
         "properties" : {
           "locked" : {
@@ -5406,6 +5524,23 @@
           }
         },
         "required" : [ "owner" ],
+        "type" : "object"
+      },
+      "PartOptions" : {
+        "properties" : {
+          "optionSet" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/OptionSet"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "partId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "partId" ],
         "type" : "object"
       },
       "PartRef" : {
@@ -7130,6 +7265,21 @@
         "required" : [ "active", "name", "tasks", "typeId" ],
         "type" : "object"
       },
+      "SaveChoice" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "retired" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "code", "name", "retired" ],
+        "type" : "object"
+      },
       "SaveContextTemplateRequest" : {
         "properties" : {
           "content" : {
@@ -7223,6 +7373,33 @@
           }
         },
         "required" : [ "kind", "shapes", "title", "view" ],
+        "type" : "object"
+      },
+      "SaveOption" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "required" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "code", "name", "required" ],
+        "type" : "object"
+      },
+      "SaveOptionSet" : {
+        "properties" : {
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "name" ],
         "type" : "object"
       },
       "SaveProcessAssignment" : {
@@ -11452,6 +11629,53 @@
           }
         },
         "tags" : [ "Change setup" ]
+      }
+    },
+    "/api/v1/choices/{choiceId}" : {
+      "put" : {
+        "operationId" : "optionsUpdateChoice",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "choiceId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveChoice"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OptionSet"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Options" ]
       }
     },
     "/api/v1/comments/{commentId}" : {
@@ -19439,6 +19663,88 @@
         "tags" : [ "Organizing" ]
       }
     },
+    "/api/v1/objects/{id}/options" : {
+      "get" : {
+        "operationId" : "optionsPartOptions",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PartOptions"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Options" ]
+      },
+      "put" : {
+        "operationId" : "optionsAssign",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AssignOptionSet"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PartOptions"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Options" ]
+      }
+    },
     "/api/v1/objects/{id}/owner" : {
       "post" : {
         "operationId" : "organizingChangeOwner",
@@ -21441,6 +21747,368 @@
           }
         },
         "tags" : [ "Operation rule" ]
+      }
+    },
+    "/api/v1/option-sets" : {
+      "get" : {
+        "operationId" : "optionsSets",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "contextId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/OptionSet"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Options" ]
+      },
+      "post" : {
+        "operationId" : "optionsCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateOptionSet"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OptionSet"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Options" ]
+      }
+    },
+    "/api/v1/option-sets/{id}" : {
+      "delete" : {
+        "operationId" : "optionsDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Options" ]
+      },
+      "get" : {
+        "operationId" : "optionsGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OptionSet"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Options" ]
+      },
+      "put" : {
+        "operationId" : "optionsUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveOptionSet"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OptionSet"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Options" ]
+      }
+    },
+    "/api/v1/option-sets/{id}/options" : {
+      "post" : {
+        "operationId" : "optionsAddOption",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveOption"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OptionSet"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Options" ]
+      }
+    },
+    "/api/v1/options/{optionId}" : {
+      "delete" : {
+        "operationId" : "optionsRemoveOption",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "optionId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OptionSet"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Options" ]
+      },
+      "put" : {
+        "operationId" : "optionsUpdateOption",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "optionId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveOption"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OptionSet"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Options" ]
+      }
+    },
+    "/api/v1/options/{optionId}/choices" : {
+      "post" : {
+        "operationId" : "optionsAddChoice",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "optionId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveChoice"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OptionSet"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Options" ]
       }
     },
     "/api/v1/platform" : {
@@ -26135,6 +26803,8 @@
     "name" : "Markup"
   }, {
     "name" : "Operation rule"
+  }, {
+    "name" : "Options"
   }, {
     "name" : "Organizing"
   }, {

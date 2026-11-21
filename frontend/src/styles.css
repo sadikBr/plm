@@ -1114,3 +1114,14 @@ table.collected td input[type="checkbox"] { width: 16px; height: 16px; }
 .eff-seg.s4 { background-color: var(--s4); } .eff-seg.s5 { background-color: var(--s5); } .eff-seg.s6 { background-color: var(--s6); }
 .eff-seg.s7 { background-color: var(--s7); }
 .eff-label { position: absolute; bottom: 18px; white-space: nowrap; font-size: 12px; color: var(--text); font-variant-numeric: tabular-nums; }
+/* Options and variants (roadmap 7.5-7.9). */
+.options-table td { vertical-align: top; }
+.choice-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip { display: inline-flex; gap: 6px; align-items: center; padding: 2px 9px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel); font-size: 12.5px; color: var(--text); cursor: pointer; }
+.chip:disabled { cursor: default; }
+.chip code, .options-table code { font-size: 11.5px; color: var(--text-2); }
+.chip.retired { text-decoration: line-through; color: var(--text-3); border-style: dashed; }
+.option-form { gap: 4px; }
+.option-form input:not([type="checkbox"]) { width: 130px; }
+.option-form .code-input { width: 90px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
+.option-add { padding: 10px 14px; border-top: 1px solid var(--border); }

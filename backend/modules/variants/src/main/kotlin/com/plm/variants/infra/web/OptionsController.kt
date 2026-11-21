@@ -1,0 +1,115 @@
+package com.plm.variants.infra.web
+
+import com.plm.platform.actor.Actor
+import com.plm.variants.api.OptionService
+import com.plm.variants.api.SaveChoice
+import com.plm.variants.api.SaveOption
+import com.plm.variants.api.SaveOptionSet
+import org.springframework.http.HttpStatus
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.ResponseStatus
+import org.springframework.web.bind.annotation.RestController
+import java.util.UUID
+
+data class CreateOptionSet(
+    val contextId: UUID,
+    val name: String,
+    val description: String? = null,
+)
+
+data class AssignOptionSet(
+    /** Null: the part isn't configurable any more. */
+    val optionSetId: UUID?,
+)
+
+/** Option sets, options and choices (roadmap 7.5), and which parts they configure. */
+@RestController
+internal class OptionsController(
+    private val options: OptionService,
+) {
+    @GetMapping("/api/v1/option-sets")
+    fun sets(
+        actor: Actor,
+        @RequestParam(required = false) contextId: UUID?,
+    ) = options.sets(actor, contextId)
+
+    @PostMapping("/api/v1/option-sets")
+    @ResponseStatus(HttpStatus.CREATED)
+    fun create(
+        actor: Actor,
+        @RequestBody request: CreateOptionSet,
+    ) = options.create(actor, request.contextId, SaveOptionSet(request.name, request.description))
+
+    @GetMapping("/api/v1/option-sets/{id}")
+    fun get(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = options.get(actor, id)
+
+    @PutMapping("/api/v1/option-sets/{id}")
+    fun update(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: SaveOptionSet,
+    ) = options.update(actor, id, request)
+
+    @DeleteMapping("/api/v1/option-sets/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun delete(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = options.delete(actor, id)
+
+    @PostMapping("/api/v1/option-sets/{id}/options")
+    fun addOption(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: SaveOption,
+    ) = options.addOption(actor, id, request)
+
+    @PutMapping("/api/v1/options/{optionId}")
+    fun updateOption(
+        actor: Actor,
+        @PathVariable optionId: UUID,
+        @RequestBody request: SaveOption,
+    ) = options.updateOption(actor, optionId, request)
+
+    @DeleteMapping("/api/v1/options/{optionId}")
+    fun removeOption(
+        actor: Actor,
+        @PathVariable optionId: UUID,
+    ) = options.removeOption(actor, optionId)
+
+    @PostMapping("/api/v1/options/{optionId}/choices")
+    fun addChoice(
+        actor: Actor,
+        @PathVariable optionId: UUID,
+        @RequestBody request: SaveChoice,
+    ) = options.addChoice(actor, optionId, request)
+
+    @PutMapping("/api/v1/choices/{choiceId}")
+    fun updateChoice(
+        actor: Actor,
+        @PathVariable choiceId: UUID,
+        @RequestBody request: SaveChoice,
+    ) = options.updateChoice(actor, choiceId, request)
+
+    @GetMapping("/api/v1/objects/{id}/options")
+    fun partOptions(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = options.partOptions(actor, id)
+
+    @PutMapping("/api/v1/objects/{id}/options")
+    fun assign(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: AssignOptionSet,
+    ) = options.assign(actor, id, request.optionSetId)
+}

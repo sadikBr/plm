@@ -1,3 +1,4 @@
+import { OptionSetsTab } from "../variants/OptionSets";
 import { FavoriteButton, SubscribeButton } from "../personal/Personal";
 import { FilePlus, LayoutTemplate, Plus, ScrollText, Shapes } from "lucide-react";
 import { StepImportDialog } from "../cad/StepImport";
@@ -68,7 +69,8 @@ type Tab =
   | "access"
   | "preferences"
   | "teams"
-  | "templates";
+  | "templates"
+  | "options";
 
 /** The tab listing an organization's (or the site's) children of one kind. */
 const CHILD_TAB: Partial<Record<ContextKind, Tab>> = {
@@ -117,6 +119,7 @@ function ContextView({ id }: { id: string }) {
     ["overview", t("Overview")],
     ...(holdsObjects ? [["contents", t("Contents")] as [Tab, string]] : []),
     ...childKinds.map((k) => [CHILD_TAB[k]!, kindPlural(k)] as [Tab, string]),
+    ...(context.kind === "LIBRARY" || context.kind === "PRODUCT" ? [["options", t("Options")] as [Tab, string]] : []),
     ...(shows("context.team") ? [["team", t("Team")] as [Tab, string]] : []),
     // Access rules and preferences are for whoever manages this context.
     ...(canManage && shows("context.access") ? [["access", t("Access")] as [Tab, string]] : []),
@@ -176,6 +179,7 @@ function ContextView({ id }: { id: string }) {
         {tab === "overview" && <OverviewTab context={context} permissions={permissions} onSelect={select} />}
         {tab === "contents" && <ObjectsTab context={context} canCreate={!!permissions?.has("CREATE")} />}
         {childKinds.map((k) => tab === CHILD_TAB[k] && <ChildrenTab key={k} parent={context} kind={k} canCreate={canCreateChildren} />)}
+        {tab === "options" && <OptionSetsTab contextId={context.id} canEdit={!!permissions?.has("MODIFY")} />}
         {tab === "team" && <TeamTab context={context} canManage={canManage} />}
         {tab === "preferences" && canManage && <PreferencesTab contextId={context.id} />}
         {tab === "teams" && isOrgAdmin && <SharedTeamsAdmin organizationId={context.id} />}
