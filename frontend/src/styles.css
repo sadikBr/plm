@@ -885,3 +885,32 @@ td.tree-cell > * { vertical-align: middle; }
 .task-answer { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .task-answer input { flex: 1 1 180px; }
 table.grid.compact td { padding: 6px 8px; vertical-align: top; }
+
+/* Process template editor (roadmap 5.2) */
+.split-admin { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; align-items: start; }
+.report-list .link-btn.on { font-weight: 600; color: var(--accent); }
+.palette { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
+.process-canvas-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+.process-canvas { overflow: auto; border: 1px solid var(--border); border-radius: 6px; max-height: 560px;
+  background: var(--panel) radial-gradient(circle, var(--border) 1px, transparent 1px) 0 0 / 20px 20px; }
+.process-canvas svg { display: block; touch-action: none; user-select: none; }
+.process-canvas .edge path { fill: none; stroke: var(--text-muted, #888); stroke-width: 1.5; }
+.process-canvas .edge-head { fill: var(--text-muted, #888); }
+.process-canvas .edge-label { font-size: 11px; fill: var(--text-muted, #666); paint-order: stroke; stroke: var(--panel); stroke-width: 4px; }
+.process-canvas .node { cursor: grab; }
+.process-canvas .node rect { fill: var(--panel); stroke: var(--border-strong, #999); stroke-width: 1.5; }
+.process-canvas .node.chosen rect { stroke: var(--accent); stroke-width: 2.5; }
+.process-canvas .node-kind { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; fill: var(--text-muted, #666); }
+.process-canvas .node-label { font-size: 13px; font-weight: 600; fill: var(--text); }
+.process-canvas .kind-task rect, .palette .kind-task { border-left: 3px solid #3b6fd8; }
+.process-canvas .node.kind-task rect { fill: color-mix(in srgb, #3b6fd8 10%, var(--panel)); }
+.process-canvas .node.kind-vote rect { fill: color-mix(in srgb, #7b4fd0 12%, var(--panel)); }
+.process-canvas .node.kind-action rect { fill: color-mix(in srgb, #c27c0e 12%, var(--panel)); }
+.process-canvas .node.kind-condition rect { fill: color-mix(in srgb, #0f8a8a 12%, var(--panel)); }
+.process-canvas .node.kind-parallel rect, .process-canvas .node.kind-join rect { fill: color-mix(in srgb, #666 10%, var(--panel)); }
+.process-canvas .node.kind-timer rect { fill: color-mix(in srgb, #b0458a 10%, var(--panel)); }
+.process-canvas .node.kind-end rect { fill: color-mix(in srgb, #2e7d32 12%, var(--panel)); }
+.inspector { border: 1px solid var(--border); border-radius: 6px; padding: 12px; background: var(--panel-2); }
+.inspector-form { display: grid; gap: 10px 16px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); align-items: start; }
+.inspector-form > .row:first-child, .inspector-form > .row:last-child, .inspector-form .check-list { grid-column: 1 / -1; }
+.inspector-form textarea { width: 100%; }

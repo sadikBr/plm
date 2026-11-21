@@ -20,6 +20,7 @@ import { LifecyclesAdmin } from "./LifecyclesAdmin";
 import { NumberingAdmin, RolesAdmin, UnitsAdmin, ValueListsAdmin } from "./ReferenceAdmin";
 import { ContextTemplatesAdmin, SharedTeamsAdmin } from "./TeamsAndTemplatesAdmin";
 import { TypesAdmin } from "./TypesAdmin";
+import { ProcessTemplatesAdmin } from "../workflow/ProcessEditor";
 
 type Section =
   | "types"
@@ -28,6 +29,7 @@ type Section =
   | "units"
   | "numbering"
   | "lifecycles"
+  | "processes"
   | "delete-rules"
   | "document-links"
   | "roles"
@@ -50,6 +52,7 @@ const SECTIONS = (): [Section, string][] => [
   ["units", t("Units")],
   ["numbering", t("Numbering")],
   ["lifecycles", t("Lifecycles")],
+  ["processes", t("Processes")],
   ["delete-rules", t("Delete rules")],
   ["document-links", t("Part–document links")],
   ["roles", t("Team roles")],
@@ -102,6 +105,7 @@ export function AdminPage() {
         {tab === "units" && <UnitsAdmin />}
         {tab === "numbering" && <NumberingAdmin />}
         {tab === "lifecycles" && <LifecyclesAdmin />}
+        {tab === "processes" && <ProcessTemplatesAdmin />}
         {tab === "delete-rules" && <DeleteRulesAdmin />}
         {tab === "document-links" && <DocumentLinkRulesAdmin />}
         {tab === "roles" && <RolesAdmin />}

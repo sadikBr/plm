@@ -1255,6 +1255,12 @@
             },
             "type" : "array"
           },
+          "processTemplates" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ProcessTemplateConfig"
+            },
+            "type" : "array"
+          },
           "teamRoles" : {
             "items" : {
               "$ref" : "#/components/schemas/TeamRoleConfig"
@@ -1274,7 +1280,7 @@
             "type" : "array"
           }
         },
-        "required" : [ "contextTemplates", "enumerations", "format", "globalAttributes", "lifecycles", "numberingSchemes", "teamRoles", "types", "units" ],
+        "required" : [ "contextTemplates", "enumerations", "format", "globalAttributes", "lifecycles", "numberingSchemes", "processTemplates", "teamRoles", "types", "units" ],
         "type" : "object"
       },
       "ConfigField" : {
@@ -4510,6 +4516,24 @@
           }
         },
         "required" : [ "active", "definition", "id", "name", "updatedAt", "updatedBy", "version" ],
+        "type" : "object"
+      },
+      "ProcessTemplateConfig" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "definition" : {
+            "$ref" : "#/components/schemas/ProcessDefinition"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "definition", "name" ],
         "type" : "object"
       },
       "ProcessTemplateVersion" : {

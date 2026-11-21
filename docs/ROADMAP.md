@@ -308,9 +308,14 @@ affected objects; and the platform can be extended with scripts, UI slots and no
       history) each in a transaction; answers reach it as signals after commit. Processes on an
       object show their steps and tasks; a built-in "Review and release" template. Runs on the
       Temporal service (PLM_TEMPORAL_TARGET) or its in-process server (tests, trying out).
-- [ ] 5.2 Process template editor: a visual editor for templates made of tasks, votes, automatic
+- [x] 5.2 Process template editor: a visual editor for templates made of tasks, votes, automatic
       steps (set state, set attribute, run an action, notify), conditions, parallel branches and
       timers; versioned, validated, and exported with the configuration.
+      Done: Admin › Processes draws a template as boxes and labelled arrows; steps are added from a
+      palette, dragged, and edited in an inspector (who, answers, vote rule, due date, state, CEL
+      condition, branches, waits). The server checks it as you go (missing targets, unreachable
+      steps, bad durations or conditions); saving makes a new version. Process templates are part
+      of the configuration bundle (export, dry-run import).
 - [ ] 5.3 Tasks and inbox: work items for users, team roles or groups; claim, complete with an
       outcome and comment; an inbox with filters and counts, notifications and mail.
 - [ ] 5.4 Voting, delegation and escalation: reviewer sets with voting rules (all, any, majority);

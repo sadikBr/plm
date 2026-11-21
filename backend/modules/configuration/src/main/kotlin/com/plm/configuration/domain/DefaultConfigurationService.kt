@@ -78,6 +78,7 @@ internal class DefaultConfigurationService(
     private val lifecycles: LifecycleService,
     private val roles: TeamRoleService,
     private val contextTemplates: ContextTemplateService,
+    private val processTemplates: com.plm.workflow.api.ProcessTemplateService,
     private val events: DomainEvents,
     transactions: PlatformTransactionManager,
 ) : ConfigurationService {
@@ -136,6 +137,15 @@ internal class DefaultConfigurationService(
                         .map { t ->
                             ContextTemplateConfig(t.name, t.kind.name, t.description, t.content)
                         },
+                processTemplates =
+                    processTemplates.list(actor).sortedBy { it.name }.map {
+                        com.plm.configuration.api.ProcessTemplateConfig(
+                            it.name,
+                            it.description,
+                            it.active,
+                            it.definition,
+                        )
+                    },
                 types =
                     parentsFirst(allTypes).map { t ->
                         val own =
@@ -268,6 +278,7 @@ internal class DefaultConfigurationService(
             for (t in bundle.types) typeIds[t.name]?.let { importLayouts(t, it) }
             for (t in bundle.types) typeIds[t.name]?.let { importValidationRules(t, it) }
             importContextTemplates()
+            importProcessTemplates()
             return changes
         }
 
@@ -290,6 +301,29 @@ internal class DefaultConfigurationService(
             } catch (e: PlmException) {
                 changes += PlannedChange(kind, key, ChangeAction.CONFLICT, problemDetails(e))
                 false
+            }
+        }
+
+        fun importProcessTemplates() {
+            val existing = processTemplates.list(actor).associateBy { it.name }
+            for (t in bundle.processTemplates) {
+                val command =
+                    com.plm.workflow.api
+                        .SaveProcessTemplate(t.name, t.description, t.definition, t.active)
+                val current = existing[t.name]
+                if (current == null) {
+                    change("processTemplate", t.name, ChangeAction.CREATE) { processTemplates.create(actor, command) }
+                } else {
+                    val diff =
+                        diff(
+                            "description" to (current.description to t.description),
+                            "active" to (current.active to t.active),
+                            "definition" to (current.definition to t.definition),
+                        )
+                    change("processTemplate", t.name, updateOrNot(diff), diff) {
+                        processTemplates.update(actor, current.id, command)
+                    }
+                }
             }
         }
 

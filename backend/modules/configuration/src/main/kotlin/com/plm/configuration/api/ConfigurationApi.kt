@@ -24,11 +24,20 @@ data class ConfigBundle(
     val types: List<TypeConfig> = emptyList(),
     /** Site-wide templates for new organizations, products, libraries and projects (organizations' own templates stay with them). */
     val contextTemplates: List<ContextTemplateConfig> = emptyList(),
+    /** Process templates (roadmap 5.2): their latest version. */
+    val processTemplates: List<ProcessTemplateConfig> = emptyList(),
 ) {
     companion object {
         const val FORMAT = "plm-config/1"
     }
 }
+
+data class ProcessTemplateConfig(
+    val name: String,
+    val description: String? = null,
+    val active: Boolean = true,
+    val definition: com.plm.workflow.api.ProcessDefinition,
+)
 
 data class ContextTemplateConfig(
     val name: String,
