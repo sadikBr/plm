@@ -3,13 +3,33 @@ import { expect, type Browser, type Page } from "@playwright/test";
 export const KEYCLOAK = process.env.PLM_OIDC_ISSUER ?? "http://localhost:8180/realms/plm";
 export const API = process.env.PLM_API_URL ?? "http://localhost:8080";
 
+/** The built-in site administrator, made with the installation. */
+export const ADMIN = "plmadmin";
+
+/**
+ * Dev passwords are the user names. The built-in administrator chooses its own at the first
+ * sign-in: set PLM_ADMIN_PASSWORD to it (the tests choose "plmadmin" if it's still unset).
+ */
+export function passwordOf(user: string) {
+  return user === ADMIN ? (process.env.PLM_ADMIN_PASSWORD ?? ADMIN) : user;
+}
+
 export async function signIn(page: Page, user: string) {
   await page.goto("/");
   await page.getByRole("button", { name: "Sign in" }).click();
   await page.locator("#username").fill(user);
-  await page.locator("#password").fill(user);
+  await page.locator("#password").fill(passwordOf(user));
   await page.locator("#kc-login").click();
-  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+  const signedIn = page.getByRole("button", { name: "Sign out" });
+  // The built-in administrator's first sign-in asks for a new password.
+  const newPassword = page.locator("#password-new");
+  await expect(signedIn.or(newPassword)).toBeVisible();
+  if (await newPassword.isVisible()) {
+    await newPassword.fill(passwordOf(user));
+    await page.locator("#password-confirm").fill(passwordOf(user));
+    await page.locator("input[type=submit], button[type=submit]").first().click();
+  }
+  await expect(signedIn).toBeVisible();
 }
 
 export async function asUser(browser: Browser, user: string) {

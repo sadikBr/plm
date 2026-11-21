@@ -179,7 +179,8 @@ cmd_start() {
   start_ui
   echo
   bold "The platform is ready: $UI_URL"
-  echo "  Sign in as alice (administrator), bob or carol; the password is the user name."
+  echo "  Sign in as plmadmin, the site administrator: the first time, with the password plmadmin,"
+  echo "  after which it asks you to choose your own. Users alice, bob and carol: password = user name."
   echo "  API $API_URL/swagger-ui.html · mail http://localhost:8025$([[ $lite == 1 ]] || echo ' · workflows http://localhost:8233')"
   echo "  ./plm status · ./plm logs backend · ./plm stop"
 }

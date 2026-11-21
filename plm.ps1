@@ -212,7 +212,8 @@ function StartAll([bool]$lite) {
   StartUi
   Write-Host ''
   Say "The platform is ready: $UiUrl"
-  Write-Host '  Sign in as alice (administrator), bob or carol; the password is the user name.'
+  Write-Host '  Sign in as plmadmin, the site administrator: the first time, with the password plmadmin,'
+  Write-Host '  after which it asks you to choose your own. Users alice, bob and carol: password = user name.'
   Write-Host "  API $ApiUrl/swagger-ui.html - mail http://localhost:8025"
   Write-Host '  plm status - plm logs backend - plm stop'
   Start-Process $UiUrl

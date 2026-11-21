@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
-import { API, KEYCLOAK, asUser } from "./support";
+import { ADMIN, API, KEYCLOAK, asUser, passwordOf } from "./support";
 
 /** Roadmap 2.4: the ERP sample's webhooks against the mock ERP: a form, the ERP's answer, a download. */
 const PORT = 8199;
@@ -26,7 +26,7 @@ test("bob sends a released part to the ERP with a form, and downloads its cost r
   const suffix = Date.now().toString(36);
   const id = `acme.erp-${suffix}`;
   const token = await request.post(`${KEYCLOAK}/protocol/openid-connect/token`, {
-    form: { grant_type: "password", client_id: "plm-web", username: "alice", password: "alice" },
+    form: { grant_type: "password", client_id: "plm-web", username: ADMIN, password: passwordOf(ADMIN) },
   });
   const headers = { Authorization: `Bearer ${((await token.json()) as { access_token: string }).access_token}` };
   const post = async (path: string, data: unknown) => {

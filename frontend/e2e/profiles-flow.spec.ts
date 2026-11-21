@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { API, KEYCLOAK, asUser } from "./support";
+import { ADMIN, API, KEYCLOAK, asUser, passwordOf } from "./support";
 
 /** Roadmap 2.8: a profile hides actions and parts of the interface from its members. */
 let created: { id: string; headers: Record<string, string> } | undefined;
@@ -10,7 +10,7 @@ test.afterEach(async ({ request }) => {
 
 test("a reviewers profile hides the search bar, a navigator section and authoring actions", async ({ browser, request }) => {
   const token = await request.post(`${KEYCLOAK}/protocol/openid-connect/token`, {
-    form: { grant_type: "password", client_id: "plm-web", username: "alice", password: "alice" },
+    form: { grant_type: "password", client_id: "plm-web", username: ADMIN, password: passwordOf(ADMIN) },
   });
   const headers = { Authorization: `Bearer ${((await token.json()) as { access_token: string }).access_token}` };
   const post = async (path: string, data: unknown) => {
@@ -31,10 +31,10 @@ test("a reviewers profile hides the search bar, a navigator section and authorin
   await expect(bob.locator('[data-action="object.check-out"]')).toBeVisible();
   await expect(bob.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "History" })).toBeVisible();
 
-  const alice = await asUser(browser, "alice");
-  await alice.goto("/admin?tab=profiles");
-  await alice.getByRole("button", { name: "New profile" }).click();
-  const dialog = alice.getByRole("dialog");
+  const admin = await asUser(browser, ADMIN);
+  await admin.goto("/admin?tab=profiles");
+  await admin.getByRole("button", { name: "New profile" }).click();
+  const dialog = admin.getByRole("dialog");
   await dialog.getByLabel("Name", { exact: true }).fill(`Reviewers ${suffix}`);
   await dialog.getByLabel("Username").fill("bob");
   await dialog.getByRole("button", { name: "Add user" }).click();

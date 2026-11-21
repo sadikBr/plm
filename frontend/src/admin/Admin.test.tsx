@@ -561,4 +561,32 @@ describe("Administration", () => {
       }),
     );
   });
+
+  it("lists the site administrators and warns about more than the built-in one on every tab", async () => {
+    const admins = {
+      builtInUsername: "plmadmin",
+      enforced: false,
+      moreThanRecommended: true,
+      administrators: [
+        {
+          id: "p1",
+          username: "plmadmin",
+          displayName: "Site Administrator",
+          kind: "USER",
+          builtIn: true,
+          lastSeen: "2026-11-21T09:00:00Z",
+        },
+        { id: "p2", username: "alice", displayName: "Alice Anderson", kind: "USER", builtIn: false, lastSeen: "2026-11-21T10:00:00Z" },
+      ],
+    };
+    api(true, { "GET /api/v1/site-administrators": () => admins });
+    renderAt("/admin");
+
+    const notice = await screen.findByText(/This site has 2 site administrators/);
+    await userEvent.click(within(notice).getByRole("button", { name: "Review them" }));
+    const table = await screen.findByRole("table", { name: "Site administrators" });
+    expect(within(table).getByText("Alice Anderson")).toBeInTheDocument();
+    expect(within(table).getByText("additional")).toBeInTheDocument();
+    expect(screen.getByText(/1 more account has site administration rights/)).toBeInTheDocument();
+  });
 });

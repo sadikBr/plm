@@ -38,6 +38,7 @@ search summaries; those are marked *(to confirm)*. The list is about **what** us
 | Deny entries and absolute denies (override inherited grants) | ✅ | A deny always wins over any allow |
 | Ad hoc access on one object (grant a person extra rights) | ⬜ [3] | |
 | Delegated administrators: site, organization and context admins | ✅ | Organization managers: team, rules, preferences, own shared teams and templates; context managers: team, rules, preferences |
+| One built-in site administrator, made at installation | ✅ | `plmadmin`, which chooses its password at the first sign-in; Administration › Site administrators lists everyone with the rights and warns while there's more than one; `PLM_ONLY_BUILT_IN_ADMIN=true` makes it a rule |
 | Users, groups, organizations; sync with LDAP/AD/SCIM via the identity provider | 🟡 | Users from OIDC ✅ · groups and sync [9] |
 | Profiles: what actions and UI a group of users sees (e.g. a "viewer" profile) | ⬜ [2] | Combined with action visibility rules |
 | **Preferences** with levels (site → organization → context → user) and locking at a level | ✅ | Declared by modules; Preferences tab on each context and My preferences |

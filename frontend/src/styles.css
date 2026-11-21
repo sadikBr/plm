@@ -1176,3 +1176,4 @@ table.collected td input[type="checkbox"] { width: 16px; height: 16px; }
 .grid.similar tr.this-part td { background: var(--panel-2, #f6f7f9); }
 .grid.similar td.same { color: var(--ok); font-weight: 600; }
 .grid.similar td.far { color: var(--text-3); }
+.site-admins-notice { margin-bottom: 12px; }

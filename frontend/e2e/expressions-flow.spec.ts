@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { API, KEYCLOAK, asUser } from "./support";
+import { ADMIN, API, KEYCLOAK, asUser, passwordOf } from "./support";
 
 /** Roadmap 2.2: a validation rule and a calculated attribute, written as expressions, at work in the UI. */
 test("a validation rule refuses an object until it's met, and a formula fills in a value", async ({ browser, request }) => {
   const suffix = Date.now().toString(36);
   const token = await request.post(`${KEYCLOAK}/protocol/openid-connect/token`, {
-    form: { grant_type: "password", client_id: "plm-web", username: "alice", password: "alice" },
+    form: { grant_type: "password", client_id: "plm-web", username: ADMIN, password: passwordOf(ADMIN) },
   });
   const { access_token } = (await token.json()) as { access_token: string };
   const headers = { Authorization: `Bearer ${access_token}` };
@@ -38,10 +38,10 @@ test("a validation rule refuses an object until it's met, and a formula fills in
   const product = await post("/contexts", { parentId: org.id, kind: "PRODUCT", name: "Rule product" });
 
   // ---- in the UI ----
-  const alice = await asUser(browser, "alice");
-  await alice.goto(`/contexts/${product.id}`);
-  await alice.getByRole("button", { name: "New part" }).click();
-  const dialog = alice.getByRole("dialog");
+  const admin = await asUser(browser, ADMIN);
+  await admin.goto(`/contexts/${product.id}`);
+  await admin.getByRole("button", { name: "New part" }).click();
+  const dialog = admin.getByRole("dialog");
   await dialog.getByLabel("Type").selectOption({ label: `Kit ${suffix}` });
   await dialog.getByLabel("Name", { exact: true }).fill("Kit A");
   await expect(dialog.getByLabel("Doubled")).toHaveText(/Computed when saved/);
@@ -51,6 +51,6 @@ test("a validation rule refuses an object until it's met, and a formula fills in
 
   await dialog.getByLabel("Quantity").fill("21");
   await dialog.getByRole("button", { name: "Create" }).click();
-  await expect(alice.getByTestId("version")).toHaveText("A.1");
-  await expect(alice.getByText("42", { exact: true })).toBeVisible();
+  await expect(admin.getByTestId("version")).toHaveText("A.1");
+  await expect(admin.getByText("42", { exact: true })).toBeVisible();
 });

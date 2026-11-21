@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { API, KEYCLOAK, asUser } from "./support";
+import { ADMIN, API, KEYCLOAK, asUser, passwordOf } from "./support";
 
 /** Roadmap 3.7: an attribute column is added, the view saved, and the table exported to Excel. */
 test("a view with an attribute column is saved and exported", async ({ browser, request }) => {
   const token = await request.post(`${KEYCLOAK}/protocol/openid-connect/token`, {
-    form: { grant_type: "password", client_id: "plm-web", username: "alice", password: "alice" },
+    form: { grant_type: "password", client_id: "plm-web", username: ADMIN, password: passwordOf(ADMIN) },
   });
   const headers = { Authorization: `Bearer ${((await token.json()) as { access_token: string }).access_token}` };
   const post = async (path: string, data: unknown) => {
@@ -23,21 +23,21 @@ test("a view with an attribute column is saved and exported", async ({ browser, 
     attributes: { material: "Titanium" },
   });
 
-  const alice = await asUser(browser, "alice");
-  await alice.goto(`/contexts/${product.id}?tab=contents`);
-  await alice.getByRole("button", { name: "Columns" }).click();
-  await alice
+  const admin = await asUser(browser, ADMIN);
+  await admin.goto(`/contexts/${product.id}?tab=contents`);
+  await admin.getByRole("button", { name: "Columns" }).click();
+  await admin
     .getByRole("dialog")
     .getByRole("checkbox", { name: /^Material/ })
     .check();
-  await alice.getByRole("dialog").getByRole("button", { name: "Apply" }).click();
-  await expect(alice.getByRole("table", { name: "Objects" }).getByText("Titanium")).toBeVisible();
+  await admin.getByRole("dialog").getByRole("button", { name: "Apply" }).click();
+  await expect(admin.getByRole("table", { name: "Objects" }).getByText("Titanium")).toBeVisible();
 
-  await alice.getByRole("button", { name: "Save view" }).click();
-  await alice.getByRole("dialog").getByLabel("Name").fill(`Materials ${suffix}`);
-  await alice.getByRole("dialog").getByRole("button", { name: "Save" }).click();
-  await expect(alice.getByRole("button", { name: `Materials ${suffix}` })).toBeVisible();
+  await admin.getByRole("button", { name: "Save view" }).click();
+  await admin.getByRole("dialog").getByLabel("Name").fill(`Materials ${suffix}`);
+  await admin.getByRole("dialog").getByRole("button", { name: "Save" }).click();
+  await expect(admin.getByRole("button", { name: `Materials ${suffix}` })).toBeVisible();
 
-  const [download] = await Promise.all([alice.waitForEvent("download"), alice.getByRole("button", { name: "Export to Excel" }).click()]);
+  const [download] = await Promise.all([admin.waitForEvent("download"), admin.getByRole("button", { name: "Export to Excel" }).click()]);
   expect(download.suggestedFilename()).toBe("Rover.xlsx");
 });

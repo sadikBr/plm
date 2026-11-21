@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { API, KEYCLOAK, asUser } from "./support";
+import { ADMIN, API, KEYCLOAK, asUser, passwordOf } from "./support";
 
 const PART = "00000000-0000-7000-8000-000000000102";
 const CHANGE_NOTICE = "00000000-0000-7000-8000-000000000106";
@@ -15,7 +15,7 @@ test("configure, generate and reuse variants; effectivity through change; one-of
   test.setTimeout(300_000);
   const suffix = Date.now().toString(36);
   const r = await request.post(`${KEYCLOAK}/protocol/openid-connect/token`, {
-    form: { grant_type: "password", client_id: "plm-web", username: "alice", password: "alice" },
+    form: { grant_type: "password", client_id: "plm-web", username: ADMIN, password: passwordOf(ADMIN) },
   });
   const headers = { Authorization: `Bearer ${((await r.json()) as { access_token: string }).access_token}` };
   const call = async (method: "GET" | "POST" | "PUT" | "DELETE", path: string, data?: unknown) => {
@@ -94,49 +94,49 @@ test("configure, generate and reuse variants; effectivity through change; one-of
     [await part("Panels, sand"), "not COLOR=RED"],
   ]);
 
-  const alice = await asUser(browser, "alice");
+  const admin = await asUser(browser, ADMIN);
 
   // ---- configured: the rules catch a bad choice, the fix is one click; saved and generated ----
-  await alice.goto(`/objects/${rover.id}?tab=options`);
-  const choices = alice.locator(".configured-choices");
+  await admin.goto(`/objects/${rover.id}?tab=options`);
+  const choices = admin.locator(".configured-choices");
   await choices.getByLabel("Drive motor").selectOption("HT");
   await choices.getByLabel("Battery").selectOption("S");
-  await expect(alice.getByRole("list", { name: "Problems" })).toContainText("MOTOR=HT requires one of BATTERY=L");
-  await alice.getByRole("button", { name: "Choose BATTERY=L" }).click();
-  await expect(alice.locator(".configured-choices .check-ok")).toBeVisible();
-  const configured = alice.getByRole("table", { name: "150% structure" });
-  await alice.getByLabel("Only what applies").check();
+  await expect(admin.getByRole("list", { name: "Problems" })).toContainText("MOTOR=HT requires one of BATTERY=L");
+  await admin.getByRole("button", { name: "Choose BATTERY=L" }).click();
+  await expect(admin.locator(".configured-choices .check-ok")).toBeVisible();
+  const configured = admin.getByRole("table", { name: "150% structure" });
+  await admin.getByLabel("Only what applies").check();
   await expect(configured).toContainText("Pack 4 kWh");
   await expect(configured).not.toContainText("Pack 2 kWh");
   await expect(configured).toContainText("Controller high current");
-  await alice.getByLabel("Variant name").fill("Expedition");
-  await alice.getByRole("button", { name: "Save as a variant specification" }).click();
-  const specs = alice.getByRole("table", { name: "Variant specifications" });
+  await admin.getByLabel("Variant name").fill("Expedition");
+  await admin.getByRole("button", { name: "Save as a variant specification" }).click();
+  const specs = admin.getByRole("table", { name: "Variant specifications" });
   const generate = async (name: string) => {
     await specs
       .getByRole("row", { name: new RegExp(name) })
       .getByRole("button", { name: "Generate" })
       .click();
-    await expect(alice.getByText(`Generated Rover R3 ${suffix} – ${name}`)).toBeVisible();
+    await expect(admin.getByText(`Generated Rover R3 ${suffix} – ${name}`)).toBeVisible();
   };
   await generate("Expedition");
-  await expect(alice.getByText("2 made, 0 reused.")).toBeVisible();
+  await expect(admin.getByText("2 made, 0 reused.")).toBeVisible();
 
   // Another variant with the same motor: its power unit variant is reused.
   await choices.getByLabel("Colour").selectOption("RED");
-  await alice.getByLabel("Variant name").fill("Rally");
-  await alice.getByRole("button", { name: "Save as a variant specification" }).click();
+  await admin.getByLabel("Variant name").fill("Rally");
+  await admin.getByRole("button", { name: "Save as a variant specification" }).click();
   await expect(specs.getByRole("row", { name: /Rally/ })).toBeVisible();
   await generate("Rally");
-  await expect(alice.getByText("1 made, 1 reused.")).toBeVisible();
-  const generated = alice.getByRole("table", { name: "Generated parts" });
+  await expect(admin.getByText("1 made, 1 reused.")).toBeVisible();
+  const generated = admin.getByRole("table", { name: "Generated parts" });
   await expect(generated.getByRole("row", { name: /Power unit – HT/ })).toContainText("reused");
 
   // ---- effectivity through a change notice: motor B from unit 100 ----
   await call("POST", `/objects/${motor.id}/state`, { state: "RELEASED", override: true });
-  await alice.goto(`/objects/${rover.id}?tab=effectivity`);
-  await alice.getByRole("button", { name: "Make it an end item" }).click();
-  await expect(alice.getByText("is an end item")).toBeVisible();
+  await admin.goto(`/objects/${rover.id}?tab=effectivity`);
+  await admin.getByRole("button", { name: "Make it an end item" }).click();
+  await expect(admin.getByText("is an end item")).toBeVisible();
   await call("POST", `/objects/${motor.id}/effectivity`, {
     target: "VERSION",
     revision: "A",
@@ -160,8 +160,8 @@ test("configure, generate and reuse variants; effectivity through change; one-of
     endItemId: rover.id,
     changeId: cn.id,
   });
-  await alice.goto(`/objects/${cn.id}?tab=change`);
-  await expect(alice.getByRole("table", { name: "Effectivity of the results" })).toContainText("Pending");
+  await admin.goto(`/objects/${cn.id}?tab=change`);
+  await expect(admin.getByRole("table", { name: "Effectivity of the results" })).toContainText("Pending");
   const setState = async (page: Page, to: string) => {
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await page.locator(".toolbar").getByRole("button", { name: "Set state" }).click();
@@ -169,19 +169,19 @@ test("configure, generate and reuse variants; effectivity through change; one-of
     await page.getByRole("dialog").getByRole("button", { name: "Set state" }).click();
     await expect(page.locator(".title-row .state")).toHaveText(to);
   };
-  for (const to of ["Under Review", "Approved", "Implementation", "Resolved"]) await setState(alice, to);
-  await alice.goto(`/objects/${motor.id}?tab=effectivity`);
-  const versions = alice.getByRole("table", { name: "Version effectivity" });
+  for (const to of ["Under Review", "Approved", "Implementation", "Resolved"]) await setState(admin, to);
+  await admin.goto(`/objects/${motor.id}?tab=effectivity`);
+  const versions = admin.getByRole("table", { name: "Version effectivity" });
   await expect(versions.getByRole("row", { name: /^A/ })).toContainText("1 – 99");
   await expect(versions.getByRole("row", { name: /^B/ })).toContainText("100 –");
 
   const motorAt = async (serial: string) => {
-    await alice.goto(`/objects/${rover.id}?tab=structure`);
-    await alice.locator("#spec").selectOption("EFFECTIVITY");
-    await alice.getByLabel("Effective by").selectOption("SERIAL");
-    await alice.getByLabel("Effective for").fill(serial);
-    await alice.getByLabel("Effective for").press("Enter");
-    return alice
+    await admin.goto(`/objects/${rover.id}?tab=structure`);
+    await admin.locator("#spec").selectOption("EFFECTIVITY");
+    await admin.getByLabel("Effective by").selectOption("SERIAL");
+    await admin.getByLabel("Effective for").fill(serial);
+    await admin.getByLabel("Effective for").press("Enter");
+    return admin
       .getByRole("table", { name: "Structure" })
       .last()
       .getByRole("row", { name: /Drive motor/ });
@@ -190,13 +190,13 @@ test("configure, generate and reuse variants; effectivity through change; one-of
   await expect(await motorAt("150")).toContainText("B.1");
 
   // ---- a one-off of the motor for one order: the main line doesn't move ----
-  await alice.goto(`/objects/${motor.id}?tab=history`);
-  await alice.getByLabel("One-off for").fill(`Order 4471 ${suffix}`);
-  await alice.getByRole("button", { name: /Make a one-off of B\.1/ }).click();
-  await expect(alice.locator(".one-off-banner")).toContainText("one-off B.1-1");
+  await admin.goto(`/objects/${motor.id}?tab=history`);
+  await admin.getByLabel("One-off for").fill(`Order 4471 ${suffix}`);
+  await admin.getByRole("button", { name: /Make a one-off of B\.1/ }).click();
+  await expect(admin.locator(".one-off-banner")).toContainText("one-off B.1-1");
   await call("POST", `/objects/${motor.id}/checkin`, { comment: "Special winding for order 4471" });
-  await alice.reload();
-  await expect(alice.getByRole("table", { name: "One-off versions" })).toContainText(`Order 4471 ${suffix}`);
+  await admin.reload();
+  await expect(admin.getByRole("table", { name: "One-off versions" })).toContainText(`Order 4471 ${suffix}`);
   expect((await call("GET", `/objects/${motor.id}`)).latest.version).toBe("B.1");
   const latest = await call("GET", `/objects/${rover.id}/structure?spec=LATEST&depth=1`);
   expect(latest.nodes.find((n: { line: { child: { name: string } } }) => n.line.child.name === "Drive motor").line.child.version).toBe(
@@ -232,15 +232,15 @@ test("configure, generate and reuse variants; effectivity through change; one-of
     await call("POST", `/objects/${p.id}/checkin`, {});
     classified[name] = p.id;
   }
-  await alice.goto(`/classes?class=${cls.id}`);
-  const parts = alice.getByRole("table", { name: "Classified parts" });
+  await admin.goto(`/classes?class=${cls.id}`);
+  const parts = admin.getByRole("table", { name: "Classified parts" });
   await expect(parts.getByRole("row")).toHaveCount(4);
-  await alice.getByLabel("Rated power from").fill("700");
-  await alice.getByLabel("Rated power to").fill("1200");
+  await admin.getByLabel("Rated power from").fill("700");
+  await admin.getByLabel("Rated power to").fill("1200");
   await expect(parts.getByRole("row")).toHaveCount(3);
   await expect(parts).not.toContainText("Motor 3000 W");
-  await alice.goto(`/objects/${classified["Motor 1000 W"]}?tab=classification`);
-  const similar = alice.getByRole("table", { name: "Similar parts" });
+  await admin.goto(`/objects/${classified["Motor 1000 W"]}?tab=classification`);
+  const similar = admin.getByRole("table", { name: "Similar parts" });
   await expect(similar.getByRole("row").nth(2)).toContainText("Motor 750 W");
   await expect(similar.getByRole("row").nth(3)).toContainText("Motor 3000 W");
 });

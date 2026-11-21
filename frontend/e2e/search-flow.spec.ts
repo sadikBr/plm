@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { API, KEYCLOAK, asUser } from "./support";
+import { ADMIN, API, KEYCLOAK, asUser, passwordOf } from "./support";
 
 /** Roadmap 3.6: a word inside a file is found once the object is indexed, with a snippet. */
 test("a word in an attached file is found by search", async ({ browser, request }) => {
   const token = await request.post(`${KEYCLOAK}/protocol/openid-connect/token`, {
-    form: { grant_type: "password", client_id: "plm-web", username: "alice", password: "alice" },
+    form: { grant_type: "password", client_id: "plm-web", username: ADMIN, password: passwordOf(ADMIN) },
   });
   const headers = { Authorization: `Bearer ${((await token.json()) as { access_token: string }).access_token}` };
   const post = async (path: string, data?: unknown) => {
@@ -24,10 +24,10 @@ test("a word in an attached file is found by search", async ({ browser, request 
   await post(`/objects/${doc.id}/content`, { uploadId: ticket.uploadId, role: "PRIMARY" });
   await post(`/objects/${doc.id}/checkin`, { comment: "Plan" });
 
-  const alice = await asUser(browser, "alice");
+  const admin = await asUser(browser, ADMIN);
   await expect(async () => {
-    await alice.goto(`/search?q=${word}`);
-    await expect(alice.getByRole("list", { name: "Search results" }).getByText("Test plan")).toBeVisible({ timeout: 2000 });
+    await admin.goto(`/search?q=${word}`);
+    await expect(admin.getByRole("list", { name: "Search results" }).getByText("Test plan")).toBeVisible({ timeout: 2000 });
   }).toPass({ timeout: 30_000 });
-  await expect(alice.locator("mark", { hasText: word })).toBeVisible();
+  await expect(admin.locator("mark", { hasText: word })).toBeVisible();
 });

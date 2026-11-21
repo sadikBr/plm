@@ -2,6 +2,7 @@ package com.plm.app.web
 
 import com.plm.identity.api.PrincipalDirectory
 import com.plm.identity.api.SignIn
+import com.plm.identity.api.SiteAdminSettings
 import com.plm.platform.actor.Actor
 import com.plm.platform.id.PrincipalId
 import com.plm.platform.id.TenantId
@@ -30,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap
 @Component
 internal class JwtActorResolver(
     private val directory: PrincipalDirectory,
+    private val siteAdmins: SiteAdminSettings,
     private val clock: Clock,
 ) : HandlerMethodArgumentResolver {
     private val lastRecorded = ConcurrentHashMap<String, Instant>()
@@ -53,12 +55,12 @@ internal class JwtActorResolver(
                 ?: error("Actor requested on an unauthenticated request; check SecurityConfiguration")
         val jwt = auth.token
         val subject = auth.name // the converter guarantees a non-blank `sub`
-        val actor =
-            Actor(
-                tenant = TenantId.DEFAULT,
-                principal = PrincipalId(subject),
-                siteAdmin = auth.authorities.any { it.authority == "ROLE_$ADMIN_ROLE" },
-            )
+        val username = jwt.getClaimAsString("preferred_username") ?: subject
+        val holdsRole = auth.authorities.any { it.authority == "ROLE_$ADMIN_ROLE" }
+        // With plm.identity.only-built-in, the role counts for the built-in administrator only.
+        val isBuiltIn = username.equals(siteAdmins.builtInAdmin, ignoreCase = true)
+        val siteAdmin = holdsRole && (!siteAdmins.onlyBuiltIn || isBuiltIn)
+        val actor = Actor(tenant = TenantId.DEFAULT, principal = PrincipalId(subject), siteAdmin = siteAdmin)
         val now = clock.instant()
         val previous = lastRecorded[subject]
         if (previous == null || previous.plus(REFRESH).isBefore(now)) {
@@ -66,9 +68,10 @@ internal class JwtActorResolver(
                 SignIn(
                     tenant = actor.tenant,
                     id = actor.principal,
-                    username = jwt.getClaimAsString("preferred_username") ?: subject,
+                    username = username,
                     displayName = jwt.getClaimAsString("name"),
                     email = jwt.getClaimAsString("email"),
+                    siteAdmin = siteAdmin,
                 ),
             )
             lastRecorded[subject] = now

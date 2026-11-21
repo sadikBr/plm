@@ -23,6 +23,12 @@ const DEFAULTS: Record<string, Handler> = {
   "GET /api/v1/me/profile": () => ({ profiles: [], hiddenActions: [], hiddenAreas: [] }),
   "POST /api/v1/me/recent/:id": () => new Reply(204, undefined),
   "GET /api/v1/me/favorites": () => [],
+  "GET /api/v1/site-administrators": () => ({
+    builtInUsername: "plmadmin",
+    enforced: false,
+    moreThanRecommended: false,
+    administrators: [],
+  }),
   "GET /api/v1/me/subscriptions": () => [],
   "GET /api/v1/me/notifications": () => [],
   "GET /api/v1/me/notifications/unread": () => ({ unread: 0 }),

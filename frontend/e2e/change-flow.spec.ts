@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { API, KEYCLOAK, asUser } from "./support";
+import { ADMIN, API, KEYCLOAK, asUser, passwordOf } from "./support";
 
 /**
  * Phase 5 exit: a problem report goes through a change request (approved by the change board,
@@ -10,11 +10,11 @@ test("a problem report becomes a released part through a signed change", async (
   const suffix = Date.now().toString(36);
   const tokenOf = async (user: string) => {
     const r = await request.post(`${KEYCLOAK}/protocol/openid-connect/token`, {
-      form: { grant_type: "password", client_id: "plm-web", username: user, password: user },
+      form: { grant_type: "password", client_id: "plm-web", username: user, password: passwordOf(user) },
     });
     return ((await r.json()) as { access_token: string }).access_token;
   };
-  const headers = { Authorization: `Bearer ${await tokenOf("alice")}` };
+  const headers = { Authorization: `Bearer ${await tokenOf(ADMIN)}` };
   // bob is in the directory once he has signed in.
   await request.get(`${API}/api/v1/me`, { headers: { Authorization: `Bearer ${await tokenOf("bob")}` } });
   const post = async (path: string, data: unknown) => {
@@ -36,7 +36,7 @@ test("a problem report becomes a released part through a signed change", async (
     attributes: { material: "AL6061" },
   });
 
-  const alice = await asUser(browser, "alice");
+  const admin = await asUser(browser, ADMIN);
   const setState = async (page: Page, to: string) => {
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await page.locator(".toolbar").getByRole("button", { name: "Set state" }).click();
@@ -53,36 +53,36 @@ test("a problem report becomes a released part through a signed change", async (
   };
 
   // ---- the gate: the part can't simply be released ----
-  await alice.goto(`/objects/${part.id}`);
-  await setState(alice, "Under Review");
-  await alice.locator(".toolbar").getByRole("button", { name: "Set state" }).click();
-  await alice.getByRole("menuitem", { name: "Released", exact: true }).click();
-  await expect(alice.getByRole("dialog").getByText("Released through a change")).toBeVisible();
-  await expect(alice.getByRole("dialog").getByRole("button", { name: "Set state" })).toBeDisabled();
-  await alice.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+  await admin.goto(`/objects/${part.id}`);
+  await setState(admin, "Under Review");
+  await admin.locator(".toolbar").getByRole("button", { name: "Set state" }).click();
+  await admin.getByRole("menuitem", { name: "Released", exact: true }).click();
+  await expect(admin.getByRole("dialog").getByText("Released through a change")).toBeVisible();
+  await expect(admin.getByRole("dialog").getByRole("button", { name: "Set state" })).toBeDisabled();
+  await admin.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
 
-  // ---- alice reports the problem, and asks for a change ----
-  await alice.goto("/changes");
-  await alice.getByRole("button", { name: "Problem report" }).click();
-  const dialog = alice.getByRole("dialog");
+  // ---- admin reports the problem, and asks for a change ----
+  await admin.goto("/changes");
+  await admin.getByRole("button", { name: "Problem report" }).click();
+  const dialog = admin.getByRole("dialog");
   await dialog.getByLabel("Name").fill(`Bracket cracks ${suffix}`);
   await dialog.getByLabel("In").selectOption({ label: product.name });
   await dialog.getByRole("button", { name: "Create" }).click();
-  await expect(alice.locator(".title-row .num")).toContainText("PR-");
-  await pick(alice, "#add-AFFECTED", part.number);
-  await expect(alice.getByRole("cell", { name: new RegExp(part.number) }).first()).toBeVisible();
-  const prUrl = alice.url();
-  await alice.getByRole("button", { name: "Create a change request" }).click();
-  await expect(alice.locator(".title-row .num")).toContainText("CR-");
-  const crUrl = alice.url().split("?")[0]!;
-  await alice.getByRole("button", { name: "Submit to the change board" }).click();
-  await expect(alice.getByText("Change board review").first()).toBeVisible();
+  await expect(admin.locator(".title-row .num")).toContainText("PR-");
+  await pick(admin, "#add-AFFECTED", part.number);
+  await expect(admin.getByRole("cell", { name: new RegExp(part.number) }).first()).toBeVisible();
+  const prUrl = admin.url();
+  await admin.getByRole("button", { name: "Create a change request" }).click();
+  await expect(admin.locator(".title-row .num")).toContainText("CR-");
+  const crUrl = admin.url().split("?")[0]!;
+  await admin.getByRole("button", { name: "Submit to the change board" }).click();
+  await expect(admin.getByText("Change board review").first()).toBeVisible();
 
-  // ---- the board (the product's managers: alice, who made it, and bob) approves, each signing ----
+  // ---- the board (the product's managers: admin, who made it, and bob) approves, each signing ----
   const bob = await asUser(browser, "bob");
   for (const [page, user] of [
     [bob, "bob"],
-    [alice, "alice"],
+    [admin, ADMIN],
   ] as const) {
     await page.goto("/inbox");
     await page.getByRole("table", { name: "My tasks" }).getByText(`Bracket cracks ${suffix}`).first().click();
@@ -91,22 +91,22 @@ test("a problem report becomes a released part through a signed change", async (
     await expect(page.getByText(/Answered Approve/)).toBeVisible();
   }
 
-  // ---- the request is approved: alice makes the change notice, with the part as its result ----
-  await alice.goto(`${crUrl}?tab=change`);
-  await expect(alice.locator(".title-row .state")).toHaveText("Approved", { timeout: 30_000 });
-  await alice.getByRole("button", { name: "Create a change notice" }).click();
-  await expect(alice.locator(".title-row .num")).toContainText("CN-");
-  await pick(alice, "#add-RESULTING", part.number);
-  await expect(alice.getByRole("cell", { name: new RegExp(part.number) }).first()).toBeVisible();
-  for (const to of ["Under Review", "Approved", "Implementation", "Resolved"]) await setState(alice, to);
+  // ---- the request is approved: admin makes the change notice, with the part as its result ----
+  await admin.goto(`${crUrl}?tab=change`);
+  await expect(admin.locator(".title-row .state")).toHaveText("Approved", { timeout: 30_000 });
+  await admin.getByRole("button", { name: "Create a change notice" }).click();
+  await expect(admin.locator(".title-row .num")).toContainText("CN-");
+  await pick(admin, "#add-RESULTING", part.number);
+  await expect(admin.getByRole("cell", { name: new RegExp(part.number) }).first()).toBeVisible();
+  for (const to of ["Under Review", "Approved", "Implementation", "Resolved"]) await setState(admin, to);
 
   // ---- the part is released, and the chain is closed ----
-  await alice.goto(`/objects/${part.id}`);
-  await expect(alice.locator(".title-row .state")).toHaveText("Released");
-  await alice.goto(crUrl);
-  await expect(alice.locator(".title-row .state")).toHaveText("Resolved");
-  await expect(alice.getByRole("table", { name: "Electronic signatures" })).toContainText("Bob Builder");
-  await expect(alice.getByRole("table", { name: "Electronic signatures" })).toContainText("Alice Admin");
-  await alice.goto(prUrl.split("?")[0]!);
-  await expect(alice.locator(".title-row .state")).toHaveText("Resolved");
+  await admin.goto(`/objects/${part.id}`);
+  await expect(admin.locator(".title-row .state")).toHaveText("Released");
+  await admin.goto(crUrl);
+  await expect(admin.locator(".title-row .state")).toHaveText("Resolved");
+  await expect(admin.getByRole("table", { name: "Electronic signatures" })).toContainText("Bob Builder");
+  await expect(admin.getByRole("table", { name: "Electronic signatures" })).toContainText("Site Administrator");
+  await admin.goto(prUrl.split("?")[0]!);
+  await expect(admin.locator(".title-row .state")).toHaveText("Resolved");
 });

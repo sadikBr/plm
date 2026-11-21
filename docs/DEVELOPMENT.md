@@ -61,12 +61,24 @@ Dev users in the `plm` realm (their IDs are fixed, so docs and tests can refer t
 
 | User | Role | ID (`sub`) |
 |---|---|---|
-| `alice` | **site admin** (`plm-admin`) | `a11ce000-0000-4000-8000-000000000001` |
+| `plmadmin` | **the built-in site administrator** (`plm-admin`) | `9a0d0000-0000-4000-8000-000000000000` |
+| `alice` | user | `a11ce000-0000-4000-8000-000000000001` |
 | `bob` | user | `b0b00000-0000-4000-8000-000000000002` |
 | `carol` | user | `ca201000-0000-4000-8000-000000000003` |
 
-These credentials are for local development only. The Keycloak container keeps no state:
-restarting it re-imports the realm.
+These credentials are for local development only. `plmadmin` starts with the password `plmadmin`
+and must choose a new one at its first sign-in, as at an installation; give that password to the
+scripts and end-to-end tests as `PLM_ADMIN_PASSWORD`. Keycloak keeps its users while its container
+lives (`./plm stop` and `start` keep them); `./plm reset` re-imports the realm, and with it the
+first password.
+
+**One site administrator.** `plmadmin` is meant to be the site's only administrator: everyone
+else gets what they need from their roles in organizations and products (an organization's
+managers administer it). More site administrators are possible, by giving a user the `plm-admin`
+role in Keycloak or a service account **Can administer**, but not recommended: **Administration ›
+Site administrators** lists them all and every administration page warns while there are more.
+To refuse the rights to anyone else, run the backend with `PLM_ONLY_BUILT_IN_ADMIN=true`; to name
+another account the built-in one, `PLM_BUILT_IN_ADMIN=<username>`.
 
 ## 3. Run the backend
 
@@ -104,7 +116,8 @@ make ui-install    # once: cd frontend && npm ci
 make ui            # cd frontend && npm run dev
 ```
 
-Open http://localhost:5173 and sign in as `alice`, `bob` or `carol` (password = username).
+Open http://localhost:5173 and sign in as `plmadmin` (the site administrator; the first time with
+the password `plmadmin`, then your own), or as `alice`, `bob` or `carol` (password = username).
 The dev server proxies `/api` to the backend on :8080, so `make up` and `make run` must be running.
 
 What you see depends on your role. **Site administrators** see the Site and every organization;
@@ -130,11 +143,11 @@ Each kind of container has its own tabs and actions:
 
 Try this:
 
-1. As **alice**: on the Site page, click **New organization**. In it, open **Products** and click
+1. As **plmadmin**: on the Site page, click **New organization**. In it, open **Products** and click
    **New product**. Open its **Team** tab and add `bob` as MEMBER. (bob must have signed in once first.)
 2. As **bob** (use a private window): open the product, click **New part**, then **Check out**,
    edit attributes, **Check in** with a comment, and **Revise**. See the **History** tab.
-3. As **alice**, open the same object: it shows "Checked out by Bob Builder" while bob has it.
+3. As **plmadmin**, open the same object: it shows "Checked out by Bob Builder" while bob has it.
    The **Audit** tab lists every change.
 4. As **carol**: there's nothing to see, and the object's URL says *Not found*.
 
@@ -200,25 +213,26 @@ uses the dev-only password grant). Tokens last an hour in dev.
 
 With the stack and backend running, paste these into a terminal one block at a time.
 
-**Sign in** as all three users, and see who you are:
+**Sign in** as the site administrator and the users, and see who you are (`plmadmin` must have
+chosen its password in the browser first; `export PLM_ADMIN_PASSWORD=<it>`):
 
 ```bash
 API=localhost:8080/api/v1
-ALICE=$(scripts/token.sh alice); BOB=$(scripts/token.sh bob); CAROL=$(scripts/token.sh carol)
-curl -s $API/me -H "Authorization: Bearer $ALICE" | jq
+ADMIN=$(scripts/token.sh plmadmin); BOB=$(scripts/token.sh bob); CAROL=$(scripts/token.sh carol)
+curl -s $API/me -H "Authorization: Bearer $ADMIN" | jq
 curl -s -o /dev/null -w "without a token: %{http_code}\n" $API/me
 ```
 
-**Alice (site admin) sets up** an organization and a product, and puts bob on the product team:
+**The site administrator sets up** an organization and a product, and puts bob on the product team:
 
 ```bash
-SITE=$(curl -s $API/contexts/site -H "Authorization: Bearer $ALICE" | jq -r .id)
-ORG=$(curl -s -X POST $API/contexts -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+SITE=$(curl -s $API/contexts/site -H "Authorization: Bearer $ADMIN" | jq -r .id)
+ORG=$(curl -s -X POST $API/contexts -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d "{\"parentId\":\"$SITE\",\"kind\":\"ORGANIZATION\",\"name\":\"Acme\"}" | jq -r .id)
-PRODUCT=$(curl -s -X POST $API/contexts -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+PRODUCT=$(curl -s -X POST $API/contexts -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d "{\"parentId\":\"$ORG\",\"kind\":\"PRODUCT\",\"name\":\"Drone X1\"}" | jq -r .id)
 curl -s -X PUT $API/contexts/$PRODUCT/members/b0b00000-0000-4000-8000-000000000002 \
-  -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' -d '{"role":"MEMBER"}' | jq
+  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"role":"MEMBER"}' | jq
 ```
 
 **Bob creates a part** (`A.1`) and checks it out (working copy `A.2`). First he checks what he may do:
@@ -231,19 +245,19 @@ PART=$(curl -s -X POST $API/objects -H "Authorization: Bearer $BOB" -H 'Content-
 curl -s -X POST $API/objects/$PART/checkout -H "Authorization: Bearer $BOB" | jq '{version, status}'
 ```
 
-**Alice tries to check it out too.** She gets `409 ALREADY_CHECKED_OUT ... by Bob Builder`:
+**The administrator tries to check it out too.** And gets `409 ALREADY_CHECKED_OUT ... by Bob Builder`:
 
 ```bash
-curl -s -X POST $API/objects/$PART/checkout -H "Authorization: Bearer $ALICE" | jq '{status, code, detail}'
+curl -s -X POST $API/objects/$PART/checkout -H "Authorization: Bearer $ADMIN" | jq '{status, code, detail}'
 ```
 
-**Carol isn't on the team**, so the product and part don't exist for her (`404`). Then alice adds
-her as a VIEWER: now she can read (`200`) but not check out (`403 ACCESS_DENIED`):
+**Carol isn't on the team**, so the product and part don't exist for her (`404`). Then the administrator
+adds her as a VIEWER: now she can read (`200`) but not check out (`403 ACCESS_DENIED`):
 
 ```bash
 curl -s $API/objects/$PART -H "Authorization: Bearer $CAROL" | jq '{status, code}'
 curl -s -X PUT $API/contexts/$PRODUCT/members/ca201000-0000-4000-8000-000000000003 \
-  -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' -d '{"role":"VIEWER"}' > /dev/null
+  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"role":"VIEWER"}' > /dev/null
 curl -s -o /dev/null -w "carol reads: %{http_code}\n" $API/objects/$PART -H "Authorization: Bearer $CAROL"
 curl -s -X POST $API/objects/$PART/checkout -H "Authorization: Bearer $CAROL" | jq '{status, code}'
 ```
@@ -259,13 +273,13 @@ curl -s -X POST $API/objects/$PART/checkin -H "Authorization: Bearer $BOB" -H 'C
 curl -s -X POST $API/objects/$PART/revise -H "Authorization: Bearer $BOB" | jq '{status, code, detail}'
 ```
 
-**Alice releases it** (In Work → Under Review → Released). Changing state needs the PROMOTE
+**The administrator releases it** (In Work → Under Review → Released). Changing state needs the PROMOTE
 permission, which managers and site admins have. Bob, a member, doesn't:
 
 ```bash
-curl -s $API/objects/$PART/lifecycle -H "Authorization: Bearer $ALICE" | jq '{state, editable, revisable, nextStates}'
+curl -s $API/objects/$PART/lifecycle -H "Authorization: Bearer $ADMIN" | jq '{state, editable, revisable, nextStates}'
 for S in UNDER_REVIEW RELEASED; do
-  curl -s -X POST $API/objects/$PART/state -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  curl -s -X POST $API/objects/$PART/state -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
     -d "{\"state\":\"$S\",\"comment\":\"Design review DR-12\"}" | jq -r .latest.state
 done
 ```
@@ -278,11 +292,11 @@ curl -s $API/objects/$PART/iterations -H "Authorization: Bearer $BOB" | jq '.[] 
 curl -s "$API/objects?contextId=$PRODUCT" -H "Authorization: Bearer $BOB" | jq '.[] | {number, name, version}'
 ```
 
-**Alice reads the audit trail.** Every change is there, with who did it and before/after values.
+**The administrator reads the audit trail.** Every change is there, with who did it and before/after values.
 Only site admins can read it (bob gets `403`):
 
 ```bash
-curl -s "$API/audit?aggregateId=$PART" -H "Authorization: Bearer $ALICE" | jq '.[] | {action, actor, occurredAt}'
+curl -s "$API/audit?aggregateId=$PART" -H "Authorization: Bearer $ADMIN" | jq '.[] | {action, actor, occurredAt}'
 curl -s -o /dev/null -w "bob reads audit: %{http_code}\n" "$API/audit" -H "Authorization: Bearer $BOB"
 ```
 
@@ -308,9 +322,9 @@ Site admins extend the model without code. For example, a *Fastener* part subtyp
 required, pattern-checked thread size:
 
 ```bash
-FASTENER=$(curl -s -X POST $API/types -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+FASTENER=$(curl -s -X POST $API/types -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{"parentId":"00000000-0000-7000-8000-000000000102","name":"Fastener","displayName":"Fastener"}' | jq -r .id)
-curl -s -X POST $API/types/$FASTENER/attributes -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+curl -s -X POST $API/types/$FASTENER/attributes -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{"name":"threadSize","dataType":"STRING","labels":{"en":"Thread size"},"required":true,"pattern":"M\\d+(x[\\d.]+)?"}' | jq '{name, required, pattern}'
 ```
 
@@ -348,7 +362,7 @@ Give the Fastener create form its own layout: thread first, and no *Gathering pa
 (hidden attributes keep their default value):
 
 ```bash
-curl -s -X PUT $API/types/$FASTENER/layouts/CREATE -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+curl -s -X PUT $API/types/$FASTENER/layouts/CREATE -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{"groups":[{"key":"fastener","labels":{"en":"Fastener"},"columns":2,"attributes":["threadSize","material","mass"]},
                  {"key":"general","labels":{"en":"General"},"columns":2,"attributes":["description","source","defaultUnit"]}],
        "hidden":["gatheringPart"]}' | jq '{screen, groups: [.groups[].key], hidden}'
@@ -401,22 +415,22 @@ rules never changes existing objects.
 
 ### Team roles and access rules
 
-Alice (site admin) defines a **custom role** and makes carol a design reviewer of the product.
+The site administrator defines a **custom role** and makes carol a design reviewer of the product.
 A new role can do nothing until a rule says so, so the part disappears for carol (`404`):
 
 ```bash
-curl -s -X POST $API/team-roles -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+curl -s -X POST $API/team-roles -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{"key":"DESIGN_REVIEWER","labels":{"en":"Design reviewer"},"description":"Reviews and releases designs."}' | jq -c
 curl -s -X PUT $API/contexts/$PRODUCT/members/ca201000-0000-4000-8000-000000000003 \
-  -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' -d '{"role":"DESIGN_REVIEWER"}' > /dev/null
+  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"role":"DESIGN_REVIEWER"}' > /dev/null
 curl -s -o /dev/null -w "carol reads: %{http_code}\n" $API/objects/$PART -H "Authorization: Bearer $CAROL"
 ```
 
-As manager of the product, alice **adds a rule**: design reviewers may read parts and change their
+The site administrator **adds a rule**: design reviewers may read parts and change their
 state. Carol can read the part again:
 
 ```bash
-curl -s -X POST $API/contexts/$PRODUCT/policies -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+curl -s -X POST $API/contexts/$PRODUCT/policies -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{"role":"DESIGN_REVIEWER","typeId":"00000000-0000-7000-8000-000000000102","permissions":["READ","PROMOTE"]}' \
   | jq -c '{role, effect, permissions}'
 curl -s -o /dev/null -w "carol reads: %{http_code}\n" $API/objects/$PART -H "Authorization: Bearer $CAROL"
@@ -426,7 +440,7 @@ A **deny rule**: members may no longer edit *Fasteners* in this product (other p
 affected). Bob's permissions for each type show the difference:
 
 ```bash
-curl -s -X POST $API/contexts/$PRODUCT/policies -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+curl -s -X POST $API/contexts/$PRODUCT/policies -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d "{\"role\":\"MEMBER\",\"typeId\":\"$FASTENER\",\"effect\":\"DENY\",\"permissions\":[\"MODIFY\"]}" | jq -c '{role, effect, permissions}'
 curl -s "$API/contexts/$PRODUCT/permissions?typeId=00000000-0000-7000-8000-000000000102" -H "Authorization: Bearer $BOB"; echo
 curl -s "$API/contexts/$PRODUCT/permissions?typeId=$FASTENER" -H "Authorization: Bearer $BOB"; echo
@@ -437,7 +451,7 @@ can ask about anyone, everyone can ask about themselves:
 
 ```bash
 curl -s "$API/contexts/$PRODUCT/access/explain?principalId=b0b00000-0000-4000-8000-000000000002&typeId=$FASTENER" \
-  -H "Authorization: Bearer $ALICE" \
+  -H "Authorization: Bearer $ADMIN" \
   | jq -c '.permissions[] | {permission, granted, deniedBy: [.deniedBy[] | .role], allowedBy: [.allowedBy[] | .role]}'
 ```
 
@@ -458,14 +472,14 @@ template** (site admins), then pick the template in the **New product** (library
 listed under **Admin → Context templates** and travel in configuration bundles.
 
 ```bash
-TEAM=$(curl -s -X POST $API/shared-teams -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+TEAM=$(curl -s -X POST $API/shared-teams -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{"name":"Reviewers"}' | jq -r .id)
-curl -s -X PUT $API/shared-teams/$TEAM/members/b0b00000-0000-4000-8000-000000000002 -H "Authorization: Bearer $ALICE" \
+curl -s -X PUT $API/shared-teams/$TEAM/members/b0b00000-0000-4000-8000-000000000002 -H "Authorization: Bearer $ADMIN" \
   -H 'Content-Type: application/json' -d '{"role":"VIEWER"}' | jq -c '{name, members: [.members[].role]}'
-TEMPLATE=$(curl -s -X POST $API/context-templates -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+TEMPLATE=$(curl -s -X POST $API/context-templates -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{"name":"Regulated product","kind":"PRODUCT","content":{"sharedTeams":["Reviewers"],
        "policies":[{"role":"MEMBER","type":"Document","state":"RELEASED","effect":"DENY","permissions":["REVISE"]}]}}' | jq -r .id)
-curl -s -X POST $API/contexts -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+curl -s -X POST $API/contexts -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d "{\"parentId\":\"$ORG\",\"kind\":\"PRODUCT\",\"name\":\"Pump\",\"templateId\":\"$TEMPLATE\"}" | jq -c '{name, kind}'
 ```
 
@@ -483,12 +497,12 @@ list attributes **required to enter** it, and a **revision series**: revisions s
 state continue in it, e.g. prototype revisions 1, 2, 3, then A once approved.
 
 ```bash
-LC=$(curl -s -X POST $API/lifecycles -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' -d '{
+LC=$(curl -s -X POST $API/lifecycles -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{
   "name":"Prototype","labels":{"en":"Prototype"},"initialState":"DRAFT",
   "states":[{"key":"DRAFT","labels":{"en":"Draft"},"editable":true},
             {"key":"APPROVED","labels":{"en":"Approved"},"revisable":true,"requiredAttributes":["material"],"revisionScheme":"ALPHABETIC_ASME"}],
   "transitions":[{"from":"DRAFT","to":"APPROVED"}]}')
-curl -s -X PUT $API/lifecycles/$(echo "$LC" | jq -r .id) -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+curl -s -X PUT $API/lifecycles/$(echo "$LC" | jq -r .id) -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d "$(echo "$LC" | jq '{name, labels, initialState, states, transitions} | .states[0].labels.en = "Drafting"')" | jq -c '{version, latest}'
 ```
 
@@ -506,10 +520,10 @@ Approving an object without a material is refused with `ENTRY_CRITERIA_NOT_MET`.
   *Abstract*: a type that only groups subtypes and can't be created itself.
 
 ```bash
-G=$(curl -s -X POST $API/attributes/global -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+G=$(curl -s -X POST $API/attributes/global -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{"name":"exportClass","dataType":"STRING","labels":{"en":"Export class"}}' | jq -r .id)
 curl -s -o /dev/null -w "%{http_code}\n" -X PUT $API/types/00000000-0000-7000-8000-000000000101/global-attributes/$G \
-  -H "Authorization: Bearer $ALICE"
+  -H "Authorization: Bearer $ADMIN"
 curl -s $API/types/00000000-0000-7000-8000-000000000101/attributes -H "Authorization: Bearer $BOB" \
   | jq -c '[.[] | select(.global) | .name]'
 ```
@@ -533,8 +547,8 @@ in the extension's **History** (the audit log).
 
 ```bash
 jq -Rs '{manifest: ., config: {erpUrl: "https://erp.acme.example"}}' extensions/samples/erp-sync/plm-extension.yaml > /tmp/ext.json
-curl -s -X POST $API/extensions/preview -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' -d @/tmp/ext.json | jq '{mode, compatible, actionsAdded, configProblems}'
-curl -s -X POST $API/extensions -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' -d @/tmp/ext.json | jq '{id, version, status}'
+curl -s -X POST $API/extensions/preview -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d @/tmp/ext.json | jq '{mode, compatible, actionsAdded, configProblems}'
+curl -s -X POST $API/extensions -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d @/tmp/ext.json | jq '{id, version, status}'
 ```
 
 ### Event webhooks
@@ -577,7 +591,7 @@ are deliberately separate: a validation rule says what a valid part is; an opera
 look at who does what (`'MANAGE' in user.permissions`, `event.to == 'RELEASED'`).
 
 ```bash
-curl -s -X POST $API/operation-rules -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+curl -s -X POST $API/operation-rules -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{"name": "Say why it is released", "operations": ["object.set-state"], "condition": "event.to == '"'"'RELEASED'"'"' && event.comment == null",
        "message": "Say why it is released: a comment is required"}'
 ```
@@ -618,10 +632,10 @@ Every expression box in the admin UI checks as you type, lists these variables, 
 expression on a real object. The same through the API:
 
 ```bash
-curl -s -X POST $API/expressions/check -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+curl -s -X POST $API/expressions/check -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{"expression": "object.state ==", "kind": "CONDITION"}'
-curl -s "$API/objects/$PART/expression-model" -H "Authorization: Bearer $ALICE" | jq
-curl -s -X POST "$API/objects/$PART/expression-model/evaluate" -H "Authorization: Bearer $ALICE" \
+curl -s "$API/objects/$PART/expression-model" -H "Authorization: Bearer $ADMIN" | jq
+curl -s -X POST "$API/objects/$PART/expression-model/evaluate" -H "Authorization: Bearer $ADMIN" \
   -H 'Content-Type: application/json' -d '{"expression": "object.attributes.material", "kind": "VALUE"}'
 ```
 
@@ -644,7 +658,7 @@ the attribute is left empty, like a spreadsheet cell. Calculated attributes can'
 fixed, multi-valued, dependent lists or have a default. Formulas travel in configuration bundles.
 
 ```bash
-curl -s -X POST $API/types/$KIT_TYPE/attributes -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+curl -s -X POST $API/types/$KIT_TYPE/attributes -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{"name": "totalCost", "dataType": "REAL", "labels": {"en": "Total cost"},
        "formula": "double(object.attributes.quantity) * object.attributes.unitCost"}'
 ```
@@ -660,7 +674,7 @@ failing rules are reported together, next to their fields, like attribute errors
 counts as failed. Rules travel in configuration bundles (`types[].validationRules`).
 
 ```bash
-curl -s -X POST $API/types/$PART_TYPE/validation-rules -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+curl -s -X POST $API/types/$PART_TYPE/validation-rules -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{"name": "Bought parts are described", "attribute": "description", "message": "Describe parts you buy",
        "condition": "object.attributes.source != '"'"'buy'"'"' || object.attributes.description != null"}'
 ```
@@ -681,9 +695,9 @@ goes back to the defaults. Extensions will add their own actions to the same reg
 
 ```bash
 # Show Revise only on Released objects, and move Copy link to the toolbar
-curl -s -X PUT $API/actions/object.revise/configuration -H "Authorization: Bearer $ALICE" \
+curl -s -X PUT $API/actions/object.revise/configuration -H "Authorization: Bearer $ADMIN" \
   -H 'Content-Type: application/json' -d '{"states": ["RELEASED"]}'
-curl -s -X PUT $API/actions/object.copy-link/configuration -H "Authorization: Bearer $ALICE" \
+curl -s -X PUT $API/actions/object.copy-link/configuration -H "Authorization: Bearer $ADMIN" \
   -H 'Content-Type: application/json' -d '{"placement": "OBJECT_TOOLBAR", "order": 5}'
 curl -s "$API/objects/$PART/actions" -H "Authorization: Bearer $BOB" | jq -c '.[] | {id, enabled, reason}'
 ```
@@ -696,7 +710,7 @@ changed below, not even by users. Users set their own under **My preferences** (
 Managers use the **Preferences** tab of their contexts.
 
 ```bash
-curl -s -X PUT $API/contexts/$ORG/preferences/versioning.checkInCommentRequired -H "Authorization: Bearer $ALICE" \
+curl -s -X PUT $API/contexts/$ORG/preferences/versioning.checkInCommentRequired -H "Authorization: Bearer $ADMIN" \
   -H 'Content-Type: application/json' -d '{"value":true,"locked":true}' | jq -c '{key: .definition.key, effective: .effective.value}'
 curl -s "$API/preferences/effective?contextId=$PRODUCT" -H "Authorization: Bearer $BOB" | jq -c '[.[] | {key, value, source}]'
 ```
@@ -713,7 +727,7 @@ lifecycles, team roles) exports as **one JSON file**. Items refer to each other 
 output is stable (sorted, no timestamps), so it belongs in Git:
 
 ```bash
-curl -s $API/configuration/export -H "Authorization: Bearer $ALICE" | jq . > plm-config.json
+curl -s $API/configuration/export -H "Authorization: Bearer $ADMIN" | jq . > plm-config.json
 jq -c '{types: [.types[].name], lifecycles: [.lifecycles[].name]}' plm-config.json
 ```
 
@@ -721,7 +735,7 @@ jq -c '{types: [.types[].name], lifecycles: [.lifecycles[].name]}' plm-config.js
 plan and changes nothing. Re-importing what you just exported changes nothing at all:
 
 ```bash
-curl -s -X POST $API/configuration/import -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+curl -s -X POST $API/configuration/import -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   --data-binary @plm-config.json | jq -c '{applied, creates, updates, unchanged, conflicts}'
 ```
 
@@ -732,9 +746,9 @@ plan, then apply it with `dryRun=false`:
 jq '.types += [{"name":"Washer","displayName":"Washer","parent":"Part","baseClass":"PART",
      "attributes":[{"name":"innerDiameter","labels":{"en":"Inner diameter"},"dataType":"QUANTITY",
                     "dimension":"LENGTH","displayUnit":"mm","required":true}]}]' plm-config.json > plm-config-new.json
-curl -s -X POST $API/configuration/import -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+curl -s -X POST $API/configuration/import -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   --data-binary @plm-config-new.json | jq -c '[.changes[] | select(.action != "UNCHANGED") | "\(.action) \(.kind) \(.key)"]'
-curl -s -X POST "$API/configuration/import?dryRun=false" -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+curl -s -X POST "$API/configuration/import?dryRun=false" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   --data-binary @plm-config-new.json | jq -c '{applied, creates}'
 ```
 
@@ -880,6 +894,10 @@ select c.name, m.principal_id, m.role from context_member m join context c on c.
   UI started by hand (`make run`, `make ui`). Stop it, or use that one instead of `plm`.
 - **`plm start` stops at a service**: `./plm logs services` shows why; on a machine short of
   memory, `./plm start --lite` leaves out OpenSearch and Temporal.
+- **Forgot `plmadmin`'s password, or `plmadmin` doesn't exist** (a copy set up before it was
+  added): load the realm afresh, which puts every dev user back to its first password, `plmadmin`
+  included (your PLM data is kept):
+  `docker compose -f deploy/docker-compose.yml up -d --force-recreate keycloak`.
 
 - **`Could not find a valid Docker environment`**: Docker isn't running. Start Docker Desktop.
 - **Docker Hub `429 Too Many Requests`**: pull through a mirror:

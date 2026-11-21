@@ -1,12 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { API, KEYCLOAK, asUser } from "./support";
+import { ADMIN, API, KEYCLOAK, asUser, passwordOf } from "./support";
 
 const PART = "00000000-0000-7000-8000-000000000102";
 
 /** Roadmap 4.1: a part's structure is built on its working copy and becomes its own at check-in. */
 test("parts are added to an assembly's structure and kept at check-in", async ({ browser, request }) => {
   const token = await request.post(`${KEYCLOAK}/protocol/openid-connect/token`, {
-    form: { grant_type: "password", client_id: "plm-web", username: "alice", password: "alice" },
+    form: { grant_type: "password", client_id: "plm-web", username: ADMIN, password: passwordOf(ADMIN) },
   });
   const headers = { Authorization: `Bearer ${((await token.json()) as { access_token: string }).access_token}` };
   const post = async (path: string, data?: unknown) => {
@@ -22,25 +22,25 @@ test("parts are added to an assembly's structure and kept at check-in", async ({
   const shaft = await post("/objects", { typeId: PART, contextId: product.id, name: `Shaft ${word}` });
   await post(`/objects/${assembly.id}/checkout`);
 
-  const alice = await asUser(browser, "alice");
-  await alice.goto(`/objects/${assembly.id}?tab=structure`);
-  await alice.getByLabel("Part to add").fill(word);
-  await alice.getByRole("listbox", { name: "Matching parts" }).getByText(shaft.number).click();
-  await alice.getByRole("form", { name: "Add a part" }).getByLabel("Quantity").fill("2");
-  await alice.getByRole("button", { name: "Add", exact: true }).click();
-  const table = alice.getByRole("table", { name: "Structure" });
+  const admin = await asUser(browser, ADMIN);
+  await admin.goto(`/objects/${assembly.id}?tab=structure`);
+  await admin.getByLabel("Part to add").fill(word);
+  await admin.getByRole("listbox", { name: "Matching parts" }).getByText(shaft.number).click();
+  await admin.getByRole("form", { name: "Add a part" }).getByLabel("Quantity").fill("2");
+  await admin.getByRole("button", { name: "Add", exact: true }).click();
+  const table = admin.getByRole("table", { name: "Structure" });
   await expect(table.getByRole("link", { name: shaft.number })).toBeVisible();
 
   await post(`/objects/${assembly.id}/checkin`, { comment: "Shaft" });
-  await alice.reload();
+  await admin.reload();
   await expect(table.getByRole("row", { name: new RegExp(shaft.number) })).toContainText("2");
-  await expect(alice.getByLabel("Part to add")).toHaveCount(0);
+  await expect(admin.getByLabel("Part to add")).toHaveCount(0);
 });
 
 /** Roadmap 4.13, 4.9, 4.10: a structure is imported from a file, compared with what it was, and baselined. */
 test("a structure is imported from a file, compared with its earlier version and baselined", async ({ browser, request }) => {
   const token = await request.post(`${KEYCLOAK}/protocol/openid-connect/token`, {
-    form: { grant_type: "password", client_id: "plm-web", username: "alice", password: "alice" },
+    form: { grant_type: "password", client_id: "plm-web", username: ADMIN, password: passwordOf(ADMIN) },
   });
   const headers = { Authorization: `Bearer ${((await token.json()) as { access_token: string }).access_token}` };
   const post = async (path: string, data?: unknown) => {
@@ -64,37 +64,37 @@ test("a structure is imported from a file, compared with its earlier version and
   }[];
   const first = iterations.find((i) => i.comment === "Bolt")!;
 
-  const alice = await asUser(browser, "alice");
-  await alice.goto(`/objects/${top.id}?tab=structure`);
-  await alice.getByRole("button", { name: "Import", exact: true }).click();
-  const dialog = alice.getByRole("dialog");
+  const admin = await asUser(browser, ADMIN);
+  await admin.goto(`/objects/${top.id}?tab=structure`);
+  await admin.getByRole("button", { name: "Import", exact: true }).click();
+  const dialog = admin.getByRole("dialog");
   const csv = ["Level;Number;Name;Quantity;Unit", `1;${bolt.number};;6;each`, `1;;Housing ${word};1;each`, `2;;Seal ${word};2;each`].join(
     "\n",
   );
   await dialog.locator("#import-file").setInputFiles({ name: "gearbox.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
   await expect(dialog.getByRole("status")).toContainText("2 new parts");
   await dialog.getByRole("button", { name: "Import", exact: true }).click();
-  const results = alice.getByRole("table", { name: "Results" });
+  const results = admin.getByRole("table", { name: "Results" });
   await expect(results).toContainText("Structure set", { timeout: 30_000 });
   await expect(results).not.toContainText("not changed");
-  const tree = alice.getByRole("table", { name: "Structure" });
+  const tree = admin.getByRole("table", { name: "Structure" });
   await expect(tree).toContainText(`Housing ${word}`);
 
   // Compared with the first version: the bolt's quantity changed, the housing (and its seal) added.
-  await alice.goto(`/structure-compare?left=${top.id}&leftIteration=${first.id}&right=${top.id}`);
-  const differences = alice.getByRole("table", { name: "Differences" });
+  await admin.goto(`/structure-compare?left=${top.id}&leftIteration=${first.id}&right=${top.id}`);
+  const differences = admin.getByRole("table", { name: "Differences" });
   await expect(differences.getByRole("row", { name: new RegExp(`Housing ${word}`) })).toContainText("Added");
   await expect(differences.getByRole("row", { name: new RegExp(`Bolt ${word}`) })).toContainText("Changed");
 
   // Baselined: the gearbox and everything under it.
-  await alice.goto(`/objects/${top.id}?tab=structure`);
-  await alice.getByRole("button", { name: "Collect…" }).click();
-  await alice.getByRole("dialog").getByLabel("New baseline name").fill(`Gearbox ${word} as imported`);
-  await alice
+  await admin.goto(`/objects/${top.id}?tab=structure`);
+  await admin.getByRole("button", { name: "Collect…" }).click();
+  await admin.getByRole("dialog").getByLabel("New baseline name").fill(`Gearbox ${word} as imported`);
+  await admin
     .getByRole("dialog")
     .getByRole("button", { name: /Add \d+ to the baseline/ })
     .click();
-  const members = alice.getByRole("table", { name: "Baseline members" });
+  const members = admin.getByRole("table", { name: "Baseline members" });
   await expect(members).toContainText(`Seal ${word}`);
   await expect(members).toContainText(`Bolt ${word}`);
 });

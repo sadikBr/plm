@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { API, KEYCLOAK, asUser } from "./support";
+import { ADMIN, API, KEYCLOAK, asUser, passwordOf } from "./support";
 
 /** Roadmap 2.5 (and the Phase 2 exit): an extension's rule refuses check-in without a description. */
 let installed: { id: string; headers: Record<string, string> } | undefined;
@@ -14,7 +14,7 @@ test.afterEach(async ({ request }) => {
 test("the quality rules refuse a check-in without a description and a release without a reason", async ({ browser, request }) => {
   const suffix = Date.now().toString(36);
   const token = await request.post(`${KEYCLOAK}/protocol/openid-connect/token`, {
-    form: { grant_type: "password", client_id: "plm-web", username: "alice", password: "alice" },
+    form: { grant_type: "password", client_id: "plm-web", username: ADMIN, password: passwordOf(ADMIN) },
   });
   const headers = { Authorization: `Bearer ${((await token.json()) as { access_token: string }).access_token}` };
   const post = async (path: string, data: unknown) => {
@@ -43,30 +43,30 @@ test("the quality rules refuse a check-in without a description and a release wi
   const product = await post("/contexts", { parentId: org.id, kind: "PRODUCT", name: "Gearbox" });
   const part = await post("/objects", { typeId: gear.id, contextId: product.id, name: "Spur gear" });
 
-  const alice = await asUser(browser, "alice");
-  await alice.goto(`/objects/${part.id}`);
-  await alice.getByRole("button", { name: "Check out" }).click();
-  await alice.getByRole("button", { name: "Check in" }).click();
-  const dialog = alice.getByRole("dialog");
+  const admin = await asUser(browser, ADMIN);
+  await admin.goto(`/objects/${part.id}`);
+  await admin.getByRole("button", { name: "Check out" }).click();
+  await admin.getByRole("button", { name: "Check in" }).click();
+  const dialog = admin.getByRole("dialog");
   await dialog.getByRole("button", { name: "Check in" }).click();
   await expect(dialog.getByText("Add a description (5 characters or more) before checking in.")).toBeVisible();
   await dialog.getByRole("button", { name: "Cancel" }).click();
 
-  await alice.getByLabel("Description").fill("A 20-tooth spur gear");
-  await alice.getByRole("button", { name: "Save attributes" }).click();
-  await alice.getByRole("button", { name: "Check in" }).click();
+  await admin.getByLabel("Description").fill("A 20-tooth spur gear");
+  await admin.getByRole("button", { name: "Save attributes" }).click();
+  await admin.getByRole("button", { name: "Check in" }).click();
   await dialog.getByRole("button", { name: "Check in" }).click();
-  await expect(alice.getByTestId("version")).toHaveText("A.2");
+  await expect(admin.getByTestId("version")).toHaveText("A.2");
 
   // Release: refused without a reason, accepted with one.
-  await alice.getByRole("button", { name: "Set state" }).click();
-  await alice.getByRole("menuitem", { name: "Under Review" }).click();
+  await admin.getByRole("button", { name: "Set state" }).click();
+  await admin.getByRole("menuitem", { name: "Under Review" }).click();
   await dialog.getByRole("button", { name: "Set state" }).click();
-  await alice.getByRole("button", { name: "Set state" }).first().click();
-  await alice.getByRole("menuitem", { name: "Released", exact: true }).click();
+  await admin.getByRole("button", { name: "Set state" }).first().click();
+  await admin.getByRole("menuitem", { name: "Released", exact: true }).click();
   await dialog.getByRole("button", { name: "Set state" }).click();
   await expect(dialog.getByText(/a comment is required to release/)).toBeVisible();
   await dialog.getByLabel("Comment").fill("Approved in DR-9");
   await dialog.getByRole("button", { name: "Set state" }).click();
-  await expect(alice.getByText("Released").first()).toBeVisible();
+  await expect(admin.getByText("Released").first()).toBeVisible();
 });

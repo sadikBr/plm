@@ -51,6 +51,12 @@ management:
       enabled: false
 
 plm:
+  identity:
+    # The built-in site administrator, made with the installation (deploy/keycloak/plm-realm.json).
+    # One site administrator is recommended; Administration warns when there are more.
+    built-in-admin: ${PLM_BUILT_IN_ADMIN:plmadmin}
+    # true: only the built-in administrator gets site administration rights, even if others hold the role.
+    only-built-in: ${PLM_ONLY_BUILT_IN_ADMIN:false}
   # Where people open the web UI: links in mail point here.
   ui-url: ${PLM_UI_URL:http://localhost:5173}
   mail:

@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { API, KEYCLOAK, asUser, openSite } from "./support";
+import { ADMIN, API, KEYCLOAK, asUser, openSite, passwordOf } from "./support";
 
 /** Users appear in the directory after their first sign-in; do that for bob and carol via the API. */
 test.beforeAll(async ({ request }) => {
   for (const user of ["bob", "carol"]) {
     const token = await request.post(`${KEYCLOAK}/protocol/openid-connect/token`, {
-      form: { grant_type: "password", client_id: "plm-web", username: user, password: user },
+      form: { grant_type: "password", client_id: "plm-web", username: user, password: passwordOf(user) },
     });
     expect(token.ok()).toBeTruthy();
     const { access_token } = (await token.json()) as { access_token: string };
@@ -14,31 +14,31 @@ test.beforeAll(async ({ request }) => {
   }
 });
 
-test("alice sets up a product, bob works on a part, carol sees nothing", async ({ browser }) => {
+test("the site administrator sets up a product, bob works on a part, carol sees nothing", async ({ browser }) => {
   const suffix = Date.now().toString(36);
 
-  // ---- alice (site admin): organization, product, team ----
-  const alice = await asUser(browser, "alice");
-  await openSite(alice);
-  await expect(alice.getByText("Site admin")).toBeVisible();
-  await alice.getByRole("button", { name: "New organization" }).click();
-  await alice.getByLabel("Name").fill(`Acme ${suffix}`);
-  await alice.getByRole("button", { name: "Create" }).click();
-  await expect(alice.getByRole("heading", { name: `Acme ${suffix}` })).toBeVisible();
+  // ---- admin (site admin): organization, product, team ----
+  const admin = await asUser(browser, ADMIN);
+  await openSite(admin);
+  await expect(admin.getByText("Site admin", { exact: true })).toBeVisible();
+  await admin.getByRole("button", { name: "New organization" }).click();
+  await admin.getByLabel("Name").fill(`Acme ${suffix}`);
+  await admin.getByRole("button", { name: "Create" }).click();
+  await expect(admin.getByRole("heading", { name: `Acme ${suffix}` })).toBeVisible();
 
-  await alice.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Products" }).click();
-  await alice.getByRole("button", { name: "New product" }).click();
-  await alice.getByLabel("Name").fill("Drone X1");
-  await alice.getByRole("button", { name: "Create" }).click();
-  await expect(alice.getByRole("heading", { name: "Drone X1" })).toBeVisible();
-  const productUrl = alice.url();
+  await admin.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Products" }).click();
+  await admin.getByRole("button", { name: "New product" }).click();
+  await admin.getByLabel("Name").fill("Drone X1");
+  await admin.getByRole("button", { name: "Create" }).click();
+  await expect(admin.getByRole("heading", { name: "Drone X1" })).toBeVisible();
+  const productUrl = admin.url();
 
-  await alice.getByRole("link", { name: "Team", exact: true }).click();
-  const addMember = alice.getByRole("form", { name: "Add a member" });
+  await admin.getByRole("link", { name: "Team", exact: true }).click();
+  const addMember = admin.getByRole("form", { name: "Add a member" });
   await addMember.getByLabel("Username").fill("bob");
   await addMember.getByLabel("Role").selectOption("MEMBER");
   await addMember.getByRole("button", { name: "Add" }).click();
-  await expect(alice.getByRole("cell", { name: "Bob Builder", exact: true })).toBeVisible();
+  await expect(admin.getByRole("cell", { name: "Bob Builder", exact: true })).toBeVisible();
 
   // ---- bob (member): create, check out, edit, check in, revise ----
   const bob = await asUser(browser, "bob");
@@ -65,10 +65,10 @@ test("alice sets up a product, bob works on a part, carol sees nothing", async (
   await bob.getByRole("button", { name: "Save attributes" }).click();
   await expect(bob.getByText("Saved.")).toBeVisible();
 
-  // Meanwhile alice can see it's taken, and can't check it out.
-  await alice.goto(objectUrl);
-  await expect(alice.getByTestId("checked-out")).toHaveText("Checked out by Bob Builder");
-  await expect(alice.getByRole("button", { name: "Check out" })).toBeDisabled();
+  // Meanwhile admin can see it's taken, and can't check it out.
+  await admin.goto(objectUrl);
+  await expect(admin.getByTestId("checked-out")).toHaveText("Checked out by Bob Builder");
+  await expect(admin.getByRole("button", { name: "Check out" })).toBeDisabled();
 
   await bob.getByRole("button", { name: "Check in" }).click();
   const dialog = bob.getByRole("dialog");
@@ -83,19 +83,19 @@ test("alice sets up a product, bob works on a part, carol sees nothing", async (
   await expect(bob.getByRole("button", { name: "Revise" })).toBeDisabled();
   await expect(bob.getByRole("button", { name: "Set state" })).toBeDisabled();
 
-  // ---- alice (site admin) releases it: In Work -> Under Review -> Released ----
+  // ---- admin (site admin) releases it: In Work -> Under Review -> Released ----
   const setState = async (to: string) => {
-    await expect(alice.getByRole("dialog")).toHaveCount(0);
-    await alice.locator(".toolbar").getByRole("button", { name: "Set state" }).click();
-    await alice.getByRole("menuitem", { name: to, exact: true }).click();
-    await alice.getByRole("dialog").getByLabel("Comment").fill(`Moved to ${to}`);
+    await expect(admin.getByRole("dialog")).toHaveCount(0);
+    await admin.locator(".toolbar").getByRole("button", { name: "Set state" }).click();
+    await admin.getByRole("menuitem", { name: to, exact: true }).click();
+    await admin.getByRole("dialog").getByLabel("Comment").fill(`Moved to ${to}`);
     // The release gate (roadmap 5.13): Released comes from a change; an administrator may override.
-    const gate = alice.getByRole("dialog").getByLabel(/Override the gate/);
+    const gate = admin.getByRole("dialog").getByLabel(/Override the gate/);
     if (to === "Released") await gate.check();
-    await alice.getByRole("dialog").getByRole("button", { name: "Set state" }).click();
-    await expect(alice.locator(".title-row .state")).toHaveText(to);
+    await admin.getByRole("dialog").getByRole("button", { name: "Set state" }).click();
+    await expect(admin.locator(".title-row .state")).toHaveText(to);
   };
-  await alice.goto(objectUrl);
+  await admin.goto(objectUrl);
   await setState("Under Review");
   await setState("Released");
 
@@ -111,9 +111,9 @@ test("alice sets up a product, bob works on a part, carol sees nothing", async (
   await expect(history).toContainText("Switch to titanium");
   await expect(history.getByRole("row").nth(2)).toContainText("Released"); // A.2 stays Released
 
-  // ---- alice reads the audit trail ----
-  await alice.goto(objectUrl + "?tab=audit");
-  await expect(alice.getByRole("table", { name: "Audit trail" }).getByRole("row")).toHaveCount(8); // header + 7 events
+  // ---- admin reads the audit trail ----
+  await admin.goto(objectUrl + "?tab=audit");
+  await expect(admin.getByRole("table", { name: "Audit trail" }).getByRole("row")).toHaveCount(8); // header + 7 events
 
   // ---- carol (not on the team) ----
   const carol = await asUser(browser, "carol");

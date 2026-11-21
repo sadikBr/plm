@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { API, KEYCLOAK, asUser } from "./support";
+import { ADMIN, API, KEYCLOAK, asUser, passwordOf } from "./support";
 
 /** Roadmap 3.5: ticked objects are moved to a folder by one background job. */
 test("ticked objects are moved into a folder by a mass operation", async ({ browser, request }) => {
   const token = await request.post(`${KEYCLOAK}/protocol/openid-connect/token`, {
-    form: { grant_type: "password", client_id: "plm-web", username: "alice", password: "alice" },
+    form: { grant_type: "password", client_id: "plm-web", username: ADMIN, password: passwordOf(ADMIN) },
   });
   const headers = { Authorization: `Bearer ${((await token.json()) as { access_token: string }).access_token}` };
   const post = async (path: string, data: unknown) => {
@@ -19,17 +19,17 @@ test("ticked objects are moved into a folder by a mass operation", async ({ brow
   for (const name of ["Frame", "Skid plate", "Bumper"])
     await post("/objects", { typeId: "00000000-0000-7000-8000-000000000102", contextId: product.id, name });
 
-  const alice = await asUser(browser, "alice");
-  await alice.goto(`/contexts/${product.id}?tab=contents`);
-  await alice.getByRole("checkbox", { name: "Select all" }).check();
-  await expect(alice.getByText("3 selected")).toBeVisible();
-  await alice.getByRole("button", { name: /Move/ }).click();
-  const dialog = alice.getByRole("dialog");
+  const admin = await asUser(browser, ADMIN);
+  await admin.goto(`/contexts/${product.id}?tab=contents`);
+  await admin.getByRole("checkbox", { name: "Select all" }).check();
+  await expect(admin.getByText("3 selected")).toBeVisible();
+  await admin.getByRole("button", { name: /Move/ }).click();
+  const dialog = admin.getByRole("dialog");
   await dialog.getByRole("listbox", { name: "Folders" }).getByText("Chassis").click();
   await dialog.getByRole("button", { name: "Start" }).click();
 
-  const results = alice.getByRole("table", { name: "Results" });
+  const results = admin.getByRole("table", { name: "Results" });
   await expect(results.getByText("done")).toHaveCount(3, { timeout: 20_000 });
-  await expect(alice.getByText("No objects here yet.")).toBeVisible();
-  await expect(alice.getByRole("table", { name: "Folders" }).getByText("3 objects")).toBeVisible();
+  await expect(admin.getByText("No objects here yet.")).toBeVisible();
+  await expect(admin.getByRole("table", { name: "Folders" }).getByText("3 objects")).toBeVisible();
 });

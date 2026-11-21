@@ -8706,6 +8706,52 @@
         "required" : [ "attributes", "partId", "similar", "values" ],
         "type" : "object"
       },
+      "SiteAdministratorResponse" : {
+        "properties" : {
+          "builtIn" : {
+            "type" : "boolean"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "lastSeen" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "username" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "builtIn", "displayName", "id", "kind", "username" ],
+        "type" : "object"
+      },
+      "SiteAdministratorsResponse" : {
+        "properties" : {
+          "administrators" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SiteAdministratorResponse"
+            },
+            "type" : "array"
+          },
+          "builtInUsername" : {
+            "type" : "string"
+          },
+          "enforced" : {
+            "type" : "boolean"
+          },
+          "moreThanRecommended" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "administrators", "builtInUsername", "enforced", "moreThanRecommended" ],
+        "type" : "object"
+      },
       "StandIn" : {
         "properties" : {
           "from" : {
@@ -26514,6 +26560,34 @@
           }
         },
         "tags" : [ "Shared team" ]
+      }
+    },
+    "/api/v1/site-administrators" : {
+      "get" : {
+        "operationId" : "principalSiteAdministrators",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SiteAdministratorsResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Principal" ]
       }
     },
     "/api/v1/structure-compare" : {

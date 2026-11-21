@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { API, KEYCLOAK, asUser } from "./support";
+import { ADMIN, API, KEYCLOAK, asUser, passwordOf } from "./support";
 
 const STEP = fileURLToPath(new URL("../../backend/modules/cad/src/test/resources/step/as1_pe_203.stp", import.meta.url));
 const DRAWING_PDF = fileURLToPath(new URL("./fixtures/as1-drawing.pdf", import.meta.url));
@@ -31,11 +31,11 @@ test("a STEP assembly is imported, converted, explored, and its drawing released
   const suffix = Date.now().toString(36);
   const token = async (user: string) => {
     const r = await request.post(`${KEYCLOAK}/protocol/openid-connect/token`, {
-      form: { grant_type: "password", client_id: "plm-web", username: user, password: user },
+      form: { grant_type: "password", client_id: "plm-web", username: user, password: passwordOf(user) },
     });
     return ((await r.json()) as { access_token: string }).access_token;
   };
-  const headers = { Authorization: `Bearer ${await token("alice")}` };
+  const headers = { Authorization: `Bearer ${await token(ADMIN)}` };
   const call = async (method: "GET" | "POST" | "PUT" | "DELETE", path: string, data?: unknown) => {
     const r = await request.fetch(`${API}/api/v1${path}`, { method, headers, data });
     expect(r.ok(), `${method} ${path}: ${await r.text()}`).toBeTruthy();
@@ -59,58 +59,58 @@ test("a STEP assembly is imported, converted, explored, and its drawing released
       });
 
   try {
-    const alice = await asUser(browser, "alice");
+    const admin = await asUser(browser, ADMIN);
 
     // ---- the STEP file is imported: CAD documents, with a part each and the parts' structure ----
-    await alice.goto(`/contexts/${product.id}`);
-    await alice.getByRole("button", { name: "Import STEP…" }).click();
-    const dialog = alice.getByRole("dialog");
+    await admin.goto(`/contexts/${product.id}`);
+    await admin.getByRole("button", { name: "Import STEP…" }).click();
+    const dialog = admin.getByRole("dialog");
     await dialog.locator("#step-file").setInputFiles(STEP);
     await expect(dialog.getByText("9 models, 4 of them assemblies")).toBeVisible();
     await expect(dialog.getByLabel("Make a part for each model, owned by it")).toBeChecked();
     await expect(dialog.getByLabel("Build the assembly parts' structures from their models")).toBeChecked();
     await dialog.getByRole("button", { name: "Import 9 models" }).click();
-    await expect(alice.locator(".title-row .num")).toContainText("CAD-");
-    const rootId = new URL(alice.url()).pathname.split("/").pop()!;
+    await expect(admin.locator(".title-row .num")).toContainText("CAD-");
+    const rootId = new URL(admin.url()).pathname.split("/").pop()!;
     const root = await call("GET", `/objects/${rootId}`);
     const owner = ((await call("GET", `/objects/${rootId}/cad/associations`)) as { kind: string; part: { id: string } }[]).find(
       (a) => a.kind === "OWNER",
     )!;
-    await alice.goto(`/objects/${owner.part.id}?tab=structure`);
-    await expect(alice.getByRole("table", { name: /structure/i }).first()).toContainText("PLATE");
-    await expect(alice.getByRole("table", { name: /structure/i }).first()).toContainText("ROD");
+    await admin.goto(`/objects/${owner.part.id}?tab=structure`);
+    await expect(admin.getByRole("table", { name: /structure/i }).first()).toContainText("PLATE");
+    await expect(admin.getByRole("table", { name: /structure/i }).first()).toContainText("ROD");
 
     // ---- converted on check-in, explored in the browser ----
-    await alice.goto(`/objects/${rootId}?tab=view3d`);
-    const tree = alice.getByLabel("Model tree");
+    await admin.goto(`/objects/${rootId}?tab=view3d`);
+    const tree = admin.getByLabel("Model tree");
     await expect(tree.getByText("ROD ASM")).toBeVisible({ timeout: 120_000 });
     await expect(tree.getByText("PLATE")).toBeVisible();
     await tree.locator("li", { hasText: "ROD ASM" }).getByRole("button", { name: "Hide" }).click();
     await expect(tree.locator("li", { hasText: "ROD ASM" }).getByRole("button", { name: "Show" })).toBeVisible();
-    const canvas = alice.locator(".viewer-canvas canvas");
+    const canvas = admin.locator(".viewer-canvas canvas");
     const box = (await canvas.boundingBox())!;
     const clickAt = (page: Page, fx: number, fy: number) => page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
 
-    await alice.getByRole("button", { name: "Measure" }).click();
-    await clickAt(alice, 0.42, 0.45);
-    await clickAt(alice, 0.55, 0.7);
-    await expect(alice.locator(".viewer-panel dl")).toContainText("Distance");
-    await expect(alice.locator(".viewer-panel dl")).toContainText("mm");
+    await admin.getByRole("button", { name: "Measure" }).click();
+    await clickAt(admin, 0.42, 0.45);
+    await clickAt(admin, 0.55, 0.7);
+    await expect(admin.locator(".viewer-panel dl")).toContainText("Distance");
+    await expect(admin.locator(".viewer-panel dl")).toContainText("mm");
 
-    await alice.getByRole("button", { name: "Section" }).click();
-    await alice.getByRole("radio", { name: "Along Z" }).click();
-    await alice.getByRole("slider", { name: "Position" }).fill("0.4");
-    await expect(alice.locator(".viewer-panel")).toContainText("Z =");
+    await admin.getByRole("button", { name: "Section" }).click();
+    await admin.getByRole("radio", { name: "Along Z" }).click();
+    await admin.getByRole("slider", { name: "Position" }).fill("0.4");
+    await expect(admin.locator(".viewer-panel")).toContainText("Z =");
 
-    await alice.getByRole("button", { name: "Markups" }).click();
-    await alice.getByRole("button", { name: "New markup" }).click();
-    await alice.locator(".viewer-panel").getByLabel("Title").fill(`Clearance ${suffix}`);
-    await alice.getByRole("button", { name: "Add a pin" }).click();
-    await clickAt(alice, 0.45, 0.5);
-    await alice.getByLabel("Pin 1").fill("Check the nut height");
-    await alice.getByRole("button", { name: "Save markup" }).click();
-    await expect(alice.locator(".markup-list")).toContainText(`Clearance ${suffix}`);
-    await expect(alice.locator(".viewer-overlay .pin")).toHaveCount(1);
+    await admin.getByRole("button", { name: "Markups" }).click();
+    await admin.getByRole("button", { name: "New markup" }).click();
+    await admin.locator(".viewer-panel").getByLabel("Title").fill(`Clearance ${suffix}`);
+    await admin.getByRole("button", { name: "Add a pin" }).click();
+    await clickAt(admin, 0.45, 0.5);
+    await admin.getByLabel("Pin 1").fill("Check the nut height");
+    await admin.getByRole("button", { name: "Save markup" }).click();
+    await expect(admin.locator(".markup-list")).toContainText(`Clearance ${suffix}`);
+    await expect(admin.locator(".viewer-overlay .pin")).toHaveCount(1);
     const markups = (await call("GET", `/objects/${rootId}/markups`)) as { title: string; shapes: unknown[]; topicId: string }[];
     expect(markups.find((m) => m.title === `Clearance ${suffix}`)?.shapes).toHaveLength(1);
 
@@ -131,21 +131,21 @@ test("a STEP assembly is imported, converted, explored, and its drawing released
     // ---- released through a change notice ----
     const cn = await call("POST", "/objects", { typeId: CHANGE_NOTICE, contextId: product.id, name: `Release AS1 drawing ${suffix}` });
     await call("POST", `/changes/${cn.id}/links`, { targetId: drawing.id, role: "RESULTING" });
-    await alice.goto(`/objects/${cn.id}`);
+    await admin.goto(`/objects/${cn.id}`);
     for (const to of ["Under Review", "Approved", "Implementation", "Resolved"]) {
-      await expect(alice.getByRole("dialog")).toHaveCount(0);
-      await alice.locator(".toolbar").getByRole("button", { name: "Set state" }).click();
-      await alice.getByRole("menuitem", { name: to, exact: true }).click();
-      await alice.getByRole("dialog").getByRole("button", { name: "Set state" }).click();
-      await expect(alice.locator(".title-row .state")).toHaveText(to);
+      await expect(admin.getByRole("dialog")).toHaveCount(0);
+      await admin.locator(".toolbar").getByRole("button", { name: "Set state" }).click();
+      await admin.getByRole("menuitem", { name: to, exact: true }).click();
+      await admin.getByRole("dialog").getByRole("button", { name: "Set state" }).click();
+      await expect(admin.locator(".title-row .state")).toHaveText(to);
     }
-    await alice.goto(`/objects/${drawing.id}`);
-    await expect(alice.locator(".title-row .state")).toHaveText("Released");
+    await admin.goto(`/objects/${drawing.id}`);
+    await expect(admin.locator(".title-row .state")).toHaveText("Released");
 
     // ---- published as a stamped PDF; downloads carry who and when ----
-    const publications = alice.getByRole("table", { name: "Publications" });
+    const publications = admin.getByRole("table", { name: "Publications" });
     await expect(async () => {
-      await alice.reload();
+      await admin.reload();
       await expect(publications).toContainText("its PDF, stamped", { timeout: 2_000 });
     }).toPass({ timeout: 60_000 });
     const [publication] = (await call("GET", `/objects/${drawing.id}/publications`)) as { id: string; status: string }[];
@@ -154,11 +154,11 @@ test("a STEP assembly is imported, converted, explored, and its drawing released
     const text = await pdfText(await published.body());
     expect(text).toContain(drawing.number);
     expect(text).toContain("Released");
-    expect(text).toMatch(/Downloaded by Alice Admin/);
+    expect(text).toMatch(/Downloaded by Site Administrator/);
 
     // ---- and the drawing is in the 2D view ----
-    await alice.goto(`/objects/${drawing.id}?tab=view2d`);
-    await expect(alice.getByText("Page 1 of 1")).toBeVisible({ timeout: 30_000 });
+    await admin.goto(`/objects/${drawing.id}?tab=view2d`);
+    await expect(admin.getByText("Page 1 of 1")).toBeVisible({ timeout: 30_000 });
     expect(root.number).toMatch(/^CAD-/);
   } finally {
     if (ownRule) await request.delete(`${API}/api/v1/publish-rules/${ownRule.id}`, { headers });

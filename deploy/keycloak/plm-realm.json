@@ -35,15 +35,27 @@
   ],
   "users": [
     {
+      "id": "9a0d0000-0000-4000-8000-000000000000",
+      "username": "plmadmin",
+      "email": "plmadmin@example.com",
+      "firstName": "Site",
+      "lastName": "Administrator",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "plmadmin", "temporary": true }],
+      "requiredActions": ["UPDATE_PASSWORD"],
+      "realmRoles": ["plm-admin", "plm-user"]
+    },
+    {
       "id": "a11ce000-0000-4000-8000-000000000001",
       "username": "alice",
       "email": "alice@example.com",
       "firstName": "Alice",
-      "lastName": "Admin",
+      "lastName": "Anderson",
       "enabled": true,
       "emailVerified": true,
       "credentials": [{ "type": "password", "value": "alice", "temporary": false }],
-      "realmRoles": ["plm-admin", "plm-user"]
+      "realmRoles": ["plm-user"]
     },
     {
       "id": "b0b00000-0000-4000-8000-000000000002",

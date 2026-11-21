@@ -406,6 +406,13 @@ function AccountDialog({ account, onClose }: { account: ServiceAccount | null; o
           <input type="checkbox" checked={siteAdmin} onChange={(e) => setSiteAdmin(e.target.checked)} />
           {t("Can administer the site (with tokens that have the admin scope)")}
         </label>
+        {siteAdmin && (
+          <p className="banner warn wide">
+            {t(
+              "Not recommended: one site administrator, the built-in one, is enough. Give this only to a system that must change the data model.",
+            )}
+          </p>
+        )}
         {account && (
           <label className="check wide">
             <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />

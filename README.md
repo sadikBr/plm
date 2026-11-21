@@ -173,13 +173,22 @@ backend, starts the services, the backend and the web UI, waits until each answe
 where to go. The first start downloads a few GB (Docker images, libraries) and takes 5 to 15
 minutes; later ones take about a minute.
 
-Then open **http://localhost:5173** and sign in. Dev users (password = user name):
+Then open **http://localhost:5173** and sign in as **`plmadmin`**, the site administrator made
+with the installation. Its first password is `plmadmin`; at the first sign-in it asks you to
+choose your own. (Forgot it? See [Troubleshooting](docs/DEVELOPMENT.md#troubleshooting).)
 
-| User | Role |
-|---|---|
-| `alice` | site administrator: sees and administers everything |
-| `bob` | ordinary user: sees what he's on the team of |
-| `carol` | ordinary user, on no team: sees nothing until added |
+| User | Password | Role |
+|---|---|---|
+| `plmadmin` | yours (first `plmadmin`) | **the site administrator**: sees and administers everything |
+| `alice` | `alice` | ordinary user |
+| `bob` | `bob` | ordinary user: sees what he's on the team of |
+| `carol` | `carol` | ordinary user, on no team: sees nothing until added |
+
+Like other enterprise PLM systems, the platform is meant to have **one site administrator**:
+everyone else gets what they need from their roles in organizations and products (an
+organization's managers administer it). More are possible but not recommended; **Administration ›
+Site administrators** lists them and warns while there are more (see
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#2-start-the-dev-stack) for making it a rule).
 
 Other local addresses: the API explorer at http://localhost:8080/swagger-ui.html, the mail the
 platform sends at http://localhost:8025, workflows at http://localhost:8233.
@@ -208,10 +217,10 @@ in its own terminal instead: `make up-full` (services), `make run` (backend, reb
 
 ### 6. Try it
 
-The database starts empty. As **alice**:
+The database starts empty. As **plmadmin**:
 
 1. **Set up a product.** On the **Site** page click **New organization**; in it, open **Products**
-   and click **New product**. On its **Team** tab add `bob` (he must have signed in once).
+   and click **New product**. On its **Team** tab add `alice` and `bob` (they must have signed in once).
 2. **Parts and documents.** In the product, click **New part** and **New document**. **Check out**,
    change attributes, upload files on a document, **Check in**, **Revise**; see **History**.
 3. **Product structure.** On an assembly part's **Structure** tab add child parts with quantities;
@@ -254,7 +263,9 @@ Web UI: lint, type check and unit tests:
 cd frontend && npm run lint && npm run typecheck && npm test
 ```
 
-The browser end-to-end tests drive the running platform (`./plm start` first). Install their
+The browser end-to-end tests drive the running platform (`./plm start` first). They sign in as
+`plmadmin`: if you've chosen its password, give it to them first (`export PLM_ADMIN_PASSWORD=…`;
+on Windows `$env:PLM_ADMIN_PASSWORD="…"`); if you haven't, they choose `plmadmin`. Install their
 browser once, then run every scenario headless:
 
 ```bash

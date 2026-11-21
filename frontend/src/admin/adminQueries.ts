@@ -20,6 +20,7 @@ export type WebhookDelivery = Schemas["WebhookDelivery"];
 export type OperationRuleSettings = Schemas["OperationRuleSettings"];
 export type Extension = Schemas["ExtensionResponse"];
 export type ServiceAccount = Schemas["ServiceAccountResponse"];
+export type SiteAdministrators = Schemas["SiteAdministratorsResponse"];
 export type ApiToken = Schemas["ApiTokenResponse"];
 export type IssuedToken = Schemas["IssuedTokenResponse"];
 export type IssueTokenRequest = Schemas["IssueTokenRequest"];
@@ -311,6 +312,9 @@ export const useRedeliver = () =>
   useAdminMutation((id: string) => unwrap(api.POST("/api/v1/webhook-deliveries/{id}/redeliver", { params: { path: { id } } })));
 
 // ---------- Service accounts (2.7) ----------
+
+export const useSiteAdministrators = (enabled = true) =>
+  useQuery({ queryKey: ["siteAdministrators"], queryFn: () => unwrap(api.GET("/api/v1/site-administrators")), enabled });
 
 export const useServiceAccounts = () =>
   useQuery({ queryKey: ["serviceAccounts"], queryFn: () => unwrap(api.GET("/api/v1/service-accounts")) });

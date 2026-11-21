@@ -18,6 +18,7 @@ import { RulesAdmin } from "./RulesAdmin";
 import { JobsAdmin } from "./JobsAdmin";
 import { ProfilesAdmin } from "./ProfilesAdmin";
 import { ServiceAccountsAdmin } from "./ServiceAccountsAdmin";
+import { SiteAdminsAdmin, SiteAdminsNotice } from "./SiteAdminsAdmin";
 import { WebhooksAdmin } from "./WebhooksAdmin";
 import { ConfigurationAdmin } from "./ConfigurationAdmin";
 import { GlobalAttributesAdmin } from "./GlobalAttributesAdmin";
@@ -49,6 +50,7 @@ type Section =
   | "publishing"
   | "classification"
   | "webhooks"
+  | "site-admins"
   | "service-accounts"
   | "profiles"
   | "jobs"
@@ -77,6 +79,7 @@ const SECTIONS = (): [Section, string][] => [
   ["publishing", t("Publishing")],
   ["classification", t("Classification")],
   ["webhooks", t("Webhooks")],
+  ["site-admins", t("Site administrators")],
   ["service-accounts", t("Service accounts")],
   ["profiles", t("Profiles")],
   ["jobs", t("Jobs")],
@@ -114,6 +117,8 @@ export function AdminPage() {
         tabs={<Tabs tabs={SECTIONS()} active={tab} onSelect={(key) => setParams({ tab: key })} />}
       />
       <div className="content">
+        {tab !== "site-admins" && <SiteAdminsNotice onOpen={() => setParams({ tab: "site-admins" })} />}
+        {tab === "site-admins" && <SiteAdminsAdmin />}
         {tab === "types" && <TypesAdmin />}
         {tab === "globals" && <GlobalAttributesAdmin />}
         {tab === "lists" && <ValueListsAdmin />}

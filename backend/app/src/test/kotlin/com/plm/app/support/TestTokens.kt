@@ -38,6 +38,7 @@ object TestTokens {
     )
 
     val alice = User("a11ce000-0000-4000-8000-000000000001", "alice", "Alice Admin", listOf("plm-admin", "plm-user"))
+    val plmadmin = User("9a0d0000-0000-4000-8000-000000000000", "plmadmin", "Site Administrator", listOf("plm-admin", "plm-user"))
     val bob = User("b0b00000-0000-4000-8000-000000000002", "bob", "Bob Builder")
     val carol = User("ca201000-0000-4000-8000-000000000003", "carol", "Carol Contractor")
 

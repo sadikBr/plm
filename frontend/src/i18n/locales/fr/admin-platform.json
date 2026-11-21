@@ -531,5 +531,22 @@
   "Yes": "Oui",
   "Edit": "Modifier",
   "on reaching a state": "en atteignant un état",
-  "Stamp the state across the pages": "Tamponner l'état en travers des pages"
+  "Stamp the state across the pages": "Tamponner l'état en travers des pages",
+  "This site has {n} site administrators; one, the built-in administrator, is recommended.": "Ce site a {n} administrateurs du site ; un seul, l’administrateur intégré, est recommandé.",
+  "Review them": "Les examiner",
+  "Site administrators": "Administrateurs du site",
+  "The built-in administrator, {name}, is made with the installation and is the one account meant to administer the site. Everyone else works in organizations and products, where their roles there give them what they need, including organization administration.": "L’administrateur intégré, {name}, est créé à l’installation et c’est le seul compte destiné à administrer le site. Tous les autres travaillent dans les organisations et les produits, où leurs rôles leur donnent ce dont ils ont besoin, y compris l’administration d’une organisation.",
+  "Only the built-in administrator gets site administration rights on this site.": "Sur ce site, seul l’administrateur intégré a les droits d’administration du site.",
+  "{n} more account has site administration rights. It can see and change everything: remove the role where it isn't needed.": "{n} autre compte a les droits d’administration du site. Il peut tout voir et tout modifier : retirez le rôle là où il n’est pas nécessaire.",
+  "{n} more accounts have site administration rights. Each one can see and change everything: remove the role where it isn't needed.": "{n} autres comptes ont les droits d’administration du site. Chacun peut tout voir et tout modifier : retirez le rôle là où il n’est pas nécessaire.",
+  "Only the built-in administrator administers this site, as recommended.": "Seul l’administrateur intégré administre ce site, comme recommandé.",
+  "Last signed in": "Dernière connexion",
+  "Built-in administrator": "Administrateur intégré",
+  "built-in": "intégré",
+  "Not signed in yet": "Pas encore connecté",
+  "additional": "supplémentaire",
+  "Service account": "Compte de service",
+  "Site administration is the plm-admin role in the identity provider (Keycloak: the plm realm, Users, Role mapping). A user's change shows here at their next sign-in. Service accounts get it from Service accounts › Can administer.": "L’administration du site est le rôle plm-admin du fournisseur d’identité (Keycloak : royaume plm, Users, Role mapping). Un changement apparaît ici à la prochaine connexion de l’utilisateur. Les comptes de service l’obtiennent par Comptes de service › Peut administrer.",
+  "To refuse the rights to anyone but the built-in administrator, start the backend with PLM_ONLY_BUILT_IN_ADMIN=true.": "Pour refuser ces droits à tout autre que l’administrateur intégré, démarrez le backend avec PLM_ONLY_BUILT_IN_ADMIN=true.",
+  "Not recommended: one site administrator, the built-in one, is enough. Give this only to a system that must change the data model.": "Déconseillé : un seul administrateur du site, l’intégré, suffit. Ne le donnez qu’à un système qui doit modifier le modèle de données."
 }

@@ -1,24 +1,24 @@
 import { expect, test } from "@playwright/test";
-import { asUser, openSite } from "./support";
+import { ADMIN, asUser, openSite } from "./support";
 
 /** Roadmap 1.14: an organization manager runs their own shared teams and templates, without being a site admin. */
 test("bob, manager of an organization, sets up its own shared team and product template", async ({ browser }) => {
   const suffix = Date.now().toString(36);
 
-  // ---- alice (site admin) creates the organization and makes bob its manager ----
-  const alice = await asUser(browser, "alice");
-  await openSite(alice);
-  await alice.getByRole("button", { name: "New organization" }).click();
-  await alice.getByLabel("Name").fill(`Delegated ${suffix}`);
-  await alice.getByRole("button", { name: "Create" }).click();
-  await expect(alice.getByRole("heading", { name: `Delegated ${suffix}` })).toBeVisible();
-  const orgUrl = alice.url();
-  await alice.getByRole("link", { name: "Team", exact: true }).click();
-  const addMember = alice.getByRole("form", { name: "Add a member" });
+  // ---- admin (site admin) creates the organization and makes bob its manager ----
+  const admin = await asUser(browser, ADMIN);
+  await openSite(admin);
+  await admin.getByRole("button", { name: "New organization" }).click();
+  await admin.getByLabel("Name").fill(`Delegated ${suffix}`);
+  await admin.getByRole("button", { name: "Create" }).click();
+  await expect(admin.getByRole("heading", { name: `Delegated ${suffix}` })).toBeVisible();
+  const orgUrl = admin.url();
+  await admin.getByRole("link", { name: "Team", exact: true }).click();
+  const addMember = admin.getByRole("form", { name: "Add a member" });
   await addMember.getByLabel("Username").fill("bob");
   await addMember.getByLabel("Role").selectOption("MANAGER");
   await addMember.getByRole("button", { name: "Add" }).click();
-  await expect(alice.getByRole("cell", { name: "Bob Builder", exact: true })).toBeVisible();
+  await expect(admin.getByRole("cell", { name: "Bob Builder", exact: true })).toBeVisible();
 
   // ---- bob: the organization's own shared team ----
   const bob = await asUser(browser, "bob");
