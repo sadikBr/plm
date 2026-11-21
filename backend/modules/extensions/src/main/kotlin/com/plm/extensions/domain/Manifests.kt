@@ -167,6 +167,50 @@ internal object Manifests {
                 errors += "$at: reject must be a message of 1-300 characters"
             }
         }
+        if (m.ui.isNotEmpty() &&
+            "ui:panels" !in m.permissions
+        ) {
+            errors += "Panels and tabs need the 'ui:panels' permission"
+        }
+        m.ui
+            .groupBy { it.id }
+            .filterValues { it.size > 1 }
+            .keys
+            .forEach { errors += "UI '$it' is declared twice" }
+        for (u in m.ui) {
+            val at = "ui '${u.id}'"
+            if (!ACTION_ID.matches(u.id)) errors += "$at: id must be lower case letters, digits and dashes"
+            if (u.slot !in UI_SLOTS) errors += "$at: slot must be one of ${UI_SLOTS.joinToString()}"
+            if (u.title.isBlank() || u.title.length > 40) errors += "$at: title must be 1-40 characters"
+            if (u.height !in 60..2000) errors += "$at: height must be 60 to 2000"
+            errors += urlProblems(m, at, "url", u.url)
+        }
+        if (m.endpoints.isNotEmpty() && "endpoints:serve" !in m.permissions) {
+            errors += "Endpoints need the 'endpoints:serve' permission"
+        }
+        m.endpoints.groupBy { it.path }.filterValues { it.size > 1 }.keys.forEach {
+            errors +=
+                "Endpoint path '$it' is declared twice"
+        }
+        for (e in m.endpoints) {
+            val at = "endpoint '${e.id}'"
+            if (!ACTION_ID.matches(e.id)) errors += "$at: id must be lower case letters, digits and dashes"
+            if (!ENDPOINT_PATH.matches(e.path)) {
+                errors +=
+                    "$at: path must be lower case letters, digits, dashes and slashes"
+            }
+            e.methods.filter { it !in ENDPOINT_METHODS }.forEach {
+                errors +=
+                    "$at: method $it isn't one of ${ENDPOINT_METHODS.joinToString()}"
+            }
+            if (e.methods.isEmpty()) errors += "$at: methods: name at least one"
+            if (e.timeoutSeconds !in 1..30) errors += "$at: timeoutSeconds must be 1 to 30"
+            if (m.config[e.secret]?.type != "secret") errors += "$at: secret must name a setting of type secret"
+            errors += urlProblems(m, at, "url", e.url)
+            if (PLACEHOLDER.findAll(e.url).any { !it.groupValues[1].startsWith("config.") }) {
+                errors += "$at: url can only use \${config.<key>}"
+            }
+        }
         if (m.subscriptions.isNotEmpty() &&
             "events:subscribe" !in m.permissions
         ) {
@@ -293,3 +337,7 @@ internal object Versions {
         }
     }
 }
+
+internal val UI_SLOTS = listOf("object.panel", "object.tab")
+internal val ENDPOINT_METHODS = listOf("GET", "POST", "PUT", "DELETE")
+private val ENDPOINT_PATH = Regex("^[a-z0-9][a-z0-9/_-]{0,79}$")

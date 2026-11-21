@@ -11,6 +11,7 @@ a manifest, `plm-extension.yaml`, installed by a site administrator under **Admi
 | [quality-rules](samples/quality-rules/plm-extension.yaml) | Operation rules only: no check-in without a description, no release without a reason, released parts keep their number |
 | [erp-sync 2.0](samples/erp-sync/plm-extension-2.0.yaml) | Webhooks: "Send to ERP" asks for a plant and a quantity and shows the ERP's answer; "ERP cost report" downloads a file |
 | [erp-sync 2.1](samples/erp-sync/plm-extension-2.1.yaml) | A long-running "Cost roll-up" that runs in the background, reports progress and ends with a file |
+| [erp-sync 2.2](samples/erp-sync/plm-extension-2.2.yaml) | An "ERP stock" panel on part pages (a page of the ERP in a sandboxed frame) and the stock endpoint the platform serves for it |
 
 ## Trying the webhooks
 
@@ -116,3 +117,25 @@ curl -X POST https://plm.example.com/api/v1/oauth/token \
 
 Tokens act within their scopes (`read`, `write`, and `admin` for accounts allowed to administer)
 and their account's access rules. They can never manage service accounts, tokens or extensions.
+
+## Panels, tabs and endpoints
+
+With `ui:panels`, an extension adds panels to the Details tab (`slot: object.panel`) or tabs
+(`slot: object.tab`) to the pages of the objects in `appliesTo`. The page at `url` is shown in a
+sandboxed frame: it runs its own scripts but can't reach the PLM page, its cookies or its token.
+It talks to the PLM with `postMessage`; the PLM answers only the frame it created, and only from
+the origin of `url`.
+
+| The page sends | The PLM does |
+|---|---|
+| `{type: "plm:ready"}` | sends `{type: "plm:context", object, user, language, theme}` |
+| `{type: "plm:resize", height}` | resizes the frame (60 to 2000 pixels) |
+| `{type: "plm:navigate", to: "/objects/<id>"}` | opens a PLM page |
+| `{type: "plm:refresh"}` | reloads the object |
+| `{type: "plm:fetch", id, path, method, body}` | calls the extension's own endpoint `path` as the user, then sends `{type: "plm:response", id, status, body}` |
+
+With `endpoints:serve`, the platform serves `/api/v1/ext/<extension id>/<path>` (and what follows
+it) to signed-in users and forwards each call to the endpoint's `url`, signed like webhooks
+(`X-PLM-Timestamp`, `X-PLM-Signature`), with `X-PLM-User` and `X-PLM-Tenant`. The service never
+sees the user's token; the answer (up to 2 MB) is relayed as is. Try it: run the mock ERP, upgrade
+to `plm-extension-2.2.yaml`, and open a part.

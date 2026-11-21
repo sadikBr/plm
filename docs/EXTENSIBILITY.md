@@ -188,3 +188,10 @@ emails and threshold alerts.
 | A new tab with external data | UI slot |
 | A custom report or dashboard widget | Report definition |
 | A new integration API | Extension endpoint, or an external service on our REST API |
+
+## Panels, tabs and endpoints (roadmap 5.15)
+
+`ui:` adds panels (`object.panel`) and tabs (`object.tab`) to object pages, shown in sandboxed
+frames that talk to the platform with `postMessage`; `endpoints:` lets the platform serve the
+extension's own service at `/api/v1/ext/<id>/<path>`, signed. The message bridge and the headers
+are described in [extensions/README.md](../extensions/README.md#panels-tabs-and-endpoints).

@@ -269,5 +269,6 @@
   "Show only the changes": "Afficher uniquement les modifications",
   "Show every line": "Afficher toutes les lignes",
   "{n} value and {files} file(s) differ": "{n} valeur et {files} fichier(s) diffèrent",
-  "{n} values and {files} file(s) differ": "{n} valeurs et {files} fichier(s) diffèrent"
+  "{n} values and {files} file(s) differ": "{n} valeurs et {files} fichier(s) diffèrent",
+  "from {extension}": "de {extension}"
 }

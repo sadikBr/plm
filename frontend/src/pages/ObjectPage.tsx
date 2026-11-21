@@ -2,6 +2,7 @@ import { ReferencedBy } from "../components/References";
 import { ProcessesTab } from "../workflow/Processes";
 import { ChangeTab, ObjectChangesTab, VariancesBanner, changeKindOf, kindLabel, useReleaseGate } from "../changes/Changes";
 import { SignaturesPanel } from "../workflow/Signatures";
+import { ExtensionPanels, ExtensionTab, useUiSlots } from "../extensions/ExtensionFrame";
 import { ReplacementsTab } from "../structure/Replacements";
 import { DocumentLinksTab, LinkingPartsTab } from "../structure/DocumentLinks";
 import { WhereUsedTab } from "../structure/WhereUsed";
@@ -74,7 +75,8 @@ type Tab =
   | "changes"
   | "discussion"
   | "history"
-  | "audit";
+  | "audit"
+  | `ext:${string}`;
 
 /** Remounts per object, so page state never leaks between objects. */
 export function ObjectPage() {
@@ -91,6 +93,7 @@ function ObjectView({ id }: { id: string }) {
   const { data: comments } = useComments(id);
   const discussionCount = comments?.filter((c) => !c.parentId && !c.resolved).length ?? 0;
   const { data: allTypes } = useTypes();
+  const { data: uiSlots } = useUiSlots(id);
 
   if (isLoading) return <Loading />;
   if (isApiError(error, 404)) return <NotFoundPage what="object" />;
@@ -112,6 +115,7 @@ function ObjectView({ id }: { id: string }) {
         : []),
     ...(changeKind ? [["change", kindLabel(changeKind)] as [Tab, string]] : [["changes", t("Changes")] as [Tab, string]]),
     ["processes", t("Processes")],
+    ...(uiSlots ?? []).filter((s) => s.slot === "object.tab").map((s) => [`ext:${s.extensionId}/${s.id}`, s.title] as [Tab, string]),
     ["discussion", discussionCount ? t("Discussion ({count})", { count: discussionCount }) : t("Discussion")],
     ...(shows("object.history") ? [["history", t("History")] as [Tab, string]] : []),
     ...(me?.siteAdmin && shows("object.audit") ? [["audit", t("Audit")] as [Tab, string]] : []),
@@ -136,6 +140,8 @@ function ObjectView({ id }: { id: string }) {
         {tab === "discussion" && <DiscussionTab obj={obj} />}
         {tab === "history" && <HistoryTab id={obj.id} />}
         {tab === "audit" && me?.siteAdmin && <AuditTab id={obj.id} />}
+        {tab.startsWith("ext:") &&
+          (uiSlots ?? []).filter((s) => tab === `ext:${s.extensionId}/${s.id}`).map((s) => <ExtensionTab key={tab} slot={s} obj={obj} />)}
       </div>
     </>
   );
@@ -661,6 +667,7 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
       <VariancesBanner objectId={obj.id} />
       <ReferencedBy objectId={obj.id} />
       <SignaturesPanel objectId={obj.id} />
+      <ExtensionPanels obj={obj} />
       {isDocument && <ObjectFiles objectId={obj.id} iterationKey={mine ? `wc:${workingCopy.data?.id ?? ""}` : latest.id} editable={mine} />}
     </div>
   );

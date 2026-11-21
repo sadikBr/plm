@@ -977,3 +977,6 @@ textarea.script-source { min-height: 220px; line-height: 1.45; tab-size: 2; }
 .code-block { margin: 6px 0 0; padding: 8px 10px; background: var(--row-hover); border: 1px solid var(--border); border-radius: 4px; font-family: var(--mono); font-size: 12px; white-space: pre-wrap; max-height: 220px; overflow: auto; }
 .script-result { display: grid; gap: 6px; margin-top: 10px; }
 .check-list.scroll-list { max-height: 150px; overflow: auto; }
+/* Extension panels and tabs (roadmap 5.15). */
+.ext-frame { display: block; width: 100%; border: 0; background: var(--panel); }
+.ext-source { display: inline-flex; align-items: center; gap: 3px; }

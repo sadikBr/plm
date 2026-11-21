@@ -408,9 +408,15 @@ affected objects; and the platform can be extended with scripts, UI slots and no
       calls to plm.object/plm.find (25, reading as the user) and output; a limit stops it in a way
       the script can't catch. A script that fails refuses rather than lets through. Scripts can be
       tried on sample input, and each run is kept (result, logs, time).
-- [ ] 5.15 UI extension slots and extension endpoints: extensions add panels and tabs to object
+- [x] 5.15 UI extension slots and extension endpoints: extensions add panels and tabs to object
       pages (sandboxed frames with a message bridge) and serve their own endpoints through the
       platform.
+      Done: a manifest's `ui:` adds panels (Details tab) and tabs to the pages of the objects it
+      applies to, shown in sandboxed frames; a postMessage bridge gives them the object, user,
+      language and theme and lets them resize, open pages, refresh, and call their own endpoints.
+      `endpoints:` makes the platform serve /api/v1/ext/<id>/<path> to signed-in users, forwarded
+      signed (with the user) to the extension's service. New permissions: ui:panels, endpoints:serve.
+      The erp-sync sample 2.2 adds a live "ERP stock" panel with reservations.
 - [ ] 5.16 No-code automations: trigger (an event) → condition → actions (set state, set a value,
       notify, start a process, call a webhook), built in the admin pages, with a run history.
 

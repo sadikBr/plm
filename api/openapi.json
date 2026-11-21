@@ -2800,6 +2800,12 @@
           "description" : {
             "type" : [ "string", "null" ]
           },
+          "endpoints" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ManifestEndpoint"
+            },
+            "type" : "array"
+          },
           "id" : {
             "type" : "string"
           },
@@ -2837,11 +2843,17 @@
             },
             "type" : "array"
           },
+          "ui" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ManifestUi"
+            },
+            "type" : "array"
+          },
           "version" : {
             "type" : "string"
           }
         },
-        "required" : [ "actions", "config", "id", "name", "permissions", "platform", "rules", "subscriptions", "version" ],
+        "required" : [ "actions", "config", "endpoints", "id", "name", "permissions", "platform", "rules", "subscriptions", "ui", "version" ],
         "type" : "object"
       },
       "ExtensionResponse" : {
@@ -3893,6 +3905,34 @@
         "required" : [ "appliesTo", "handler", "id", "label", "order", "placement" ],
         "type" : "object"
       },
+      "ManifestEndpoint" : {
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "methods" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "path" : {
+            "type" : "string"
+          },
+          "secret" : {
+            "type" : "string"
+          },
+          "timeoutSeconds" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "url" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "methods", "path", "secret", "timeoutSeconds", "url" ],
+        "type" : "object"
+      },
       "ManifestHandler" : {
         "properties" : {
           "url" : {
@@ -3957,6 +3997,35 @@
           }
         },
         "required" : [ "deliver", "events", "id" ],
+        "type" : "object"
+      },
+      "ManifestUi" : {
+        "properties" : {
+          "appliesTo" : {
+            "$ref" : "#/components/schemas/AppliesTo"
+          },
+          "height" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "order" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "slot" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "url" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "appliesTo", "height", "id", "order", "slot", "title", "url" ],
         "type" : "object"
       },
       "MarkReadRequest" : {
@@ -7399,6 +7468,37 @@
           }
         },
         "required" : [ "key", "label" ],
+        "type" : "object"
+      },
+      "UiSlot" : {
+        "properties" : {
+          "extensionId" : {
+            "type" : "string"
+          },
+          "extensionName" : {
+            "type" : "string"
+          },
+          "height" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "origin" : {
+            "type" : "string"
+          },
+          "slot" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "url" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "extensionId", "extensionName", "height", "id", "origin", "slot", "title", "url" ],
         "type" : "object"
       },
       "UnitConfig" : {
@@ -12195,6 +12295,180 @@
         "tags" : [ "Expression" ]
       }
     },
+    "/api/v1/ext/{extensionId}/**" : {
+      "delete" : {
+        "operationId" : "uiExtensionForward_3",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "extensionId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "request",
+          "required" : true,
+          "schema" : {
+            "format" : "byte",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Ui extension" ]
+      },
+      "get" : {
+        "operationId" : "uiExtensionForward",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "extensionId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "request",
+          "required" : true,
+          "schema" : {
+            "format" : "byte",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Ui extension" ]
+      },
+      "post" : {
+        "operationId" : "uiExtensionForward_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "extensionId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "request",
+          "required" : true,
+          "schema" : {
+            "format" : "byte",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Ui extension" ]
+      },
+      "put" : {
+        "operationId" : "uiExtensionForward_2",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "extensionId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "request",
+          "required" : true,
+          "schema" : {
+            "format" : "byte",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Ui extension" ]
+      }
+    },
     "/api/v1/extension-jobs/{jobId}/complete" : {
       "post" : {
         "operationId" : "backgroundActionComplete",
@@ -16879,6 +17153,46 @@
           }
         },
         "tags" : [ "Replacement" ]
+      }
+    },
+    "/api/v1/objects/{id}/ui-extensions" : {
+      "get" : {
+        "operationId" : "uiExtensionSlots",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/UiSlot"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Ui extension" ]
       }
     },
     "/api/v1/objects/{id}/undo-checkout" : {
@@ -22237,6 +22551,8 @@
     "name" : "Type"
   }, {
     "name" : "Type rule"
+  }, {
+    "name" : "Ui extension"
   }, {
     "name" : "Validation rule"
   }, {

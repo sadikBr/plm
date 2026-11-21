@@ -32,6 +32,42 @@ data class ExtensionManifest(
     val subscriptions: List<ManifestSubscription> = emptyList(),
     /** Configuration it needs (types, attributes, value lists, rules...), imported at install and upgrade. */
     val seed: ConfigBundle? = null,
+    /** Panels and tabs it adds to object pages (roadmap 5.15), shown in sandboxed frames. */
+    val ui: List<ManifestUi> = emptyList(),
+    /** Endpoints of its own service the platform serves at `/api/v1/ext/<id>/<path>` (roadmap 5.15). */
+    val endpoints: List<ManifestEndpoint> = emptyList(),
+)
+
+/**
+ * A panel (`object.panel`, on the Details tab) or a tab (`object.tab`) of object pages, loaded from
+ * [url] in a sandboxed frame. The page talks to the platform through `postMessage` (see the
+ * extensions README): it is sent the object, the user, the language and the theme, and may ask to
+ * resize, open a page, refresh, or call the extension's own endpoints.
+ */
+data class ManifestUi(
+    val id: String,
+    val slot: String,
+    val title: String,
+    /** `https://...`; `${config.<key>}` and the object placeholders are filled in, as for actions. */
+    val url: String,
+    val appliesTo: AppliesTo = AppliesTo(),
+    /** The frame's starting height, in pixels; the page may resize it. */
+    val height: Int = 240,
+    val order: Int = 500,
+)
+
+/**
+ * An endpoint of the extension's service, served by the platform at `/api/v1/ext/<id>/<path>`
+ * (and below it) for signed-in users. The call is forwarded to [url] (plus what follows [path]),
+ * signed like webhooks with the [secret] setting, with `X-PLM-User` and `X-PLM-Tenant`.
+ */
+data class ManifestEndpoint(
+    val id: String,
+    val path: String,
+    val url: String,
+    val secret: String,
+    val methods: List<String> = listOf("GET"),
+    val timeoutSeconds: Int = 10,
 )
 
 data class ConfigField(
@@ -185,6 +221,8 @@ val EXTENSION_PERMISSIONS: Map<String, String> =
         "rules:refuse" to "Refuse operations (check-in, set state, revise...) that don't meet its rules",
         "events:subscribe" to "Be told about events (object created, state changed...)",
         "webhooks:call" to "Call its own web services",
+        "ui:panels" to "Add panels and tabs to object pages, shown in sandboxed frames",
+        "endpoints:serve" to "Serve endpoints of its own service through the platform, to signed-in users",
         "api:read" to "Read through the PLM API as the person running its actions (a token valid 15 minutes)",
         "api:write" to "Make changes through the PLM API as the person running its actions (a token valid 15 minutes)",
         "api:account" to

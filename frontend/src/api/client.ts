@@ -55,3 +55,11 @@ export async function unwrap<T>(call: Promise<{ data?: T; error?: unknown; respo
 export function isApiError(error: unknown, status?: number): error is ApiError {
   return error instanceof ApiError && (status === undefined || error.status === status);
 }
+
+/** A signed-in call to a path the typed client doesn't know (an extension's endpoints, roadmap 5.15). */
+export async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const token = await tokenProvider();
+  const headers = new Headers(init.headers);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  return globalThis.fetch(`${config.apiBase}${path}`, { ...init, headers });
+}
