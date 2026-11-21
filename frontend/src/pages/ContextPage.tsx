@@ -1,5 +1,6 @@
 import { FavoriteButton, SubscribeButton } from "../personal/Personal";
-import { FilePlus, LayoutTemplate, Plus, ScrollText } from "lucide-react";
+import { FilePlus, LayoutTemplate, Plus, ScrollText, Shapes } from "lucide-react";
+import { StepImportDialog } from "../cad/StepImport";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -385,6 +386,7 @@ function ObjectsTab({ context, canCreate }: { context: Context; canCreate: boole
   const folder = params.get("folder") ?? undefined;
   const openFolder = (id?: string) => setParams(id ? { tab: "contents", folder: id } : { tab: "contents" });
   const [creating, setCreating] = useState<string | null>(null);
+  const [importingStep, setImportingStep] = useState(false);
   // One New button per kind of thing there are types for: New part, New document.
   const baseClasses = [...new Set(types?.filter((t) => t.instantiable).map((t) => t.baseClass))].sort(
     (a, b) => BASE_CLASS_ORDER.indexOf(a) - BASE_CLASS_ORDER.indexOf(b),
@@ -424,9 +426,15 @@ function ObjectsTab({ context, canCreate }: { context: Context; canCreate: boole
                 {newObjectLabel(bc)}
               </button>
             ))}
+          {canCreate && (
+            <button className="btn small" onClick={() => setImportingStep(true)}>
+              <Shapes size={14} aria-hidden /> {t("Import STEP…")}
+            </button>
+          )}
         </>
       }
     >
+      {importingStep && <StepImportDialog contextId={context.id} onClose={() => setImportingStep(false)} />}
       {creating && <NewObjectDialog context={context} folderId={folder} baseClass={creating} onClose={() => setCreating(null)} />}
       <FolderBar contextId={context.id} contextName={context.name} folderId={folder} onOpen={openFolder} canCreate={canCreate} />
       {bulkJob && (

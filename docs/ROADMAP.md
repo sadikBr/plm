@@ -472,8 +472,13 @@ seat.
       part's structure match: a line per component's part, as many as it occurs; lines of parts
       that came from CAD and left the model are removed; lines of parts without a model are kept.
       Components without a part are listed, or get one made on request.
-- [ ] 6.5 STEP import: a STEP file (AP203/AP214/AP242) becomes CAD documents with their assembly
+- [x] 6.5 STEP import: a STEP file (AP203/AP214/AP242) becomes CAD documents with their assembly
       structure, each with its file, optionally with parts associated and built.
+      Done: Import STEP… on a product reads the file's product structure (products, assembly
+      usages and their placements, in the file's length unit converted to mm) and shows it first;
+      importing makes a CAD part or assembly per product with its components placed, keeps the
+      file on the top model, and optionally makes a part per model, owned by it, with assembly
+      parts built. Checked with the CAx-IF AS1 assembly (9 models, 27 lines).
 - [ ] 6.6 Conversion worker: STEP to glTF as background jobs on check-in, stored as the
       iteration's viewable; conversion status, errors and retries visible on the object.
 - [ ] 6.7 Publishing rules, watermarks and PDF: which types publish what, when (check-in,

@@ -3808,6 +3808,25 @@
         "required" : [ "level", "row" ],
         "type" : "object"
       },
+      "ImportedObject" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "kind", "name", "number" ],
+        "type" : "object"
+      },
       "InstallExtensionRequest" : {
         "properties" : {
           "config" : {
@@ -7454,6 +7473,88 @@
         "required" : [ "key", "labels" ],
         "type" : "object"
       },
+      "StepImportResult" : {
+        "properties" : {
+          "models" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ImportedObject"
+            },
+            "type" : "array"
+          },
+          "parts" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ImportedObject"
+            },
+            "type" : "array"
+          },
+          "rootId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "models", "parts", "rootId" ],
+        "type" : "object"
+      },
+      "StepLine" : {
+        "properties" : {
+          "depth" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "kind" : {
+            "enum" : [ "PART", "ASSEMBLY", "DRAWING" ],
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "occurrence" : {
+            "type" : [ "string", "null" ]
+          },
+          "partNumber" : {
+            "type" : "string"
+          },
+          "position" : {
+            "items" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : [ "array", "null" ]
+          }
+        },
+        "required" : [ "depth", "kind", "name", "partNumber" ],
+        "type" : "object"
+      },
+      "StepPreview" : {
+        "properties" : {
+          "assemblies" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "lines" : {
+            "items" : {
+              "$ref" : "#/components/schemas/StepLine"
+            },
+            "type" : "array"
+          },
+          "models" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "schema" : {
+            "type" : "string"
+          },
+          "unitToMm" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "assemblies", "fileName", "lines", "models", "schema", "unitToMm" ],
+        "type" : "object"
+      },
       "StructureNode" : {
         "properties" : {
           "level" : {
@@ -9842,6 +9943,102 @@
           }
         },
         "tags" : [ "Collector" ]
+      }
+    },
+    "/api/v1/cad/step-import" : {
+      "post" : {
+        "operationId" : "stepImportImport",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "fileName",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "createParts",
+          "required" : false,
+          "schema" : {
+            "default" : true,
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "build",
+          "required" : false,
+          "schema" : {
+            "default" : true,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepImportResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Step import" ]
+      }
+    },
+    "/api/v1/cad/step-import/preview" : {
+      "post" : {
+        "operationId" : "stepImportPreview",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "fileName",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepPreview"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Step import" ]
       }
     },
     "/api/v1/change-association-rules" : {
@@ -24219,6 +24416,8 @@
     "name" : "Signature"
   }, {
     "name" : "Stand in"
+  }, {
+    "name" : "Step import"
   }, {
     "name" : "Structure import"
   }, {

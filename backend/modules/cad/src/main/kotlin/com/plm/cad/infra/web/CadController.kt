@@ -169,3 +169,32 @@ internal class AssociationController(
         @RequestBody request: com.plm.cad.api.BuildRequest,
     ) = associations.build(actor, id, request)
 }
+
+/** STEP import (roadmap 6.5): the file as the request body. */
+@RestController
+internal class StepImportController(
+    private val imports: com.plm.cad.api.StepImportService,
+) {
+    @PostMapping("/api/v1/cad/step-import/preview", consumes = [org.springframework.http.MediaType.ALL_VALUE])
+    fun preview(
+        actor: Actor,
+        @RequestParam fileName: String,
+        body: java.io.InputStream,
+    ) = imports.preview(actor, fileName, body.readNBytes(50 * 1024 * 1024 + 1))
+
+    @PostMapping("/api/v1/cad/step-import", consumes = [org.springframework.http.MediaType.ALL_VALUE])
+    fun import(
+        actor: Actor,
+        @RequestParam fileName: String,
+        @RequestParam contextId: UUID,
+        @RequestParam(defaultValue = "true") createParts: Boolean,
+        @RequestParam(defaultValue = "true") build: Boolean,
+        body: java.io.InputStream,
+    ) = imports.import(
+        actor,
+        fileName,
+        body.readNBytes(50 * 1024 * 1024 + 1),
+        com.plm.cad.api
+            .StepImportOptions(contextId, createParts, build),
+    )
+}

@@ -103,5 +103,21 @@
   "Parts made: {parts}": "Pièces créées : {parts}",
   "These components have no part, so they aren't in the structure: {models}": "Ces composants n'ont pas de pièce et ne sont donc pas dans la structure : {models}",
   "Parts": "Pièces",
-  "The parts this model describes.": "Les pièces que ce modèle décrit."
+  "The parts this model describes.": "Les pièces que ce modèle décrit.",
+  "Import a STEP file": "Importer un fichier STEP",
+  "Cancel": "Annuler",
+  "Importing…": "Import en cours…",
+  "Import {n} models": "Importer {n} modèles",
+  "Import": "Importer",
+  "STEP file (.stp, .step; AP203, AP214, AP242)": "Fichier STEP (.stp, .step ; AP203, AP214, AP242)",
+  "{models} models, {assemblies} of them assemblies": "{models} modèles, dont {assemblies} assemblages",
+  "millimetres": "millimètres",
+  "{n} mm per unit": "{n} mm par unité",
+  "STEP structure": "Structure STEP",
+  "assembly": "assemblage",
+  "part": "pièce",
+  "Make a part for each model, owned by it": "Créer une pièce pour chaque modèle, qui en est propriétaire",
+  "Build the assembly parts' structures from their models": "Construire la structure des pièces assemblées depuis leurs modèles",
+  "The file goes with the top model; each model is a CAD document, numbered as usual.": "Le fichier va avec le modèle de tête ; chaque modèle est un document CAO, numéroté comme d'habitude.",
+  "Import STEP…": "Importer STEP…"
 }
