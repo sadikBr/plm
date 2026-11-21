@@ -1215,6 +1215,9 @@
           },
           "outcome" : {
             "type" : "string"
+          },
+          "password" : {
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "outcome" ],
@@ -2020,6 +2023,56 @@
           }
         },
         "required" : [ "active", "id", "name", "number", "objectId", "typeId", "updatedAt", "updatedBy", "version" ],
+        "type" : "object"
+      },
+      "ESignature" : {
+        "properties" : {
+          "comment" : {
+            "type" : [ "string", "null" ]
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "instanceId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "intact" : {
+            "type" : "boolean"
+          },
+          "meaning" : {
+            "type" : "string"
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "objectNumber" : {
+            "type" : [ "string", "null" ]
+          },
+          "objectVersion" : {
+            "type" : [ "string", "null" ]
+          },
+          "principal" : {
+            "type" : "string"
+          },
+          "signedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "workItemId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "displayName", "id", "instanceId", "intact", "meaning", "principal", "signedAt", "username", "workItemId" ],
         "type" : "object"
       },
       "EditComment" : {
@@ -14667,6 +14720,46 @@
         "tags" : [ "Sharing" ]
       }
     },
+    "/api/v1/objects/{id}/signatures" : {
+      "get" : {
+        "operationId" : "signatureForObject",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ESignature"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Signature" ]
+      }
+    },
     "/api/v1/objects/{id}/state" : {
       "post" : {
         "operationId" : "versionedObjectSetState",
@@ -19734,6 +19827,8 @@
     "name" : "Shared team"
   }, {
     "name" : "Sharing"
+  }, {
+    "name" : "Signature"
   }, {
     "name" : "Stand in"
   }, {

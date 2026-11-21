@@ -215,7 +215,11 @@ function TaskLine({ w, mine }: { w: Task; mine: boolean }) {
         </div>
       </td>
       <td>
-        {w.status === "OPEN" && mine ? (
+        {w.status === "OPEN" && mine && w.signature ? (
+          <a href={`/inbox?task=${w.id}`} className="btn small primary">
+            {t("Sign in Tasks")}
+          </a>
+        ) : w.status === "OPEN" && mine ? (
           <div className="task-answer">
             <input
               aria-label={t("Comment")}

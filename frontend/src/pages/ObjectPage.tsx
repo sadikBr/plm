@@ -1,5 +1,6 @@
 import { ReferencedBy } from "../components/References";
 import { ProcessesTab } from "../workflow/Processes";
+import { SignaturesPanel } from "../workflow/Signatures";
 import { ReplacementsTab } from "../structure/Replacements";
 import { DocumentLinksTab, LinkingPartsTab } from "../structure/DocumentLinks";
 import { WhereUsedTab } from "../structure/WhereUsed";
@@ -630,6 +631,7 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
       </div>
       {/* Only documents hold files (primary content and attachments). */}
       <ReferencedBy objectId={obj.id} />
+      <SignaturesPanel objectId={obj.id} />
       {isDocument && <ObjectFiles objectId={obj.id} iterationKey={mine ? `wc:${workingCopy.data?.id ?? ""}` : latest.id} editable={mine} />}
     </div>
   );

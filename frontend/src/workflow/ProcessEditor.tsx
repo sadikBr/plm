@@ -459,6 +459,10 @@ function Inspector({
             <label htmlFor="st-due">{t("Due in")}</label>
             <input id="st-due" value={step.dueIn ?? ""} placeholder="P3D" onChange={(e) => onChange({ dueIn: e.target.value || null })} />
           </div>
+          <label className="check">
+            <input type="checkbox" checked={step.signature} onChange={(e) => onChange({ signature: e.target.checked })} />{" "}
+            {t("Answering needs an electronic signature")}
+          </label>
           {step.kind === "TASK" && (
             <div className="field">
               <label htmlFor="st-escalate">{t("When overdue, also give it to")}</label>

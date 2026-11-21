@@ -123,5 +123,16 @@
   "offered to start by hand": "proposé au lancement manuel",
   "on entering a state": "à l'entrée dans un état",
   "on entering {state}": "à l'entrée dans {state}",
-  "when created": "à la création"
+  "when created": "à la création",
+  "Answering needs an electronic signature": "La réponse demande une signature électronique",
+  "Answering signs it electronically: your name, the time and what you chose are recorded with this version, and can't be changed. It is the equivalent of your handwritten signature.": "Répondre signe électroniquement : votre nom, l'heure et votre choix sont enregistrés avec cette version et ne peuvent pas être modifiés. Cela équivaut à votre signature manuscrite.",
+  "Electronic signatures": "Signatures électroniques",
+  "Meaning": "Signification",
+  "Record": "Enregistrement",
+  "Sign in Tasks": "Signer dans Tâches",
+  "Signed by": "Signé par",
+  "When (UTC)": "Quand (UTC)",
+  "Your password, to sign": "Votre mot de passe, pour signer",
+  "altered": "altéré",
+  "intact": "intact"
 }

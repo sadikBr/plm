@@ -339,8 +339,13 @@ affected objects; and the platform can be extended with scripts, UI slots and no
       Automatic starts never come from a process's own steps and never fail the change that
       triggered them. Objects show what starts by themselves; the start dialog offers assigned
       templates first. Managing them needs MANAGE in the context (site: administrators).
-- [ ] 5.6 Electronic signatures (21 CFR Part 11): signing tasks ask for the password again; the
+- [x] 5.6 Electronic signatures (21 CFR Part 11): signing tasks ask for the password again; the
       signature (who, when, meaning) is recorded immutably, shown on the object and audited.
+      Done: a TASK or VOTE step can need a signature; answering it asks for the password, checked
+      with the identity provider at that moment. The record (signer's name and username, meaning,
+      comment, time, object, exact version and iteration, task and process) is written once into a
+      table the database refuses to change or delete, with a SHA-256 hash shown as "intact" on the
+      object's Signatures panel. Signatures and refused attempts are domain events, so audited.
 - [ ] 5.7 Promotion requests: ask for a set of objects to move to a target state; a review process
       approves or rejects; objects are locked while under review and promoted on approval.
 - [ ] 5.8 Change objects: problem reports, change requests, change notices and change tasks with

@@ -931,3 +931,5 @@ table.grid.compact td { padding: 6px 8px; vertical-align: top; }
 .reassign input { flex: 1 1 140px; }
 .assignment-form { padding: 12px; border-bottom: 1px solid var(--border); background: var(--panel-2); }
 .assigned-note { margin: 8px 12px; }
+.signing { border: 1px solid var(--warning, #b26a00); border-radius: 6px; padding: 10px 12px; background: color-mix(in srgb, var(--warning, #b26a00) 6%, transparent); }
+.signing p { margin: 6px 0 0; }

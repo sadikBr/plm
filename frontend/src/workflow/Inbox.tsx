@@ -172,14 +172,21 @@ function TaskPanel({ id }: { id: string }) {
     enabled: !!w,
   });
   const [comment, setComment] = useState("");
+  const [password, setPassword] = useState("");
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ["tasks"] });
     void qc.invalidateQueries({ queryKey: ["processes"] });
   };
   const answer = useMutation({
     mutationFn: (outcome: string) =>
-      unwrap(api.POST("/api/v1/tasks/{id}/complete", { params: { path: { id } }, body: { outcome, comment: comment.trim() || null } })),
+      unwrap(
+        api.POST("/api/v1/tasks/{id}/complete", {
+          params: { path: { id } },
+          body: { outcome, comment: comment.trim() || null, password: w?.signature ? password : null },
+        }),
+      ),
     onSuccess: refresh,
+    onError: () => setPassword(""),
   });
   const claim = useMutation({
     mutationFn: () => unwrap(api.POST("/api/v1/tasks/{id}/claim", { params: { path: { id } } })),
@@ -263,12 +270,32 @@ function TaskPanel({ id }: { id: string }) {
               <label htmlFor="task-comment">{t("Comment")}</label>
               <textarea id="task-comment" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} disabled={claimedByOther} />
             </div>
+            {w.signature && (
+              <div className="signing">
+                <div className="field">
+                  <label htmlFor="task-password">{t("Your password, to sign")}</label>
+                  <input
+                    id="task-password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={claimedByOther}
+                  />
+                </div>
+                <p className="small">
+                  {t(
+                    "Answering signs it electronically: your name, the time and what you chose are recorded with this version, and can't be changed. It is the equivalent of your handwritten signature.",
+                  )}
+                </p>
+              </div>
+            )}
             <div className="row" style={{ gap: 8 }}>
               {w.choices.map((c, i) => (
                 <button
                   key={c}
                   className={i === 0 ? "btn primary" : "btn"}
-                  disabled={answer.isPending || claimedByOther}
+                  disabled={answer.isPending || claimedByOther || (w.signature && !password)}
                   onClick={() => answer.mutate(c)}
                 >
                   {choiceLabel(c)}

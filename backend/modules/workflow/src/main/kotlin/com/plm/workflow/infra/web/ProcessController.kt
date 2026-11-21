@@ -226,3 +226,15 @@ internal class ProcessAssignmentController(
         @PathVariable id: UUID,
     ) = assignments.forObject(actor, id)
 }
+
+/** Electronic signatures on an object (roadmap 5.6). */
+@RestController
+internal class SignatureController(
+    private val signatures: com.plm.workflow.api.SignatureService,
+) {
+    @GetMapping("/api/v1/objects/{id}/signatures")
+    fun forObject(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = signatures.forObject(actor, id)
+}

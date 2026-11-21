@@ -234,7 +234,58 @@ data class TaskCounts(
 data class CompleteWorkItem(
     val outcome: String,
     val comment: String? = null,
+    /** For a task that needs an electronic signature: the signer's password, checked again (roadmap 5.6). */
+    val password: String? = null,
 )
+
+/** An electronic signature (roadmap 5.6): its manifestation is the signer, the time and the meaning. */
+data class ESignature(
+    val id: UUID,
+    val principal: String,
+    val username: String,
+    val displayName: String,
+    /** What signing meant, e.g. "Approve — Review". */
+    val meaning: String,
+    val comment: String?,
+    val signedAt: Instant,
+    val objectId: UUID?,
+    val objectNumber: String?,
+    val objectVersion: String?,
+    val workItemId: UUID,
+    val instanceId: UUID,
+    /** Whether the stored hash still matches the record. */
+    val intact: Boolean,
+)
+
+interface SignatureService {
+    /** Signatures on an object (any version), oldest first. Needs read access to it. */
+    fun forObject(
+        actor: Actor,
+        objectId: UUID,
+    ): List<ESignature>
+}
+
+data class SignatureRecorded(
+    val signatureId: UUID,
+    val principal: String,
+    val meaning: String,
+    val objectId: UUID?,
+    val objectVersion: String?,
+) : DomainEvent {
+    override val eventType = "workflow.SignatureRecorded.v1"
+    override val aggregateType get() = "e-signature"
+    override val aggregateId get() = signatureId
+}
+
+/** A signing attempt with the wrong password: audited, like the signatures themselves. */
+data class SignatureRefused(
+    val workItemId: UUID,
+    val principal: String,
+) : DomainEvent {
+    override val eventType = "workflow.SignatureRefused.v1"
+    override val aggregateType get() = "work-item"
+    override val aggregateId get() = workItemId
+}
 
 data class WorkItemQuery(
     /** Everyone's (administrators) instead of the actor's own. */

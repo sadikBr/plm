@@ -438,6 +438,9 @@ internal class DefaultProcessService(
 @Transactional
 internal class DefaultWorkItemService(
     private val repository: ProcessRepository,
+    private val passwords: PasswordVerifier,
+    private val signatures: DefaultSignatureService,
+    transactions: org.springframework.transaction.PlatformTransactionManager,
     private val directory: com.plm.identity.api.PrincipalDirectory,
     private val personal: com.plm.notifications.api.PersonalService,
     @param:org.springframework.beans.factory.annotation.Value("\${plm.ui-url:http://localhost:5173}") private val uiUrl:
@@ -592,6 +595,11 @@ internal class DefaultWorkItemService(
             repository.overdueCount(actor.tenant, actor.principal.value, clock.instant()),
         )
 
+    private val newTransaction =
+        org.springframework.transaction.support.TransactionTemplate(transactions).apply {
+            propagationBehavior = org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW
+        }
+
     private fun mine(
         actor: Actor,
         id: UUID,
@@ -741,6 +749,25 @@ internal class DefaultWorkItemService(
             throw ValidationException("INVALID_COMMENT", "A comment is at most 4000 characters")
         }
         val now = clock.instant()
+        // An electronic signature: the password again, then a record that can't be changed (roadmap 5.6).
+        val signer =
+            if (row.signature) {
+                val me = directory.get(actor, actor.principal)
+                if (request.password.isNullOrEmpty() || !passwords.verify(me.username, request.password)) {
+                    // Audited even though the answer is refused: in a transaction of its own.
+                    newTransaction.executeWithoutResult {
+                        events.publish(
+                            actor,
+                            com.plm.workflow.api
+                                .SignatureRefused(row.id, actor.principal.value),
+                        )
+                    }
+                    throw ValidationException("SIGNATURE_REFUSED", "Wrong password: not signed")
+                }
+                me
+            } else {
+                null
+            }
         if (!repository.completeItem(row.id, request.outcome, comment, actor.principal.value, now)) {
             throw ConflictException("TASK_CLOSED", "This task is already closed")
         }
@@ -753,6 +780,42 @@ internal class DefaultWorkItemService(
             "${row.title}: ${request.outcome}${comment?.let { " — $it" }.orEmpty()}",
         )
         events.publish(actor, WorkItemCompleted(row.id, row.instanceId, request.outcome, comment, row.subjectId))
+        if (signer != null) {
+            val subject =
+                row.subjectId?.let {
+                    versioning.list(actor, ObjectQuery(ids = listOf(MasterId(it)), limit = 1)).firstOrNull()
+                }
+            val meaning = "${request.outcome.lowercase().replaceFirstChar { it.uppercase() }} — ${row.title}"
+            val id =
+                signatures.record(
+                    SignatureFacts(
+                        actor.tenant,
+                        actor.principal.value,
+                        signer.username,
+                        signer.displayName,
+                        meaning,
+                        comment,
+                        now,
+                        row.subjectId,
+                        subject?.number,
+                        subject?.latest?.version,
+                        subject?.latest?.id?.value,
+                        row.id,
+                        row.instanceId,
+                    ),
+                )
+            repository.event(row.instanceId, now, "SIGNED", row.nodeId, actor.principal.value, "Signed: $meaning")
+            events.publish(
+                actor,
+                com.plm.workflow.api.SignatureRecorded(
+                    id,
+                    actor.principal.value,
+                    meaning,
+                    row.subjectId,
+                    subject?.latest?.version,
+                ),
+            )
+        }
         afterCommit {
             temporal.client
                 .newWorkflowStub(ProcessWorkflow::class.java, workflowId(row.instanceId))
