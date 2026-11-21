@@ -1808,6 +1808,97 @@
         "required" : [ "choice", "option" ],
         "type" : "object"
       },
+      "ClassAttribute" : {
+        "properties" : {
+          "allowed" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "classId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "dataType" : {
+            "enum" : [ "NUMBER", "TEXT", "BOOLEAN", "ENUM" ],
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "position" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "unit" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "allowed", "classId", "dataType", "id", "key", "label", "position", "required" ],
+        "type" : "object"
+      },
+      "ClassNode" : {
+        "properties" : {
+          "attributes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ClassAttribute"
+            },
+            "type" : "array"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "parentId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "parts" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "position" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "attributes", "code", "id", "name", "parts", "position" ],
+        "type" : "object"
+      },
+      "ClassifyPart" : {
+        "properties" : {
+          "classId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "values" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          }
+        },
+        "required" : [ "values" ],
+        "type" : "object"
+      },
       "CollectOptions" : {
         "properties" : {
           "dependencies" : {
@@ -5733,6 +5824,42 @@
         "required" : [ "owner" ],
         "type" : "object"
       },
+      "PartClassification" : {
+        "properties" : {
+          "attributes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ClassAttribute"
+            },
+            "type" : "array"
+          },
+          "partId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "path" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ClassNode"
+            },
+            "type" : "array"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "updatedBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "values" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "attributes", "partId", "path", "values", "version" ],
+        "type" : "object"
+      },
       "PartOptions" : {
         "properties" : {
           "optionSet" : {
@@ -7485,6 +7612,53 @@
           }
         },
         "required" : [ "code", "name", "retired" ],
+        "type" : "object"
+      },
+      "SaveClass" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "parentId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "code", "name" ],
+        "type" : "object"
+      },
+      "SaveClassAttribute" : {
+        "properties" : {
+          "allowed" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "dataType" : {
+            "enum" : [ "NUMBER", "TEXT", "BOOLEAN", "ENUM" ],
+            "type" : "string"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "unit" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "allowed", "dataType", "key", "label", "required" ],
         "type" : "object"
       },
       "SaveContextTemplateRequest" : {
@@ -12066,6 +12240,270 @@
           }
         },
         "tags" : [ "Options" ]
+      }
+    },
+    "/api/v1/class-attributes/{attributeId}" : {
+      "delete" : {
+        "operationId" : "classificationRemoveAttribute",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "attributeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClassNode"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Classification" ]
+      }
+    },
+    "/api/v1/classes" : {
+      "get" : {
+        "operationId" : "classificationTree",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ClassNode"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Classification" ]
+      },
+      "post" : {
+        "operationId" : "classificationCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveClass"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClassNode"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Classification" ]
+      }
+    },
+    "/api/v1/classes/{id}" : {
+      "delete" : {
+        "operationId" : "classificationDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Classification" ]
+      },
+      "put" : {
+        "operationId" : "classificationUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveClass"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClassNode"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Classification" ]
+      }
+    },
+    "/api/v1/classes/{id}/attributes" : {
+      "get" : {
+        "operationId" : "classificationAttributes",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ClassAttribute"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Classification" ]
+      },
+      "post" : {
+        "operationId" : "classificationAddAttribute",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveClassAttribute"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClassNode"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Classification" ]
       }
     },
     "/api/v1/comments/{commentId}" : {
@@ -18905,6 +19343,96 @@
           }
         },
         "tags" : [ "Versioned object" ]
+      }
+    },
+    "/api/v1/objects/{id}/classification" : {
+      "get" : {
+        "operationId" : "classificationClassification",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "workingCopy",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PartClassification"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Classification" ]
+      },
+      "put" : {
+        "operationId" : "classificationClassify",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ClassifyPart"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PartClassification"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Classification" ]
       }
     },
     "/api/v1/objects/{id}/collect" : {
@@ -27936,6 +28464,8 @@
     "name" : "Change metrics"
   }, {
     "name" : "Change setup"
+  }, {
+    "name" : "Classification"
   }, {
     "name" : "Collector"
   }, {

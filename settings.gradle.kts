@@ -21,7 +21,7 @@ include(":backend:platform", ":backend:testing", ":backend:app")
 val modules =
     listOf(
         "identity", "access", "types", "content", "versioning", "audit",
-        "documents", "parts", "bom", "lifecycle", "workflow", "change", "automation", "cad", "publishing", "effectivity", "variants",
+        "documents", "parts", "bom", "lifecycle", "workflow", "change", "automation", "cad", "publishing", "effectivity", "variants", "classification",
         "search", "integration", "events", "configuration", "preferences", "extensions", "jobs", "bulk", "notifications", "reports", "collaboration",
     )
 modules.forEach { include(":backend:modules:$it") }

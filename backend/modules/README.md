@@ -43,6 +43,7 @@ Three layers enforce this:
 | publishing | Publishing rules (PDFs on check-in or on reaching a state), stamping, download watermarks, data sheets | access, types, versioning, content, bom, jobs, identity |
 | effectivity | When part versions and structure lines apply: end items, date, serial, lot and block ranges; effectivity configuration specs | access, types, versioning, bom |
 | variants | Options and choices, option rules, 150% structures with choice conditions, variant specifications, variant generation and reuse | access, types, versioning, bom |
+| classification | The class tree with inherited class attributes, parts' classes and values per version, classification search and find similar | access, types, versioning |
 | search | Search: indexing from events (OpenSearch or Postgres), queries with facets, saved searches | access, types, versioning, content, jobs |
 | configuration | Export/import of the whole configuration as one bundle (config as code) | types, lifecycle, access |
 | preferences | Typed preferences set per site / organization / context / user, with locking; profiles | access, types |

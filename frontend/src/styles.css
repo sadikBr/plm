@@ -1155,3 +1155,16 @@ table.collected td input[type="checkbox"] { width: 16px; height: 16px; }
 .spec-save { padding: 10px 14px; border-top: 1px solid var(--border); }
 .spec-save input { flex: 1 1 auto; }
 .spec-save select { flex: none; width: 260px; } .spec-save .btn { flex: none; white-space: nowrap; }
+/* Classification (roadmap 7.11, 7.12). */
+.class-admin { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 14px; align-items: start; }
+.class-tree { list-style: none; margin: 0; padding: 6px 0; }
+.class-tree li { display: flex; gap: 8px; align-items: center; padding: 3px 10px; }
+.class-tree li.selected { background: var(--row-selected); }
+.class-tree .link-btn { display: inline-flex; gap: 5px; align-items: center; color: var(--text); }
+.class-new { padding: 10px 14px; border-top: 1px solid var(--border); }
+.class-attr-form { padding: 10px 14px; border-top: 1px solid var(--border); align-items: center; gap: 6px; }
+.class-attr-form input:not([type="checkbox"]) { width: 150px; }
+.class-attr-form select { width: 150px; flex: none; }
+.class-new { flex-wrap: wrap; }
+.class-new .btn { white-space: nowrap; }
+.grid tr.inherited td { color: var(--text-2); }

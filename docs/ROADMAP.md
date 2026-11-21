@@ -628,9 +628,15 @@ main line, and classification makes existing parts easy to find and reuse.
       as usual with a banner saying so. Its check-in leaves the main line where it was: latest,
       Released and as-of specifications, effectivity and revising follow the main line only; the
       one-off is read by asking for its iteration, and lists its base and what it was for.
-- [ ] 7.11 Classification: a class tree (e.g. Fasteners > Screws > Hex screws) with class attributes
+- [x] 7.11 Classification: a class tree (e.g. Fasteners > Screws > Hex screws) with class attributes
       inherited down the tree (types, units, value lists, required); classify parts, values kept
       per version; administered in the UI.
+      Done: Administration › Classification holds the class tree (codes, names, descriptions) and
+      each class's attributes (number with a unit, text, yes or no, or a value list; required or
+      not), which every class below inherits; a key is used once along a branch. A part's
+      Classification tab shows its class path and values; on the working copy it takes a class and
+      values checked against the attributes. Check-out, revise and one-offs carry them forward, so
+      each version keeps its own. A class in use, or with classes under it, isn't deleted.
 - [ ] 7.12 Classification search and find similar: browse by class and filter by class attribute
       ranges; from any part, find similar ones (same class, close values), ranked by similarity.
 
