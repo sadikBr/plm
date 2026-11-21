@@ -1,10 +1,12 @@
+import { browserLanguage, isLanguage, setLanguage } from "./i18n/i18n";
+import { useEffectivePreferences } from "./api/queries";
 import { AuditReportPage } from "./audit/AuditReport";
 import { NotificationsPage } from "./personal/Personal";
 import { DashboardsPage } from "./reports/Dashboards";
 import { ReportsPage } from "./reports/ReportsPage";
 import { ComparePage } from "./documents/ComparePage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { BrowserRouter, Route, Routes } from "react-router";
 import { isApiError } from "./api/client";
 import { AdminPage } from "./admin/AdminPage";
@@ -60,11 +62,25 @@ export function AppRoutes() {
   );
 }
 
+/**
+ * The interface language (roadmap 3.12): the user's (or the site's) `ui.language` preference, else
+ * the browser's. Changing it re-renders everything in the new language.
+ */
+function LanguageGate({ children }: { children: ReactNode }) {
+  const { data } = useEffectivePreferences();
+  const chosen = data?.get("ui.language");
+  const lang = isLanguage(chosen) ? chosen : browserLanguage();
+  setLanguage(lang);
+  return <Fragment key={lang}>{children}</Fragment>;
+}
+
 export function App() {
   return (
     <Providers>
       <BrowserRouter>
-        <AppRoutes />
+        <LanguageGate>
+          <AppRoutes />
+        </LanguageGate>
       </BrowserRouter>
     </Providers>
   );

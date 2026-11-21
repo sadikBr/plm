@@ -3,6 +3,7 @@ package com.plm.preferences.domain
 import com.plm.preferences.api.PreferenceDeclarations
 import com.plm.preferences.api.PreferenceDefinition
 import com.plm.preferences.api.PreferenceLevel
+import com.plm.preferences.api.PreferenceOption
 import com.plm.preferences.api.PreferenceType
 import org.springframework.stereotype.Component
 
@@ -32,6 +33,23 @@ internal class DisplayPreferences : PreferenceDeclarations {
                 type = PreferenceType.BOOLEAN,
                 default = true,
                 levels = setOf(PreferenceLevel.SITE, PreferenceLevel.USER),
+            ),
+            PreferenceDefinition(
+                key = "ui.language",
+                label = "Language",
+                description = "The language of the interface (roadmap 3.12). Automatic follows the browser's language.",
+                category = "Display",
+                type = PreferenceType.CHOICE,
+                default = "auto",
+                levels = setOf(PreferenceLevel.SITE, PreferenceLevel.USER),
+                options = {
+                    listOf(
+                        PreferenceOption("auto", "Automatic (the browser's language)"),
+                        PreferenceOption("en", "English"),
+                        PreferenceOption("fr", "Français"),
+                        PreferenceOption("de", "Deutsch"),
+                    )
+                },
             ),
         )
 }

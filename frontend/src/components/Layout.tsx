@@ -1,3 +1,4 @@
+import { t } from "../i18n/i18n";
 import { ClipboardButton } from "./Clipboard";
 import { NotificationBell } from "../personal/Personal";
 import { BarChart3, ChevronRight, LayoutDashboard, LogOut, Settings } from "lucide-react";
@@ -24,10 +25,10 @@ export function Layout() {
         {shows("search") && <GlobalSearch />}
         <div className="spacer" />
         <NavLink to="/reports" className="topbar-link">
-          <BarChart3 size={14} aria-hidden /> Reports
+          <BarChart3 size={14} aria-hidden /> {t("Reports")}
         </NavLink>
         <NavLink to="/dashboards" className="topbar-link">
-          <LayoutDashboard size={14} aria-hidden /> Dashboards
+          <LayoutDashboard size={14} aria-hidden /> {t("Dashboards")}
         </NavLink>
         <ClipboardButton />
         <NotificationBell />
@@ -35,17 +36,17 @@ export function Layout() {
           {me?.siteAdmin && (
             <NavLink to="/admin" className="topbar-link">
               <Settings size={14} aria-hidden />
-              Admin
+              {t("Admin")}
             </NavLink>
           )}
-          {me?.siteAdmin && <span className="chip-admin">Site admin</span>}
+          {me?.siteAdmin && <span className="chip-admin">{t("Site admin")}</span>}
           <span className="avatar" aria-hidden>
             {initials(me?.user.displayName)}
           </span>
-          <Link to="/preferences" className="topbar-link" title="My preferences" data-testid="current-user">
+          <Link to="/preferences" className="topbar-link" title={t("My preferences")} data-testid="current-user">
             {me?.user.displayName}
           </Link>
-          <button className="icon-btn" aria-label="Sign out" title="Sign out" onClick={() => void userManager.signoutRedirect()}>
+          <button className="icon-btn" aria-label={t("Sign out")} title={t("Sign out")} onClick={() => void userManager.signoutRedirect()}>
             <LogOut size={15} />
           </button>
         </div>
@@ -63,7 +64,7 @@ export function Layout() {
 /** Site / Organization / Product trail for a context. */
 export function Breadcrumbs({ contextId, current }: { contextId: string; current?: string }) {
   return (
-    <nav className="crumbs" aria-label="Breadcrumb">
+    <nav className="crumbs" aria-label={t("Breadcrumb")}>
       <CrumbChain id={contextId} isLast={!current} />
       {current && (
         <>
@@ -139,7 +140,7 @@ export function PageHeader({
 /** Tab strip driven by the `tab` search parameter. */
 export function Tabs<T extends string>({ tabs, active, onSelect }: { tabs: [T, string][]; active: T; onSelect: (tab: T) => void }) {
   return (
-    <nav className="tabs" aria-label="Sections">
+    <nav className="tabs" aria-label={t("Sections")}>
       {tabs.map(([key, label]) => (
         <a
           key={key}
