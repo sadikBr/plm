@@ -1,4 +1,4 @@
-// Demo data: a vertically integrated electric-vehicle maker and its car plant.
+// Demo data set "voltara": a fictional vertically integrated electric-vehicle maker and its car plant.
 //
 // The company is fictional (its name can be changed: ./plm load-data --company "…"). It makes its
 // own battery cells and packs, electric drive units and power semiconductors, shares one EV
@@ -1099,3 +1099,25 @@ export const CHANGES = {
   },
   cellRequest: "Low-temperature charge derating update in the battery management software",
 };
+
+// ---- what the loader needs to know about this data set ----
+export const KEYS = {
+  // The vehicle: end item, configurable, baselined.
+  vehicle: "AUR-0001",
+  // A part only this data set has: it tells whether the set is loaded already.
+  sentinel: "VX3-CL-138",
+  // Effective by vehicle serial from unit 1.
+  serialEffective: ["VX3-BP-60", "VX3-BP-82", "VX3-ED-150", "AUR-BIW-001"],
+  // Parts in this container stay in work unless they say otherwise.
+  inDevelopment: "tern",
+  baseline: ["Aurora – start of production", "The released Aurora structure at SOP, Plant 2 Line 3."],
+};
+
+// Where to look once it's loaded.
+export const TOUR = [
+  "Aurora Sedan › AUR-0001: Structure (options, 150% structure), Options tab, Effectivity tab",
+  "VX-3 EV Platform › VX3-CL-138 (the cell): Where used across three vehicle lines; its class",
+  "Changes (top bar): the door-seal problem through to a resolved change notice",
+  "Plant 2 – Line 3 Launch: work instructions, PFMEA, control plan, in folders by shop",
+  "Classes (top bar): find cells, motors and fasteners by their attributes",
+];

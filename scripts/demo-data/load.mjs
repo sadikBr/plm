@@ -2,10 +2,12 @@
 // Loads the demo data (dataset.mjs) into a running platform through its API, as the site
 // administrator. Run it with ./plm load-data, which asks for the password; or directly:
 //
-//   PLM_ADMIN_PASSWORD=… node scripts/demo-data/load.mjs [--company "Name"]
+//   PLM_ADMIN_PASSWORD=… node scripts/demo-data/load.mjs [voltara|byd] [--company "Name"]
+//
+// Data sets: voltara (a fictional EV maker; the default) and byd (the same shape with BYD's real
+// vehicle names and public figures; the records inside are invented). Both can be loaded together.
 //
 // It refuses to load twice into the same database (part numbers are unique): ./plm reset starts over.
-import * as D from "./dataset.mjs";
 
 const BASE = process.env.PLM_API_URL ?? "http://localhost:8080";
 const API = BASE + "/api/v1";
@@ -15,8 +17,18 @@ const PART = "00000000-0000-7000-8000-000000000102";
 const DOCUMENT = "00000000-0000-7000-8000-000000000101";
 const PROBLEM_REPORT = "00000000-0000-7000-8000-000000000104";
 
+const DATASETS = { voltara: "./voltara.mjs", byd: "./byd.mjs" };
 const args = process.argv.slice(2);
-const company = args.includes("--company") ? args[args.indexOf("--company") + 1] : D.COMPANY;
+const companyArg = args.includes("--company") ? args[args.indexOf("--company") + 1] : undefined;
+const named = args.filter((a, i) => !a.startsWith("--") && args[i - 1] !== "--company");
+const setName = (args.includes("--dataset") ? args[args.indexOf("--dataset") + 1] : named[0]) ?? "voltara";
+if (!DATASETS[setName]) {
+  console.error(`Unknown data set "${setName}": choose ${Object.keys(DATASETS).join(" or ")}`);
+  process.exit(1);
+}
+const D = await import(DATASETS[setName]);
+const K = D.KEYS;
+const company = companyArg ?? D.COMPANY;
 if (!company) fail("--company needs a name");
 
 // ---- output ----
@@ -147,8 +159,8 @@ const existing = await admin("GET", `/contexts/${site.id}/children`);
 if (existing.some((c) => c.name === company)) {
   fail(`"${company}" is already there: the demo data is loaded. To load it afresh: ./plm reset, then ./plm load-data`);
 }
-const taken = await admin("POST", "/search", { query: "VX3-CL-138", limit: 50 }).catch(() => null);
-if ((taken?.hits ?? []).some((h) => h.number === "VX3-CL-138")) {
+const taken = await admin("POST", "/search", { query: K.sentinel, limit: 50 }).catch(() => null);
+if ((taken?.hits ?? []).some((h) => h.number === K.sentinel)) {
   fail(`The demo parts are already in this database (under another company name): ./plm reset to start over`);
 }
 
@@ -221,7 +233,7 @@ await step("Parts", async () => {
   return `${D.PARTS.length} parts, ${D.PARTS.filter((p) => p[4]).length} of them classified`;
 });
 
-// Options (before the Aurora's structure, whose lines have conditions)
+// Options (before the vehicle's structure, whose lines have conditions)
 let optionSet;
 await step("Options", async () => {
   const o = D.OPTION_SET;
@@ -239,7 +251,7 @@ await step("Options", async () => {
       note,
     });
   }
-  return `Aurora options: ${o.options.length} options, ${o.rules.length} rules`;
+  return `${o.name}: ${o.options.length} options, ${o.rules.length} rules`;
 });
 
 // Structures
@@ -303,7 +315,7 @@ await step("Documents", async () => {
 // brought over from an earlier system, already released there.
 await step("Lifecycle states", async () => {
   const wanted = {};
-  for (const [key, number, , , , , state] of D.PARTS) wanted[number] = state ?? (key === "tern" ? "IN_WORK" : "RELEASED");
+  for (const [key, number, , , , , state] of D.PARTS) wanted[number] = state ?? (key === K.inDevelopment ? "IN_WORK" : "RELEASED");
   const done = new Set();
   const order = [];
   const visit = (n) => {
@@ -333,11 +345,14 @@ await step("Lifecycle states", async () => {
   return `Parts: ${counts.RELEASED ?? 0} released, ${counts.UNDER_REVIEW ?? 0} under review, ${counts.IN_WORK ?? 0} in work; documents released`;
 });
 
-// Effectivity: the Aurora is the end item; packs and seal effective by vehicle serial number.
+// Effectivity: the vehicle is the end item; packs and seal effective by vehicle serial number.
 await step("Effectivity", async () => {
-  const aurora = part["AUR-0001"];
-  await admin("POST", "/effectivity-contexts", { endItemId: aurora.id, description: "Aurora vehicles by serial number (VIN sequence)" });
-  for (const n of ["VX3-BP-60", "VX3-BP-82", "VX3-ED-150", "AUR-BIW-001"]) {
+  const aurora = part[K.vehicle];
+  await admin("POST", "/effectivity-contexts", {
+    endItemId: aurora.id,
+    description: `${aurora.name}: by vehicle serial number (VIN sequence)`,
+  });
+  for (const n of K.serialEffective) {
     await admin("POST", `/objects/${part[n].id}/effectivity`, {
       target: "VERSION",
       revision: "A",
@@ -354,12 +369,12 @@ await step("Effectivity", async () => {
     to: String(Number(D.CHANGES.seal.fromSerial) - 1),
     endItemId: aurora.id,
   });
-  return "Aurora is an end item; packs, drive unit, body and door seal effective by vehicle serial";
+  return `${aurora.number} is an end item; packs, drive unit, body and door seal effective by vehicle serial`;
 });
 
 // Variant specifications, and their generated variant parts
 await step("Variants", async () => {
-  const aurora = part["AUR-0001"];
+  const aurora = part[K.vehicle];
   let made = 0;
   for (const [name, selection, description] of D.OPTION_SET.variants) {
     const spec = await admin("POST", `/objects/${aurora.id}/variant-specs`, { name, selection, description, spec: { type: "LATEST" } });
@@ -397,7 +412,7 @@ await step("Changes", async () => {
     revision: "B",
     kind: "SERIAL",
     from: s.fromSerial,
-    endItemId: part["AUR-0001"].id,
+    endItemId: part[K.vehicle].id,
     changeId: cn.id,
   });
   await advance(cn.id, ["UNDER_REVIEW", "APPROVED", "IMPLEMENTATION", "RESOLVED"]);
@@ -408,30 +423,26 @@ await step("Changes", async () => {
   return `${D.CHANGES.problems.length} problem reports with discussions, 2 change requests, 1 change notice resolved (door seal rev. B from unit ${s.fromSerial})`;
 });
 
-// A baseline of the Aurora at start of production
+// A baseline of the vehicle at start of production
 await step("Baseline", async () => {
   const masters = new Set();
   const walk = (n) => {
     masters.add(part[n].id);
     for (const [c] of D.STRUCTURES[n] ?? []) walk(c);
   };
-  walk("AUR-0001");
+  walk(K.vehicle);
   const b = await admin("POST", "/baselines", {
     contextId: ctx.aurora.id,
-    name: "Aurora – start of production",
-    description: "The released Aurora structure at SOP, Plant 2 Line 3.",
+    name: K.baseline[0],
+    description: K.baseline[1],
   });
   await admin("POST", `/baselines/${b.id}/members`, { masterIds: [...masters], iterationIds: [] });
   await admin("POST", `/baselines/${b.id}/freeze`);
-  return `Baseline "Aurora – start of production" (${masters.size} parts), frozen`;
+  return `Baseline "${K.baseline[0]}" (${masters.size} parts), frozen`;
 });
 
 console.log();
 bold("Demo data loaded.");
 console.log(`  Open http://localhost:5173 › Organizations › ${company}. Things to look at:`);
-console.log("  · Aurora Sedan › AUR-0001: Structure (options, 150% structure), Options tab, Effectivity tab");
-console.log("  · VX-3 EV Platform › VX3-CL-138 (the cell): Where used across three vehicle lines; its class");
-console.log("  · Changes (top bar): the door-seal problem through to a resolved change notice");
-console.log("  · Plant 2 – Line 3 Launch: work instructions, PFMEA, control plan, in folders by shop");
-console.log("  · Classes (top bar): find cells, motors and fasteners by their attributes");
+for (const line of D.TOUR) console.log(`  · ${line}`);
 console.log("  Sign in as alice (chief engineer), bob (manufacturing) or carol (quality) to see their view.");

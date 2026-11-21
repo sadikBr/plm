@@ -116,7 +116,7 @@ platform sends at http://localhost:8025, workflows at http://localhost:8233.
 | `./plm restart` | Stop, then start (after pulling new code, say) |
 | `./plm logs backend` | Follows the backend's log (`ui` and `services` too); Ctrl-C to stop following |
 | `./plm admin-password` | Changes `plmadmin`'s password (or sets a forgotten one) |
-| `./plm load-data` | Loads the demo data (below): asks for `plmadmin`'s password |
+| `./plm load-data` | Loads the demo data (below; `./plm load-data byd` for the BYD set): asks for `plmadmin`'s password |
 | `./plm setup` | Only checks the prerequisites, installs and builds |
 | `./plm reset` | Stops everything and deletes all local data, passwords included (asks first) |
 
@@ -152,8 +152,18 @@ It takes about a minute and loads, through the API like any client would:
   resolved change notice (a door seal's revision B, effective from vehicle 5000).
 - **A frozen baseline** of the Aurora at start of production.
 
-Name the company yourself with `./plm load-data --company "My Motors"`. It loads once per database;
-`./plm reset` empties the database to load it again. All the data is invented.
+A second set, **BYD**, has the same shape with BYD's real names: the **Seal** (in production),
+**Dolphin** and **Seal U DM-i** on **e-Platform 3.0**, with Blade Battery packs, the 8-in-1 electric
+powertrain and DM-i, and their public headline figures (battery sizes, motor power, range). Its
+part numbers, structures, documents, problems and changes are invented test data, not BYD's.
+
+```bash
+./plm load-data byd
+```
+
+Both sets can be loaded side by side. Name the company yourself with
+`./plm load-data --company "My Motors"`. Each set loads once per database; `./plm reset` empties
+the database to load them again.
 
 ### 4. Installing the prerequisites yourself
 

@@ -10,8 +10,8 @@
 #   plm status           what's running, and where
 #   plm logs [backend|ui|services]   follow a log (Ctrl-C to stop following)
 #   plm admin-password   change the site administrator's (plmadmin's) password, or set a forgotten one
-#   plm load-data [--company "Name"]
-#                        load demo data: an electric-vehicle maker, its platform, three cars and a plant
+#   plm load-data [voltara|byd] [--company "Name"]
+#                        load demo data: an EV maker (fictional, or BYD with its real car names), its plant
 #   plm setup            only check the prerequisites, install the dependencies, build the backend
 #   plm reset            stop everything and delete all local data (asks first)
 #
