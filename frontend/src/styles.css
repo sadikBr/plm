@@ -791,3 +791,17 @@ table.folders td { padding-top: 7px; padding-bottom: 7px; }
 .bg-action .error-text { color: var(--danger); }
 .bg-action .spin { animation: bg-spin 1s linear infinite; }
 @keyframes bg-spin { to { transform: rotate(360deg); } }
+
+/* ---------- Product structure (roadmap 4.1) ---------- */
+.grid.structure td.num, .grid.structure th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.grid.structure input.narrow { width: 6em; min-height: 26px; }
+.grid.structure tr.editing td { background: var(--row-selected); }
+.add-line { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--border); }
+.add-line input.narrow { width: 7em; }
+.add-line select { width: auto; }
+.add-line-pick { position: relative; flex: 1 1 320px; min-width: 240px; }
+.add-line-pick .chosen { display: inline-flex; align-items: center; gap: 6px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel-2); }
+.add-line-results { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 2px); margin: 0; padding: 4px 0; list-style: none; background: var(--panel); border: 1px solid var(--border); border-radius: 4px; box-shadow: var(--shadow-pop); max-height: 280px; overflow: auto; }
+.add-line-results li { display: flex; gap: 6px; align-items: center; padding: 5px 10px; cursor: pointer; }
+.add-line-results li:hover { background: var(--row-hover); }
+.grid.structure select { width: auto; min-height: 26px; }

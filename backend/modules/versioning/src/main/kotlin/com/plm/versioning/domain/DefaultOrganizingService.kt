@@ -385,7 +385,7 @@ internal class DefaultOrganizingService(
         if (all.isEmpty()) return
         val obj = versioning.get(actor, objectId)
         val check =
-            OperationCheck(operation, obj.typeId, mapOf("operation" to operation.key) + event) {
+            OperationCheck(operation, obj.typeId, mapOf("operation" to operation.key) + event, obj.id.value) {
                 versioning.expressionModel(actor, objectId)
             }
         val refusals = all.flatMap { it.check(actor, check) }

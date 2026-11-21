@@ -22,6 +22,7 @@ Three layers enforce this:
 | bulk | Mass operations on many objects, as one background job | access, versioning, jobs |
 | notifications | Outgoing mail; favorites, recent items, subscriptions, notifications and digests | identity, access, types, versioning, jobs |
 | reports | Reports (scheduled, mailed, alerts), dashboards, home pages | access, types, versioning, search, jobs, notifications |
+| bom | Product structure: usage links between parts | access, types, versioning |
 | collaboration | Discussions on objects, with mentions | identity, access, types, versioning, notifications |
 | jobs | Background jobs: queue, workers, schedules (handlers live in the modules that own the work) | — |
 | audit | Append-only audit log, fed by every domain event; audit reports | access |

@@ -1,0 +1,21 @@
+{
+  "A part you don't have access to": "Une pièce à laquelle vous n'avez pas accès",
+  "Add a part": "Ajouter une pièce",
+  "Choose another part": "Choisir une autre pièce",
+  "Edit line {line}": "Modifier la ligne {line}",
+  "Find a part by number or name": "Rechercher une pièce par numéro ou nom",
+  "Find no.": "Repère",
+  "Its default unit": "Son unité par défaut",
+  "Line": "Ligne",
+  "Matching parts": "Pièces correspondantes",
+  "No part matches": "Aucune pièce ne correspond",
+  "No parts yet: add the first one below.": "Aucune pièce pour l'instant : ajoutez la première ci-dessous.",
+  "Part to add": "Pièce à ajouter",
+  "Quantity": "Quantité",
+  "Remove line {line}": "Supprimer la ligne {line}",
+  "Structure": "Structure",
+  "This part uses no other parts.": "Cette pièce n'utilise aucune autre pièce.",
+  "Your working copy: changes become the part's at check-in": "Votre copie de travail : les modifications s'appliquent à la pièce à l'archivage",
+  "{n} line": "{n} ligne",
+  "{n} lines": "{n} lignes"
+}

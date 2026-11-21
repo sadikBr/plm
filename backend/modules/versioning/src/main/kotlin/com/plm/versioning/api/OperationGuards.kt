@@ -33,6 +33,8 @@ class OperationCheck(
     val operation: GuardedOperation,
     val typeId: TypeId,
     val event: Map<String, Any?>,
+    /** The object, except for CREATE (it doesn't exist yet). */
+    val objectId: java.util.UUID? = null,
     model: () -> Map<String, Any?>,
 ) {
     val model: Map<String, Any?> by lazy(model)

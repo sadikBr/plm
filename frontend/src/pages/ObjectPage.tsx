@@ -1,3 +1,4 @@
+import { StructureTab } from "../structure/Structure";
 import { auditAction } from "../audit/AuditReport";
 import { language, t } from "../i18n/i18n";
 import { DiscussionTab, ShareButton, useComments } from "../collaboration/Collaboration";
@@ -54,7 +55,7 @@ import { NotFoundPage } from "./NotFoundPage";
 import { BackgroundActions, useActionRunner } from "./ActionRunner";
 import { ObjectActionBar, type ActionHandlers } from "./ObjectActions";
 
-type Tab = "details" | "discussion" | "history" | "audit";
+type Tab = "details" | "structure" | "discussion" | "history" | "audit";
 
 /** Remounts per object, so page state never leaks between objects. */
 export function ObjectPage() {
@@ -70,13 +71,16 @@ function ObjectView({ id }: { id: string }) {
   const [params, setParams] = useSearchParams();
   const { data: comments } = useComments(id);
   const discussionCount = comments?.filter((c) => !c.parentId && !c.resolved).length ?? 0;
+  const { data: allTypes } = useTypes();
 
   if (isLoading) return <Loading />;
   if (isApiError(error, 404)) return <NotFoundPage what="object" />;
   if (error || !obj) return <ErrorBanner error={error} />;
 
+  const isPart = allTypes?.find((ty) => ty.id === obj.typeId)?.baseClass === "PART";
   const tabs: [Tab, string][] = [
     ["details", t("Details")],
+    ...(isPart ? [["structure", t("Structure")] as [Tab, string]] : []),
     ["discussion", discussionCount ? t("Discussion ({count})", { count: discussionCount }) : t("Discussion")],
     ...(shows("object.history") ? [["history", t("History")] as [Tab, string]] : []),
     ...(me?.siteAdmin && shows("object.audit") ? [["audit", t("Audit")] as [Tab, string]] : []),
@@ -90,6 +94,7 @@ function ObjectView({ id }: { id: string }) {
       <ObjectHeader obj={obj} myId={myId} tabs={<Tabs tabs={tabs} active={tab} onSelect={(k) => setParams({ tab: k })} />} />
       <div className="content">
         {tab === "details" && <DetailsTab obj={obj} myId={myId} />}
+        {tab === "structure" && <StructureTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}
         {tab === "discussion" && <DiscussionTab obj={obj} />}
         {tab === "history" && <HistoryTab id={obj.id} />}
         {tab === "audit" && me?.siteAdmin && <AuditTab id={obj.id} />}

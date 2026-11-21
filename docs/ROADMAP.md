@@ -207,8 +207,11 @@ suite.)
 **Goal:** parts form multi-level product structures that people build, configure, compare,
 baseline and report on, fast at the scale of real products.
 
-- [ ] 4.1 Usage links: a parent part iteration uses child part masters, with quantity, unit, line
+- [x] 4.1 Usage links: a parent part iteration uses child part masters, with quantity, unit, line
       and find numbers; structure is edited on the parent's working copy and frozen at check-in.
+      (Done: a `bom` module; lines carried forward on check-out and revise, dropped with an undone
+      check-out; only parts, no cycles, units from the unit-of-use list; children the reader can't
+      see stay as placeholder lines; a part used in a structure can't be deleted; Structure tab.)
 - [ ] 4.2 Configuration specifications: latest, latest released, latest in a state, as of a date;
       chosen per user in the structure view, with a default per context.
 - [ ] 4.3 Multi-level BOM tree table: lazy expansion, columns and views (3.7), Excel export,

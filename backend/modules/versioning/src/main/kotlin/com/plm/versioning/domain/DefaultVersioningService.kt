@@ -714,6 +714,7 @@ internal class DefaultVersioningService(
                 operation,
                 facts.typeId,
                 mapOf("operation" to operation.key) + event,
+                facts.objectId,
             ) { models.build(actor, facts) }
         val refusals = all.flatMap { it.check(actor, check) }
         if (refusals.isEmpty()) return
