@@ -896,6 +896,10 @@ select c.name, m.principal_id, m.role from context_member m join context c on c.
   UI started by hand (`make run`, `make ui`). Stop it, or use that one instead of `plm`.
 - **`plm start` stops at a service**: `./plm logs services` shows why; on a machine short of
   memory, `./plm start --lite` leaves out OpenSearch and Temporal.
+- **WSL: `plm` waits for Docker forever**, though Docker Desktop runs: in Docker Desktop, *Settings ›
+  Resources › WSL integration* must be on for your distribution, and your user must be in the
+  `docker` group (`plm install` adds you when Docker answers "permission denied"; by hand:
+  `sudo usermod -aG docker $USER`, then open a new terminal). `docker ps` says which it is.
 - **Forgot `plmadmin`'s password**: `./plm admin-password` sets a new one.
 - **`plmadmin` doesn't exist** (a copy set up before it was added): load the realm afresh, which
   puts every dev user back to its first password (your PLM data is kept):
