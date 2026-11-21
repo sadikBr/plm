@@ -26,6 +26,7 @@ API_URL="http://localhost:8080"
 KEYCLOAK="http://localhost:8180"
 ADMIN_USER="plmadmin"
 
+COMMAND="${1:-}"
 LITE=0
 ASSUME_YES=0
 DRY_RUN=0
@@ -139,7 +140,7 @@ http_ok() { curl -fsS -o /dev/null --max-time 3 "$1"; }
 
 # ---- what this computer has ----
 OS="$(uname -s)"
-is_wsl() { [[ "$OS" == Linux ]] && grep -qi microsoft /proc/version 2>/dev/null; }
+is_wsl() { [[ "$OS" == Linux ]] && { [[ -n "${WSL_DISTRO_NAME:-}" ]] || grep -qi microsoft /proc/version 2>/dev/null; }; }
 
 # The system's package manager: brew, apt, dnf, pacman, or empty.
 package_manager() {
@@ -183,11 +184,50 @@ docker_installed() { command -v docker >/dev/null 2>&1 && docker compose version
 docker_desktop_app() { [[ "$OS" == Darwin && -d /Applications/Docker.app ]]; }
 if docker_desktop_app && ! command -v docker >/dev/null 2>&1; then PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"; fi
 
+# ---- WSL: Docker comes from Docker Desktop on Windows ----
+# Windows' PowerShell, reached from WSL.
+windows_powershell() {
+  local p
+  for p in "$(command -v powershell.exe 2>/dev/null || true)" /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe; do
+    if [[ -n "$p" && -x "$p" ]]; then
+      echo "$p"
+      return 0
+    fi
+  done
+  return 1
+}
+# Docker Desktop's program on Windows, as a WSL path.
+windows_docker_desktop() {
+  is_wsl || return 1
+  local exe="/mnt/c/Program Files/Docker/Docker/Docker Desktop.exe" ps pf
+  if [[ ! -f "$exe" ]] && ps="$(windows_powershell)"; then
+    pf="$("$ps" -NoProfile -Command '$env:ProgramFiles' 2>/dev/null | tr -d '\r')"
+    [[ -n "$pf" ]] && exe="$(wslpath -u "$pf" 2>/dev/null)/Docker/Docker/Docker Desktop.exe"
+  fi
+  [[ -f "$exe" ]] && echo "$exe"
+}
+# A Docker engine installed inside this WSL distribution itself, rather than Docker Desktop.
+wsl_own_docker() { is_wsl && [[ -f /lib/systemd/system/docker.service || -f /usr/lib/systemd/system/docker.service ]]; }
+wsl_integration_help() {
+  echo "Docker Desktop is installed but doesn't answer in WSL. In Docker Desktop: Settings › Resources ›" \
+    "WSL integration: turn on ${WSL_DISTRO_NAME:-this distribution}, Apply & restart; then run ./plm ${COMMAND} again" \
+    "(if Docker Desktop asked you to sign out of Windows or restart it, do that first)"
+}
+install_docker_desktop_from_wsl() {
+  local ps
+  ps="$(windows_powershell)" || {
+    warn "WSL can't run Windows programs here: install Docker Desktop on Windows (winget install Docker.DockerDesktop)"
+    return 1
+  }
+  as_me "$ps" -NoProfile -Command "winget install --id Docker.DockerDesktop -e --accept-source-agreements --accept-package-agreements" || true
+  [[ "$DRY_RUN" == 1 ]] || windows_docker_desktop >/dev/null
+}
+
 # ---- prerequisites: check (start) ----
 check_prerequisites() {
   bold "Checking prerequisites"
-  command -v docker >/dev/null || fail "Docker isn't installed: run ./plm install, or see README.md"
-  docker info >/dev/null 2>&1 || fail "Docker isn't running: start Docker Desktop (or the docker service) and try again"
+  command -v docker >/dev/null || windows_docker_desktop >/dev/null || fail "Docker isn't installed: run ./plm install, or see README.md"
+  ensure_docker_running
   docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is missing: run ./plm install, or see README.md"
   ok "Docker $(docker version --format '{{.Server.Version}}' 2>/dev/null)"
   find_java || fail "JDK 21 or newer isn't installed: run ./plm install, or see README.md"
@@ -202,6 +242,7 @@ check_prerequisites() {
 install_one() {
   local what="$1" pm="$2"
   case "$pm:$what" in
+    wsl:docker) install_docker_desktop_from_wsl ;;
     brew:git) as_me brew install git ;;
     brew:curl) as_me brew install curl ;;
     brew:java) as_me brew install --cask temurin@21 ;;
@@ -248,8 +289,14 @@ ensure_docker_running() {
     wait_for "docker info" 240 "Docker is running" || fail "Docker didn't start: open Docker Desktop, wait until it's ready, and run ./plm install again"
     return 0
   fi
-  if is_wsl && ! command -v systemctl >/dev/null 2>&1; then
-    fail "Docker isn't running: start Docker Desktop in Windows (Settings › Resources › WSL integration: on for this distribution)"
+  if is_wsl && ! wsl_own_docker; then
+    local exe
+    exe="$(windows_docker_desktop)" || fail "Docker Desktop for Windows isn't installed: run ./plm install"
+    echo "  Starting Docker Desktop on Windows (the first time, accept its terms in the window that opens)"
+    [[ "$DRY_RUN" == 1 ]] && return 0
+    "$(windows_powershell)" -NoProfile -Command "Start-Process '$(wslpath -w "$exe")'" >/dev/null 2>&1 || true
+    wait_for "docker info" 300 "Docker is running" || fail "$(wsl_integration_help)"
+    return 0
   fi
   if ! as_root docker info >/dev/null 2>&1; then
     echo "  Starting the Docker service"
@@ -269,16 +316,16 @@ ensure_docker_running() {
     [[ "$LITE" == 1 ]] && flags+=(--lite)
     [[ "$ASSUME_YES" == 1 ]] && flags+=(--yes)
     export PLM_IN_DOCKER_GROUP=1
-    exec sg docker -c "$(printf '%q ' "$0" install ${flags[@]+"${flags[@]}"})"
+    exec sg docker -c "$(printf '%q ' "$0" "$COMMAND" ${flags[@]+"${flags[@]}"})"
   fi
-  fail "You were added to the docker group: log out and back in, then run ./plm install again"
+  fail "You were added to the docker group: log out and back in, then run ./plm $COMMAND again"
 }
 
 label() {
   case "$1" in
     git) echo "Git" ;;
     curl) echo "curl" ;;
-    docker) echo "Docker" ;;
+    docker) if is_wsl; then echo "Docker Desktop (on Windows)"; else echo "Docker"; fi ;;
     java) echo "JDK 21" ;;
     node) echo "Node.js 22" ;;
   esac
@@ -290,18 +337,11 @@ ensure_prerequisites() {
   pm="$(package_manager)"
   git_ok && ok "Git" || missing+=(git)
   command -v curl >/dev/null 2>&1 && ok "curl" || missing+=(curl)
-  if docker_installed || docker_desktop_app; then ok "Docker"; else missing+=(docker); fi
+  if docker_installed || docker_desktop_app || windows_docker_desktop >/dev/null; then ok "Docker"; else missing+=(docker); fi
   if find_java; then ok "Java $(java_major "$JAVA")"; else missing+=(java); fi
   if node_ok; then ok "Node.js $(node --version)"; else missing+=(node); fi
 
   local m
-  if is_wsl && [[ " ${missing[*]-} " == *" docker "* ]]; then
-    warn "In WSL, Docker comes from Docker Desktop for Windows: install it there (winget install Docker.DockerDesktop),"
-    warn "then turn on Settings › Resources › WSL integration for this distribution, and run ./plm install again."
-    local rest=()
-    for m in "${missing[@]}"; do if [[ "$m" != docker ]]; then rest+=("$m"); fi; done
-    missing=(${rest[@]+"${rest[@]}"})
-  fi
   if [[ ${#missing[@]} -gt 0 ]]; then
     local names=()
     for m in "${missing[@]}"; do names+=("$(label "$m")"); done
@@ -320,16 +360,31 @@ ensure_prerequisites() {
         for b in /opt/homebrew/bin/brew /usr/local/bin/brew; do [[ -x "$b" ]] && eval "$("$b" shellenv)"; done
       fi
     fi
-    local how="with $pm" list
-    if [[ "$pm" != brew && "$(id -u)" != 0 ]]; then how="$how (it asks for your password: sudo)"; fi
-    list="$(printf '%s, ' "${names[@]}")"
-    echo "  To install: ${list%, }; $how."
+    # In WSL, Docker Desktop comes from winget on Windows; the rest from the package manager.
+    local via_pm=0 how=""
+    for m in "${missing[@]}"; do
+      if [[ "$m" != docker ]] || ! is_wsl; then via_pm=1; fi
+    done
+    if [[ "$via_pm" == 1 ]]; then
+      how="with $pm"
+      if [[ "$pm" != brew && "$(id -u)" != 0 ]]; then how="$how (it asks for your password: sudo)"; fi
+    fi
+    if is_wsl && [[ " ${missing[*]} " == *" docker "* ]]; then
+      if [[ "$via_pm" == 1 ]]; then
+        how="$how; Docker Desktop with winget, on Windows (Windows asks for permission)"
+      else
+        how="with winget, on Windows (Windows asks for permission)"
+      fi
+    fi
+    echo "  To install: $(printf '%s, ' "${names[@]}" | sed 's/, $//'); $how."
     confirm "Install them now?" || fail "Nothing installed. README.md lists the commands to install them yourself."
-    if [[ "$pm" == apt ]]; then as_root apt-get update; fi
+    if [[ "$pm" == apt && "$via_pm" == 1 ]]; then as_root apt-get update; fi
     local failed=()
     for m in "${missing[@]}"; do
       bold "Installing $(label "$m")"
-      install_one "$m" "$pm" || failed+=("$(label "$m")")
+      local with="$pm"
+      if [[ "$m" == docker ]] && is_wsl; then with=wsl; fi
+      install_one "$m" "$with" || failed+=("$(label "$m")")
     done
     if [[ ${#failed[@]} -gt 0 ]]; then
       fail "Installing $(printf '%s, ' "${failed[@]}" | sed 's/, $//') failed: see the messages above, or README.md to do it by hand, then run ./plm install again"
@@ -337,7 +392,7 @@ ensure_prerequisites() {
     [[ "$DRY_RUN" == 1 ]] && return 0
     hash -r
     git_ok || fail "Git still isn't there: see README.md"
-    docker_installed || docker_desktop_app || fail "Docker still isn't there: see README.md"
+    docker_installed || docker_desktop_app || windows_docker_desktop >/dev/null || fail "Docker still isn't there: see README.md"
     find_java || fail "JDK 21 still isn't there: see README.md"
     node_ok || fail "Node.js 22 still isn't there: see README.md"
     ok "Everything's installed"

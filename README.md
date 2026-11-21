@@ -75,8 +75,11 @@ A few things need you:
   then to restart Windows. Docker Desktop may also ask you to sign out and back in.
 - **Linux**: after you're added to the `docker` group, `plm install` carries on, but other
   terminals only see it after you log out and back in.
-- **WSL**: install Docker Desktop on Windows (`winget install Docker.DockerDesktop`) and turn on
-  *Settings › Resources › WSL integration* for your distribution; `plm install` does the rest.
+- **WSL**: Docker comes from Docker Desktop on Windows. `plm install` installs it with winget
+  (Windows asks for permission) and starts it; the first time, accept its terms in the window
+  that opens. If Docker Desktop asks you to sign out of Windows, do so, then run `./plm install`
+  again. If your Ubuntu isn't WSL's default distribution, turn it on in Docker Desktop's
+  *Settings › Resources › WSL integration*; `plm install` tells you when that's needed.
 
 `./plm install --dry-run` shows what it would install without doing it; `--yes` answers yes to
 every question (for scripts: then give the password as `PLM_ADMIN_PASSWORD`).
