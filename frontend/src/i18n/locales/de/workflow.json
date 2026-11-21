@@ -109,5 +109,19 @@
   "Why": "Warum",
   "From": "Von",
   "Until": "Bis",
-  "About an object you can't open: ask for access, or pass the task on.": "Betrifft ein Objekt, das Sie nicht öffnen können: Zugriff anfragen oder die Aufgabe weitergeben."
+  "About an object you can't open: ask for access, or pass the task on.": "Betrifft ein Objekt, das Sie nicht öffnen können: Zugriff anfragen oder die Aufgabe weitergeben.",
+  "Assign": "Zuweisen",
+  "Assigned in a context, for a type: applies below it and to subtypes; the nearest context wins.": "In einem Kontext für einen Typ zugewiesen: gilt darunter und für Untertypen; der nächste Kontext gewinnt.",
+  "In": "In",
+  "No process is assigned yet: people start them by hand.": "Noch kein Prozess zugewiesen: Prozesse werden von Hand gestartet.",
+  "Process assignments": "Prozesszuweisungen",
+  "Remove the assignment": "Zuweisung entfernen",
+  "Starts": "Startet",
+  "Starts by itself here:": "Startet hier von selbst:",
+  "The whole site": "Gesamte Site",
+  "Where processes run": "Wo Prozesse laufen",
+  "offered to start by hand": "zum manuellen Start angeboten",
+  "on entering a state": "beim Eintritt in einen Status",
+  "on entering {state}": "beim Eintritt in {state}",
+  "when created": "bei der Anlage"
 }

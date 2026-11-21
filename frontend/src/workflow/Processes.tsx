@@ -5,6 +5,7 @@ import { api, unwrap, type Schemas } from "../api/client";
 import { useMe, type VersionedObject } from "../api/queries";
 import { Dialog, ErrorBanner, Loading, Panel, PrincipalName, formatDate } from "../components/common";
 import { t } from "../i18n/i18n";
+import { triggerLabel, useStateNames } from "./Assignments";
 
 type Instance = Schemas["ProcessInstance"];
 type Task = Schemas["WorkItem"];
@@ -37,8 +38,17 @@ export const useObjectProcesses = (id: string) =>
     refetchInterval: (q) => (q.state.data?.some((p) => p.status === "RUNNING") ? 3000 : false),
   });
 
+export const useObjectAssignments = (id: string) =>
+  useQuery({
+    queryKey: ["processAssignments", "object", id],
+    queryFn: () => unwrap(api.GET("/api/v1/objects/{id}/process-assignments", { params: { path: { id } } })),
+  });
+
 export function ProcessesTab({ obj }: { obj: VersionedObject }) {
   const { data, error, isLoading } = useObjectProcesses(obj.id);
+  const { data: assigned } = useObjectAssignments(obj.id);
+  const stateName = useStateNames();
+  const automatic = (assigned ?? []).filter((a) => a.trigger !== "MANUAL");
   const [starting, setStarting] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const shown = open ?? data?.find((p) => p.status === "RUNNING")?.id ?? null;
@@ -53,6 +63,11 @@ export function ProcessesTab({ obj }: { obj: VersionedObject }) {
       }
     >
       <ErrorBanner error={error} />
+      {automatic.length > 0 && (
+        <div className="banner info assigned-note">
+          {t("Starts by itself here:")} {automatic.map((a) => `${a.templateName} ${triggerLabel(a, stateName)}`).join(" · ")}
+        </div>
+      )}
       {isLoading ? (
         <Loading />
       ) : !data?.length ? (
@@ -237,7 +252,10 @@ function TaskLine({ w, mine }: { w: Task; mine: boolean }) {
 function StartDialog({ obj, onClose, onStarted }: { obj: VersionedObject; onClose: () => void; onStarted: (id: string) => void }) {
   const qc = useQueryClient();
   const { data: templates } = useQuery({ queryKey: ["processTemplates"], queryFn: () => unwrap(api.GET("/api/v1/process-templates")) });
-  const active = (templates ?? []).filter((x) => x.active);
+  const { data: assigned } = useObjectAssignments(obj.id);
+  const offered = new Set((assigned ?? []).filter((a) => a.trigger === "MANUAL").map((a) => a.templateId));
+  // What's assigned for it first.
+  const active = (templates ?? []).filter((x) => x.active).sort((a, b) => Number(offered.has(b.id)) - Number(offered.has(a.id)));
   const [templateId, setTemplateId] = useState("");
   const [comment, setComment] = useState("");
   const chosen = templateId || active[0]?.id || "";
@@ -273,7 +291,7 @@ function StartDialog({ obj, onClose, onStarted }: { obj: VersionedObject; onClos
           <select id="process-template" value={chosen} onChange={(e) => setTemplateId(e.target.value)}>
             {active.map((x) => (
               <option key={x.id} value={x.id}>
-                {x.name}
+                {offered.has(x.id) ? `★ ${x.name}` : x.name}
               </option>
             ))}
           </select>

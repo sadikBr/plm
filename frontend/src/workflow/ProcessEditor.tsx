@@ -6,6 +6,7 @@ import { useLifecycles } from "../api/queries";
 import { pickLabel } from "../components/AttributeForm";
 import { ErrorBanner, Loading, Panel, formatDate } from "../components/common";
 import { t, tn } from "../i18n/i18n";
+import { AssignmentsAdmin } from "./Assignments";
 
 type Template = Schemas["ProcessTemplate"];
 type Definition = Schemas["ProcessDefinition"];
@@ -75,46 +76,49 @@ export function ProcessTemplatesAdmin() {
   const [selected, setSelected] = useState<string | null>(null);
   const current = selected === "new" ? null : (data?.find((x) => x.id === selected) ?? data?.[0] ?? null);
   return (
-    <div className="split-admin">
-      <Panel
-        title={t("Process templates")}
-        flush
-        actions={
-          <button className="btn small" onClick={() => setSelected("new")}>
-            <Plus size={13} aria-hidden /> {t("New")}
-          </button>
-        }
-      >
-        <ErrorBanner error={error} />
-        {isLoading ? (
-          <Loading />
-        ) : (
-          <ul className="report-list" aria-label={t("Process templates")}>
-            {data?.map((x) => (
-              <li key={x.id}>
-                <button
-                  className={x.id === current?.id && selected !== "new" ? "link-btn on" : "link-btn"}
-                  onClick={() => setSelected(x.id)}
-                >
-                  {x.name}
-                </button>
-                <span className="muted small">
-                  {" "}
-                  v{x.version}
-                  {!x.active && ` · ${t("not in use")}`}
-                </span>
-              </li>
-            ))}
-          </ul>
+    <div style={{ display: "grid", gap: 16 }}>
+      <div className="split-admin">
+        <Panel
+          title={t("Process templates")}
+          flush
+          actions={
+            <button className="btn small" onClick={() => setSelected("new")}>
+              <Plus size={13} aria-hidden /> {t("New")}
+            </button>
+          }
+        >
+          <ErrorBanner error={error} />
+          {isLoading ? (
+            <Loading />
+          ) : (
+            <ul className="report-list" aria-label={t("Process templates")}>
+              {data?.map((x) => (
+                <li key={x.id}>
+                  <button
+                    className={x.id === current?.id && selected !== "new" ? "link-btn on" : "link-btn"}
+                    onClick={() => setSelected(x.id)}
+                  >
+                    {x.name}
+                  </button>
+                  <span className="muted small">
+                    {" "}
+                    v{x.version}
+                    {!x.active && ` · ${t("not in use")}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+        {(current || selected === "new") && (
+          <TemplateEditor
+            key={selected === "new" ? "new" : `${current!.id}:${current!.version}`}
+            template={selected === "new" ? null : current}
+            onSaved={(id) => setSelected(id)}
+          />
         )}
-      </Panel>
-      {(current || selected === "new") && (
-        <TemplateEditor
-          key={selected === "new" ? "new" : `${current!.id}:${current!.version}`}
-          template={selected === "new" ? null : current}
-          onSaved={(id) => setSelected(id)}
-        />
-      )}
+      </div>
+      <AssignmentsAdmin />
     </div>
   );
 }

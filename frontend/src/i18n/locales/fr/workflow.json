@@ -109,5 +109,19 @@
   "Why": "Pourquoi",
   "From": "Du",
   "Until": "Au",
-  "About an object you can't open: ask for access, or pass the task on.": "Concerne un objet que vous ne pouvez pas ouvrir : demandez l'accès, ou confiez la tâche à quelqu'un d'autre."
+  "About an object you can't open: ask for access, or pass the task on.": "Concerne un objet que vous ne pouvez pas ouvrir : demandez l'accès, ou confiez la tâche à quelqu'un d'autre.",
+  "Assign": "Affecter",
+  "Assigned in a context, for a type: applies below it and to subtypes; the nearest context wins.": "Affecté dans un contexte, pour un type : s'applique en dessous et aux sous-types ; le contexte le plus proche l'emporte.",
+  "In": "Dans",
+  "No process is assigned yet: people start them by hand.": "Aucun processus n'est encore affecté : on les lance à la main.",
+  "Process assignments": "Affectations de processus",
+  "Remove the assignment": "Supprimer l'affectation",
+  "Starts": "Démarre",
+  "Starts by itself here:": "Démarre automatiquement ici :",
+  "The whole site": "Tout le site",
+  "Where processes run": "Où les processus s'exécutent",
+  "offered to start by hand": "proposé au lancement manuel",
+  "on entering a state": "à l'entrée dans un état",
+  "on entering {state}": "à l'entrée dans {state}",
+  "when created": "à la création"
 }

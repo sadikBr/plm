@@ -929,3 +929,5 @@ table.grid.compact td { padding: 6px 8px; vertical-align: top; }
 .vote-tally { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .reassign { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .reassign input { flex: 1 1 140px; }
+.assignment-form { padding: 12px; border-bottom: 1px solid var(--border); background: var(--panel-2); }
+.assigned-note { margin: 8px 12px; }

@@ -188,3 +188,41 @@ internal class StandInController(
     @org.springframework.web.bind.annotation.DeleteMapping("/api/v1/me/stand-in")
     fun clear(actor: Actor) = standIns.clear(actor)
 }
+
+/** Which process runs for which type, and when (roadmap 5.5). */
+@RestController
+internal class ProcessAssignmentController(
+    private val assignments: com.plm.workflow.api.ProcessAssignmentService,
+) {
+    @GetMapping("/api/v1/process-assignments")
+    fun list(
+        actor: Actor,
+        @RequestParam(required = false) contextId: UUID?,
+    ) = assignments.list(actor, contextId)
+
+    @PostMapping("/api/v1/process-assignments")
+    fun create(
+        actor: Actor,
+        @RequestBody request: com.plm.workflow.api.SaveProcessAssignment,
+    ) = assignments.create(actor, request)
+
+    @PutMapping("/api/v1/process-assignments/{id}")
+    fun update(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: com.plm.workflow.api.SaveProcessAssignment,
+    ) = assignments.update(actor, id, request)
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/api/v1/process-assignments/{id}")
+    fun delete(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = assignments.delete(actor, id)
+
+    /** The assignments in effect for an object: what starts by itself, what's offered. */
+    @GetMapping("/api/v1/objects/{id}/process-assignments")
+    fun forObject(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = assignments.forObject(actor, id)
+}

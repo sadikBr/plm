@@ -4303,6 +4303,47 @@
         },
         "type" : "object"
       },
+      "ProcessAssignment" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "contextName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "inherited" : {
+            "type" : "boolean"
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          },
+          "templateId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "templateName" : {
+            "type" : "string"
+          },
+          "trigger" : {
+            "enum" : [ "ON_CREATE", "ON_STATE", "MANUAL" ],
+            "type" : "string"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "contextId", "contextName", "id", "inherited", "templateId", "templateName", "trigger", "typeId" ],
+        "type" : "object"
+      },
       "ProcessDefinition" : {
         "properties" : {
           "nodes" : {
@@ -5201,6 +5242,34 @@
           }
         },
         "required" : [ "groups" ],
+        "type" : "object"
+      },
+      "SaveProcessAssignment" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          },
+          "templateId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "trigger" : {
+            "enum" : [ "ON_CREATE", "ON_STATE", "MANUAL" ],
+            "type" : "string"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "contextId", "templateId", "trigger", "typeId" ],
         "type" : "object"
       },
       "SaveProcessTemplate" : {
@@ -14043,6 +14112,46 @@
         "tags" : [ "Organizing" ]
       }
     },
+    "/api/v1/objects/{id}/process-assignments" : {
+      "get" : {
+        "operationId" : "processAssignmentForObject",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ProcessAssignment"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process assignment" ]
+      }
+    },
     "/api/v1/objects/{id}/processes" : {
       "get" : {
         "operationId" : "processForObject",
@@ -15894,6 +16003,157 @@
           }
         },
         "tags" : [ "Principal" ]
+      }
+    },
+    "/api/v1/process-assignments" : {
+      "get" : {
+        "operationId" : "processAssignmentList",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "contextId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ProcessAssignment"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process assignment" ]
+      },
+      "post" : {
+        "operationId" : "processAssignmentCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveProcessAssignment"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessAssignment"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process assignment" ]
+      }
+    },
+    "/api/v1/process-assignments/{id}" : {
+      "delete" : {
+        "operationId" : "processAssignmentDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process assignment" ]
+      },
+      "put" : {
+        "operationId" : "processAssignmentUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveProcessAssignment"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessAssignment"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process assignment" ]
       }
     },
     "/api/v1/process-templates" : {
@@ -19452,6 +19712,8 @@
     "name" : "Principal"
   }, {
     "name" : "Process"
+  }, {
+    "name" : "Process assignment"
   }, {
     "name" : "Process template"
   }, {

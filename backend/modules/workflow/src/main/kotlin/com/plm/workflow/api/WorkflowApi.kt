@@ -358,6 +358,76 @@ interface WorkItemService {
     ): WorkItem
 }
 
+/** When an assigned process starts (roadmap 5.5). */
+enum class ProcessTrigger {
+    /** As soon as an object of the type is created. */
+    ON_CREATE,
+
+    /** When an object of the type enters [ProcessAssignment.state] (not when a process moves it there). */
+    ON_STATE,
+
+    /** Offered first when someone starts a process by hand. */
+    MANUAL,
+}
+
+data class ProcessAssignment(
+    val id: UUID,
+    val contextId: UUID,
+    val contextName: String,
+    val typeId: UUID,
+    val trigger: ProcessTrigger,
+    val state: String?,
+    val templateId: UUID,
+    val templateName: String,
+    val active: Boolean,
+    /** For an object's view: assigned on an ancestor context, or for a parent type. */
+    val inherited: Boolean = false,
+)
+
+data class SaveProcessAssignment(
+    val contextId: UUID,
+    val typeId: UUID,
+    val trigger: ProcessTrigger,
+    val state: String? = null,
+    val templateId: UUID,
+    val active: Boolean = true,
+)
+
+/**
+ * Process assignments (roadmap 5.5). Assigning in a context needs MANAGE there (the site: a site
+ * administrator); they apply down the context tree and to subtypes, the nearest context and the
+ * most specific type winning for each trigger (and state).
+ */
+interface ProcessAssignmentService {
+    /** Assignments made in [contextId] (all the actor can see, without). */
+    fun list(
+        actor: Actor,
+        contextId: UUID? = null,
+    ): List<ProcessAssignment>
+
+    fun create(
+        actor: Actor,
+        request: SaveProcessAssignment,
+    ): ProcessAssignment
+
+    fun update(
+        actor: Actor,
+        id: UUID,
+        request: SaveProcessAssignment,
+    ): ProcessAssignment
+
+    fun delete(
+        actor: Actor,
+        id: UUID,
+    )
+
+    /** What applies to an object: one per automatic trigger (and state), every one offered by hand; nearest first. */
+    fun forObject(
+        actor: Actor,
+        objectId: UUID,
+    ): List<ProcessAssignment>
+}
+
 data class ProcessStarted(
     val instanceId: UUID,
     val templateId: UUID,

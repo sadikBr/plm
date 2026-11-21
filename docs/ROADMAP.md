@@ -331,8 +331,14 @@ affected objects; and the platform can be extended with scripts, UI slots and no
       everyone can name a stand-in (with optional dates) who gets their new tasks meanwhile; due
       dates remind the assignees once overdue, and a task can escalate to others (a role, users)
       who can then answer it too.
-- [ ] 5.5 Process assignments: which process runs for which type, lifecycle state or transition,
+- [x] 5.5 Process assignments: which process runs for which type, lifecycle state or transition,
       per organization or product, inherited down the context tree.
+      Done: an assignment names a context (the site, an organization, a product), a type, a
+      template and when it starts: on creation, on entering a state, or offered to start by hand.
+      It applies below the context and to subtypes; the nearest context and most specific type win.
+      Automatic starts never come from a process's own steps and never fail the change that
+      triggered them. Objects show what starts by themselves; the start dialog offers assigned
+      templates first. Managing them needs MANAGE in the context (site: administrators).
 - [ ] 5.6 Electronic signatures (21 CFR Part 11): signing tasks ask for the password again; the
       signature (who, when, meaning) is recorded immutably, shown on the object and audited.
 - [ ] 5.7 Promotion requests: ask for a set of objects to move to a target state; a review process
