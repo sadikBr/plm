@@ -429,5 +429,11 @@
   "Change type": "Type de modification",
   "May link": "Peut lier",
   "No rules: changes may link any type.": "Aucune règle : les modifications peuvent lier tout type.",
-  "Add the rule": "Ajouter la règle"
+  "Add the rule": "Ajouter la règle",
+  "Release gate": "Contrôle de publication",
+  "Parts and documents reach these states only when a change notice is resolved or a promotion request approved.": "Les pièces et documents n'atteignent ces états qu'à la résolution d'un avis de modification ou à l'approbation d'une demande de promotion.",
+  "Gated states (keys, comma-separated)": "États contrôlés (clés, séparées par des virgules)",
+  "Saved.": "Enregistré.",
+  "Site administrators can still override, and the override is recorded in the object's history and the audit trail.": "Les administrateurs du site peuvent toujours passer outre ; c'est consigné dans l'historique de l'objet et la piste d'audit.",
+  "Last changed by {who}.": "Modifié en dernier par {who}."
 }

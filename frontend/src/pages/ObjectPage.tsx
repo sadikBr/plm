@@ -1,6 +1,6 @@
 import { ReferencedBy } from "../components/References";
 import { ProcessesTab } from "../workflow/Processes";
-import { ChangeTab, ObjectChangesTab, VariancesBanner, changeKindOf, kindLabel } from "../changes/Changes";
+import { ChangeTab, ObjectChangesTab, VariancesBanner, changeKindOf, kindLabel, useReleaseGate } from "../changes/Changes";
 import { SignaturesPanel } from "../workflow/Signatures";
 import { ReplacementsTab } from "../structure/Replacements";
 import { DocumentLinksTab, LinkingPartsTab } from "../structure/DocumentLinks";
@@ -156,6 +156,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
   const clipboard = useClipboard();
   const reservation = useReservation(obj);
   const { data: me } = useMe();
+  const gate = useReleaseGate(obj.typeId);
   const { data: contextPermissions } = usePermissions(obj.contextId);
   const canShare = !!me?.siteAdmin || obj.owner === myId || !!contextPermissions?.has("MANAGE");
   const { data: prefs } = useEffectivePreferences(obj.contextId);
@@ -269,6 +270,8 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
         <ChangeLifecycleDialog obj={obj} current={lifecycle} onClose={() => setChangingLifecycle(false)} />
       )}
       <StateChangeDialog
+        gated={!!stateChange && !stateChange.override && gate.gates(stateChange.to)}
+        canOverride={!!me?.siteAdmin}
         objectNumber={obj.number}
         from={current}
         change={stateChange}
@@ -280,10 +283,10 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
           setStateChange(null);
           actions.setState.reset();
         }}
-        onConfirm={(comment) =>
+        onConfirm={(comment, force) =>
           stateChange &&
           actions.setState.mutate(
-            { state: stateChange.to, comment: comment || undefined, override: stateChange.override },
+            { state: stateChange.to, comment: comment || undefined, override: stateChange.override || force },
             { onSuccess: () => setStateChange(null) },
           )
         }
@@ -515,7 +518,11 @@ function StateChangeDialog({
   error,
   onCancel,
   onConfirm,
+  gated,
+  canOverride,
 }: {
+  gated: boolean;
+  canOverride: boolean;
   error?: unknown;
   objectNumber: string;
   from: string;
@@ -523,9 +530,10 @@ function StateChangeDialog({
   label: (state: string) => string;
   busy: boolean;
   onCancel: () => void;
-  onConfirm: (comment: string) => void;
+  onConfirm: (comment: string, force: boolean) => void;
 }) {
   const [comment, setComment] = useState("");
+  const [force, setForce] = useState(false);
   return (
     <Dialog
       open={change !== null}
@@ -536,7 +544,7 @@ function StateChangeDialog({
           <button className="btn" onClick={onCancel}>
             {t("Cancel")}
           </button>
-          <button className="btn primary" disabled={busy} onClick={() => onConfirm(comment)}>
+          <button className="btn primary" disabled={busy || (gated && !force)} onClick={() => onConfirm(comment, gated && force)}>
             {t("Set state")}
           </button>
         </>
@@ -550,6 +558,19 @@ function StateChangeDialog({
           </p>
           {change.override && (
             <div className="banner warn">{t("This ignores the lifecycle's transitions. It is recorded in the audit trail.")}</div>
+          )}
+          {gated && (
+            <div className="banner info release-gate-note">
+              <strong>{t("Released through a change")}</strong>{" "}
+              {t("Objects reach this state only through an approved change notice or promotion request.")}{" "}
+              <Link to="/changes">{t("Changes")}</Link> · <Link to="/promotions">{t("Promotion requests")}</Link>
+              {canOverride && (
+                <label className="check" style={{ marginTop: 8 }}>
+                  <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} />
+                  {t("Override the gate as an administrator (recorded in the audit trail)")}
+                </label>
+              )}
+            </div>
           )}
           <div className="field">
             <label htmlFor="state-comment">{t("Comment")}</label>

@@ -14,6 +14,7 @@ const ROLES: Role[] = ["AFFECTED", "RESULTING", "END_ITEM", "ADDRESSES", "IMPLEM
 export function ChangesAdmin() {
   return (
     <div style={{ display: "grid", gap: 16 }}>
+      <ReleaseGatePanel />
       <ChangeTemplatesPanel />
       <AssociationRulesPanel />
     </div>
@@ -280,6 +281,60 @@ function AssociationRulesPanel() {
           {t("Add the rule")}
         </button>
       </div>
+    </Panel>
+  );
+}
+
+/** The release gate (roadmap 5.13). */
+function ReleaseGatePanel() {
+  const { data } = useQuery({ queryKey: ["releaseGate"], queryFn: () => unwrap(api.GET("/api/v1/release-gate")) });
+  if (!data) return <Loading />;
+  return <ReleaseGateForm key={data.updatedAt ?? "default"} gate={data} />;
+}
+
+function ReleaseGateForm({ gate }: { gate: Schemas["ReleaseGate"] }) {
+  const qc = useQueryClient();
+  const [enabled, setEnabled] = useState(gate.enabled);
+  const [states, setStates] = useState(gate.states.join(", "));
+  const save = useMutation({
+    mutationFn: () =>
+      unwrap(
+        api.PUT("/api/v1/release-gate", {
+          body: {
+            enabled,
+            states: states
+              .split(",")
+              .map((x) => x.trim())
+              .filter(Boolean),
+          },
+        }),
+      ),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["releaseGate"] }),
+  });
+  return (
+    <Panel
+      title={t("Release gate")}
+      note={t("Parts and documents reach these states only when a change notice is resolved or a promotion request approved.")}
+    >
+      <div className="row" style={{ gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
+        <label className="check">
+          <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+          {t("On")}
+        </label>
+        <div className="field" style={{ minWidth: 260 }}>
+          <label htmlFor="gate-states">{t("Gated states (keys, comma-separated)")}</label>
+          <input id="gate-states" value={states} disabled={!enabled} onChange={(e) => setStates(e.target.value)} />
+        </div>
+        <button className="btn primary small" disabled={save.isPending} onClick={() => save.mutate()}>
+          {t("Save")}
+        </button>
+        {save.isSuccess && <span className="muted">{t("Saved.")}</span>}
+      </div>
+      <p className="hint" style={{ marginBottom: 0 }}>
+        {t("Site administrators can still override, and the override is recorded in the object's history and the audit trail.")}
+        {gate.updatedBy && <> {t("Last changed by {who}.", { who: gate.updatedBy })}</>}
+      </p>
+      <ErrorBanner error={save.error} />
     </Panel>
   );
 }

@@ -398,11 +398,13 @@ internal class PromotionDecisions(
                 val o = versioning.get(system, MasterId(item.objectId))
                 if (o.latest.state == r.targetState) continue
                 val allowed = versioning.lifecycle(system, o.id).nextStates.contains(r.targetState)
-                versioning.setState(
-                    system,
-                    o.id,
-                    SetState(r.targetState, "Promotion request ${r.number} approved", override = !allowed),
-                )
+                ReleaseAuthority.by(r.number) {
+                    versioning.setState(
+                        system,
+                        o.id,
+                        SetState(r.targetState, "Promotion request ${r.number} approved", override = !allowed),
+                    )
+                }
             }
             log.info("Promotion request {} approved: {} objects to {}", r.number, items.size, r.targetState)
         }

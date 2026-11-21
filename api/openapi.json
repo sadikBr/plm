@@ -5509,6 +5509,28 @@
         "required" : [ "declared", "effective", "hidden", "id", "source" ],
         "type" : "object"
       },
+      "ReleaseGate" : {
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "states" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "updatedBy" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "enabled", "states" ],
+        "type" : "object"
+      },
       "RenameContentRequest" : {
         "properties" : {
           "description" : {
@@ -6312,6 +6334,21 @@
           },
           "value" : { }
         },
+        "type" : "object"
+      },
+      "SetReleaseGate" : {
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "states" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "enabled", "states" ],
         "type" : "object"
       },
       "SetStandIn" : {
@@ -18728,6 +18765,70 @@
         "tags" : [ "Promotion" ]
       }
     },
+    "/api/v1/release-gate" : {
+      "get" : {
+        "operationId" : "releaseGateGet",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReleaseGate"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Release gate" ]
+      },
+      "put" : {
+        "operationId" : "releaseGateSet",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetReleaseGate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReleaseGate"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Release gate" ]
+      }
+    },
     "/api/v1/reports" : {
       "get" : {
         "operationId" : "reportList",
@@ -21684,6 +21785,8 @@
     "name" : "Redline"
   }, {
     "name" : "Reference data"
+  }, {
+    "name" : "Release gate"
   }, {
     "name" : "Replacement"
   }, {

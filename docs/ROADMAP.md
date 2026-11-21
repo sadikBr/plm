@@ -393,8 +393,12 @@ affected objects; and the platform can be extended with scripts, UI slots and no
       times (median and average, last 180 days) and the reader's own open changes (owned, or a task
       planned for them). "Open changes by state" and "My open changes" are dashboard widgets. A
       small read model, kept from the change objects' events, makes it cheap.
-- [ ] 5.13 Release gate: parts and documents reach Released only through an approved change notice
+- [x] 5.13 Release gate: parts and documents reach Released only through an approved change notice
       or promotion request (administrators can override, audited).
+      Done: a release gate (Administration › Changes, on by default, states configurable) refuses to
+      move a part or document to Released except when a change notice is resolved or a promotion
+      request approved. A site administrator can still override from the Set state dialog; the
+      override is recorded in the object's history and the audit trail.
 - [ ] 5.14 Sandboxed server scripts: JavaScript scripts for validation rules, numbering and
       automation steps, run with time, memory and API limits.
 - [ ] 5.15 UI extension slots and extension endpoints: extensions add panels and tabs to object

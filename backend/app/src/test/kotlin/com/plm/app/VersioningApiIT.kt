@@ -99,7 +99,13 @@ class VersioningApiIT : ApiTest() {
         assertThat(lifecycle["nextStates"]).isEqualTo(listOf("UNDER_REVIEW", "CANCELED"))
 
         assertThat(post("/api/v1/objects/$id/state", mapOf("state" to "UNDER_REVIEW")).status).isEqualTo(200)
-        val released = post("/api/v1/objects/$id/state", mapOf("state" to "RELEASED", "comment" to "Approved by DR-12"))
+        // The release gate (roadmap 5.13): Released only through a change, or an administrator's override.
+        assertThat(post("/api/v1/objects/$id/state", mapOf("state" to "RELEASED")).status).isNotEqualTo(200)
+        val released =
+            post(
+                "/api/v1/objects/$id/state",
+                mapOf("state" to "RELEASED", "comment" to "Approved by DR-12", "override" to true),
+            )
         assertThat(released.nested("latest")["state"]).isEqualTo("RELEASED")
         assertThat(post("/api/v1/objects/$id/checkout", as_ = bob).body["code"]).isEqualTo("NOT_EDITABLE")
 

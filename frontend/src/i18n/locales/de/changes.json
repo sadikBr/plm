@@ -154,5 +154,9 @@
   "{n} days": "{n} Tage",
   "Open changes by state": "Offene Änderungen nach Status",
   "My open changes": "Meine offenen Änderungen",
-  "{n} open · change dashboard": "{n} offen · Änderungs-Dashboard"
+  "{n} open · change dashboard": "{n} offen · Änderungs-Dashboard",
+  "Released through a change": "Freigabe über eine Änderung",
+  "Objects reach this state only through an approved change notice or promotion request.": "Objekte erreichen diesen Status nur über eine genehmigte Änderungsmitteilung oder einen Promotionsantrag.",
+  "Promotion requests": "Promotionsanträge",
+  "Override the gate as an administrator (recorded in the audit trail)": "Als Administrator übergehen (im Prüfprotokoll vermerkt)"
 }

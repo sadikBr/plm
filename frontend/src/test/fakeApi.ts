@@ -49,6 +49,7 @@ const DEFAULTS: Record<string, Handler> = {
   "GET /api/v1/objects/:id/changes": () => [],
   "GET /api/v1/objects/:id/variances": () => [],
   "GET /api/v1/changes/:id/redlines": () => [],
+  "GET /api/v1/release-gate": () => ({ enabled: false, states: ["RELEASED"], updatedAt: null, updatedBy: null }),
   "GET /api/v1/change-metrics": () => ({ open: 0, byState: [], ages: [], cycleTimes: [], flow: [], mine: [], periodDays: 180 }),
   "GET /api/v1/objects/:id/structure": () => ({ rootId: "", spec: { type: "LATEST" }, nodes: [], truncated: false, elapsedMs: 0 }),
   "GET /api/v1/preferences/effective": () => [],

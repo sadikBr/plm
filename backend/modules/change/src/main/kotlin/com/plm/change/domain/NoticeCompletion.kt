@@ -102,7 +102,9 @@ internal class NoticeCompletion(
         if (o.latest.state == state || o.checkedOutBy != null) return
         val lifecycle = versioning.lifecycle(system, o.id)
         if (lifecycle.template.states.none { it.key == state }) return
-        versioning.setState(system, o.id, SetState(state, comment, override = state !in lifecycle.nextStates))
+        ReleaseAuthority.by(comment) {
+            versioning.setState(system, o.id, SetState(state, comment, override = state !in lifecycle.nextStates))
+        }
         log.info("{} is now {}: {}", o.number, state, comment)
     }
 }

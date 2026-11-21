@@ -971,3 +971,4 @@ table.grid td input[type="date"] { width: 150px; }
 :root[data-theme="dark"] .viz-root { --series-1: #3987e5; --series-2: #d95926; --seq-250: #184f95; --seq-400: #256abf; --seq-550: #3987e5; --seq-700: #86b6ef; }
 .bar-chart.wide-labels .bar-row { grid-template-columns: minmax(120px, 45%) 1fr; }
 .flow-week.tip-left .viz-tooltip { left: auto; right: 0; transform: none; }
+.release-gate-note .check { display: flex; align-items: center; gap: 6px; margin-top: 8px; }

@@ -1134,3 +1134,17 @@ function MassChangeDialog({ changeId, count, onClose }: { changeId: string; coun
     </Dialog>
   );
 }
+
+/** The release gate (roadmap 5.13): whether moving an object of [typeId] to a state is gated. */
+export function useReleaseGate(typeId: string) {
+  const { data: types } = useTypes();
+  const { data: gate } = useQuery({
+    queryKey: ["releaseGate"],
+    queryFn: () => unwrap(api.GET("/api/v1/release-gate")),
+    staleTime: 60_000,
+  });
+  const base = types?.find((x) => x.id === typeId)?.baseClass;
+  return {
+    gates: (state: string) => !!gate?.enabled && (base === "PART" || base === "DOCUMENT") && gate.states.includes(state),
+  };
+}
