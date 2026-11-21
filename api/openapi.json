@@ -4428,6 +4428,12 @@
           "duration" : {
             "type" : [ "string", "null" ]
           },
+          "escalateTo" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "expression" : {
             "type" : [ "string", "null" ]
           },
@@ -4482,7 +4488,7 @@
             "type" : [ "integer", "null" ]
           }
         },
-        "required" : [ "assignees", "branches", "choices", "id", "kind", "outcomes", "signature" ],
+        "required" : [ "assignees", "branches", "choices", "escalateTo", "id", "kind", "outcomes", "signature" ],
         "type" : "object"
       },
       "ProcessTemplate" : {
@@ -4644,6 +4650,18 @@
           }
         },
         "required" : [ "role" ],
+        "type" : "object"
+      },
+      "ReassignTask" : {
+        "properties" : {
+          "comment" : {
+            "type" : [ "string", "null" ]
+          },
+          "to" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "to" ],
         "type" : "object"
       },
       "RecentItem" : {
@@ -5459,6 +5477,23 @@
         },
         "type" : "object"
       },
+      "SetStandIn" : {
+        "properties" : {
+          "from" : {
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "until" : {
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "username" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "username" ],
+        "type" : "object"
+      },
       "SetStateRequest" : {
         "properties" : {
           "comment" : {
@@ -5617,6 +5652,23 @@
           }
         },
         "required" : [ "columns", "rows", "sheetName" ],
+        "type" : "object"
+      },
+      "StandIn" : {
+        "properties" : {
+          "from" : {
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "standIn" : {
+            "type" : "string"
+          },
+          "until" : {
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "standIn" ],
         "type" : "object"
       },
       "StartImportRequest" : {
@@ -6925,11 +6977,18 @@
           "nodeId" : {
             "type" : "string"
           },
+          "onBehalfOf" : {
+            "type" : [ "string", "null" ]
+          },
           "outcome" : {
             "type" : [ "string", "null" ]
           },
           "processName" : {
             "type" : "string"
+          },
+          "rule" : {
+            "enum" : [ "ALL", "ANY", "MAJORITY" ],
+            "type" : [ "string", "null" ]
           },
           "sharedWith" : {
             "format" : "int32",
@@ -6952,11 +7011,18 @@
           "subjectNumber" : {
             "type" : [ "string", "null" ]
           },
+          "tally" : {
+            "additionalProperties" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
           "title" : {
             "type" : "string"
           }
         },
-        "required" : [ "assignee", "choices", "createdAt", "id", "instanceId", "kind", "nodeId", "processName", "sharedWith", "signature", "status", "title" ],
+        "required" : [ "assignee", "choices", "createdAt", "id", "instanceId", "kind", "nodeId", "processName", "sharedWith", "signature", "status", "tally", "title" ],
         "type" : "object"
       }
     },
@@ -12129,6 +12195,89 @@
           }
         },
         "tags" : [ "Sharing" ]
+      }
+    },
+    "/api/v1/me/stand-in" : {
+      "delete" : {
+        "operationId" : "standInClear",
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Stand in" ]
+      },
+      "get" : {
+        "operationId" : "standInGet",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StandIn"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Stand in" ]
+      },
+      "put" : {
+        "operationId" : "standInSet",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetStandIn"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StandIn"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Stand in" ]
       }
     },
     "/api/v1/me/subscriptions" : {
@@ -17797,6 +17946,53 @@
         "tags" : [ "Work item" ]
       }
     },
+    "/api/v1/tasks/{id}/reassign" : {
+      "post" : {
+        "operationId" : "workItemReassign",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReassignTask"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkItem"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Work item" ]
+      }
+    },
     "/api/v1/tasks/{id}/release" : {
       "post" : {
         "operationId" : "workItemRelease",
@@ -19276,6 +19472,8 @@
     "name" : "Shared team"
   }, {
     "name" : "Sharing"
+  }, {
+    "name" : "Stand in"
   }, {
     "name" : "Structure import"
   }, {

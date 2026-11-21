@@ -45,6 +45,8 @@ internal class ProcessIT(
     @Autowired private val versioning: VersioningService,
     @Autowired private val contexts: ContextService,
     @Autowired private val teams: TeamService,
+    @Autowired private val standIns: com.plm.workflow.api.StandInService,
+    @Autowired private val directory: com.plm.identity.api.PrincipalDirectory,
 ) {
     private val admin = Actor(TenantId.DEFAULT, PrincipalId("site-admin"), siteAdmin = true)
     private val alice = Actor(TenantId.DEFAULT, PrincipalId("alice"))
@@ -242,6 +244,97 @@ internal class ProcessIT(
         items.complete(alice, alices.id, CompleteWorkItem("DONE"))
         assertThat(ended(run.id).status).isEqualTo(ProcessStatus.COMPLETED)
         assertThat(items.get(bob, bobs.id).status).isEqualTo(WorkItemStatus.CANCELLED)
+    }
+
+    @Test
+    fun `stand-ins receive tasks while someone is away, tasks are passed on, and overdue tasks escalate (roadmap 5_4)`() {
+        val carl = Actor(TenantId.DEFAULT, PrincipalId("carl-stand-in"))
+        listOf(alice to "alice", bob to "bob", mona to "mona", carl to "carl").forEach { (a, name) ->
+            directory
+                .recordSignIn(
+                    com.plm.identity.api.SignIn(
+                        TenantId.DEFAULT,
+                        a.principal,
+                        name,
+                        name.replaceFirstChar {
+                            it.uppercase()
+                        },
+                        null,
+                    ),
+                )
+        }
+        val p = product()
+        standIns.set(
+            mona,
+            com.plm.workflow.api
+                .SetStandIn("carl"),
+        )
+        try {
+            val part = versioning.create(alice, CreateVersionedObject(TypeId.PART, p, "Hinge"))
+            val run = processes.start(alice, StartProcess(review, part.id.value))
+            val forMona = task(carl, run.id, "Review")
+            assertThat(forMona.onBehalfOf).isEqualTo(mona.principal.value)
+            assertThat(items.list(mona).none { it.instanceId == run.id }).isTrue()
+
+            // Carl passes it to Bob; Bob answers.
+            assertThatThrownBy {
+                items.reassign(
+                    bob,
+                    forMona.id,
+                    com.plm.workflow.api
+                        .ReassignTask("bob"),
+                )
+            }.isInstanceOf(ForbiddenException::class.java)
+            items.reassign(
+                carl,
+                forMona.id,
+                com.plm.workflow.api
+                    .ReassignTask("bob", "I'm not a structures person"),
+            )
+            val bobs = task(bob, run.id, "Review")
+            assertThat(bobs.onBehalfOf).isEqualTo(mona.principal.value)
+            items.complete(bob, bobs.id, CompleteWorkItem("APPROVE"))
+            assertThat(ended(run.id).outcome).isEqualTo("APPROVED")
+            assertThat(processes.history(alice, run.id).map { it.kind }).contains("REASSIGNED")
+        } finally {
+            standIns.clear(mona)
+        }
+
+        // Due in a second, then it also goes to the managers.
+        val hurry =
+            templates.create(
+                admin,
+                SaveProcessTemplate(
+                    "Hurry ${UUID.randomUUID().toString().take(6)}",
+                    definition =
+                        ProcessDefinition(
+                            "sign",
+                            listOf(
+                                ProcessNode(
+                                    "sign",
+                                    NodeKind.TASK,
+                                    "Sign off",
+                                    assignees = listOf("starter"),
+                                    choices = listOf("DONE"),
+                                    dueIn = "PT1S",
+                                    escalateTo = listOf("role:MANAGER"),
+                                    next = "end",
+                                ),
+                                ProcessNode("end", NodeKind.END),
+                            ),
+                        ),
+                ),
+            )
+        val late =
+            processes.start(
+                bob,
+                StartProcess(hurry.id, versioning.create(alice, CreateVersionedObject(TypeId.PART, p, "Pin")).id.value),
+            )
+        val escalated = task(mona, late.id, "Sign off")
+        assertThat(escalated.onBehalfOf).isEqualTo(bob.principal.value)
+        items.complete(mona, escalated.id, CompleteWorkItem("DONE"))
+        assertThat(ended(late.id).status).isEqualTo(ProcessStatus.COMPLETED)
+        assertThat(processes.history(bob, late.id).map { it.kind }).contains("OVERDUE", "ESCALATED")
     }
 
     @Test

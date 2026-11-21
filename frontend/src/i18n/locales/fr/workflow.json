@@ -92,5 +92,22 @@
   "its processes": "ses processus",
   "taken on": "prise",
   "vote": "vote",
-  "so the others don't do it twice": "pour que les autres ne la fassent pas en double"
+  "so the others don't do it twice": "pour que les autres ne la fassent pas en double",
+  "For": "Pour",
+  "New tasks for you go to your stand-in instead; tasks you already have stay yours.": "Vos nouvelles tâches vont à votre remplaçant ; celles que vous avez déjà restent les vôtres.",
+  "Pass it on": "Transmettre",
+  "Pass it to someone else…": "La confier à quelqu'un d'autre…",
+  "Set my stand-in": "Définir mon remplaçant",
+  "Stand-in (username)": "Remplaçant (identifiant)",
+  "To (username)": "À (identifiant)",
+  "Votes so far": "Votes jusqu'ici",
+  "When overdue, also give it to": "En retard, la confier aussi à",
+  "While I'm away": "Pendant mon absence",
+  "Why (optional)": "Pourquoi (facultatif)",
+  "Your stand-in is": "Votre remplaçant est",
+  "until you remove it": "jusqu'à ce que vous le retiriez",
+  "Why": "Pourquoi",
+  "From": "Du",
+  "Until": "Au",
+  "About an object you can't open: ask for access, or pass the task on.": "Concerne un objet que vous ne pouvez pas ouvrir : demandez l'accès, ou confiez la tâche à quelqu'un d'autre."
 }

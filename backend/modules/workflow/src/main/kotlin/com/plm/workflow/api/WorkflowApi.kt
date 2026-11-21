@@ -75,6 +75,8 @@ data class ProcessNode(
     val rule: VoteRule? = null,
     /** TASK, VOTE: ISO-8601 duration until it's due, e.g. P3D. */
     val dueIn: String? = null,
+    /** TASK: when it's overdue, also given to these (same forms as assignees) (roadmap 5.4). */
+    val escalateTo: List<String> = emptyList(),
     /** TASK, VOTE: answering needs an electronic signature (roadmap 5.6). */
     val signature: Boolean = false,
     val action: ActionKind? = null,
@@ -186,7 +188,43 @@ data class WorkItem(
     val claimedBy: String? = null,
     /** How many people the step was given to. */
     val sharedWith: Int = 1,
+    /** Received for someone else: as their stand-in, by reassignment or escalation (roadmap 5.4). */
+    val onBehalfOf: String? = null,
+    /** VOTE: how many chose what so far. */
+    val tally: Map<String, Int> = emptyMap(),
+    val rule: VoteRule? = null,
 )
+
+data class ReassignTask(
+    /** The username of who gets it. */
+    val to: String,
+    val comment: String? = null,
+)
+
+/** Who gets someone's new tasks while they're away (roadmap 5.4). */
+data class StandIn(
+    val standIn: String,
+    val from: java.time.LocalDate?,
+    val until: java.time.LocalDate?,
+)
+
+data class SetStandIn(
+    /** The stand-in's username. */
+    val username: String,
+    val from: java.time.LocalDate? = null,
+    val until: java.time.LocalDate? = null,
+)
+
+interface StandInService {
+    fun get(actor: Actor): StandIn?
+
+    fun set(
+        actor: Actor,
+        request: SetStandIn,
+    ): StandIn
+
+    fun clear(actor: Actor)
+}
 
 data class TaskCounts(
     val open: Int,
@@ -303,6 +341,13 @@ interface WorkItemService {
     fun release(
         actor: Actor,
         id: UUID,
+    ): WorkItem
+
+    /** Gives the task to someone else: its assignee, whoever started the process, or an administrator. */
+    fun reassign(
+        actor: Actor,
+        id: UUID,
+        request: ReassignTask,
     ): WorkItem
 
     /** Its assignee only; the outcome must be one of its choices. */

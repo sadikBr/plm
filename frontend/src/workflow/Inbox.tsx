@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Hand, Inbox as InboxIcon, Undo2 } from "lucide-react";
+import { Hand, Inbox as InboxIcon, Undo2, UserRoundPlus } from "lucide-react";
 import { useState } from "react";
 import { Link, NavLink, useSearchParams } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
@@ -196,19 +196,40 @@ function TaskPanel({ id }: { id: string }) {
   return (
     <Panel title={w.title} note={w.processName}>
       <div className="task-panel">
-        {w.subjectId && (
-          <div>
-            <span className="label">{t("About")}</span>{" "}
-            <Link to={`/objects/${w.subjectId}`}>
-              <span className="mono">{w.subjectNumber}</span> {w.subjectName}
-            </Link>{" "}
-            · <Link to={`/objects/${w.subjectId}?tab=processes`}>{t("its processes")}</Link>
-          </div>
-        )}
+        {w.subjectId &&
+          (w.subjectNumber ? (
+            <div>
+              <span className="label">{t("About")}</span>{" "}
+              <Link to={`/objects/${w.subjectId}`}>
+                <span className="mono">{w.subjectNumber}</span> {w.subjectName}
+              </Link>{" "}
+              · <Link to={`/objects/${w.subjectId}?tab=processes`}>{t("its processes")}</Link>
+            </div>
+          ) : (
+            <div className="muted">{t("About an object you can't open: ask for access, or pass the task on.")}</div>
+          ))}
         {w.instructions && <div className="instructions">{w.instructions}</div>}
         {process.data?.comment && (
           <div className="muted">
             “{process.data.comment}” — <PrincipalName id={process.data.startedBy} />
+          </div>
+        )}
+        {w.onBehalfOf && (
+          <div className="muted">
+            {t("For")} <PrincipalName id={w.onBehalfOf} />
+          </div>
+        )}
+        {w.kind === "VOTE" && (
+          <div className="vote-tally" aria-label={t("Votes so far")}>
+            <span className="label">{t("Votes so far")}</span>
+            {w.choices.map((c) => (
+              <span key={c} className="tag">
+                {choiceLabel(c)}: {w.tally[c] ?? 0}
+              </span>
+            ))}
+            <span className="muted small">
+              {w.rule === "ANY" ? t("One approval is enough") : w.rule === "MAJORITY" ? t("By majority") : t("All must approve")}
+            </span>
           </div>
         )}
         <div className="muted small">
@@ -255,6 +276,7 @@ function TaskPanel({ id }: { id: string }) {
               ))}
             </div>
             <ErrorBanner error={answer.error ?? claim.error ?? release.error} />
+            <Reassign id={w.id} />
           </>
         ) : (
           <div className="banner info">
@@ -267,5 +289,55 @@ function TaskPanel({ id }: { id: string }) {
         {process.data && <ProcessDetail p={process.data} />}
       </div>
     </Panel>
+  );
+}
+
+/** Pass a task to someone else (roadmap 5.4). */
+function Reassign({ id }: { id: string }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [to, setTo] = useState("");
+  const [note, setNote] = useState("");
+  const pass = useMutation({
+    mutationFn: () =>
+      unwrap(api.POST("/api/v1/tasks/{id}/reassign", { params: { path: { id } }, body: { to: to.trim(), comment: note.trim() || null } })),
+    onSuccess: () => {
+      setOpen(false);
+      void qc.invalidateQueries({ queryKey: ["tasks"] });
+      void qc.invalidateQueries({ queryKey: ["processes"] });
+    },
+  });
+  if (!open)
+    return (
+      <div className="row">
+        <button className="link-btn small" onClick={() => setOpen(true)}>
+          <UserRoundPlus size={13} aria-hidden /> {t("Pass it to someone else…")}
+        </button>
+      </div>
+    );
+  return (
+    <form
+      className="reassign"
+      onSubmit={(e) => {
+        e.preventDefault();
+        pass.mutate();
+      }}
+    >
+      <input
+        aria-label={t("To (username)")}
+        placeholder={t("To (username)")}
+        value={to}
+        onChange={(e) => setTo(e.target.value)}
+        autoFocus
+      />
+      <input aria-label={t("Why")} placeholder={t("Why (optional)")} value={note} onChange={(e) => setNote(e.target.value)} />
+      <button className="btn small" type="submit" disabled={!to.trim() || pass.isPending}>
+        {t("Pass it on")}
+      </button>
+      <button className="btn small ghost" type="button" onClick={() => setOpen(false)}>
+        {t("Cancel")}
+      </button>
+      <ErrorBanner error={pass.error} />
+    </form>
   );
 }

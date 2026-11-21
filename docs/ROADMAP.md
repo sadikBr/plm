@@ -324,8 +324,13 @@ affected objects; and the platform can be extended with scripts, UI slots and no
       page lists open, overdue and done tasks with a filter, and shows the selected one with its
       instructions, object, the process so far and the answer buttons; the top bar counts open
       tasks (red when some are overdue).
-- [ ] 5.4 Voting, delegation and escalation: reviewer sets with voting rules (all, any, majority);
+- [x] 5.4 Voting, delegation and escalation: reviewer sets with voting rules (all, any, majority);
       reassign and delegate, out-of-office stand-ins; due dates, reminders and escalation.
+      Done: votes decide by rule (all, any, majority) and show their tally to the voters; a task is
+      passed on by its assignee, the process starter or an administrator, keeping whom it's for;
+      everyone can name a stand-in (with optional dates) who gets their new tasks meanwhile; due
+      dates remind the assignees once overdue, and a task can escalate to others (a role, users)
+      who can then answer it too.
 - [ ] 5.5 Process assignments: which process runs for which type, lifecycle state or transition,
       per organization or product, inherited down the context tree.
 - [ ] 5.6 Electronic signatures (21 CFR Part 11): signing tasks ask for the password again; the

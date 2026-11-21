@@ -36,6 +36,7 @@ const mk = (s: Partial<Step> & Pick<Step, "id" | "kind">): Step => ({
   choices: [],
   outcomes: {},
   signature: false,
+  escalateTo: [],
   ...s,
 });
 
@@ -454,6 +455,12 @@ function Inspector({
             <label htmlFor="st-due">{t("Due in")}</label>
             <input id="st-due" value={step.dueIn ?? ""} placeholder="P3D" onChange={(e) => onChange({ dueIn: e.target.value || null })} />
           </div>
+          {step.kind === "TASK" && (
+            <div className="field">
+              <label htmlFor="st-escalate">{t("When overdue, also give it to")}</label>
+              <input id="st-escalate" defaultValue={csv(step.escalateTo)} onBlur={(e) => onChange({ escalateTo: list(e.target.value) })} />
+            </div>
+          )}
           <div className="field">
             <label htmlFor="st-instr">{t("Instructions")}</label>
             <textarea

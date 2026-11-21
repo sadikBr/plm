@@ -150,6 +150,13 @@ internal class WorkItemController(
         @PathVariable id: UUID,
     ) = items.release(actor, id)
 
+    @PostMapping("/api/v1/tasks/{id}/reassign")
+    fun reassign(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: com.plm.workflow.api.ReassignTask,
+    ) = items.reassign(actor, id, request)
+
     @GetMapping("/api/v1/tasks/{id}")
     fun get(
         actor: Actor,
@@ -162,4 +169,22 @@ internal class WorkItemController(
         @PathVariable id: UUID,
         @RequestBody request: CompleteWorkItem,
     ) = items.complete(actor, id, request)
+}
+
+/** Who gets my tasks while I'm away (roadmap 5.4). */
+@RestController
+internal class StandInController(
+    private val standIns: com.plm.workflow.api.StandInService,
+) {
+    @GetMapping("/api/v1/me/stand-in")
+    fun get(actor: Actor) = standIns.get(actor)
+
+    @org.springframework.web.bind.annotation.PutMapping("/api/v1/me/stand-in")
+    fun set(
+        actor: Actor,
+        @RequestBody request: com.plm.workflow.api.SetStandIn,
+    ) = standIns.set(actor, request)
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/api/v1/me/stand-in")
+    fun clear(actor: Actor) = standIns.clear(actor)
 }

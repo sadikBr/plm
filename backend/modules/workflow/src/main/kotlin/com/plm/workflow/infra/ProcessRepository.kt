@@ -57,6 +57,7 @@ internal data class WorkItemRow(
     val completedAt: Instant?,
     val completedBy: String?,
     val claimedBy: String? = null,
+    val onBehalfOf: String? = null,
 )
 
 @Repository
@@ -356,8 +357,65 @@ internal class ProcessRepository(
                 completedAt = rs.instant("completed_at"),
                 completedBy = rs.getString("completed_by"),
                 claimedBy = rs.getString("claimed_by"),
+                onBehalfOf = rs.getString("on_behalf_of"),
             )
         }
+
+    fun reassign(
+        id: UUID,
+        to: String,
+        onBehalfOf: String,
+    ) {
+        jdbc
+            .sql(
+                "update work_item set assignee = :to, on_behalf_of = :for, claimed_by = null, claimed_at = null where id = :id",
+            ).param("id", id)
+            .param("to", to)
+            .param("for", onBehalfOf)
+            .update()
+    }
+
+    fun standIn(
+        tenant: TenantId,
+        principal: String,
+    ): com.plm.workflow.api.StandIn? =
+        jdbc
+            .sql("select * from task_stand_in where tenant_id = :tenant and principal = :p")
+            .param("tenant", tenant.value)
+            .param("p", principal)
+            .query { rs, _ ->
+                com.plm.workflow.api.StandIn(
+                    rs.getString("stand_in"),
+                    rs.getObject("from_date", java.time.LocalDate::class.java),
+                    rs.getObject("until_date", java.time.LocalDate::class.java),
+                )
+            }.optional()
+            .orElse(null)
+
+    fun setStandIn(
+        tenant: TenantId,
+        principal: String,
+        standIn: com.plm.workflow.api.StandIn?,
+    ) {
+        jdbc
+            .sql("delete from task_stand_in where tenant_id = :tenant and principal = :p")
+            .param("tenant", tenant.value)
+            .param("p", principal)
+            .update()
+        if (standIn == null) return
+        jdbc
+            .sql(
+                """
+                insert into task_stand_in (tenant_id, principal, stand_in, from_date, until_date)
+                values (:tenant, :p, :s, :from, :until)
+                """.trimIndent(),
+            ).param("tenant", tenant.value)
+            .param("p", principal)
+            .param("s", standIn.standIn)
+            .param("from", standIn.from)
+            .param("until", standIn.until)
+            .update()
+    }
 
     /** Sets (or with null, clears) the claim on every open copy of a step pass. */
     fun claim(
@@ -403,9 +461,9 @@ internal class ProcessRepository(
             .sql(
                 """
                 insert into work_item (id, tenant_id, instance_id, node_id, visit, kind, title, instructions, assignee,
-                    choices, signature, status, subject_id, created_at, due_at)
+                    choices, signature, status, subject_id, created_at, due_at, on_behalf_of)
                 values (:id, :tenant, :instance, :node, :visit, :kind, :title, :instructions, :assignee,
-                    cast(:choices as jsonb), :signature, 'OPEN', :subject, :created, :due)
+                    cast(:choices as jsonb), :signature, 'OPEN', :subject, :created, :due, :for)
                 """.trimIndent(),
             ).param("id", row.id)
             .param("tenant", row.tenantId)
@@ -421,6 +479,7 @@ internal class ProcessRepository(
             .param("subject", row.subjectId)
             .param("created", Timestamp.from(row.createdAt))
             .param("due", row.dueAt?.let(Timestamp::from))
+            .param("for", row.onBehalfOf)
             .update()
     }
 

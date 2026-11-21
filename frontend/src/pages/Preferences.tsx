@@ -1,3 +1,4 @@
+import { StandInPanel } from "../workflow/StandIn";
 import { Lock, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
@@ -218,6 +219,7 @@ export function MyPreferencesPage() {
       />
       <div className="content">
         <ErrorBanner error={error} />
+        <StandInPanel />
         {isLoading ? <Loading /> : <PreferenceTable prefs={data ?? []} />}
       </div>
     </>

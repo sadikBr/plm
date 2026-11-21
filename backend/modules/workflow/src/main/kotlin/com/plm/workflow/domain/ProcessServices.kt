@@ -137,6 +137,9 @@ internal class DefaultProcessTemplateService(
                         ref(name, to, "the step after $c")
                     }
                     n.dueIn?.let { duration(name, it, errors) }
+                    if (n.escalateTo.isNotEmpty() && (n.kind != NodeKind.TASK || n.dueIn == null)) {
+                        errors += "$name: only a task with a due date escalates"
+                    }
                     if (n.kind == NodeKind.VOTE && n.rule == null) errors += "$name: how do the votes decide?"
                 }
                 NodeKind.ACTION -> {
@@ -435,6 +438,10 @@ internal class DefaultProcessService(
 @Transactional
 internal class DefaultWorkItemService(
     private val repository: ProcessRepository,
+    private val directory: com.plm.identity.api.PrincipalDirectory,
+    private val personal: com.plm.notifications.api.PersonalService,
+    @param:org.springframework.beans.factory.annotation.Value("\${plm.ui-url:http://localhost:5173}") private val uiUrl:
+        String,
     private val versioning: VersioningService,
     private val temporal: TemporalRuntime,
     private val events: DomainEvents,
@@ -445,6 +452,8 @@ internal class DefaultWorkItemService(
         names: Map<UUID, String>,
         subjects: Map<UUID, Pair<String, String>>,
         shared: Int = 1,
+        tallies: Map<Triple<UUID, String, Int>, Map<String, Int>> = emptyMap(),
+        rules: Map<Triple<UUID, String, Int>, com.plm.workflow.api.VoteRule?> = emptyMap(),
     ) = WorkItem(
         id = row.id,
         instanceId = row.instanceId,
@@ -468,6 +477,9 @@ internal class DefaultWorkItemService(
         completedBy = row.completedBy,
         claimedBy = row.claimedBy,
         sharedWith = shared,
+        onBehalfOf = row.onBehalfOf,
+        tally = tallies[Triple(row.instanceId, row.nodeId, row.visit)].orEmpty(),
+        rule = rules[Triple(row.instanceId, row.nodeId, row.visit)],
     )
 
     private fun views(
@@ -488,7 +500,45 @@ internal class DefaultWorkItemService(
                 .map { Triple(it.instanceId, it.nodeId, it.visit) }
                 .distinct()
                 .associateWith { (i, n, v) -> repository.itemsOf(i, n, v).size }
-        return rows.map { view(it, names, subjects, shares[Triple(it.instanceId, it.nodeId, it.visit)] ?: 1) }
+        // Votes: what's been chosen so far, and the rule that decides.
+        val votes =
+            rows
+                .filter { it.kind == NodeKind.VOTE }
+                .map {
+                    Triple(
+                        it.instanceId,
+                        it.nodeId,
+                        it.visit,
+                    )
+                }.distinct()
+        val tallies =
+            votes.associateWith { (i, n, v) ->
+                repository
+                    .itemsOf(i, n, v)
+                    .mapNotNull { it.outcome }
+                    .groupingBy { it }
+                    .eachCount()
+            }
+        val rules =
+            votes.associateWith { (i, n, _) ->
+                repository.instance(i)?.let { inst ->
+                    repository
+                        .definition(inst.templateId, inst.templateVersion)
+                        .nodes
+                        .firstOrNull { it.id == n }
+                        ?.rule
+                }
+            }
+        return rows.map {
+            view(
+                it,
+                names,
+                subjects,
+                shares[Triple(it.instanceId, it.nodeId, it.visit)] ?: 1,
+                tallies,
+                rules,
+            )
+        }
     }
 
     @Transactional(readOnly = true)
@@ -603,6 +653,75 @@ internal class DefaultWorkItemService(
         return get(actor, id)
     }
 
+    override fun reassign(
+        actor: Actor,
+        id: UUID,
+        request: com.plm.workflow.api.ReassignTask,
+    ): WorkItem {
+        val row = repository.item(id)?.takeIf { it.tenantId == actor.tenant.value } ?: notFound()
+        if (row.status != WorkItemStatus.OPEN) throw ConflictException("TASK_CLOSED", "This task is already closed")
+        val instance = repository.instance(row.instanceId)!!
+        if (row.assignee != actor.principal.value && instance.startedBy != actor.principal.value && !actor.siteAdmin) {
+            throw ForbiddenException(
+                "ACCESS_DENIED",
+                "Only its assignee, whoever started the process, or an administrator can reassign it",
+            )
+        }
+        val to =
+            directory.findByUsername(actor, request.to.trim())?.id?.value
+                ?: throw NotFoundException("PRINCIPAL_NOT_FOUND", "There's no user ${request.to}")
+        if (to == row.assignee) throw ValidationException("SAME_ASSIGNEE", "It's already theirs")
+        if (repository.itemsOf(row.instanceId, row.nodeId, row.visit).any {
+                it.assignee == to &&
+                    it.status == WorkItemStatus.OPEN
+            }
+        ) {
+            throw ConflictException("ALREADY_ASSIGNED", "They already have this task")
+        }
+        repository.reassign(row.id, to, row.onBehalfOf ?: row.assignee)
+        if (row.claimedBy ==
+            row.assignee
+        ) {
+            repository.claim(row.instanceId, row.nodeId, row.visit, null, clock.instant())
+        }
+        val from =
+            directory.displayName(
+                actor.tenant,
+                com.plm.platform.id
+                    .PrincipalId(row.assignee),
+            )
+        val toName =
+            directory.displayName(
+                actor.tenant,
+                com.plm.platform.id
+                    .PrincipalId(to),
+            )
+        val note = request.comment?.trim()?.ifEmpty { null }
+        repository.event(
+            row.instanceId,
+            clock.instant(),
+            "REASSIGNED",
+            row.nodeId,
+            actor.principal.value,
+            "${row.title}: $from → $toName${note?.let { " — $it" }.orEmpty()}",
+        )
+        events.publish(
+            actor,
+            com.plm.workflow.api
+                .WorkItemAssigned(row.id, row.instanceId, to, row.title, row.subjectId),
+        )
+        personal.notify(
+            actor.tenant,
+            to,
+            "Task passed to you: ${row.title}",
+            note,
+            "$uiUrl/inbox?task=${row.id}",
+            row.subjectId,
+            actor.principal.value,
+        )
+        return views(actor, listOf(repository.item(row.id)!!)).single()
+    }
+
     override fun complete(
         actor: Actor,
         id: UUID,
@@ -641,4 +760,34 @@ internal class DefaultWorkItemService(
         }
         return get(actor, id)
     }
+}
+
+@Service
+@Transactional
+internal class DefaultStandInService(
+    private val repository: ProcessRepository,
+    private val directory: com.plm.identity.api.PrincipalDirectory,
+) : com.plm.workflow.api.StandInService {
+    @Transactional(readOnly = true)
+    override fun get(actor: Actor) = repository.standIn(actor.tenant, actor.principal.value)
+
+    override fun set(
+        actor: Actor,
+        request: com.plm.workflow.api.SetStandIn,
+    ): com.plm.workflow.api.StandIn {
+        val who =
+            directory.findByUsername(actor, request.username.trim())?.id?.value
+                ?: throw NotFoundException("PRINCIPAL_NOT_FOUND", "There's no user ${request.username}")
+        if (who == actor.principal.value) throw ValidationException("INVALID_STAND_IN", "Choose someone else")
+        if (request.from != null && request.until != null && request.until.isBefore(request.from)) {
+            throw ValidationException("INVALID_STAND_IN", "The end comes before the start")
+        }
+        val standIn =
+            com.plm.workflow.api
+                .StandIn(who, request.from, request.until)
+        repository.setStandIn(actor.tenant, actor.principal.value, standIn)
+        return standIn
+    }
+
+    override fun clear(actor: Actor) = repository.setStandIn(actor.tenant, actor.principal.value, null)
 }

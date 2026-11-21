@@ -113,49 +113,28 @@ class DefaultProcessActivities internal constructor(
             val people = resolve(instance, node, subject)
             if (people.isEmpty()) fail("Nobody to give “${label(node)}” to: ${node.assignees.joinToString(", ")}")
             val now = clock.instant()
-            val due = node.dueIn?.let { now.plus(Duration.parse(it)) }
-            people.forEach { p ->
-                val id = UuidV7.generate(clock)
-                repository.insertItem(
-                    WorkItemRow(
-                        id = id,
-                        tenantId = instance.tenantId,
-                        instanceId = instance.id,
-                        nodeId = node.id,
-                        visit = visit,
-                        kind = node.kind,
-                        title = label(node),
-                        instructions = node.instructions,
-                        assignee = p,
-                        choices = node.choices.ifEmpty { listOf("DONE") },
-                        signature = node.signature,
-                        status = WorkItemStatus.OPEN,
-                        outcome = null,
-                        comment = null,
-                        subjectId = instance.subjectId,
-                        createdAt = now,
-                        dueAt = due,
-                        completedAt = null,
-                        completedBy = null,
-                    ),
-                )
-                events.publish(
-                    system(instance.tenantId),
-                    WorkItemAssigned(id, instance.id, p, label(node), instance.subjectId),
-                )
-                val what = subject?.let { " · ${it.number} ${it.name}" }.orEmpty()
-                personal.notify(
-                    TenantId(instance.tenantId),
-                    p,
-                    "New task: ${label(node)}$what",
-                    node.instructions,
-                    "$uiUrl/inbox?task=$id",
-                    instance.subjectId,
-                    PROCESS_ACTOR,
-                )
-            }
+            // Someone away gets their stand-in instead (roadmap 5.4).
+            val today = java.time.LocalDate.ofInstant(now, java.time.ZoneOffset.UTC)
+            val given =
+                people
+                    .map { p ->
+                        val stand = repository.standIn(TenantId(instance.tenantId), p)
+                        val away =
+                            stand != null &&
+                                (stand.from == null || !today.isBefore(stand.from)) &&
+                                (stand.until == null || !today.isAfter(stand.until))
+                        if (away) stand.standIn to p else p to null
+                    }.distinctBy { it.first }
+            give(instance, node, visit, subject, given, node.dueIn?.let { now.plus(Duration.parse(it)) })
             repository.setCurrent(instance.id, node.id, label(node))
-            val names = people.map { directory.displayName(TenantId(instance.tenantId), PrincipalId(it)) }
+            val names =
+                given.map { (p, f) ->
+                    directory.displayName(TenantId(instance.tenantId), PrincipalId(p)) +
+                        (
+                            f?.let { " (for ${directory.displayName(TenantId(instance.tenantId), PrincipalId(it))})" }
+                                ?: ""
+                        )
+                }
             repository.event(
                 instance.id,
                 now,
@@ -164,8 +143,62 @@ class DefaultProcessActivities internal constructor(
                 null,
                 "${label(node)}: ${names.joinToString(", ")}",
             )
-            people.size
+            given.size
         }
+
+    /** Gives [node]'s task to each (assignee, on behalf of), with notifications. */
+    private fun give(
+        instance: InstanceRow,
+        node: ProcessNode,
+        visit: Int,
+        subject: VersionedObject?,
+        to: List<Pair<String, String?>>,
+        due: java.time.Instant?,
+        prefix: String = "New task",
+    ) {
+        val now = clock.instant()
+        to.forEach { (p, onBehalfOf) ->
+            val id = UuidV7.generate(clock)
+            repository.insertItem(
+                WorkItemRow(
+                    id = id,
+                    tenantId = instance.tenantId,
+                    instanceId = instance.id,
+                    nodeId = node.id,
+                    visit = visit,
+                    kind = node.kind,
+                    title = label(node),
+                    instructions = node.instructions,
+                    assignee = p,
+                    choices = node.choices.ifEmpty { listOf("DONE") },
+                    signature = node.signature,
+                    status = WorkItemStatus.OPEN,
+                    outcome = null,
+                    comment = null,
+                    subjectId = instance.subjectId,
+                    createdAt = now,
+                    dueAt = due,
+                    completedAt = null,
+                    completedBy = null,
+                    onBehalfOf = onBehalfOf,
+                ),
+            )
+            events.publish(
+                system(instance.tenantId),
+                WorkItemAssigned(id, instance.id, p, label(node), instance.subjectId),
+            )
+            val what = subject?.let { " · ${it.number} ${it.name}" }.orEmpty()
+            personal.notify(
+                TenantId(instance.tenantId),
+                p,
+                "$prefix: ${label(node)}$what",
+                node.instructions,
+                "$uiUrl/inbox?task=$id",
+                instance.subjectId,
+                PROCESS_ACTOR,
+            )
+        }
+    }
 
     override fun closeTasks(
         instanceId: String,
@@ -214,6 +247,35 @@ class DefaultProcessActivities internal constructor(
                 null,
                 "${label(node)} is overdue: ${open.size} reminded",
             )
+            // Escalation: the task also goes to whoever it escalates to (roadmap 5.4).
+            if (node.kind == NodeKind.TASK && node.escalateTo.isNotEmpty() && open.isNotEmpty()) {
+                val already = repository.itemsOf(instance.id, nodeId, visit).map { it.assignee }.toSet()
+                val to =
+                    resolve(instance, node.copy(assignees = node.escalateTo), subject(instance)).filter {
+                        it !in
+                            already
+                    }
+                if (to.isNotEmpty()) {
+                    give(
+                        instance,
+                        node,
+                        visit,
+                        subject(instance),
+                        to.map { it to open.first().assignee },
+                        null,
+                        "Escalated task",
+                    )
+                    val names = to.map { directory.displayName(TenantId(instance.tenantId), PrincipalId(it)) }
+                    repository.event(
+                        instance.id,
+                        clock.instant(),
+                        "ESCALATED",
+                        nodeId,
+                        null,
+                        "${label(node)} escalated to ${names.joinToString(", ")}",
+                    )
+                }
+            }
         }
     }
 

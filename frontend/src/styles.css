@@ -926,3 +926,6 @@ table.grid.compact td { padding: 6px 8px; vertical-align: top; }
 .task-panel { display: grid; gap: 12px; }
 .task-panel .instructions { padding: 10px 12px; border-left: 3px solid var(--accent); background: var(--panel-2); border-radius: 4px; }
 .task-panel .process-detail { grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--border); padding-top: 12px; }
+.vote-tally { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.reassign { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.reassign input { flex: 1 1 140px; }

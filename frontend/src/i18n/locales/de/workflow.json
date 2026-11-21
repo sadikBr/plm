@@ -92,5 +92,22 @@
   "its processes": "seine Prozesse",
   "taken on": "übernommen",
   "vote": "Abstimmung",
-  "so the others don't do it twice": "damit die anderen sie nicht doppelt erledigen"
+  "so the others don't do it twice": "damit die anderen sie nicht doppelt erledigen",
+  "For": "Für",
+  "New tasks for you go to your stand-in instead; tasks you already have stay yours.": "Neue Aufgaben gehen an Ihre Vertretung; bestehende bleiben bei Ihnen.",
+  "Pass it on": "Weitergeben",
+  "Pass it to someone else…": "An jemand anderen weitergeben…",
+  "Set my stand-in": "Vertretung festlegen",
+  "Stand-in (username)": "Vertretung (Benutzername)",
+  "To (username)": "An (Benutzername)",
+  "Votes so far": "Bisherige Stimmen",
+  "When overdue, also give it to": "Bei Verzug auch geben an",
+  "While I'm away": "Während meiner Abwesenheit",
+  "Why (optional)": "Warum (optional)",
+  "Your stand-in is": "Ihre Vertretung ist",
+  "until you remove it": "bis Sie sie entfernen",
+  "Why": "Warum",
+  "From": "Von",
+  "Until": "Bis",
+  "About an object you can't open: ask for access, or pass the task on.": "Betrifft ein Objekt, das Sie nicht öffnen können: Zugriff anfragen oder die Aufgabe weitergeben."
 }
