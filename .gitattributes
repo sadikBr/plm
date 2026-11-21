@@ -4,3 +4,6 @@
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
 plm text eol=lf
+
+# Generated CAD models (scripts/demo-data/cad/generate.py): no text diffs.
+*.stp -diff linguist-generated

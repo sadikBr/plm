@@ -16,6 +16,8 @@ const ADMIN = process.env.PLM_ADMIN_USER ?? "plmadmin";
 const PART = "00000000-0000-7000-8000-000000000102";
 const DOCUMENT = "00000000-0000-7000-8000-000000000101";
 const PROBLEM_REPORT = "00000000-0000-7000-8000-000000000104";
+const CAD_PART = "00000000-0000-7000-8000-00000000010a";
+const CAD_ASSEMBLY = "00000000-0000-7000-8000-00000000010b";
 
 const DATASETS = { voltara: "./voltara.mjs", byd: "./byd.mjs" };
 const args = process.argv.slice(2);
@@ -159,7 +161,15 @@ const existing = await admin("GET", `/contexts/${site.id}/children`);
 if (existing.some((c) => c.name === company)) {
   fail(`"${company}" is already there: the demo data is loaded. To load it afresh: ./plm reset, then ./plm load-data`);
 }
-const taken = await admin("POST", "/search", { query: K.sentinel, limit: 50 }).catch(() => null);
+const taken = await admin("POST", "/search", {
+  text: K.sentinel,
+  attributes: {},
+  contextIds: [],
+  states: [],
+  typeIds: [],
+  limit: 50,
+  offset: 0,
+}).catch(() => null);
 if ((taken?.hits ?? []).some((h) => h.number === K.sentinel)) {
   fail(`The demo parts are already in this database (under another company name): ./plm reset to start over`);
 }
@@ -311,6 +321,35 @@ await step("Documents", async () => {
   return `${D.DOCUMENTS.length} documents with PDFs (plant documents in folders by shop), ${n} links to parts`;
 });
 
+// CAD models: a CAD document with its STEP file, owning its part. Converted for the 3D viewer
+// on check-in, in the background.
+const cad = {};
+await step("CAD models", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const contextOf = Object.fromEntries(D.PARTS.map((p) => [p[1], p[0]]));
+  for (const [number, file, kind, name] of D.CAD_MODELS ?? []) {
+    const data = await readFile(new URL(`./cad/${file}`, import.meta.url));
+    const model = await admin("POST", "/objects", {
+      typeId: kind === "ASSEMBLY" ? CAD_ASSEMBLY : CAD_PART,
+      contextId: ctx[contextOf[number]].id,
+      name,
+      number: `CAD-${number}`,
+      attributes: {},
+    });
+    cad[number] = model;
+    await admin("POST", `/objects/${model.id}/checkout`);
+    const ticket = await admin("POST", "/vault/uploads", { fileName: file, contentType: "model/step", size: data.length });
+    const put = await fetch(new URL(ticket.uploadUrl, BASE), { method: "PUT", body: data, headers: { "Content-Type": "model/step" } });
+    if (!put.ok) throw new Error(`uploading ${file}: ${put.status} ${await put.text()}`);
+    await admin("POST", `/objects/${model.id}/content`, { uploadId: ticket.uploadId, role: "PRIMARY", description: null });
+    await admin("POST", `/objects/${model.id}/checkin`, { comment: "Model" });
+    await admin("POST", `/objects/${part[number].id}/checkout`);
+    await admin("POST", `/objects/${part[number].id}/cad/associations`, { cadId: model.id, kind: "OWNER" });
+    await admin("POST", `/objects/${part[number].id}/checkin`, { comment: "3D model" });
+  }
+  return `${Object.keys(cad).length} CAD models with STEP files, each owning its part (3D views are made in the background)`;
+});
+
 // Lifecycle states: children first. Released through the administrator's override: this is data
 // brought over from an earlier system, already released there.
 await step("Lifecycle states", async () => {
@@ -338,11 +377,11 @@ await step("Lifecycle states", async () => {
     }
     counts[to] = (counts[to] ?? 0) + 1;
   }
-  for (const d of Object.values(doc)) {
+  for (const d of [...Object.values(doc), ...Object.values(cad)]) {
     await admin("POST", `/objects/${d.id}/state`, { state: "UNDER_REVIEW" });
     await admin("POST", `/objects/${d.id}/state`, { state: "RELEASED", override: true, comment: "Imported" });
   }
-  return `Parts: ${counts.RELEASED ?? 0} released, ${counts.UNDER_REVIEW ?? 0} under review, ${counts.IN_WORK ?? 0} in work; documents released`;
+  return `Parts: ${counts.RELEASED ?? 0} released, ${counts.UNDER_REVIEW ?? 0} under review, ${counts.IN_WORK ?? 0} in work; documents and models released`;
 });
 
 // Effectivity: the vehicle is the end item; packs and seal effective by vehicle serial number.

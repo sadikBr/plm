@@ -135,13 +135,17 @@ export const DOCUMENTS = rename(V.DOCUMENTS).map((d) => {
 
 export const CHANGES = rename(V.CHANGES);
 
+// Same models and files; numbers and names follow the renames.
+export const CAD_MODELS = V.CAD_MODELS.map(([part, file, kind, name]) => [rename(part), file, kind, rename(name)]);
+
 export const KEYS = {
   ...rename(V.KEYS),
   baseline: ["Seal – start of production", "The released Seal structure at SOP, Plant 2 Line 3 (test data)."],
 };
 
 export const TOUR = [
-  "BYD Seal › SEAL-0001: Structure (options, 150% structure), Options tab, Effectivity tab",
+  "BYD Seal › SEAL-0001: Structure (options, 150% structure), Options tab, Effectivity tab, 3D view",
+  "3D models: the Blade Battery pack (hide its lid in the model tree), 8-in-1 powertrain, cell, wheel, knuckle, bolt",
   "e-Platform 3.0 › EP3-CL-138 (the Blade Battery cell): Where used across three vehicle lines",
   "Changes (top bar): the door-seal problem through to a resolved change notice",
   "Plant 2 – Seal Line Launch: work instructions, PFMEA, control plan, in folders by shop",

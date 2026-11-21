@@ -1115,9 +1115,22 @@ export const KEYS = {
 
 // Where to look once it's loaded.
 export const TOUR = [
-  "Aurora Sedan › AUR-0001: Structure (options, 150% structure), Options tab, Effectivity tab",
+  "Aurora Sedan › AUR-0001: Structure (options, 150% structure), Options tab, Effectivity tab, 3D view",
+  "3D models: the battery pack (hide its lid in the model tree), drive unit, cell, wheel, knuckle, bolt",
   "VX-3 EV Platform › VX3-CL-138 (the cell): Where used across three vehicle lines; its class",
   "Changes (top bar): the door-seal problem through to a resolved change notice",
   "Plant 2 – Line 3 Launch: work instructions, PFMEA, control plan, in folders by shop",
   "Classes (top bar): find cells, motors and fasteners by their attributes",
+];
+
+// ---- CAD models (STEP files in ./cad, made by cad/generate.py), each owning its part ----
+// [part, file, PART or ASSEMBLY, name]: the CAD document is CAD-<part number>, in the part's container.
+export const CAD_MODELS = [
+  ["VX3-CL-138", "VX3-CL-138.stp", "PART", "LFP long cell 138 Ah – 3D model"],
+  ["VX3-BP-60", "VX3-BP-60.stp", "ASSEMBLY", "Battery pack 60.5 kWh – 3D model"],
+  ["VX3-ED-150", "VX3-ED-150.stp", "ASSEMBLY", "8-in-1 electric drive unit – 3D model"],
+  ["VX3-CH-101", "VX3-CH-101.stp", "PART", "Steering knuckle, front – 3D model"],
+  ["AUR-WH-19", "AUR-WH-19.stp", "PART", "Wheel 19 in, forged – 3D model"],
+  ["STD-F-1265", "STD-F-1265.stp", "PART", "Flange bolt M12×65 – 3D model"],
+  ["AUR-0001", "AUR-0001.stp", "ASSEMBLY", "Aurora sedan – packaging model"],
 ];

@@ -148,6 +148,11 @@ It takes about a minute and loads, through the API like any client would:
 - **Classification** of cells, motors, semiconductors, sensors, controllers, fasteners and seals.
 - **14 documents with PDFs**: specifications, test reports, and the plant's work instructions,
   PFMEA and control plans in folders by shop.
+- **7 CAD models in 3D** (STEP, converted for the viewer): the vehicle's packaging model, the
+  battery pack with its 137 cells (hide the lid in the model tree), the 8-in-1 drive unit, a cell,
+  a 19-inch wheel, a steering knuckle and a chassis bolt, each owning its part: open the part's
+  **3D view** tab to turn, measure and section them. They're made by
+  `scripts/demo-data/cad/generate.py` (CadQuery).
 - **Changes**: three problem reports with discussions; one through a change request and a
   resolved change notice (a door seal's revision B, effective from vehicle 5000).
 - **A frozen baseline** of the Aurora at start of production.
