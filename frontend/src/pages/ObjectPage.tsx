@@ -5,6 +5,7 @@ import { SignaturesPanel } from "../workflow/Signatures";
 import { CadTab, cadKindOf } from "../cad/CadTab";
 import { PartCadPanel, useOwnerModel } from "../cad/Associations";
 import { ViewTab } from "../cad/ViewTab";
+import { SheetTab, useHasPdf } from "../cad/SheetTab";
 import { PublicationsPanel } from "../publishing/Publishing";
 import { ExtensionPanels, ExtensionTab, useUiSlots } from "../extensions/ExtensionFrame";
 import { ReplacementsTab } from "../structure/Replacements";
@@ -78,6 +79,7 @@ type Tab =
   | "change"
   | "cad"
   | "view3d"
+  | "view2d"
   | "changes"
   | "discussion"
   | "history"
@@ -102,6 +104,8 @@ function ObjectView({ id }: { id: string }) {
   const { data: uiSlots } = useUiSlots(id);
   const partLike = allTypes?.find((ty) => ty.id === obj?.typeId)?.baseClass === "PART";
   const ownerModel = useOwnerModel(id, partLike);
+  const docLike = allTypes?.find((ty) => ty.id === obj?.typeId)?.baseClass === "DOCUMENT";
+  const hasPdf = useHasPdf(id, docLike);
 
   if (isLoading) return <Loading />;
   if (isApiError(error, 404)) return <NotFoundPage what="object" />;
@@ -116,6 +120,7 @@ function ObjectView({ id }: { id: string }) {
       ? [["cad", cadKind === "PART" ? t("Model") : cadKind === "DRAWING" ? t("Models") : t("Model structure")] as [Tab, string]]
       : []),
     ...((cadKind && cadKind !== "DRAWING") || ownerModel ? [["view3d", t("3D view")] as [Tab, string]] : []),
+    ...(hasPdf ? [["view2d", t("2D view")] as [Tab, string]] : []),
     ...(isPart
       ? [
           ["structure", t("Structure")] as [Tab, string],
@@ -143,6 +148,7 @@ function ObjectView({ id }: { id: string }) {
       <div className="content">
         {tab === "details" && <DetailsTab obj={obj} myId={myId} />}
         {tab === "cad" && cadKind && <CadTab obj={obj} kind={cadKind} mine={!!myId && obj.checkedOutBy === myId} />}
+        {tab === "view2d" && <SheetTab obj={obj} />}
         {tab === "view3d" && <ViewTab obj={obj} modelId={cadKind ? obj.id : ownerModel!} />}
         {tab === "structure" && <PartCadPanel obj={obj} mine={!!myId && obj.checkedOutBy === myId} />}
         {tab === "structure" && <StructureTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}

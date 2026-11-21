@@ -1058,3 +1058,20 @@ table.collected td input[type="checkbox"] { width: 16px; height: 16px; }
 .pin-list li { display: list-item; }
 .pin-list input { width: calc(100% - 30px); }
 @media (max-width: 1700px) { .viewer-toolbar .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }
+/* The 2D viewer (roadmap 6.11). */
+.sheet-viewer { display: grid; grid-template-rows: auto minmax(0, 1fr); height: calc(100vh - 250px); min-height: 460px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--panel); }
+.sheet-viewer .zoom-value { min-width: 42px; text-align: center; font-variant-numeric: tabular-nums; }
+.sheet-viewer .sheet-file { margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.sheet-body { display: grid; grid-template-columns: minmax(0, 1fr) 290px; min-height: 0; }
+.sheet-area { position: relative; overflow: auto; padding: 16px; background: #e6e9ee; }
+.sheet-page { position: relative; margin: 0 auto; background: #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 0.25); }
+.sheet-page canvas { position: absolute; inset: 0; display: block; }
+.sheet-marks { position: absolute; inset: 0; overflow: visible; user-select: none; touch-action: none; }
+.sheet-marks.drawing { cursor: crosshair; }
+.sheet-marks line, .sheet-marks rect, .sheet-marks path { fill: none; stroke: #d6336c; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.sheet-marks .fill { fill: #d6336c; stroke: none; }
+.sheet-marks .num { fill: #fff; font-size: 11px; font-weight: 600; text-anchor: middle; }
+.sheet-marks .label { fill: #d6336c; font-size: 13px; font-weight: 600; paint-order: stroke; stroke: #fff; stroke-width: 3px; }
+.sheet-panel { border-left: 1px solid var(--border); padding: 12px; overflow: auto; display: grid; align-content: start; gap: 10px; font-size: 13px; }
+.sheet-panel h3 { margin: 0; font-size: 13px; }
+.shape-name { display: inline-block; width: calc(100% - 30px); color: var(--text-2); }

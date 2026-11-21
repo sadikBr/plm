@@ -516,8 +516,13 @@ seat.
       read the model sees them (earlier versions' marked as such) and opens one to get its view
       back. Each markup opens a topic in the object's discussion, with its reply count shown;
       authors delete their own, site administrators any.
-- [ ] 6.11 2D/PDF viewer with markups: drawings and PDFs rendered in the browser with pages and
+- [x] 6.11 2D/PDF viewer with markups: drawings and PDFs rendered in the browser with pages and
       zoom; markups (arrows, text, clouds, rectangles) saved per version.
+      Done: a 2D view tab on documents with a PDF (CAD drawings included) renders it in the
+      browser (pdf.js, loaded on demand; watermarked for the viewer when the site watermarks
+      downloads), page by page, zoomed in or fitted to the width, sharp at any zoom. Markups of
+      arrows, rectangles, revision clouds and numbered notes, in page units, are saved per version
+      and page through the same markups as the 3D view, each discussed in its own topic.
 - [ ] 6.12 MBD/PMI: dimensions, tolerances, datums and notes attached to the 3D model, grouped in
       views, shown in the viewer and kept with the version; imported with the model when present.
 
