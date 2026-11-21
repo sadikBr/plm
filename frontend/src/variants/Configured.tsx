@@ -48,10 +48,19 @@ function ConditionField({ obj, line, value }: { obj: VersionedObject; line: Line
  * by whether it applies to the choices made. On your working copy, its own lines' conditions are
  * edited here; lower lines belong to their sub-assemblies.
  */
-export function ConfiguredStructurePanel({ obj, set }: { obj: VersionedObject; set: Schemas["OptionSet"] }) {
+export function ConfiguredStructurePanel({
+  obj,
+  set,
+  selection,
+  setSelection,
+}: {
+  obj: VersionedObject;
+  set: Schemas["OptionSet"];
+  selection: Record<string, string>;
+  setSelection: (s: Record<string, string>) => void;
+}) {
   const { data: me } = useMe();
   const mine = !!me && obj.checkedOutBy === me.user.id;
-  const [selection, setSelection] = useState<Record<string, string>>({});
   const [onlyApplying, setOnlyApplying] = useState(false);
   const { data, error } = useQuery({
     queryKey: ["configured", obj.id, selection],

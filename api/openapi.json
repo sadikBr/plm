@@ -7637,6 +7637,27 @@
         "required" : [ "definition", "name", "shared", "table" ],
         "type" : "object"
       },
+      "SaveVariantSpec" : {
+        "properties" : {
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "selection" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "spec" : {
+            "$ref" : "#/components/schemas/ConfigSpec"
+          }
+        },
+        "required" : [ "name", "selection", "spec" ],
+        "type" : "object"
+      },
       "SavedSearch" : {
         "properties" : {
           "id" : {
@@ -9560,6 +9581,52 @@
           }
         },
         "required" : [ "kind" ],
+        "type" : "object"
+      },
+      "VariantSpec" : {
+        "properties" : {
+          "check" : {
+            "$ref" : "#/components/schemas/SelectionCheck"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "productId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "selection" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "spec" : {
+            "$ref" : "#/components/schemas/ConfigSpec"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "updatedBy" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "check", "createdAt", "createdBy", "id", "name", "productId", "selection", "spec", "updatedAt", "updatedBy" ],
         "type" : "object"
       },
       "Viewable" : {
@@ -21820,6 +21887,91 @@
         "tags" : [ "Change setup" ]
       }
     },
+    "/api/v1/objects/{id}/variant-specs" : {
+      "get" : {
+        "operationId" : "variantSpecList",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/VariantSpec"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Variant spec" ]
+      },
+      "post" : {
+        "operationId" : "variantSpecCreate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveVariantSpec"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VariantSpec"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Variant spec" ]
+      }
+    },
     "/api/v1/objects/{id}/where-used" : {
       "get" : {
         "operationId" : "bomWhereUsed",
@@ -27076,6 +27228,153 @@
         "tags" : [ "Validation rule" ]
       }
     },
+    "/api/v1/variant-specs/{specId}" : {
+      "delete" : {
+        "operationId" : "variantSpecDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "specId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Variant spec" ]
+      },
+      "get" : {
+        "operationId" : "variantSpecGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "specId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VariantSpec"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Variant spec" ]
+      },
+      "put" : {
+        "operationId" : "variantSpecUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "specId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveVariantSpec"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VariantSpec"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Variant spec" ]
+      }
+    },
+    "/api/v1/variant-specs/{specId}/structure" : {
+      "get" : {
+        "operationId" : "variantSpecStructure",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "specId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConfiguredStructure"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Variant spec" ]
+      }
+    },
     "/api/v1/vault/files" : {
       "get" : {
         "operationId" : "contentFile",
@@ -27472,6 +27771,8 @@
     "name" : "Ui extension"
   }, {
     "name" : "Validation rule"
+  }, {
+    "name" : "Variant spec"
   }, {
     "name" : "Versioned object"
   }, {

@@ -198,3 +198,49 @@ internal class ConditionsController(
             .ConfigSpec(spec, state),
     )
 }
+
+/** Variant specifications (roadmap 7.8). */
+@RestController
+internal class VariantSpecController(
+    private val specs: com.plm.variants.api.VariantSpecService,
+) {
+    @GetMapping("/api/v1/objects/{id}/variant-specs")
+    fun list(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = specs.list(actor, id)
+
+    @PostMapping("/api/v1/objects/{id}/variant-specs")
+    @ResponseStatus(HttpStatus.CREATED)
+    fun create(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: com.plm.variants.api.SaveVariantSpec,
+    ) = specs.create(actor, id, request)
+
+    @GetMapping("/api/v1/variant-specs/{specId}")
+    fun get(
+        actor: Actor,
+        @PathVariable specId: UUID,
+    ) = specs.get(actor, specId)
+
+    @PutMapping("/api/v1/variant-specs/{specId}")
+    fun update(
+        actor: Actor,
+        @PathVariable specId: UUID,
+        @RequestBody request: com.plm.variants.api.SaveVariantSpec,
+    ) = specs.update(actor, specId, request)
+
+    @DeleteMapping("/api/v1/variant-specs/{specId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun delete(
+        actor: Actor,
+        @PathVariable specId: UUID,
+    ) = specs.delete(actor, specId)
+
+    @GetMapping("/api/v1/variant-specs/{specId}/structure")
+    fun structure(
+        actor: Actor,
+        @PathVariable specId: UUID,
+    ) = specs.structure(actor, specId)
+}

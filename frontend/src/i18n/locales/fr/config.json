@@ -105,5 +105,19 @@
   "{applying} of {total} lines apply to these choices.": "{applying} lignes sur {total} s'appliquent à ces choix.",
   "Condition": "Condition",
   "Quantity": "Quantité",
-  "Version": "Version"
+  "Version": "Version",
+  "Variant specifications": "Spécifications de variante",
+  "Named selections of choices: what customers order and what gets built.": "Des sélections de choix nommées : ce que les clients commandent et ce qui est construit.",
+  "Valid": "Valide",
+  "Breaks a rule": "Enfreint une règle",
+  "Saved": "Enregistrée",
+  "Delete {name}": "Supprimer {name}",
+  "None yet: make choices below and save them.": "Aucune pour l'instant : faites des choix ci-dessous et enregistrez-les.",
+  "Variant name": "Nom de la variante",
+  "Name these choices, e.g. Long-range high torque": "Nommez ces choix, p. ex. Grande autonomie couple élevé",
+  "Save as a variant specification": "Enregistrer comme spécification de variante",
+  "Read as": "Lire avec",
+  "with the latest versions": "avec les dernières versions",
+  "with the latest Released versions": "avec les dernières versions publiées",
+  "Name": "Nom"
 }

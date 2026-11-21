@@ -602,8 +602,13 @@ main line, and classification makes existing parts easy to find and reuse.
       in conditions can't be removed. The part's Options tab shows the 150% structure, all levels,
       each line with its condition and whether it applies to the choices made (a line applies only
       if the lines above it do), and the structure tree tags lines with their conditions.
-- [ ] 7.8 Variant specifications: a named, saved selection of choices (with a configuration spec and
+- [x] 7.8 Variant specifications: a named, saved selection of choices (with a configuration spec and
       effectivity) for a configurable product, checked against the rules; its filtered structure.
+      Done: a configurable part's Options tab lists its variant specifications (name, choices,
+      whether they still keep the rules, who saved them) and saves the choices made as a new one,
+      read with the latest or latest Released versions (the API also takes a date, or effectivity
+      for a unit); a selection that breaks a rule isn't saved. Opening one shows its 150%
+      structure, filtered to what it builds.
 - [ ] 7.9 Variant generation and reuse: generate a variant part whose structure is the filtered
       result, level by level; before making new parts, find variants already generated for the
       same selection and reuse them; the variant remembers its specification.

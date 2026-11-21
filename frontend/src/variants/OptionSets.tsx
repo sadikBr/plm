@@ -7,6 +7,7 @@ import { ErrorBanner, Loading, Panel } from "../components/common";
 import { t, tn } from "../i18n/i18n";
 import { RulesSection } from "./OptionRules";
 import { ConfiguredStructurePanel } from "./Configured";
+import { VariantSpecsPanel } from "./VariantSpecs";
 
 type OptionSet = Schemas["OptionSet"];
 
@@ -234,6 +235,8 @@ export function PartOptionsPanel({ obj }: { obj: VersionedObject }) {
   const qc = useQueryClient();
   const { data: permissions } = usePermissions(obj.contextId, obj.typeId);
   const canEdit = !!permissions?.has("MODIFY");
+  const [selection, setSelection] = useState<Record<string, string>>({});
+  const [specId, setSpecId] = useState<string>();
   const { data } = usePartOptions(obj.id);
   const { data: sets } = useOptionSets();
   const assign = useMutation({
@@ -281,7 +284,29 @@ export function PartOptionsPanel({ obj }: { obj: VersionedObject }) {
           </p>
         )}
       </Panel>
-      {set && <ConfiguredStructurePanel obj={obj} set={set} />}
+      {set && (
+        <VariantSpecsPanel
+          obj={obj}
+          set={set}
+          selection={selection}
+          current={specId}
+          onOpen={(sp) => {
+            setSelection(sp.selection);
+            setSpecId(sp.id);
+          }}
+        />
+      )}
+      {set && (
+        <ConfiguredStructurePanel
+          obj={obj}
+          set={set}
+          selection={selection}
+          setSelection={(s) => {
+            setSelection(s);
+            setSpecId(undefined);
+          }}
+        />
+      )}
       {set && <OptionSetCard set={set} canEdit={false} />}
     </>
   );
