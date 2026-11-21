@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CircleAlert, CircleCheck, FlaskConical } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, unwrap } from "../api/client";
+import { t } from "../i18n/i18n";
 import { ErrorBanner } from "./common";
 
 type Kind = "CONDITION" | "VALUE";
@@ -10,8 +11,8 @@ type Kind = "CONDITION" | "VALUE";
 function useDebounced<T>(value: T, ms = 300): T {
   const [v, setV] = useState(value);
   useEffect(() => {
-    const t = setTimeout(() => setV(value), ms);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setV(value), ms);
+    return () => clearTimeout(timer);
   }, [value, ms]);
   return v;
 }
@@ -70,19 +71,19 @@ export function ExpressionField({
         {problem ? (
           <>
             <CircleAlert size={12} aria-hidden />
-            {problem.line ? `Line ${problem.line}, column ${problem.column}: ` : ""}
+            {problem.line ? t("Line {line}, column {column}: ", { line: problem.line, column: problem.column ?? "" }) : ""}
             {problem.message}
           </>
         ) : text && check?.valid ? (
           <>
-            <CircleCheck size={12} aria-hidden /> Valid
+            <CircleCheck size={12} aria-hidden /> {t("Valid")}
           </>
         ) : (
-          (hint ?? (kind === "CONDITION" ? "A condition: true or false." : "A formula: its result is the value."))
+          (hint ?? (kind === "CONDITION" ? t("A condition: true or false.") : t("A formula: its result is the value.")))
         )}
       </span>
       <details className="expr-help">
-        <summary>Variables and examples</summary>
+        <summary>{t("Variables and examples")}</summary>
         <ul>
           <li>
             <code>object.number</code>, <code>object.name</code>, <code>object.type</code>, <code>object.state</code>,{" "}
@@ -90,22 +91,25 @@ export function ExpressionField({
             <code>object.context.kind</code>
           </li>
           <li>
-            <code>object.attributes.&lt;name&gt;</code>: every attribute of the type, <code>null</code> when empty. Quantities are{" "}
-            <code>{"{value, unit}"}</code>: <code>object.attributes.mass.value</code>
+            <code>object.attributes.&lt;name&gt;</code>
+            {t(": every attribute of the type,")} <code>null</code> {t("when empty. Quantities are")} <code>{"{value, unit}"}</code>:{" "}
+            <code>object.attributes.mass.value</code>
           </li>
           <li>
-            <code>object.types</code>: the type and its parents, e.g. <code>'Part' in object.types</code>
+            <code>object.types</code>
+            {t(": the type and its parents, e.g.")} <code>'Part' in object.types</code>
           </li>
           <li>
-            <code>user.id</code>, <code>user.siteAdmin</code>, <code>user.permissions</code>, e.g. <code>'MANAGE' in user.permissions</code>
+            <code>user.id</code>, <code>user.siteAdmin</code>, <code>user.permissions</code>
+            {t(", e.g.")} <code>'MANAGE' in user.permissions</code>
           </li>
           <li>
-            In operation rules, <code>event.operation</code> (e.g. <code>'object.check-in'</code>), and <code>event.from</code>,{" "}
-            <code>event.to</code>, <code>event.comment</code> for set state, <code>event.comment</code> for check-in,{" "}
-            <code>event.number</code>, <code>event.name</code> for rename
+            {t("In operation rules,")} <code>event.operation</code> ({t("e.g.")} <code>'object.check-in'</code>){t(", and")}{" "}
+            <code>event.from</code>, <code>event.to</code>, <code>event.comment</code> {t("for set state,")} <code>event.comment</code>{" "}
+            {t("for check-in,")} <code>event.number</code>, <code>event.name</code> {t("for rename")}
           </li>
           <li>
-            Examples: <code>object.state == 'RELEASED' &amp;&amp; object.attributes.source == 'make'</code> ·{" "}
+            {t("Examples:")} <code>object.state == 'RELEASED' &amp;&amp; object.attributes.source == 'make'</code> ·{" "}
             <code>object.attributes.description != null &amp;&amp; size(object.attributes.description) &gt; 10</code> ·{" "}
             <code>double(object.attributes.quantity) * object.attributes.unitCost</code>
           </li>
@@ -131,7 +135,7 @@ function TryOnObject({ expression, kind, disabled }: { expression: string; kind:
       const found = await unwrap(api.GET("/api/v1/objects", { params: { query: { q: query.trim(), limit: 1 } } }));
       const obj = found[0];
       if (!obj) {
-        setResult({ number: query.trim(), error: "No object you can read matches that." });
+        setResult({ number: query.trim(), error: t("No object you can read matches that.") });
         return;
       }
       const r = await unwrap(
@@ -149,8 +153,8 @@ function TryOnObject({ expression, kind, disabled }: { expression: string; kind:
     <div className="expr-try">
       <FlaskConical size={13} className="icon-muted" aria-hidden />
       <input
-        aria-label="Try on object"
-        placeholder="Try on an object: number or name"
+        aria-label={t("Try on object")}
+        placeholder={t("Try on an object: number or name")}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
@@ -161,7 +165,7 @@ function TryOnObject({ expression, kind, disabled }: { expression: string; kind:
         }}
       />
       <button type="button" className="btn small" disabled={disabled || !query.trim() || busy} onClick={() => void run()}>
-        Try
+        {t("Try")}
       </button>
       {result && (
         <span className={result.error ? "expr-result bad" : "expr-result"} role="status">

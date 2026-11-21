@@ -18,7 +18,8 @@ import {
   type ContextKind,
   useShows,
 } from "../api/queries";
-import { BROWSABLE_KINDS, ContextIcon, Spinner, browsePath, kindFromSlug, kindLabel, kindPlural } from "./common";
+import { t, tn } from "../i18n/i18n";
+import { BROWSABLE_KINDS, ContextIcon, Spinner, browsePath, kindFromSlug, kindLabel, kindPlural, kindPluralInText } from "./common";
 
 // ---------- Per-viewer memory: pinned and recent contexts, collapsed state ----------
 // Conveniences only, so they live in this browser. Storage can be unavailable (private mode):
@@ -127,7 +128,7 @@ export function Navigator() {
   const { data: me } = useMe();
   const shows = useShows();
   const kinds = BROWSABLE_KINDS.filter((k) => k !== "ORGANIZATION" || !!me?.siteAdmin || !!managed?.length).filter((k) =>
-    shows(`browse.${kindPlural(k).toLowerCase()}`),
+    shows(`browse.${browsePath(k).slice("/browse/".length)}`),
   );
   const allowed = (r: Remembered) => !!canOpen?.(r);
   const pinned = useStored<Remembered[]>(PINNED, NONE).filter(allowed);
@@ -137,8 +138,13 @@ export function Navigator() {
 
   if (collapsed) {
     return (
-      <nav className="sidebar collapsed" aria-label="Navigator">
-        <button className="nav-icon-btn" aria-label="Expand navigator" title="Expand navigator" onClick={() => setCollapsed(false)}>
+      <nav className="sidebar collapsed" aria-label={t("Navigator")}>
+        <button
+          className="nav-icon-btn"
+          aria-label={t("Expand navigator")}
+          title={t("Expand navigator")}
+          onClick={() => setCollapsed(false)}
+        >
           <ChevronsRight size={15} />
         </button>
         {site && (
@@ -168,24 +174,29 @@ export function Navigator() {
   }
 
   return (
-    <nav className="sidebar" aria-label="Navigator">
+    <nav className="sidebar" aria-label={t("Navigator")}>
       <div className="nav-head">
-        <span className="sidebar-title">Navigator</span>
-        <button className="nav-icon-btn" aria-label="Collapse navigator" title="Collapse navigator" onClick={() => setCollapsed(true)}>
+        <span className="sidebar-title">{t("Navigator")}</span>
+        <button
+          className="nav-icon-btn"
+          aria-label={t("Collapse navigator")}
+          title={t("Collapse navigator")}
+          onClick={() => setCollapsed(true)}
+        >
           <ChevronsLeft size={15} />
         </button>
       </div>
       <div className="nav-filter">
         <Search size={13} aria-hidden />
         <input
-          aria-label="Filter contexts"
-          placeholder="Find a product, library…"
+          aria-label={t("Filter contexts")}
+          placeholder={t("Find a product, library…")}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           onKeyDown={(e) => e.key === "Escape" && setFilter("")}
         />
         {filter && (
-          <button className="nav-clear" aria-label="Clear filter" onClick={() => setFilter("")}>
+          <button className="nav-clear" aria-label={t("Clear filter")} onClick={() => setFilter("")}>
             <X size={12} />
           </button>
         )}
@@ -195,8 +206,8 @@ export function Navigator() {
         <FilterResults text={filter.trim()} currentId={contextId} />
       ) : (
         <>
-          <NavSection title="Browse" grow>
-            <ul className="nav-scroll nav-kinds" aria-label="Browse by kind">
+          <NavSection title={t("Browse")} grow>
+            <ul className="nav-scroll nav-kinds" aria-label={t("Browse by kind")}>
               {site && (
                 <li>
                   <div className={contextId === site.id ? "nav-row kind-row active" : "nav-row kind-row"}>
@@ -205,7 +216,7 @@ export function Navigator() {
                       <span className="kind kind-site">
                         <ContextIcon kind="SITE" size={14} />
                       </span>
-                      <span className="nav-name">Site</span>
+                      <span className="nav-name">{t("Site")}</span>
                     </NavLink>
                   </div>
                 </li>
@@ -224,14 +235,14 @@ export function Navigator() {
             )}
           />
           {pinned.length > 0 && (
-            <NavSection title="Pinned" icon={<Pin size={11} aria-hidden />}>
+            <NavSection title={t("Pinned")} icon={<Pin size={11} aria-hidden />}>
               {pinned.map((p) => (
                 <FlatRow key={p.id} item={p} current={p.id === contextId} pinned />
               ))}
             </NavSection>
           )}
           {recent.length > 0 && (
-            <NavSection title="Recent" icon={<Clock size={11} aria-hidden />}>
+            <NavSection title={t("Recent")} icon={<Clock size={11} aria-hidden />}>
               {recent.map((r) => (
                 <FlatRow key={r.id} item={r} current={r.id === contextId} pinned={false} />
               ))}
@@ -271,7 +282,7 @@ function KindRow({
       <div className={browsing ? "nav-row kind-row active" : active ? "nav-row kind-row on-path" : "nav-row kind-row"}>
         <button
           className="tree-toggle"
-          aria-label={`${open ? "Hide" : "Show"} ${kindPlural(kind).toLowerCase()}`}
+          aria-label={open ? t("Hide {kinds}", { kinds: kindPluralInText(kind) }) : t("Show {kinds}", { kinds: kindPluralInText(kind) })}
           aria-expanded={open}
           onClick={toggle}
           disabled={active}
@@ -293,7 +304,7 @@ function KindRow({
               <Spinner />
             </li>
           )}
-          {contexts && contexts.length === 0 && <li className="nav-none">None you can see</li>}
+          {contexts && contexts.length === 0 && <li className="nav-none">{t("None you can see")}</li>}
           {shown.map((c) => (
             <li key={c.id}>
               <FlatRow item={c} current={c.id === currentId} pinned={pinnedIds.has(c.id)} indent />
@@ -302,7 +313,7 @@ function KindRow({
           {contexts && contexts.length > MAX_LISTED && (
             <li>
               <Link className="nav-more" to={browsePath(kind)}>
-                All {contexts.length} {kindPlural(kind).toLowerCase()}
+                {t("All {count} {kinds}", { count: contexts.length, kinds: kindPluralInText(kind) })}
               </Link>
             </li>
           )}
@@ -328,8 +339,8 @@ function PinButton({ item, pinned }: { item: Remembered; pinned: boolean }) {
   return (
     <button
       className={pinned ? "nav-pin on" : "nav-pin"}
-      aria-label={pinned ? `Unpin ${item.name}` : `Pin ${item.name}`}
-      title={pinned ? "Unpin" : "Pin to the top"}
+      aria-label={pinned ? t("Unpin {name}", { name: item.name }) : t("Pin {name}", { name: item.name })}
+      title={pinned ? t("Unpin") : t("Pin to the top")}
       onClick={(e) => {
         e.preventDefault();
         togglePin(item);
@@ -347,7 +358,7 @@ function FlatRow({ item, current, pinned, indent = false }: { item: Remembered; 
     <div className={current ? "nav-row active" : "nav-row"} style={indent ? { paddingLeft: 22 } : undefined}>
       <NavLink
         to={`/contexts/${item.id}`}
-        title={`${item.name} · ${kindLabel(item.kind)}${org ? ` in ${org}` : ""}`}
+        title={`${item.name} · ${org ? t("{kind} in {organization}", { kind: kindLabel(item.kind), organization: org }) : kindLabel(item.kind)}`}
         aria-current={current ? "page" : undefined}
       >
         <span className={`kind kind-${item.kind.toLowerCase()}`}>
@@ -365,8 +376,8 @@ function FilterResults({ text, currentId }: { text: string; currentId?: string }
   // A short pause, so typing doesn't send a request per key.
   const [query, setQuery] = useState(text);
   useEffect(() => {
-    const t = setTimeout(() => setQuery(text), 180);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setQuery(text), 180);
+    return () => clearTimeout(timer);
   }, [text]);
   const { data, isFetching } = useQuery({
     queryKey: ["contextSearch", query],
@@ -381,9 +392,9 @@ function FilterResults({ text, currentId }: { text: string; currentId?: string }
   const canOpen = useCanOpen();
   if (!data || !canOpen) return <div className="nav-empty">{isFetching || !canOpen ? <Spinner /> : null}</div>;
   const matches = data.filter(canOpen);
-  if (matches.length === 0) return <p className="nav-empty">No context matches “{query}”.</p>;
+  if (matches.length === 0) return <p className="nav-empty">{t("No context matches “{query}”.", { query })}</p>;
   return (
-    <NavSection title={`${matches.length} match${matches.length === 1 ? "" : "es"}`} grow>
+    <NavSection title={tn("{n} match", "{n} matches", matches.length)} grow>
       <div className="nav-scroll">
         {matches.map((c) => (
           <FlatRow key={c.id} item={c} current={c.id === currentId} pinned={pinned.has(c.id)} />
@@ -399,8 +410,8 @@ function NavFavorites() {
   const { pathname } = useLocation();
   if (!data?.length) return null;
   return (
-    <NavSection title="Favorites" icon={<Star size={11} aria-hidden />}>
-      <ul className="nav-favorites" aria-label="Favorites">
+    <NavSection title={t("Favorites")} icon={<Star size={11} aria-hidden />}>
+      <ul className="nav-favorites" aria-label={t("Favorites")}>
         {data.slice(0, 10).map((f) => {
           const to = favoriteLink(f);
           return (

@@ -7,6 +7,7 @@ import { findPrincipalByUsername, useContextById, useMe } from "../api/queries";
 import { ErrorBanner, Loading, Panel, PrincipalName, formatDate } from "../components/common";
 import { PageHeader } from "../components/Layout";
 import { BarChart } from "../reports/BarChart";
+import { t } from "../i18n/i18n";
 
 /** `versioning.ObjectCheckedIn.v1` → "Checked in". */
 export function auditAction(action: string): string {
@@ -15,16 +16,83 @@ export function auditAction(action: string): string {
     .replace(/\.v\d+$/, "")
     .replace(/^Object/, "");
   const words = name.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();
-  return words.charAt(0).toUpperCase() + words.slice(1);
+  const english = words.charAt(0).toUpperCase() + words.slice(1);
+  switch (english) {
+    case "Created":
+      return t("Created");
+    case "Checked out":
+      return t("Checked out");
+    case "Checked in":
+      return t("Checked in");
+    case "Check out undone":
+      return t("Check out undone");
+    case "Working copy updated":
+      return t("Working copy updated");
+    case "Revised":
+      return t("Revised");
+    case "State changed":
+      return t("State changed");
+    case "Renamed":
+      return t("Renamed");
+    case "Lifecycle changed":
+      return t("Lifecycle changed");
+    case "Moved":
+      return t("Moved");
+    case "Copied":
+      return t("Copied");
+    case "Deleted":
+      return t("Deleted");
+    case "Shared":
+      return t("Shared");
+    case "Unshared":
+      return t("Unshared");
+    case "Ownership changed":
+      return t("Ownership changed");
+    case "Folder changed":
+      return t("Folder changed");
+    case "Content changed":
+      return t("Content changed");
+    case "Comment posted":
+      return t("Comment posted");
+    case "Context created":
+      return t("Context created");
+    case "Context template changed":
+      return t("Context template changed");
+    case "Policy changed":
+      return t("Policy changed");
+    case "Shared team changed":
+      return t("Shared team changed");
+    case "Team member put":
+      return t("Team member put");
+    case "Team member removed":
+      return t("Team member removed");
+    case "Team role changed":
+      return t("Team role changed");
+    case "Lifecycle assigned":
+      return t("Lifecycle assigned");
+    case "Lifecycle versioned":
+      return t("Lifecycle versioned");
+    case "Extension action invoked":
+      return t("Extension action invoked");
+    case "Job finished":
+      return t("Job finished");
+    case "Job schedule changed":
+      return t("Job schedule changed");
+    case "Preference changed":
+      return t("Preference changed");
+    case "Configuration imported":
+      return t("Configuration imported");
+  }
+  return english;
 }
 
-const AREAS: [string, string][] = [
-  ["", "Everything"],
-  ["versioning.", "Objects"],
-  ["collaboration.", "Discussions"],
-  ["versioning.ObjectShared", "Sharing"],
-  ["access.", "Teams and access"],
-  ["jobs.", "Background jobs"],
+const AREAS = (): [string, string][] => [
+  ["", t("Everything")],
+  ["versioning.", t("Objects")],
+  ["collaboration.", t("Discussions")],
+  ["versioning.ObjectShared", t("Sharing")],
+  ["access.", t("Teams and access")],
+  ["jobs.", t("Background jobs")],
 ];
 
 /** Day boundaries in the browser's time zone, as instants. */
@@ -89,7 +157,7 @@ export function AuditReportPage() {
       describe(e.details),
     ]);
     const res = await api.POST("/api/v1/export/xlsx", {
-      body: { sheetName: "Audit", columns: ["When", "What", "Who", "Number", "Version", "Details"], rows },
+      body: { sheetName: t("Audit"), columns: [t("When"), t("What"), t("Who"), t("Number"), t("Version"), t("Details")], rows },
       parseAs: "blob",
       headers: { Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
     });
@@ -97,7 +165,7 @@ export function AuditReportPage() {
     const url = URL.createObjectURL(res.data as Blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Audit ${from || "start"} to ${to || "today"}.xlsx`;
+    a.download = `${t("Audit {from} to {to}", { from: from || t("start"), to: to || t("today") })}.xlsx`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
   };
@@ -106,26 +174,26 @@ export function AuditReportPage() {
     <>
       <PageHeader
         icon={<ScrollText size={18} className="icon-muted" aria-hidden />}
-        title={<span className="nm">Audit report</span>}
+        title={<span className="nm">{t("Audit report")}</span>}
         meta={
           <span className="sub">
             {contextId ? (
               <>
-                Changes in <Link to={`/contexts/${contextId}`}>{context?.name ?? "…"}</Link> and below
+                {t("Changes in")} <Link to={`/contexts/${contextId}`}>{context?.name ?? "…"}</Link> {t("and below")}
                 {me?.siteAdmin && (
-                  <button className="icon-btn" aria-label="All contexts" title="All contexts" onClick={() => setParams({})}>
+                  <button className="icon-btn" aria-label={t("All contexts")} title={t("All contexts")} onClick={() => setParams({})}>
                     <X size={12} />
                   </button>
                 )}
               </>
             ) : (
-              "Every recorded change, by anyone"
+              t("Every recorded change, by anyone")
             )}
           </span>
         }
         toolbar={
           <button className="btn ghost" disabled={!data?.entries.length} onClick={() => void exportRows()}>
-            <FileSpreadsheet size={15} aria-hidden /> Export to Excel
+            <FileSpreadsheet size={15} aria-hidden /> {t("Export to Excel")}
           </button>
         }
       />
@@ -138,73 +206,77 @@ export function AuditReportPage() {
           }}
         >
           <div className="field">
-            <label htmlFor="audit-from">From</label>
+            <label htmlFor="audit-from">{t("From")}</label>
             <input id="audit-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           </div>
           <div className="field">
-            <label htmlFor="audit-to">To</label>
+            <label htmlFor="audit-to">{t("To")}</label>
             <input id="audit-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
           <div className="field">
-            <label htmlFor="audit-what">What</label>
+            <label htmlFor="audit-what">{t("What")}</label>
             <select id="audit-what" value={action} onChange={(e) => setAction(e.target.value)}>
-              {AREAS.map(([k, l]) => (
+              {AREAS().map(([k, l]) => (
                 <option key={k} value={k}>
                   {l}
                 </option>
               ))}
-              {action && !AREAS.some(([k]) => k === action) && <option value={action}>{auditAction(action)}</option>}
+              {action && !AREAS().some(([k]) => k === action) && <option value={action}>{auditAction(action)}</option>}
             </select>
           </div>
           <div className="field">
-            <label htmlFor="audit-who">Who (username)</label>
+            <label htmlFor="audit-who">{t("Who (username)")}</label>
             <input
               id="audit-who"
               value={who}
               onChange={(e) => setWho(e.target.value)}
               onBlur={() => void applyWho()}
-              placeholder="Anyone"
+              placeholder={t("Anyone")}
             />
           </div>
         </form>
         <ErrorBanner error={whoError ?? error} />
-        {!me?.siteAdmin && !contextId && <p className="empty">Open the audit report from a context you manage.</p>}
+        {!me?.siteAdmin && !contextId && <p className="empty">{t("Open the audit report from a context you manage.")}</p>}
         {data && (
           <>
             <div className="audit-charts">
-              <Panel title="Changes" note={isFetching ? "updating…" : undefined}>
+              <Panel title={t("Changes")} note={isFetching ? t("updating…") : undefined}>
                 <div className="stat-tile">
                   <span className="value">{data.total}</span>
-                  <span className="muted small">recorded in the period</span>
+                  <span className="muted small">{t("recorded in the period")}</span>
                 </div>
               </Panel>
-              <Panel title="By kind of change">
+              <Panel title={t("By kind of change")}>
                 <BarChart
                   bars={data.byAction.map((a) => ({ key: a.key, label: auditAction(a.key), count: a.count }))}
                   onSelect={(k) => setAction(k.replace(/\.v\d+$/, ""))}
                 />
               </Panel>
-              <Panel title="By person">
+              <Panel title={t("By person")}>
                 <BarChart bars={data.byActor.map((a) => ({ key: a.key, label: names.get(a.key) ?? a.key, count: a.count }))} />
               </Panel>
             </div>
             <Panel
-              title="Changes"
-              note={data.entries.length < data.total ? `latest ${data.entries.length} of ${data.total}` : undefined}
+              title={t("Changes")}
+              note={
+                data.entries.length < data.total
+                  ? t("latest {count} of {total}", { count: data.entries.length, total: data.total })
+                  : undefined
+              }
               flush
             >
               {data.entries.length === 0 ? (
-                <p className="empty">Nothing recorded for these filters.</p>
+                <p className="empty">{t("Nothing recorded for these filters.")}</p>
               ) : (
                 <div className="grid-wrap">
-                  <table className="grid" aria-label="Audit entries">
+                  <table className="grid" aria-label={t("Audit entries")}>
                     <thead>
                       <tr>
-                        <th>When</th>
-                        <th>What</th>
-                        <th>Who</th>
-                        <th>Object</th>
-                        <th>Details</th>
+                        <th>{t("When")}</th>
+                        <th>{t("What")}</th>
+                        <th>{t("Who")}</th>
+                        <th>{t("Object")}</th>
+                        <th>{t("Details")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -218,7 +290,7 @@ export function AuditReportPage() {
                           <td className="nowrap">
                             {e.aggregateType === "versioned-object" && e.action !== "versioning.ObjectDeleted.v1" ? (
                               <Link className="num-link" to={`/objects/${e.aggregateId}`}>
-                                {String(e.details.number ?? "Object")}
+                                {String(e.details.number ?? t("Object"))}
                               </Link>
                             ) : (
                               <span>{String(e.details.number ?? e.details.name ?? "")}</span>
@@ -252,9 +324,14 @@ export function AuditReportPage() {
 function describe(d: Record<string, unknown>): string {
   const parts: string[] = [];
   if (d.from != null && d.to != null) parts.push(`${String(d.from)} → ${String(d.to)}`);
-  if (d.previousNumber != null) parts.push(`was ${String(d.previousNumber)} “${String(d.previousName)}”`);
+  if (d.previousNumber != null) parts.push(t("was {number} “{name}”", { number: String(d.previousNumber), name: String(d.previousName) }));
   if (d.principalId != null && Array.isArray(d.permissions))
-    parts.push(`shared with ${String(d.principalId)} (${(d.permissions as string[]).join(", ").toLowerCase()})`);
+    parts.push(
+      t("shared with {principal} ({permissions})", {
+        principal: String(d.principalId),
+        permissions: (d.permissions as string[]).join(", ").toLowerCase(),
+      }),
+    );
   if (d.comment) parts.push(`“${String(d.comment)}”`);
   if (d.name != null && d.previousNumber == null && d.number != null) parts.push(String(d.name));
   return parts.join(" · ");

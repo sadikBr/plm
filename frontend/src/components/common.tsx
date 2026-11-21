@@ -1,3 +1,4 @@
+import { language, locale, t } from "../i18n/i18n";
 import {
   Bolt,
   Box,
@@ -34,7 +35,7 @@ export function PrincipalName({ id }: { id: string | null | undefined }) {
   // Seed data and automatic changes are by "system", which isn't a user to look up.
   const { data } = usePrincipal(id === SYSTEM ? undefined : id);
   if (!id) return <span className="muted">—</span>;
-  if (id === SYSTEM) return <span className="muted">System</span>;
+  if (id === SYSTEM) return <span className="muted">{t("System")}</span>;
   return <span title={id}>{data?.displayName ?? shortId(id)}</span>;
 }
 
@@ -50,7 +51,7 @@ export function initials(name: string | undefined): string {
 
 // ---------- Feedback ----------
 
-export function Spinner({ label = "Loading" }: { label?: string }) {
+export function Spinner({ label = t("Loading") }: { label?: string }) {
   return <span className="spinner" role="status" aria-label={label} />;
 }
 
@@ -82,25 +83,59 @@ export function ErrorBanner({ error }: { error: unknown }) {
 
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  return new Date(iso).toLocaleString(locale(), { dateStyle: "medium", timeStyle: "short" });
 }
 
 // ---------- Contexts, types and states ----------
 
-const KIND: Record<ContextKind, { label: string; plural: string; slug: string; icon: LucideIcon }> = {
-  SITE: { label: "Site", plural: "Site", slug: "site", icon: Globe },
-  ORGANIZATION: { label: "Organization", plural: "Organizations", slug: "organizations", icon: Building2 },
-  PRODUCT: { label: "Product", plural: "Products", slug: "products", icon: Package },
-  LIBRARY: { label: "Library", plural: "Libraries", slug: "libraries", icon: Library },
-  PROJECT: { label: "Project", plural: "Projects", slug: "projects", icon: FolderKanban },
+const KIND: Record<ContextKind, { slug: string; icon: LucideIcon }> = {
+  SITE: { slug: "site", icon: Globe },
+  ORGANIZATION: { slug: "organizations", icon: Building2 },
+  PRODUCT: { slug: "products", icon: Package },
+  LIBRARY: { slug: "libraries", icon: Library },
+  PROJECT: { slug: "projects", icon: FolderKanban },
 };
 
 export function kindLabel(kind: ContextKind): string {
-  return KIND[kind].label;
+  switch (kind) {
+    case "SITE":
+      return t("Site");
+    case "ORGANIZATION":
+      return t("Organization");
+    case "PRODUCT":
+      return t("Product");
+    case "LIBRARY":
+      return t("Library");
+    case "PROJECT":
+      return t("Project");
+  }
 }
 
 export function kindPlural(kind: ContextKind): string {
-  return KIND[kind].plural;
+  switch (kind) {
+    case "SITE":
+      return t("Site");
+    case "ORGANIZATION":
+      return t("Organizations");
+    case "PRODUCT":
+      return t("Products");
+    case "LIBRARY":
+      return t("Libraries");
+    case "PROJECT":
+      return t("Projects");
+  }
+}
+
+/** A kind's name for use inside a sentence: lower case, except in German where nouns keep their capital. */
+export function kindInText(kind: ContextKind): string {
+  const label = kindLabel(kind);
+  return language() === "de" ? label : label.toLowerCase();
+}
+
+/** A kind's plural for use inside a sentence (see [kindInText]). */
+export function kindPluralInText(kind: ContextKind): string {
+  const plural = kindPlural(kind);
+  return language() === "de" ? plural : plural.toLowerCase();
 }
 
 /** The kinds that are browsed as lists, in sidebar order; the site is a single context. */
@@ -150,9 +185,8 @@ export function TypeIcon({ typeId, size = 15 }: { typeId: string; size?: number 
 /** A type's name in the user's language when translated, else its display name. */
 export function typeLabel(type: { displayName: string; labels?: Record<string, string> } | undefined): string {
   if (!type) return "";
-  const lang = (typeof navigator !== "undefined" ? navigator.language : "en").toLowerCase();
   const labels = type.labels ?? {};
-  return labels[lang] ?? labels[lang.split("-")[0]!] ?? type.displayName;
+  return labels[language()] ?? type.displayName;
 }
 
 export function useTypeName(typeId: string): string {
@@ -162,6 +196,30 @@ export function useTypeName(typeId: string): string {
 
 /** `IN_WORK` → `In Work`. */
 export function stateLabel(state: string): string {
+  switch (state) {
+    case "IN_WORK":
+      return t("In Work");
+    case "UNDER_REVIEW":
+      return t("Under Review");
+    case "RELEASED":
+      return t("Released");
+    case "CANCELED":
+      return t("Canceled");
+    case "CANCELLED":
+      return t("Cancelled");
+    case "OBSOLETE":
+      return t("Obsolete");
+    case "DRAFT":
+      return t("Draft");
+    case "APPROVED":
+      return t("Approved");
+    case "REJECTED":
+      return t("Rejected");
+    case "PRIVATE":
+      return t("Private");
+    case "FROZEN":
+      return t("Frozen");
+  }
   return state
     .toLowerCase()
     .split("_")

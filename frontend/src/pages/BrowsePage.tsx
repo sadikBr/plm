@@ -10,10 +10,43 @@ import {
   useSite,
   type ContextKind,
 } from "../api/queries";
-import { ContextIcon, ErrorBanner, Loading, Panel, kindFromSlug, kindLabel, kindPlural } from "../components/common";
+import { t } from "../i18n/i18n";
+import { ContextIcon, ErrorBanner, Loading, Panel, kindFromSlug, kindPlural, kindPluralInText } from "../components/common";
 import { PageHeader } from "../components/Layout";
 import { ContextTable, NewContextDialog, countOf } from "./ContextLists";
 import { NotFoundPage } from "./NotFoundPage";
+
+/** "New product", ...: the button that creates a context of [kind]. */
+function newLabel(kind: ContextKind): string {
+  switch (kind) {
+    case "ORGANIZATION":
+      return t("New organization");
+    case "PRODUCT":
+      return t("New product");
+    case "LIBRARY":
+      return t("New library");
+    case "PROJECT":
+      return t("New project");
+    default:
+      return t("New site");
+  }
+}
+
+/** The empty list of [kind]. */
+function noneYet(kind: ContextKind): string {
+  switch (kind) {
+    case "ORGANIZATION":
+      return t("No organizations you can see yet.");
+    case "PRODUCT":
+      return t("No products you can see yet.");
+    case "LIBRARY":
+      return t("No libraries you can see yet.");
+    case "PROJECT":
+      return t("No projects you can see yet.");
+    default:
+      return t("No site you can see yet.");
+  }
+}
 
 /** Every visible context of one kind: /browse/organizations, /browse/products, ... */
 export function BrowsePage() {
@@ -42,7 +75,6 @@ function BrowseView({ kind }: { kind: ContextKind }) {
 
   // Organizations are made by site admins on the site; the rest by managers of an organization.
   const canCreate = kind === "ORGANIZATION" ? !!me?.siteAdmin && !!site : !!managed?.length;
-  const label = kindLabel(kind).toLowerCase();
   // Organizations are for administrators (site, or of an organization): others go home.
   if (kind === "ORGANIZATION" && managed && managed.length === 0) return <Navigate to="/" replace />;
 
@@ -54,7 +86,7 @@ function BrowseView({ kind }: { kind: ContextKind }) {
         meta={
           contexts && (
             <span className="sub">
-              {countOf(contexts.length, kind)} {kind === "ORGANIZATION" && !me?.siteAdmin ? "you manage" : "you can see"}
+              {countOf(contexts.length, kind)} {kind === "ORGANIZATION" && !me?.siteAdmin ? t("you manage") : t("you can see")}
             </span>
           )
         }
@@ -62,7 +94,7 @@ function BrowseView({ kind }: { kind: ContextKind }) {
           canCreate ? (
             <button className="btn ghost" onClick={() => setCreating(true)}>
               <Plus size={15} aria-hidden />
-              New {label}
+              {newLabel(kind)}
             </button>
           ) : undefined
         }
@@ -71,14 +103,18 @@ function BrowseView({ kind }: { kind: ContextKind }) {
         <Panel
           title={kindPlural(kind)}
           note={
-            contexts ? (shown.length === contexts.length ? String(contexts.length) : `${shown.length} of ${contexts.length}`) : undefined
+            contexts
+              ? shown.length === contexts.length
+                ? String(contexts.length)
+                : t("{shown} of {total}", { shown: shown.length, total: contexts.length })
+              : undefined
           }
           flush
           actions={
             <>
               {kind !== "ORGANIZATION" && (organizations?.length ?? 0) > 1 && (
-                <select className="filter" aria-label="Organization" value={orgFilter} onChange={(e) => setOrgFilter(e.target.value)}>
-                  <option value="">All organizations</option>
+                <select className="filter" aria-label={t("Organization")} value={orgFilter} onChange={(e) => setOrgFilter(e.target.value)}>
+                  <option value="">{t("All organizations")}</option>
                   {organizations?.map((o) => (
                     <option key={o.id} value={o.id}>
                       {o.name}
@@ -89,8 +125,8 @@ function BrowseView({ kind }: { kind: ContextKind }) {
               <input
                 className="filter"
                 type="search"
-                aria-label={`Filter ${kindPlural(kind).toLowerCase()}`}
-                placeholder="Filter by name"
+                aria-label={t("Filter {kinds}", { kinds: kindPluralInText(kind) })}
+                placeholder={t("Filter by name")}
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
               />
@@ -102,11 +138,11 @@ function BrowseView({ kind }: { kind: ContextKind }) {
             <Loading />
           ) : !contexts?.length ? (
             <p className="empty">
-              No {kindPlural(kind).toLowerCase()} you can see yet.
-              {canCreate ? ` Use New ${label} to create one.` : ""}
+              {noneYet(kind)}
+              {canCreate ? ` ${t("Use {action} to create one.", { action: newLabel(kind) })}` : ""}
             </p>
           ) : shown.length === 0 ? (
-            <p className="empty">Nothing matches.</p>
+            <p className="empty">{t("Nothing matches.")}</p>
           ) : (
             <ContextTable
               contexts={shown}

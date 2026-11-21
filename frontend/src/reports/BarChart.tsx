@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { t } from "../i18n/i18n";
 
 export type Bar = { key: string; label: string; count: number };
 
@@ -14,11 +15,15 @@ export function BarChart({ bars, max = 8, onSelect }: { bars: Bar[]; max?: numbe
     bars.length > max
       ? [
           ...bars.slice(0, max - 1),
-          { key: "__other", label: `Other (${bars.length - max + 1})`, count: bars.slice(max - 1).reduce((s, b) => s + b.count, 0) },
+          {
+            key: "__other",
+            label: t("Other ({count})", { count: bars.length - max + 1 }),
+            count: bars.slice(max - 1).reduce((s, b) => s + b.count, 0),
+          },
         ]
       : bars;
   const top = Math.max(1, ...shown.map((b) => b.count));
-  if (!shown.length) return <p className="empty">Nothing to count.</p>;
+  if (!shown.length) return <p className="empty">{t("Nothing to count.")}</p>;
   return (
     <div className="viz-root bar-chart" role="img" aria-label={shown.map((b) => `${b.label}: ${b.count}`).join(", ")}>
       {shown.map((b) => {
@@ -40,7 +45,12 @@ export function BarChart({ bars, max = 8, onSelect }: { bars: Bar[]; max?: numbe
               <span className="bar-value">{b.count}</span>
               {hover === b.key && (
                 <span className="viz-tooltip" role="tooltip">
-                  <strong>{b.label}</strong> {b.count} of {total} ({Math.round((b.count / Math.max(1, total)) * 100)}%)
+                  <strong>{b.label}</strong>{" "}
+                  {t("{count} of {total} ({percent}%)", {
+                    count: b.count,
+                    total,
+                    percent: Math.round((b.count / Math.max(1, total)) * 100),
+                  })}
                 </span>
               )}
             </span>

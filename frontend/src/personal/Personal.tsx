@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
 import { ErrorBanner, Loading, Panel, formatDate } from "../components/common";
 import { PageHeader } from "../components/Layout";
+import { t } from "../i18n/i18n";
 
 // Personal tracking (roadmap 3.9): favorites, recently viewed, subscriptions, notifications.
 
@@ -58,13 +59,13 @@ export function FavoriteButton({ kind, targetId, label }: { kind: FavoriteKind; 
     <button
       className={on ? "track-btn on" : "track-btn"}
       aria-pressed={on}
-      aria-label={on ? "Remove from favorites" : "Add to favorites"}
-      title={on ? "Remove from favorites" : "Add to favorites"}
+      aria-label={on ? t("Remove from favorites") : t("Add to favorites")}
+      title={on ? t("Remove from favorites") : t("Add to favorites")}
       disabled={!data || toggle.isPending}
       onClick={() => toggle.mutate()}
     >
       <Star size={14} aria-hidden fill={on ? "currentColor" : "none"} />
-      {on ? "Favorite" : "Add to favorites"}
+      {on ? t("Favorite") : t("Add to favorites")}
     </button>
   );
 }
@@ -82,17 +83,27 @@ export function SubscribeButton({ kind, targetId, label }: { kind: SubscriptionK
     },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["me", "subscriptions"] }),
   });
-  const what = kind === "OBJECT" ? "this object" : kind === "FOLDER" ? "this folder" : "everything here";
+  const title = on
+    ? kind === "OBJECT"
+      ? t("Stop notifications about this object")
+      : kind === "FOLDER"
+        ? t("Stop notifications about this folder")
+        : t("Stop notifications about everything here")
+    : kind === "OBJECT"
+      ? t("Get notified when this object changes")
+      : kind === "FOLDER"
+        ? t("Get notified when this folder changes")
+        : t("Get notified when everything here changes");
   return (
     <button
       className={on ? "track-btn on" : "track-btn"}
       aria-pressed={on}
-      title={on ? `Stop notifications about ${what}` : `Get notified when ${what} changes`}
+      title={title}
       disabled={!data || toggle.isPending}
       onClick={() => toggle.mutate()}
     >
       {on ? <BellRing size={14} aria-hidden /> : <Bell size={14} aria-hidden />}
-      {on ? "Following" : "Follow"}
+      {on ? t("Following") : t("Follow")}
     </button>
   );
 }
@@ -107,9 +118,9 @@ function useMarkRead() {
 
 function timeAgo(iso: string): string {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  if (s < 60) return t("just now");
+  if (s < 3600) return t("{n} min ago", { n: Math.floor(s / 60) });
+  if (s < 86400) return t("{n} h ago", { n: Math.floor(s / 3600) });
   return formatDate(iso);
 }
 
@@ -157,7 +168,7 @@ export function NotificationBell() {
     <div className="menu-wrap" ref={ref}>
       <button
         className="topbar-link bell-btn"
-        aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
+        aria-label={unread ? t("Notifications, {count} unread", { count: unread }) : t("Notifications")}
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
@@ -166,20 +177,20 @@ export function NotificationBell() {
         {unread > 0 && <span className="bell-count">{unread > 99 ? "99+" : unread}</span>}
       </button>
       {open && (
-        <div className="menu notice-menu" role="dialog" aria-label="Notifications">
+        <div className="menu notice-menu" role="dialog" aria-label={t("Notifications")}>
           <div className="notice-head">
-            <strong>Notifications</strong>
+            <strong>{t("Notifications")}</strong>
             <span className="grow" />
             {unread > 0 && (
               <button className="link-btn" onClick={() => markRead.mutate([])}>
-                <CheckCheck size={13} aria-hidden /> Mark all read
+                <CheckCheck size={13} aria-hidden /> {t("Mark all read")}
               </button>
             )}
           </div>
           {!latest ? (
             <Loading />
           ) : latest.length === 0 ? (
-            <p className="empty">Nothing yet. Follow an object, folder or product to hear about changes.</p>
+            <p className="empty">{t("Nothing yet. Follow an object, folder or product to hear about changes.")}</p>
           ) : (
             <ul className="notice-list">
               {latest.map((n) => (
@@ -189,7 +200,7 @@ export function NotificationBell() {
           )}
           <div className="notice-foot">
             <Link to="/notifications" onClick={() => setOpen(false)}>
-              All notifications and subscriptions
+              {t("All notifications and subscriptions")}
             </Link>
           </div>
         </div>
@@ -242,26 +253,26 @@ export function NotificationsPage() {
     <>
       <PageHeader
         icon={<Bell size={18} className="icon-muted" aria-hidden />}
-        title={<span className="nm">Notifications</span>}
-        meta={<span className="sub">Changes to what you follow, and background jobs you started.</span>}
+        title={<span className="nm">{t("Notifications")}</span>}
+        meta={<span className="sub">{t("Changes to what you follow, and background jobs you started.")}</span>}
         toolbar={
           <>
             <label className="row" style={{ gap: 6 }}>
-              <input type="checkbox" checked={unreadOnly} onChange={(e) => setUnreadOnly(e.target.checked)} /> Unread only
+              <input type="checkbox" checked={unreadOnly} onChange={(e) => setUnreadOnly(e.target.checked)} /> {t("Unread only")}
             </label>
             <button className="btn ghost" onClick={() => markRead.mutate([])}>
-              <CheckCheck size={15} aria-hidden /> Mark all read
+              <CheckCheck size={15} aria-hidden /> {t("Mark all read")}
             </button>
           </>
         }
       />
       <div className="content notices-page">
         <ErrorBanner error={error ?? save.error} />
-        <Panel title="Inbox" flush>
+        <Panel title={t("Inbox")} flush>
           {!data ? (
             <Loading />
           ) : data.length === 0 ? (
-            <p className="empty">{unreadOnly ? "Nothing unread." : "No notifications yet."}</p>
+            <p className="empty">{unreadOnly ? t("Nothing unread.") : t("No notifications yet.")}</p>
           ) : (
             <ul className="notice-list wide">
               {data.map((n) => (
@@ -278,13 +289,13 @@ export function NotificationsPage() {
           )}
         </Panel>
         <div className="notices-side">
-          <Panel title="Mail me">
-            <fieldset className="radio-list" aria-label="Mail me">
+          <Panel title={t("Mail me")}>
+            <fieldset className="radio-list" aria-label={t("Mail me")}>
               {(
                 [
-                  ["DAILY", "A daily digest", "One mail each morning with what's new"],
-                  ["IMMEDIATE", "Right away", "A mail for each notification"],
-                  ["NONE", "Never", "Only here, in the app"],
+                  ["DAILY", t("A daily digest"), t("One mail each morning with what's new")],
+                  ["IMMEDIATE", t("Right away"), t("A mail for each notification")],
+                  ["NONE", t("Never"), t("Only here, in the app")],
                 ] as const
               ).map(([value, label, hint]) => (
                 <label key={value}>
@@ -303,16 +314,16 @@ export function NotificationsPage() {
               ))}
             </fieldset>
           </Panel>
-          <Panel title="Following" flush>
+          <Panel title={t("Following")} flush>
             {!subscriptions ? (
               <Loading />
             ) : subscriptions.length === 0 ? (
-              <p className="empty">You don't follow anything yet.</p>
+              <p className="empty">{t("You don't follow anything yet.")}</p>
             ) : (
               <ul className="follow-list">
                 {subscriptions.map((s) => (
                   <li key={`${s.kind}:${s.targetId}`}>
-                    <span className="tag">{s.kind === "OBJECT" ? "Object" : s.kind === "FOLDER" ? "Folder" : "Context"}</span>
+                    <span className="tag">{s.kind === "OBJECT" ? t("Object") : s.kind === "FOLDER" ? t("Folder") : t("Context")}</span>
                     {SUBSCRIPTION_LINKS[s.kind](s.targetId) ? (
                       <Link to={SUBSCRIPTION_LINKS[s.kind](s.targetId)} className="grow ellipsis">
                         {s.label}
@@ -322,8 +333,8 @@ export function NotificationsPage() {
                     )}
                     <button
                       className="icon-btn"
-                      aria-label={`Stop following ${s.label}`}
-                      title="Stop following"
+                      aria-label={t("Stop following {name}", { name: s.label })}
+                      title={t("Stop following")}
                       onClick={() => unsubscribe.mutate(s)}
                     >
                       <BellOff size={13} />

@@ -17,13 +17,15 @@ import {
   type Job,
   type JobSchedule,
 } from "./adminQueries";
+import { t } from "../i18n/i18n";
 
-const STATUSES: [string, string][] = [
-  ["QUEUED", "Queued"],
-  ["RUNNING", "Running"],
-  ["SUCCEEDED", "Succeeded"],
-  ["FAILED", "Failed"],
-  ["CANCELLED", "Cancelled"],
+/** Each status: its key, its label, and the tooltip of its filter button. */
+const STATUSES = (): [string, string, string][] => [
+  ["QUEUED", t("Queued"), t("Show queued jobs")],
+  ["RUNNING", t("Running"), t("Show running jobs")],
+  ["SUCCEEDED", t("Succeeded"), t("Show succeeded jobs")],
+  ["FAILED", t("Failed"), t("Show failed jobs")],
+  ["CANCELLED", t("Cancelled"), t("Show cancelled jobs")],
 ];
 
 /**
@@ -40,18 +42,18 @@ export function JobsAdmin() {
   const { data: jobs, isLoading, error } = useJobs(status, type);
   const cancel = useCancelJob();
   const retry = useRetryJob();
-  const typeLabel = new Map((types ?? []).map((t) => [t.type, t.label]));
+  const typeLabel = new Map((types ?? []).map((jt) => [jt.type, jt.label]));
   const current = jobs?.find((j) => j.id === selected);
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      <div className="job-stats" role="group" aria-label="Jobs by status">
-        {STATUSES.map(([key, label]) => (
+      <div className="job-stats" role="group" aria-label={t("Jobs by status")}>
+        {STATUSES().map(([key, label, show]) => (
           <button
             key={key}
             className={`stat ${status === key ? "active" : ""}`}
             onClick={() => setStatus(status === key ? "" : key)}
-            title={status === key ? "Show all" : `Show ${label.toLowerCase()} jobs`}
+            title={status === key ? t("Show all") : show}
           >
             <strong>{stats?.[key] ?? 0}</strong>
             <span className="muted small">{label}</span>
@@ -59,22 +61,22 @@ export function JobsAdmin() {
         ))}
       </div>
       <Panel
-        title="Jobs"
-        note="Refreshed every 2 seconds. Failures are retried with growing waits until a job's last attempt"
+        title={t("Jobs")}
+        note={t("Refreshed every 2 seconds. Failures are retried with growing waits until a job's last attempt")}
         flush
         actions={
           <>
-            <select className="filter" aria-label="Job type" value={type} onChange={(e) => setType(e.target.value)}>
-              <option value="">All types</option>
-              {types?.map((t) => (
-                <option key={t.type} value={t.type}>
-                  {t.label}
+            <select className="filter" aria-label={t("Job type")} value={type} onChange={(e) => setType(e.target.value)}>
+              <option value="">{t("All types")}</option>
+              {types?.map((jt) => (
+                <option key={jt.type} value={jt.type}>
+                  {jt.label}
                 </option>
               ))}
             </select>
             <button className="btn small primary" onClick={() => setStarting(true)}>
               <Play size={13} aria-hidden />
-              Start a job
+              {t("Start a job")}
             </button>
           </>
         }
@@ -83,19 +85,19 @@ export function JobsAdmin() {
         {isLoading ? (
           <Loading />
         ) : !jobs?.length ? (
-          <p className="empty">No jobs{status || type ? " match" : " yet"}.</p>
+          <p className="empty">{status || type ? t("No jobs match.") : t("No jobs yet.")}</p>
         ) : (
-          <table className="grid" aria-label="Jobs">
+          <table className="grid" aria-label={t("Jobs")}>
             <thead>
               <tr>
-                <th>Job</th>
-                <th>Status</th>
-                <th>Progress</th>
-                <th>Attempts</th>
-                <th>Runs as</th>
-                <th>Queued</th>
-                <th>Took</th>
-                <th aria-label="Actions" />
+                <th>{t("Job")}</th>
+                <th>{t("Status")}</th>
+                <th>{t("Progress")}</th>
+                <th>{t("Attempts")}</th>
+                <th>{t("Runs as")}</th>
+                <th>{t("Queued")}</th>
+                <th>{t("Took")}</th>
+                <th aria-label={t("Actions")} />
               </tr>
             </thead>
             <tbody>
@@ -108,7 +110,7 @@ export function JobsAdmin() {
                       {j.scheduleId && (
                         <>
                           {" "}
-                          · <CalendarClock size={11} aria-hidden /> scheduled
+                          · <CalendarClock size={11} aria-hidden /> {t("scheduled")}
                         </>
                       )}
                     </div>
@@ -119,18 +121,16 @@ export function JobsAdmin() {
                   <td>
                     <JobProgress job={j} />
                   </td>
-                  <td className="nowrap">
-                    {j.attempts} of {j.maxAttempts}
-                  </td>
-                  <td className="nowrap">{j.submittedBy === "system" ? "System" : <PrincipalName id={j.submittedBy} />}</td>
+                  <td className="nowrap">{t("{attempts} of {max}", { attempts: j.attempts, max: j.maxAttempts })}</td>
+                  <td className="nowrap">{j.submittedBy === "system" ? t("System") : <PrincipalName id={j.submittedBy} />}</td>
                   <td className="nowrap muted">{formatDate(j.createdAt)}</td>
                   <td className="nowrap muted">{duration(j.startedAt, j.finishedAt)}</td>
                   <td className="nowrap" onClick={(e) => e.stopPropagation()}>
                     {(j.status === "QUEUED" || j.status === "RUNNING") && (
                       <button
                         className="icon-btn"
-                        aria-label={`Cancel ${j.title}`}
-                        title="Cancel"
+                        aria-label={t("Cancel {title}", { title: j.title })}
+                        title={t("Cancel")}
                         disabled={cancel.isPending || j.cancelRequested}
                         onClick={() => cancel.mutate(j.id)}
                       >
@@ -140,8 +140,8 @@ export function JobsAdmin() {
                     {(j.status === "FAILED" || j.status === "CANCELLED") && (
                       <button
                         className="icon-btn"
-                        aria-label={`Run ${j.title} again`}
-                        title="Run again from the start"
+                        aria-label={t("Run {title} again", { title: j.title })}
+                        title={t("Run again from the start")}
                         disabled={retry.isPending}
                         onClick={() => retry.mutate(j.id)}
                       >
@@ -156,7 +156,7 @@ export function JobsAdmin() {
         )}
       </Panel>
       {current && <JobDetails job={current} typeLabel={typeLabel.get(current.type) ?? current.type} />}
-      <Schedules typeLabel={(t) => typeLabel.get(t) ?? t} />
+      <Schedules typeLabel={(type) => typeLabel.get(type) ?? type} />
       {starting && <StartJobDialog onClose={() => setStarting(false)} onStarted={(id) => setSelected(id)} />}
     </div>
   );
@@ -171,25 +171,25 @@ function JobDetails({ job, typeLabel }: { job: Job; typeLabel: string }) {
         {job.error && <div className="banner error">{job.error}</div>}
         <div className="row wrap" style={{ gap: 24 }}>
           <div>
-            <div className="muted small">Payload</div>
+            <div className="muted small">{t("Payload")}</div>
             <code className="wrap-code">{JSON.stringify(job.payload)}</code>
           </div>
           {job.result && (
             <div>
-              <div className="muted small">Result</div>
+              <div className="muted small">{t("Result")}</div>
               <code className="wrap-code">{JSON.stringify(job.result)}</code>
             </div>
           )}
           <div>
-            <div className="muted small">Started</div>
+            <div className="muted small">{t("Started")}</div>
             {job.startedAt ? formatDate(job.startedAt) : "—"}
           </div>
           <div>
-            <div className="muted small">Ended</div>
+            <div className="muted small">{t("Ended")}</div>
             {job.finishedAt ? formatDate(job.finishedAt) : "—"}
           </div>
         </div>
-        <pre className="job-log" aria-label="Job log">
+        <pre className="job-log" aria-label={t("Job log")}>
           {log?.map((l, i) => (
             <div key={i} className={l.level}>
               {new Date(l.at).toLocaleTimeString()} {l.level.padEnd(5)} {l.message}
@@ -208,29 +208,29 @@ function Schedules({ typeLabel }: { typeLabel: (type: string) => string }) {
   const [editing, setEditing] = useState<JobSchedule | "new" | null>(null);
   return (
     <Panel
-      title="Schedules"
-      note="Five-field cron: minute hour day month weekday"
+      title={t("Schedules")}
+      note={t("Five-field cron: minute hour day month weekday")}
       flush
       actions={
         <button className="btn small" onClick={() => setEditing("new")}>
           <Plus size={13} aria-hidden />
-          New schedule
+          {t("New schedule")}
         </button>
       }
     >
       <ErrorBanner error={remove.error ?? run.error} />
       {!schedules?.length ? (
-        <p className="empty">No schedules.</p>
+        <p className="empty">{t("No schedules.")}</p>
       ) : (
-        <table className="grid" aria-label="Schedules">
+        <table className="grid" aria-label={t("Schedules")}>
           <thead>
             <tr>
-              <th>Schedule</th>
-              <th>Runs</th>
-              <th>When</th>
-              <th>Next run</th>
-              <th>Last run</th>
-              <th aria-label="Actions" />
+              <th>{t("Schedule")}</th>
+              <th>{t("Runs")}</th>
+              <th>{t("When")}</th>
+              <th>{t("Next run")}</th>
+              <th>{t("Last run")}</th>
+              <th aria-label={t("Actions")} />
             </tr>
           </thead>
           <tbody>
@@ -238,7 +238,7 @@ function Schedules({ typeLabel }: { typeLabel: (type: string) => string }) {
               <tr key={s.id} className={s.enabled ? undefined : "inactive"}>
                 <td>
                   <strong>{s.name}</strong>
-                  {!s.enabled && <div className="muted small">Off</div>}
+                  {!s.enabled && <div className="muted small">{t("Off")}</div>}
                 </td>
                 <td>{typeLabel(s.type)}</td>
                 <td className="nowrap">
@@ -253,26 +253,26 @@ function Schedules({ typeLabel }: { typeLabel: (type: string) => string }) {
                       {s.lastJobStatus && <JobStatusTag job={{ status: s.lastJobStatus, cancelRequested: false }} />}
                     </>
                   ) : (
-                    <span className="muted">Not yet</span>
+                    <span className="muted">{t("Not yet")}</span>
                   )}
                 </td>
                 <td className="nowrap">
                   <button
                     className="icon-btn"
-                    aria-label={`Run ${s.name} now`}
-                    title="Run now"
+                    aria-label={t("Run {name} now", { name: s.name })}
+                    title={t("Run now")}
                     disabled={run.isPending}
                     onClick={() => run.mutate(s.id)}
                   >
                     <Play size={13} />
                   </button>
-                  <button className="icon-btn" aria-label={`Edit ${s.name}`} onClick={() => setEditing(s)}>
+                  <button className="icon-btn" aria-label={t("Edit {name}", { name: s.name })} onClick={() => setEditing(s)}>
                     <Pencil size={13} />
                   </button>
                   <button
                     className="icon-btn"
-                    aria-label={`Delete ${s.name}`}
-                    onClick={() => window.confirm(`Delete the schedule “${s.name}”?`) && remove.mutate(s.id)}
+                    aria-label={t("Delete {name}", { name: s.name })}
+                    onClick={() => window.confirm(t("Delete the schedule “{name}”?", { name: s.name })) && remove.mutate(s.id)}
                   >
                     <Trash2 size={13} />
                   </button>
@@ -292,11 +292,12 @@ export function describeCron(cron: string): string {
   const [min, hour, day, month, weekday] = cron.trim().split(/\s+/);
   if (cron.startsWith("@")) return cron.slice(1);
   const at = (h: string, m: string) => `${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
-  if (min?.startsWith("*/") && hour === "*" && day === "*" && month === "*" && weekday === "*") return `Every ${min.slice(2)} minutes`;
-  if (/^\d+$/.test(min ?? "") && hour === "*" && day === "*") return `Hourly at :${min!.padStart(2, "0")}`;
+  if (min?.startsWith("*/") && hour === "*" && day === "*" && month === "*" && weekday === "*")
+    return t("Every {n} minutes", { n: min.slice(2) });
+  if (/^\d+$/.test(min ?? "") && hour === "*" && day === "*") return t("Hourly at :{minute}", { minute: min!.padStart(2, "0") });
   if (/^\d+$/.test(min ?? "") && /^\d+$/.test(hour ?? "") && day === "*" && month === "*") {
-    if (weekday === "*") return `Daily at ${at(hour!, min!)}`;
-    if (weekday === "1-5") return `Weekdays at ${at(hour!, min!)}`;
+    if (weekday === "*") return t("Daily at {time}", { time: at(hour!, min!) });
+    if (weekday === "1-5") return t("Weekdays at {time}", { time: at(hour!, min!) });
   }
   return "";
 }
@@ -315,12 +316,12 @@ function ScheduleDialog({ schedule, onClose }: { schedule: JobSchedule | null; o
   return (
     <Dialog
       open
-      title={schedule ? `Edit ${schedule.name}` : "New schedule"}
+      title={schedule ? t("Edit {name}", { name: schedule.name }) : t("New schedule")}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             className="btn primary"
@@ -332,7 +333,7 @@ function ScheduleDialog({ schedule, onClose }: { schedule: JobSchedule | null; o
               )
             }
           >
-            Save
+            {t("Save")}
           </button>
         </>
       }
@@ -340,34 +341,36 @@ function ScheduleDialog({ schedule, onClose }: { schedule: JobSchedule | null; o
       <div className="attr-form">
         <ErrorBanner error={save.error} />
         <div className="field wide">
-          <label htmlFor="sch-name">Name</label>
+          <label htmlFor="sch-name">{t("Name")}</label>
           <input id="sch-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         </div>
         <div className="field wide">
-          <label htmlFor="sch-type">Job</label>
+          <label htmlFor="sch-type">{t("Job")}</label>
           <select id="sch-type" value={type} onChange={(e) => setType(e.target.value)}>
-            <option value="">Choose…</option>
-            {types?.map((t) => (
-              <option key={t.type} value={t.type}>
-                {t.label}
+            <option value="">{t("Choose…")}</option>
+            {types?.map((jt) => (
+              <option key={jt.type} value={jt.type}>
+                {jt.label}
               </option>
             ))}
           </select>
-          {types?.find((t) => t.type === type)?.description && (
-            <span className="hint">{types.find((t) => t.type === type)!.description}</span>
+          {types?.find((jt) => jt.type === type)?.description && (
+            <span className="hint">{types.find((jt) => jt.type === type)!.description}</span>
           )}
         </div>
         <div className="field">
-          <label htmlFor="sch-cron">When (cron)</label>
+          <label htmlFor="sch-cron">{t("When (cron)")}</label>
           <input id="sch-cron" className="code" value={cron} onChange={(e) => setCron(e.target.value)} />
-          <span className="hint">{describeCron(cron) || "minute hour day month weekday, e.g. 30 6 * * 1-5"}</span>
+          <span className="hint">
+            {describeCron(cron) || t("minute hour day month weekday, e.g. {example}", { example: "30 6 * * 1-5" })}
+          </span>
         </div>
         <div className="field">
-          <label htmlFor="sch-tz">Time zone</label>
+          <label htmlFor="sch-tz">{t("Time zone")}</label>
           <input id="sch-tz" value={timeZone} onChange={(e) => setTimeZone(e.target.value)} />
         </div>
         <div className="field wide">
-          <label htmlFor="sch-payload">Payload (JSON)</label>
+          <label htmlFor="sch-payload">{t("Payload (JSON)")}</label>
           <textarea
             id="sch-payload"
             className="code"
@@ -376,11 +379,11 @@ function ScheduleDialog({ schedule, onClose }: { schedule: JobSchedule | null; o
             onChange={(e) => setPayload(e.target.value)}
             aria-invalid={!parsed.ok}
           />
-          {!parsed.ok && <span className="hint bad">Not valid JSON: {parsed.error}</span>}
+          {!parsed.ok && <span className="hint bad">{t("Not valid JSON: {error}", { error: parsed.error ?? "" })}</span>}
         </div>
         <label className="check wide">
           <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-          On
+          {t("On")}
         </label>
       </div>
     </Dialog>
@@ -396,12 +399,12 @@ function StartJobDialog({ onClose, onStarted }: { onClose: () => void; onStarted
   return (
     <Dialog
       open
-      title="Start a job"
+      title={t("Start a job")}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             className="btn primary"
@@ -418,7 +421,7 @@ function StartJobDialog({ onClose, onStarted }: { onClose: () => void; onStarted
               )
             }
           >
-            Start
+            {t("Start")}
           </button>
         </>
       }
@@ -426,7 +429,7 @@ function StartJobDialog({ onClose, onStarted }: { onClose: () => void; onStarted
       <div className="attr-form">
         <ErrorBanner error={submit.error} />
         <div className="field wide">
-          <label htmlFor="job-type">Job</label>
+          <label htmlFor="job-type">{t("Job")}</label>
           <select
             id="job-type"
             value={type}
@@ -435,21 +438,21 @@ function StartJobDialog({ onClose, onStarted }: { onClose: () => void; onStarted
               if (e.target.value === "system.test") setPayload('{\n  "steps": 20,\n  "stepMillis": 500\n}');
             }}
           >
-            <option value="">Choose…</option>
-            {types?.map((t) => (
-              <option key={t.type} value={t.type}>
-                {t.label}
+            <option value="">{t("Choose…")}</option>
+            {types?.map((jt) => (
+              <option key={jt.type} value={jt.type}>
+                {jt.label}
               </option>
             ))}
           </select>
-          {types?.find((t) => t.type === type)?.description && (
-            <span className="hint">{types.find((t) => t.type === type)!.description}</span>
+          {types?.find((jt) => jt.type === type)?.description && (
+            <span className="hint">{types.find((jt) => jt.type === type)!.description}</span>
           )}
         </div>
         <div className="field wide">
-          <label htmlFor="job-payload">Payload (JSON)</label>
+          <label htmlFor="job-payload">{t("Payload (JSON)")}</label>
           <textarea id="job-payload" className="code" rows={5} value={payload} onChange={(e) => setPayload(e.target.value)} />
-          {!parsed.ok && <span className="hint bad">Not valid JSON: {parsed.error}</span>}
+          {!parsed.ok && <span className="hint bad">{t("Not valid JSON: {error}", { error: parsed.error ?? "" })}</span>}
         </div>
       </div>
     </Dialog>
@@ -459,7 +462,7 @@ function StartJobDialog({ onClose, onStarted }: { onClose: () => void; onStarted
 function parseJson(text: string): { ok: boolean; value?: Record<string, unknown>; error?: string } {
   try {
     const v = JSON.parse(text || "{}") as unknown;
-    if (typeof v !== "object" || v === null || Array.isArray(v)) return { ok: false, error: "an object is expected" };
+    if (typeof v !== "object" || v === null || Array.isArray(v)) return { ok: false, error: t("an object is expected") };
     return { ok: true, value: v as Record<string, unknown> };
   } catch (e) {
     return { ok: false, error: (e as Error).message };

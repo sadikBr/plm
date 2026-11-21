@@ -6,6 +6,8 @@ import { useInvokeAction, type ActionForm, type ActionResult, type AvailableActi
 import { api, unwrap, type Schemas } from "../api/client";
 import { Dialog, ErrorBanner } from "../components/common";
 import { JobProgress, JobStatusTag, duration } from "../components/JobProgress";
+import { t } from "../i18n/i18n";
+import { actionLabel } from "./ObjectActions";
 
 /**
  * Runs actions carried out on the server (extension webhooks): asks the action's form, if it has
@@ -25,7 +27,7 @@ export function useActionRunner(objectId: string): { run: (a: AvailableAction) =
       {
         onSuccess: (result) => {
           setAsking(null);
-          setShown({ label: a.label, result });
+          setShown({ label: actionLabel(a), result });
           if (result.jobId) setStarted((n) => n + 1);
           if (result.download) save(result.download);
           if (result.navigateToObject) navigate(`/objects/${result.navigateToObject}`);
@@ -92,9 +94,9 @@ function ResultBanner({ label, result, onClose }: { label: string; result: Actio
         {level.icon}
         <span>
           <strong>{label}:</strong> {result.message}
-          {result.download && <span className="muted"> · downloaded {result.download.filename}</span>}
+          {result.download && <span className="muted"> · {t("downloaded {filename}", { filename: result.download.filename })}</span>}
         </span>
-        <button className="icon-btn" aria-label="Dismiss" onClick={onClose} style={{ marginLeft: "auto" }}>
+        <button className="icon-btn" aria-label={t("Dismiss")} onClick={onClose} style={{ marginLeft: "auto" }}>
           <X size={13} />
         </button>
       </div>
@@ -142,15 +144,15 @@ function FormDialog({
   return (
     <Dialog
       open
-      title={form.title ? `${action.label}: ${form.title}` : action.label}
+      title={form.title ? `${actionLabel(action)}: ${form.title}` : actionLabel(action)}
       onClose={onCancel}
       footer={
         <>
           <button className="btn" type="button" onClick={onCancel}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button className="btn primary" type="submit" form={formId} disabled={busy || missing}>
-            {busy ? "Running…" : action.label}
+            {busy ? t("Running…") : actionLabel(action)}
           </button>
         </>
       }
@@ -185,7 +187,7 @@ function FormDialog({
                   required={required.has(name)}
                   onChange={(e) => set(e.target.value || undefined)}
                 >
-                  <option value="">Choose…</option>
+                  <option value="">{t("Choose…")}</option>
                   {f.enum.map((o) => (
                     <option key={o} value={o}>
                       {o}
@@ -249,7 +251,7 @@ export function BackgroundActions({ objectId, refreshKey }: { objectId: string; 
   const shown = (data ?? []).filter((j) => !hidden.has(j.id)).slice(0, 3);
   if (!shown.length) return null;
   return (
-    <div className="bg-actions" aria-label="Background actions">
+    <div className="bg-actions" aria-label={t("Background actions")}>
       {shown.map((j) => (
         <BackgroundJob key={j.id} job={j} onCancel={() => cancel.mutate(j.id)} onHide={() => setHidden(new Set(hidden).add(j.id))} />
       ))}
@@ -273,15 +275,17 @@ function BackgroundJob({ job, onCancel, onHide }: { job: Job; onCancel: () => vo
         <strong>{job.title}</strong>
         <JobStatusTag job={job} />
         <span className="muted small">
-          {running ? `for ${duration(job.startedAt ?? job.createdAt)}` : `took ${duration(job.startedAt, job.finishedAt)}`}
+          {running
+            ? t("for {duration}", { duration: duration(job.startedAt ?? job.createdAt) })
+            : t("took {duration}", { duration: duration(job.startedAt, job.finishedAt) })}
         </span>
         <span className="grow" />
         {running ? (
           <button className="btn small" onClick={onCancel} disabled={job.cancelRequested}>
-            Cancel
+            {t("Cancel")}
           </button>
         ) : (
-          <button className="icon-btn" aria-label="Dismiss" onClick={onHide}>
+          <button className="icon-btn" aria-label={t("Dismiss")} onClick={onHide}>
             <X size={13} />
           </button>
         )}
@@ -289,7 +293,7 @@ function BackgroundJob({ job, onCancel, onHide }: { job: Job; onCancel: () => vo
       {running && <JobProgress job={job} />}
       {job.status === "SUCCEEDED" && (
         <div className="row" style={{ gap: 8 }}>
-          <span>{String(job.result?.message ?? "Done")}</span>
+          <span>{String(job.result?.message ?? t("Done"))}</span>
           {download && (
             <button className="btn small" onClick={() => save(download)}>
               <Download size={13} aria-hidden /> {download.filename}
@@ -298,7 +302,7 @@ function BackgroundJob({ job, onCancel, onHide }: { job: Job; onCancel: () => vo
         </div>
       )}
       {job.status === "FAILED" && <span className="error-text">{job.error}</span>}
-      {job.status === "CANCELLED" && <span className="muted">Cancelled.</span>}
+      {job.status === "CANCELLED" && <span className="muted">{t("Cancelled.")}</span>}
     </section>
   );
 }

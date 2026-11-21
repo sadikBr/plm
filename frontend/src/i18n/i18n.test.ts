@@ -1,28 +1,22 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { catalog, setLanguage, t, tn, type Language } from "./i18n";
 
-const SRC = join(__dirname, "..");
-
-function sources(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const path = join(dir, name);
-    if (statSync(path).isDirectory()) return name === "i18n" || name === "test" || name === "api" ? [] : sources(path);
-    return /\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name) ? [path] : [];
-  });
-}
+// Every source file of the interface, as text (tests, the API client and this folder aside).
+const files = import.meta.glob<string>(["../**/*.{ts,tsx}", "!../**/*.test.{ts,tsx}", "!../i18n/**", "!../test/**", "!../api/**"], {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
 
 /** Every literal passed to t() or tn(), as written in the source. */
 function keys(): Map<string, string> {
   const found = new Map<string, string>();
   const literal = String.raw`"((?:[^"\\]|\\.)*)"`;
   const patterns = [new RegExp(String.raw`\bt\(\s*` + literal, "g"), new RegExp(String.raw`\btn\(\s*` + literal + String.raw`\s*,\s*` + literal, "g")];
-  for (const file of sources(SRC)) {
-    const code = readFileSync(file, "utf8");
+  for (const [file, code] of Object.entries(files)) {
     for (const p of patterns) {
       for (const m of code.matchAll(p)) {
-        for (const g of m.slice(1)) if (g !== undefined) found.set(JSON.parse(`"${g}"`) as string, file.slice(SRC.length + 1));
+        for (const g of m.slice(1)) if (g !== undefined) found.set(JSON.parse(`"${g}"`) as string, file.slice(3));
       }
     }
   }

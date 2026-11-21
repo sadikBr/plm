@@ -3,6 +3,7 @@ import { ExpressionField } from "../components/ExpressionField";
 import type { AttributeDefinition, Attributes, DataType } from "../api/queries";
 import { AttributeForm, pickLabel } from "../components/AttributeForm";
 import { Dialog, ErrorBanner } from "../components/common";
+import { t, tn } from "../i18n/i18n";
 import {
   useAllAttributes,
   useDefineAttribute,
@@ -15,35 +16,37 @@ import {
   type TypeDefinition,
 } from "./adminQueries";
 
-const DATA_TYPES: { key: DataType; label: string }[] = [
-  { key: "STRING", label: "Text" },
-  { key: "TEXT", label: "Long text" },
-  { key: "INTEGER", label: "Whole number" },
-  { key: "REAL", label: "Decimal number" },
-  { key: "QUANTITY", label: "Quantity with unit" },
-  { key: "BOOLEAN", label: "Yes / no" },
-  { key: "DATE", label: "Date" },
-  { key: "TIMESTAMP", label: "Date and time" },
-  { key: "URL", label: "Web link" },
-  { key: "ENUMERATION", label: "Choice from a value list" },
+const DATA_TYPES = (): { key: DataType; label: string }[] => [
+  { key: "STRING", label: t("Text") },
+  { key: "TEXT", label: t("Long text") },
+  { key: "INTEGER", label: t("Whole number") },
+  { key: "REAL", label: t("Decimal number") },
+  { key: "QUANTITY", label: t("Quantity with unit") },
+  { key: "BOOLEAN", label: t("Yes / no") },
+  { key: "DATE", label: t("Date") },
+  { key: "TIMESTAMP", label: t("Date and time") },
+  { key: "URL", label: t("Web link") },
+  { key: "ENUMERATION", label: t("Choice from a value list") },
 ];
 
 export function dataTypeLabel(a: AttributeDefinition): string {
-  const base = DATA_TYPES.find((d) => d.key === a.dataType)?.label ?? a.dataType;
+  const base = DATA_TYPES().find((d) => d.key === a.dataType)?.label ?? a.dataType;
   const detail = a.dataType === "QUANTITY" ? ` (${(a.dimension ?? "").toLowerCase()}${a.displayUnit ? `, ${a.displayUnit}` : ""})` : "";
-  return `${base}${detail}${a.multiValued ? ", several values" : ""}`;
+  return `${base}${detail}${a.multiValued ? t(", several values") : ""}`;
 }
 
 export function constraintSummary(a: AttributeDefinition): string {
   const parts: string[] = [];
-  if (a.formula) parts.push(`Calculated: ${a.formula}`);
-  if (a.required) parts.push("Required");
-  if (a.immutable) parts.push("Fixed after creation");
-  if (a.minLength != null || a.maxLength != null) parts.push(`Length ${a.minLength ?? 0}–${a.maxLength ?? "∞"}`);
-  if (a.pattern) parts.push(`Pattern ${a.pattern}`);
-  if (a.minValue != null || a.maxValue != null) parts.push(`Range ${a.minValue ?? "−∞"} – ${a.maxValue ?? "∞"}`);
+  if (a.formula) parts.push(t("Calculated: {formula}", { formula: a.formula }));
+  if (a.required) parts.push(t("Required"));
+  if (a.immutable) parts.push(t("Fixed after creation"));
+  if (a.minLength != null || a.maxLength != null) parts.push(t("Length {min}–{max}", { min: a.minLength ?? 0, max: a.maxLength ?? "∞" }));
+  if (a.pattern) parts.push(t("Pattern {pattern}", { pattern: a.pattern }));
+  if (a.minValue != null || a.maxValue != null) parts.push(t("Range {min} – {max}", { min: a.minValue ?? "−∞", max: a.maxValue ?? "∞" }));
   if (a.defaultValue != null)
-    parts.push(`Default ${typeof a.defaultValue === "object" ? JSON.stringify(a.defaultValue) : String(a.defaultValue)}`);
+    parts.push(
+      t("Default {value}", { value: typeof a.defaultValue === "object" ? JSON.stringify(a.defaultValue) : String(a.defaultValue) }),
+    );
   return parts.join(" · ");
 }
 
@@ -133,7 +136,7 @@ export function AttributeDialog({
       sortOrder: 0,
     }),
     name: "defaultValue",
-    labels: { en: "Default value" },
+    labels: { en: t("Default value") },
     description: null,
     dataType,
     multiValued,
@@ -195,16 +198,18 @@ export function AttributeDialog({
       open
       title={
         editing
-          ? `Edit ${isGlobal ? "global " : ""}attribute: ${pickLabel(attribute.labels, attribute.name)}`
+          ? isGlobal
+            ? t("Edit global attribute: {name}", { name: pickLabel(attribute.labels, attribute.name) })
+            : t("Edit attribute: {name}", { name: pickLabel(attribute.labels, attribute.name) })
           : isGlobal
-            ? "New global attribute"
-            : `New attribute on ${type?.displayName}`
+            ? t("New global attribute")
+            : t("New attribute on {type}", { type: type?.displayName ?? "undefined" })
       }
       onClose={onClose}
       footer={
         <>
           <button className="btn" type="button" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             className="btn primary"
@@ -212,7 +217,7 @@ export function AttributeDialog({
             form="attribute-form"
             disabled={mutation.isPending || !label.trim() || !effectiveName}
           >
-            {editing ? "Save" : "Add attribute"}
+            {editing ? t("Save") : t("Add attribute")}
           </button>
         </>
       }
@@ -229,17 +234,17 @@ export function AttributeDialog({
         ) : (
           <ErrorBanner error={mutation.error} />
         )}
-        {isGlobal && editing && <div className="banner info">A global attribute: changes apply to every type that uses it.</div>}
+        {isGlobal && editing && <div className="banner info">{t("A global attribute: changes apply to every type that uses it.")}</div>}
         {!isGlobal && editing && attribute.typeId !== typeId && (
-          <div className="banner info">Defined on {definedOn}: changes apply to it and all its subtypes.</div>
+          <div className="banner info">{t("Defined on {type}: changes apply to it and all its subtypes.", { type: definedOn })}</div>
         )}
         <div className="attr-form cols-2">
           <div className="field">
-            <label htmlFor="attr-label">Label</label>
+            <label htmlFor="attr-label">{t("Label")}</label>
             <input id="attr-label" value={label} onChange={(e) => setLabel(e.target.value)} autoFocus required />
           </div>
           <div className="field">
-            <label htmlFor="attr-name">Name</label>
+            <label htmlFor="attr-name">{t("Name")}</label>
             <input
               id="attr-name"
               value={effectiveName}
@@ -249,21 +254,21 @@ export function AttributeDialog({
                 setName(e.target.value);
               }}
             />
-            {!editing && <span className="hint">camelCase; used by the API. Can't be changed later.</span>}
+            {!editing && <span className="hint">{t("camelCase; used by the API. Can't be changed later.")}</span>}
           </div>
           <div className="field wide">
-            <label htmlFor="attr-description">Description</label>
+            <label htmlFor="attr-description">{t("Description")}</label>
             <input
               id="attr-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Shown as help next to the field"
+              placeholder={t("Shown as help next to the field")}
             />
           </div>
           <div className="field">
-            <label htmlFor="attr-type">Data type</label>
+            <label htmlFor="attr-type">{t("Data type")}</label>
             <select id="attr-type" value={dataType} disabled={editing} onChange={(e) => setDataType(e.target.value as DataType)}>
-              {DATA_TYPES.map((d) => (
+              {DATA_TYPES().map((d) => (
                 <option key={d.key} value={d.key}>
                   {d.label}
                 </option>
@@ -279,27 +284,27 @@ export function AttributeDialog({
                 disabled={editing || dataType === "BOOLEAN"}
                 onChange={(e) => setMultiValued(e.target.checked)}
               />
-              Several values
+              {t("Several values")}
             </label>
           </div>
           {dataType === "ENUMERATION" && (
             <div className="field wide">
-              <label htmlFor="attr-list">Value list</label>
+              <label htmlFor="attr-list">{t("Value list")}</label>
               <select id="attr-list" value={enumerationId} disabled={editing} onChange={(e) => setEnumerationId(e.target.value)}>
-                <option value="">Choose…</option>
+                <option value="">{t("Choose…")}</option>
                 {lists?.map((l) => (
                   <option key={l.id} value={l.id}>
-                    {pickLabel(l.labels, l.name)} ({l.values.filter((v) => v.active !== false).length} values)
+                    {pickLabel(l.labels, l.name)} ({tn("{n} value", "{n} values", l.values.filter((v) => v.active !== false).length)})
                   </option>
                 ))}
               </select>
-              {!editing && <span className="hint">Create lists under Value lists.</span>}
+              {!editing && <span className="hint">{t("Create lists under Value lists.")}</span>}
             </div>
           )}
           {dataType === "QUANTITY" && (
             <>
               <div className="field">
-                <label htmlFor="attr-dimension">Measures</label>
+                <label htmlFor="attr-dimension">{t("Measures")}</label>
                 <select
                   id="attr-dimension"
                   value={dimension}
@@ -309,7 +314,7 @@ export function AttributeDialog({
                     setDisplayUnit("");
                   }}
                 >
-                  <option value="">Choose…</option>
+                  <option value="">{t("Choose…")}</option>
                   {dimensions.map((d) => (
                     <option key={d} value={d}>
                       {d.charAt(0) + d.slice(1).toLowerCase().replace(/_/g, " ")}
@@ -318,9 +323,9 @@ export function AttributeDialog({
                 </select>
               </div>
               <div className="field">
-                <label htmlFor="attr-unit">Display unit</label>
+                <label htmlFor="attr-unit">{t("Display unit")}</label>
                 <select id="attr-unit" value={displayUnit} onChange={(e) => setDisplayUnit(e.target.value)}>
-                  <option value="">Base unit</option>
+                  <option value="">{t("Base unit")}</option>
                   {(units ?? [])
                     .filter((u) => u.dimension === dimension)
                     .map((u) => (
@@ -336,11 +341,11 @@ export function AttributeDialog({
 
         {dataType === "ENUMERATION" && enumerationId && siblings.length > 0 && (
           <fieldset className="attr-group">
-            <legend className="section-label">Depends on</legend>
+            <legend className="section-label">{t("Depends on")}</legend>
             <div className="field">
-              <label htmlFor="attr-depends">Allowed values depend on</label>
+              <label htmlFor="attr-depends">{t("Allowed values depend on")}</label>
               <select id="attr-depends" value={dependsOn} onChange={(e) => (setDependsOn(e.target.value), setValueFilter({}))}>
-                <option value="">Nothing: every value is always allowed</option>
+                <option value="">{t("Nothing: every value is always allowed")}</option>
                 {siblings.map((a) => (
                   <option key={a.id} value={a.name}>
                     {pickLabel(a.labels, a.name)}
@@ -362,21 +367,21 @@ export function AttributeDialog({
 
         {!multiValued && dataType !== "ENUMERATION" && (
           <fieldset className="attr-group">
-            <legend className="section-label">Value</legend>
+            <legend className="section-label">{t("Value")}</legend>
             <div className="attr-form">
               <label className="check wide">
                 <input type="checkbox" checked={calculated} onChange={(e) => setCalculated(e.target.checked)} />
-                Calculated: a formula computes the value whenever the object is saved; users can't change it
+                {t("Calculated: a formula computes the value whenever the object is saved; users can't change it")}
               </label>
               {calculated && (
                 <ExpressionField
                   id="attr-formula"
-                  label="Formula"
+                  label={t("Formula")}
                   kind="VALUE"
                   value={formula}
                   onChange={setFormula}
                   placeholder="double(object.attributes.quantity) * object.attributes.unitCost"
-                  hint="Its result becomes the value; if it fails (a value it needs is empty), the attribute is left empty."
+                  hint={t("Its result becomes the value; if it fails (a value it needs is empty), the attribute is left empty.")}
                 />
               )}
             </div>
@@ -384,50 +389,55 @@ export function AttributeDialog({
         )}
 
         <fieldset className="attr-group">
-          <legend className="section-label">Rules</legend>
+          <legend className="section-label">{t("Rules")}</legend>
           <div className="attr-form cols-2">
             {!calculated && (
               <>
                 <label className="check">
                   <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} />
-                  Required
+                  {t("Required")}
                 </label>
                 <label className="check">
                   <input type="checkbox" checked={immutable} onChange={(e) => setImmutable(e.target.checked)} />
-                  Fixed once the object is created
+                  {t("Fixed once the object is created")}
                 </label>
               </>
             )}
             {TEXTUAL.has(dataType) && (
               <>
                 <div className="field">
-                  <label htmlFor="attr-minlen">Minimum length</label>
+                  <label htmlFor="attr-minlen">{t("Minimum length")}</label>
                   <input id="attr-minlen" type="number" min={0} value={minLength} onChange={(e) => setMinLength(e.target.value)} />
                 </div>
                 <div className="field">
-                  <label htmlFor="attr-maxlen">Maximum length</label>
+                  <label htmlFor="attr-maxlen">{t("Maximum length")}</label>
                   <input id="attr-maxlen" type="number" min={1} value={maxLength} onChange={(e) => setMaxLength(e.target.value)} />
                 </div>
                 <div className="field wide">
-                  <label htmlFor="attr-pattern">Pattern (regular expression)</label>
-                  <input id="attr-pattern" value={pattern} onChange={(e) => setPattern(e.target.value)} placeholder="e.g. M\d+(x[\d.]+)?" />
+                  <label htmlFor="attr-pattern">{t("Pattern (regular expression)")}</label>
+                  <input
+                    id="attr-pattern"
+                    value={pattern}
+                    onChange={(e) => setPattern(e.target.value)}
+                    placeholder={t("e.g. {example}", { example: "M\\d+(x[\\d.]+)?" })}
+                  />
                 </div>
               </>
             )}
             {dataType === "URL" && (
               <div className="field">
-                <label htmlFor="attr-maxlen">Maximum length</label>
+                <label htmlFor="attr-maxlen">{t("Maximum length")}</label>
                 <input id="attr-maxlen" type="number" min={1} value={maxLength} onChange={(e) => setMaxLength(e.target.value)} />
               </div>
             )}
             {NUMERIC.has(dataType) && (
               <>
                 <div className="field">
-                  <label htmlFor="attr-min">Minimum{dataType === "QUANTITY" ? " (base unit)" : ""}</label>
+                  <label htmlFor="attr-min">{dataType === "QUANTITY" ? t("Minimum (base unit)") : t("Minimum")}</label>
                   <input id="attr-min" inputMode="decimal" value={minValue} onChange={(e) => setMinValue(e.target.value)} />
                 </div>
                 <div className="field">
-                  <label htmlFor="attr-max">Maximum{dataType === "QUANTITY" ? " (base unit)" : ""}</label>
+                  <label htmlFor="attr-max">{dataType === "QUANTITY" ? t("Maximum (base unit)") : t("Maximum")}</label>
                   <input id="attr-max" inputMode="decimal" value={maxValue} onChange={(e) => setMaxValue(e.target.value)} />
                 </div>
               </>
@@ -446,7 +456,7 @@ export function AttributeDialog({
         {editing && (
           <label className="check">
             <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
-            Active. Inactive attributes disappear from forms; values already stored are kept and still shown.
+            {t("Active. Inactive attributes disappear from forms; values already stored are kept and still shown.")}
           </label>
         )}
       </form>
@@ -478,10 +488,10 @@ function DependencyMatrix({
   };
   return (
     <div className="grid-wrap">
-      <table className="grid matrix" aria-label="Allowed values">
+      <table className="grid matrix" aria-label={t("Allowed values")}>
         <thead>
           <tr>
-            <th>{pickLabel(parent.labels, parent.name)} \ allows</th>
+            <th>{t("{attribute} \\ allows", { attribute: pickLabel(parent.labels, parent.name) })}</th>
             {childValues.map((v) => (
               <th key={v.key}>{pickLabel(v.labels, v.key)}</th>
             ))}
@@ -492,13 +502,13 @@ function DependencyMatrix({
             <tr key={p.key}>
               <th scope="row">
                 {pickLabel(p.labels, p.key)}
-                {!value[p.key]?.length && <span className="muted"> · all</span>}
+                {!value[p.key]?.length && <span className="muted"> · {t("all")}</span>}
               </th>
               {childValues.map((c) => (
                 <td key={c.key}>
                   <input
                     type="checkbox"
-                    aria-label={`${pickLabel(c.labels, c.key)} with ${pickLabel(p.labels, p.key)}`}
+                    aria-label={t("{value} with {parent}", { value: pickLabel(c.labels, c.key), parent: pickLabel(p.labels, p.key) })}
                     checked={!!value[p.key]?.includes(c.key)}
                     onChange={() => toggle(p.key, c.key)}
                     style={{ width: "auto" }}

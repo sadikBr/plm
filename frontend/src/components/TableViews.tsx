@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, Columns3, FileSpreadsheet, Filter, Save, Share2, Tr
 import { useState } from "react";
 import { api, unwrap, type Schemas } from "../api/client";
 import { useLifecycles, useMe, useTypes, type AttributeDefinition, type VersionedObject } from "../api/queries";
+import { t } from "../i18n/i18n";
 import { pickLabel } from "./AttributeForm";
 import { Dialog, ErrorBanner, MenuButton, typeLabel } from "./common";
 import { COLUMN_LABELS, DEFAULT_COLUMNS, columnLabel, sortRows, type BuiltinColumn, type ColumnKey } from "./ObjectTable";
@@ -26,10 +27,10 @@ export function applyView(
   view: ViewDefinition,
   text: (o: VersionedObject, c: ColumnKey) => string,
 ): VersionedObject[] {
-  const t = view.text?.trim().toLowerCase();
+  const needle = view.text?.trim().toLowerCase();
   const filtered = rows.filter(
     (o) =>
-      (!t || o.number.toLowerCase().includes(t) || o.name.toLowerCase().includes(t)) &&
+      (!needle || o.number.toLowerCase().includes(needle) || o.name.toLowerCase().includes(needle)) &&
       (!view.states.length || view.states.includes(o.latest.state)) &&
       (!view.typeIds.length || view.typeIds.includes(o.typeId)) &&
       Object.entries(view.attributes).every(([k, v]) => text(o, `attr:${k}`).toLowerCase().includes(v.toLowerCase())),
@@ -71,7 +72,7 @@ export async function exportXlsx(
     parseAs: "blob",
     headers: { Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
   });
-  if (error || !data) throw new Error("The export failed");
+  if (error || !data) throw new Error(t("The export failed"));
   const url = URL.createObjectURL(data as Blob);
   const a = document.createElement("a");
   a.href = url;
@@ -121,7 +122,7 @@ export function ViewBar({
 
   return (
     <div className="view-bar">
-      <MenuButton label={current ? current.name : "Default view"} className="btn small" align="left">
+      <MenuButton label={current ? current.name : t("Default view")} className="btn small" align="left">
         {(close) => (
           <div className="views-menu">
             <button
@@ -132,7 +133,7 @@ export function ViewBar({
                 close();
               }}
             >
-              Default view
+              {t("Default view")}
             </button>
             {views?.map((v) => (
               <div key={v.id} className="view-row">
@@ -146,9 +147,9 @@ export function ViewBar({
                 >
                   {v.name}
                 </button>
-                {v.shared && <Share2 size={11} className="icon-muted" aria-label="Shared" />}
+                {v.shared && <Share2 size={11} className="icon-muted" aria-label={t("Shared")} />}
                 {v.owner === me?.user.id && (
-                  <button className="icon-btn" aria-label={`Delete view ${v.name}`} onClick={() => remove.mutate(v.id)}>
+                  <button className="icon-btn" aria-label={t("Delete view {name}", { name: v.name })} onClick={() => remove.mutate(v.id)}>
                     <Trash2 size={12} />
                   </button>
                 )}
@@ -160,23 +161,23 @@ export function ViewBar({
       <input
         className="filter"
         type="search"
-        aria-label="Filter objects"
-        placeholder="Filter by number or name"
+        aria-label={t("Filter objects")}
+        placeholder={t("Filter by number or name")}
         value={view.text ?? ""}
         onChange={(e) => onChange({ ...view, text: e.target.value })}
       />
       <button className="btn small" onClick={() => setDialog("filter")}>
-        <Filter size={13} aria-hidden /> Filters{filters ? ` (${filters})` : ""}
+        <Filter size={13} aria-hidden /> {filters ? t("Filters ({count})", { count: filters }) : t("Filters")}
       </button>
       <button className="btn small" onClick={() => setDialog("columns")}>
-        <Columns3 size={13} aria-hidden /> Columns
+        <Columns3 size={13} aria-hidden /> {t("Columns")}
       </button>
       <span className="grow" />
       <button className="btn small" onClick={() => setDialog("save")}>
-        <Save size={13} aria-hidden /> Save view
+        <Save size={13} aria-hidden /> {t("Save view")}
       </button>
       <button className="btn small" onClick={onExport} disabled={exporting}>
-        <FileSpreadsheet size={13} aria-hidden /> Export to Excel
+        <FileSpreadsheet size={13} aria-hidden /> {t("Export to Excel")}
       </button>
       {dialog === "columns" && (
         <ColumnsDialog
@@ -234,12 +235,12 @@ function ColumnsDialog({
     <Dialog
       open
       wide
-      title="Columns"
+      title={t("Columns")}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             className="btn primary"
@@ -249,14 +250,14 @@ function ColumnsDialog({
               onClose();
             }}
           >
-            Apply
+            {t("Apply")}
           </button>
         </>
       }
     >
       <div className="columns-dialog">
         <fieldset className="check-list">
-          <legend>Show</legend>
+          <legend>{t("Show")}</legend>
           {all.map((c) => (
             <label key={c} className="check">
               <input
@@ -265,23 +266,37 @@ function ColumnsDialog({
                 onChange={() => setColumns(columns.includes(c) ? columns.filter((x) => x !== c) : [...columns, c])}
               />
               {columnLabel(c, definitions)}
-              {c.startsWith("attr:") && <span className="muted small"> attribute</span>}
+              {c.startsWith("attr:") && <span className="muted small"> {t("attribute")}</span>}
             </label>
           ))}
         </fieldset>
         <div>
-          <div className="section-label">Order</div>
+          <div className="section-label">{t("Order")}</div>
           <ol className="column-order">
             {columns.map((c, i) => (
               <li key={c}>
                 <span className="grow">{columnLabel(c as ColumnKey, definitions)}</span>
-                <button className="icon-btn" aria-label={`Move ${c} up`} disabled={i === 0} onClick={() => move(i, -1)}>
+                <button
+                  className="icon-btn"
+                  aria-label={t("Move {column} up", { column: c })}
+                  disabled={i === 0}
+                  onClick={() => move(i, -1)}
+                >
                   <ArrowUp size={12} />
                 </button>
-                <button className="icon-btn" aria-label={`Move ${c} down`} disabled={i === columns.length - 1} onClick={() => move(i, 1)}>
+                <button
+                  className="icon-btn"
+                  aria-label={t("Move {column} down", { column: c })}
+                  disabled={i === columns.length - 1}
+                  onClick={() => move(i, 1)}
+                >
                   <ArrowDown size={12} />
                 </button>
-                <button className="icon-btn" aria-label={`Hide ${c}`} onClick={() => setColumns(columns.filter((x) => x !== c))}>
+                <button
+                  className="icon-btn"
+                  aria-label={t("Hide {column}", { column: c })}
+                  onClick={() => setColumns(columns.filter((x) => x !== c))}
+                >
                   <X size={12} />
                 </button>
               </li>
@@ -319,7 +334,7 @@ function FilterDialog({
     <Dialog
       open
       wide
-      title="Filters"
+      title={t("Filters")}
       onClose={onClose}
       footer={
         <>
@@ -330,7 +345,7 @@ function FilterDialog({
               onClose();
             }}
           >
-            Clear all
+            {t("Clear all")}
           </button>
           <button
             className="btn primary"
@@ -339,14 +354,14 @@ function FilterDialog({
               onClose();
             }}
           >
-            Apply
+            {t("Apply")}
           </button>
         </>
       }
     >
       <div className="attr-form">
         <fieldset className="check-list wide">
-          <legend>State</legend>
+          <legend>{t("State")}</legend>
           {[...allStates.entries()].map(([k, l]) => (
             <label key={k} className="check">
               <input type="checkbox" checked={states.includes(k)} onChange={() => toggle(states, setStates, k)} />
@@ -355,7 +370,7 @@ function FilterDialog({
           ))}
         </fieldset>
         <fieldset className="check-list wide">
-          <legend>Type</legend>
+          <legend>{t("Type")}</legend>
           {presentTypes.map((id) => (
             <label key={id} className="check">
               <input type="checkbox" checked={typeIds.includes(id)} onChange={() => toggle(typeIds, setTypeIds, id)} />
@@ -364,15 +379,15 @@ function FilterDialog({
           ))}
         </fieldset>
         <fieldset className="members-box wide">
-          <legend>Attribute contains</legend>
+          <legend>{t("Attribute contains")}</legend>
           {attributes.map(([k, v], i) => (
             <div key={i} className="row" style={{ gap: 6 }}>
               <select
-                aria-label="Attribute"
+                aria-label={t("Attribute")}
                 value={k}
                 onChange={(e) => setAttributes(attributes.map((a, j) => (j === i ? [e.target.value, a[1]] : a)))}
               >
-                <option value="">Choose…</option>
+                <option value="">{t("Choose…")}</option>
                 {[...definitions.values()].map((d) => (
                   <option key={d.name} value={d.name}>
                     {pickLabel(d.labels, d.name)}
@@ -380,17 +395,17 @@ function FilterDialog({
                 ))}
               </select>
               <input
-                aria-label="Contains"
+                aria-label={t("Contains")}
                 value={v}
                 onChange={(e) => setAttributes(attributes.map((a, j) => (j === i ? [a[0], e.target.value] : a)))}
               />
-              <button className="icon-btn" aria-label="Remove" onClick={() => setAttributes(attributes.filter((_, j) => j !== i))}>
+              <button className="icon-btn" aria-label={t("Remove")} onClick={() => setAttributes(attributes.filter((_, j) => j !== i))}>
                 <X size={13} />
               </button>
             </div>
           ))}
           <button className="btn small" style={{ justifySelf: "start" }} onClick={() => setAttributes([...attributes, ["", ""]])}>
-            Add a condition
+            {t("Add a condition")}
           </button>
         </fieldset>
       </div>
@@ -431,15 +446,15 @@ function SaveViewDialog({
   return (
     <Dialog
       open
-      title="Save this view"
+      title={t("Save this view")}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button className="btn primary" disabled={save.isPending || !name.trim()} onClick={() => save.mutate()}>
-            Save
+            {t("Save")}
           </button>
         </>
       }
@@ -449,17 +464,17 @@ function SaveViewDialog({
         {current && (
           <label className="check wide">
             <input type="checkbox" checked={asNew} onChange={(e) => setAsNew(e.target.checked)} />
-            Save as a new view (instead of changing “{current.name}”)
+            {t("Save as a new view (instead of changing “{name}”)", { name: current.name })}
           </label>
         )}
         <div className="field wide">
-          <label htmlFor="view-name">Name</label>
+          <label htmlFor="view-name">{t("Name")}</label>
           <input id="view-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-          <span className="hint">Columns, filters and sort, as they are now.</span>
+          <span className="hint">{t("Columns, filters and sort, as they are now.")}</span>
         </div>
         <label className="check wide">
           <input type="checkbox" checked={shared} onChange={(e) => setShared(e.target.checked)} />
-          Share it with everyone
+          {t("Share it with everyone")}
         </label>
       </div>
     </Dialog>

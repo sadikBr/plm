@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
 import { useContextsOfKind, useTypes } from "../api/queries";
 import { Dialog, ErrorBanner, Loading, Panel, PrincipalName, formatDate, typeLabel } from "../components/common";
+import { t } from "../i18n/i18n";
 
 type Template = Schemas["DocumentTemplate"];
 
@@ -30,64 +31,68 @@ export function DocumentTemplatesAdmin() {
   });
   const [editing, setEditing] = useState<Template | "new" | null>(null);
   const typeName = (id: string) => {
-    const t = types?.find((x) => x.id === id);
-    return t ? typeLabel(t) : "…";
+    const type = types?.find((x) => x.id === id);
+    return type ? typeLabel(type) : "…";
   };
 
   if (isLoading) return <Loading />;
   return (
     <Panel
-      title="Document templates"
-      note="New documents can start from these: their type, values and files (latest version)"
+      title={t("Document templates")}
+      note={t("New documents can start from these: their type, values and files (latest version)")}
       flush
       actions={
         <button className="btn small primary" onClick={() => setEditing("new")}>
           <Plus size={13} aria-hidden />
-          New template
+          {t("New template")}
         </button>
       }
     >
       <ErrorBanner error={error ?? remove.error} />
       {!templates?.length ? (
-        <p className="empty">No templates yet. Make a document the way new ones should start, then register it here.</p>
+        <p className="empty">{t("No templates yet. Make a document the way new ones should start, then register it here.")}</p>
       ) : (
-        <table className="grid" aria-label="Document templates">
+        <table className="grid" aria-label={t("Document templates")}>
           <thead>
             <tr>
-              <th>Template</th>
-              <th>Object</th>
-              <th>Type</th>
-              <th>File</th>
-              <th>Offered in</th>
-              <th>Updated</th>
-              <th aria-label="Actions" />
+              <th>{t("Template")}</th>
+              <th>{t("Object")}</th>
+              <th>{t("Type")}</th>
+              <th>{t("File")}</th>
+              <th>{t("Offered in")}</th>
+              <th>{t("Updated")}</th>
+              <th aria-label={t("Actions")} />
             </tr>
           </thead>
           <tbody>
-            {templates.map((t) => (
-              <tr key={t.id} className={t.active ? undefined : "inactive"}>
+            {templates.map((tpl) => (
+              <tr key={tpl.id} className={tpl.active ? undefined : "inactive"}>
                 <td>
-                  <strong>{t.name}</strong>
-                  {t.description && <div className="muted small">{t.description}</div>}
-                  {!t.active && <div className="muted small">Off</div>}
+                  <strong>{tpl.name}</strong>
+                  {tpl.description && <div className="muted small">{tpl.description}</div>}
+                  {!tpl.active && <div className="muted small">{t("Off")}</div>}
                 </td>
                 <td className="nowrap">
-                  <Link to={`/objects/${t.objectId}`}>{t.number}</Link> <span className="tag accent version">{t.version}</span>
+                  <Link to={`/objects/${tpl.objectId}`}>{tpl.number}</Link> <span className="tag accent version">{tpl.version}</span>
                 </td>
-                <td>{typeName(t.typeId)}</td>
-                <td>{t.fileName ?? <span className="muted">No file</span>}</td>
-                <td>{t.organizationId ? (orgs?.find((o) => o.id === t.organizationId)?.name ?? "An organization") : "Everywhere"}</td>
+                <td>{typeName(tpl.typeId)}</td>
+                <td>{tpl.fileName ?? <span className="muted">{t("No file")}</span>}</td>
+                <td>
+                  {tpl.organizationId ? (orgs?.find((o) => o.id === tpl.organizationId)?.name ?? t("An organization")) : t("Everywhere")}
+                </td>
                 <td className="nowrap muted">
-                  {formatDate(t.updatedAt)} · <PrincipalName id={t.updatedBy} />
+                  {formatDate(tpl.updatedAt)} · <PrincipalName id={tpl.updatedBy} />
                 </td>
                 <td className="nowrap">
-                  <button className="icon-btn" aria-label={`Edit ${t.name}`} onClick={() => setEditing(t)}>
+                  <button className="icon-btn" aria-label={t("Edit {name}", { name: tpl.name })} onClick={() => setEditing(tpl)}>
                     <Pencil size={13} />
                   </button>
                   <button
                     className="icon-btn"
-                    aria-label={`Delete ${t.name}`}
-                    onClick={() => window.confirm(`Delete the template “${t.name}”? Its object stays.`) && remove.mutate(t.id)}
+                    aria-label={t("Delete {name}", { name: tpl.name })}
+                    onClick={() =>
+                      window.confirm(t("Delete the template “{name}”? Its object stays.", { name: tpl.name })) && remove.mutate(tpl.id)
+                    }
                   >
                     <Trash2 size={13} />
                   </button>
@@ -131,15 +136,15 @@ function TemplateDialog({ template, onClose }: { template: Template | null; onCl
   return (
     <Dialog
       open
-      title={template ? `Edit ${template.name}` : "New document template"}
+      title={template ? t("Edit {name}", { name: template.name }) : t("New document template")}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button className="btn primary" disabled={save.isPending || !name.trim() || !objectId} onClick={() => save.mutate()}>
-            Save
+            {t("Save")}
           </button>
         </>
       }
@@ -147,11 +152,11 @@ function TemplateDialog({ template, onClose }: { template: Template | null; onCl
       <div className="attr-form">
         <ErrorBanner error={save.error} />
         <div className="field wide">
-          <label htmlFor="tpl-name">Name</label>
-          <input id="tpl-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus placeholder="Test report" />
+          <label htmlFor="tpl-name">{t("Name")}</label>
+          <input id="tpl-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus placeholder={t("Test report")} />
         </div>
         <div className="field wide">
-          <label htmlFor="tpl-object">Template object</label>
+          <label htmlFor="tpl-object">{t("Template object")}</label>
           <input
             id="tpl-object"
             value={query}
@@ -160,10 +165,10 @@ function TemplateDialog({ template, onClose }: { template: Template | null; onCl
               setQuery(e.target.value);
               setObjectId("");
             }}
-            placeholder="Number or name of the object to start from"
+            placeholder={t("Number or name of the object to start from")}
           />
           {!template && (
-            <div className="pick-list" role="listbox" aria-label="Matching objects">
+            <div className="pick-list" role="listbox" aria-label={t("Matching objects")}>
               {matches?.map((m) => (
                 <button
                   key={m.id}
@@ -179,23 +184,23 @@ function TemplateDialog({ template, onClose }: { template: Template | null; onCl
           )}
         </div>
         <div className="field wide">
-          <label htmlFor="tpl-desc">Description</label>
+          <label htmlFor="tpl-desc">{t("Description")}</label>
           <input id="tpl-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
         <div className="field wide">
-          <label htmlFor="tpl-org">Offered in</label>
+          <label htmlFor="tpl-org">{t("Offered in")}</label>
           <select id="tpl-org" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}>
-            <option value="">Every organization</option>
+            <option value="">{t("Every organization")}</option>
             {orgs?.map((o) => (
               <option key={o.id} value={o.id}>
-                {o.name} only
+                {t("{name} only", { name: o.name })}
               </option>
             ))}
           </select>
         </div>
         <label className="check wide">
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
-          Offered when creating
+          {t("Offered when creating")}
         </label>
       </div>
     </Dialog>

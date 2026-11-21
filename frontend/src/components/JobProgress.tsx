@@ -1,3 +1,4 @@
+import { t } from "../i18n/i18n";
 import type { Schemas } from "../api/client";
 
 type Job = Schemas["Job"];
@@ -10,18 +11,26 @@ const STATUS_CLASS: Record<string, string> = {
   CANCELLED: "tag warn",
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  QUEUED: "queued",
-  RUNNING: "running",
-  SUCCEEDED: "succeeded",
-  FAILED: "failed",
-  CANCELLED: "cancelled",
-};
+function statusLabel(status: string): string {
+  switch (status) {
+    case "QUEUED":
+      return t("queued");
+    case "RUNNING":
+      return t("running");
+    case "SUCCEEDED":
+      return t("succeeded");
+    case "FAILED":
+      return t("failed");
+    case "CANCELLED":
+      return t("cancelled");
+  }
+  return status.toLowerCase();
+}
 
 export function JobStatusTag({ job }: { job: Pick<Job, "status" | "cancelRequested"> }) {
   return (
     <span className={STATUS_CLASS[job.status] ?? "tag"}>
-      {job.status === "RUNNING" && job.cancelRequested ? "cancelling" : (STATUS_LABEL[job.status] ?? job.status.toLowerCase())}
+      {job.status === "RUNNING" && job.cancelRequested ? t("cancelling") : statusLabel(job.status)}
     </span>
   );
 }
@@ -43,7 +52,7 @@ export function JobProgress({ job }: { job: Job }) {
         <span style={{ width: `${pct ?? 30}%` }} />
       </div>
       <span className="muted small">
-        {p ? (p.total ? `${p.done} / ${p.total}` : `${p.done}`) : job.status === "QUEUED" ? "Waiting" : ""}
+        {p ? (p.total ? `${p.done} / ${p.total}` : `${p.done}`) : job.status === "QUEUED" ? t("Waiting") : ""}
         {p?.message ? ` · ${p.message}` : ""}
       </span>
     </div>

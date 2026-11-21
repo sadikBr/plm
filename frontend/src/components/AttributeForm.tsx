@@ -1,3 +1,4 @@
+import { language, t } from "../i18n/i18n";
 import { Info } from "lucide-react";
 import type { ReactNode } from "react";
 import { ApiError } from "../api/client";
@@ -17,8 +18,7 @@ import {
 /** Best label for the user's language, falling back to English, then the internal name. */
 export function pickLabel(labels: Record<string, string> | undefined, fallback = ""): string {
   if (!labels) return fallback;
-  const lang = (typeof navigator !== "undefined" ? navigator.language : "en").toLowerCase();
-  return labels[lang] ?? labels[lang.split("-")[0]!] ?? labels.en ?? Object.values(labels)[0] ?? fallback;
+  return labels[language()] ?? labels.en ?? Object.values(labels)[0] ?? fallback;
 }
 
 /** Field errors from an INVALID_ATTRIBUTES problem, keyed by attribute name. */
@@ -30,7 +30,7 @@ export function fieldErrors(error: unknown): Record<string, string> {
 
 /** A calculated value as text; empty until the object is saved (or when its formula has no result). */
 function formatCalculated(value: unknown): string {
-  if (value == null) return "Computed when saved";
+  if (value == null) return t("Computed when saved");
   if (typeof value === "object" && value && "value" in value) {
     const q = value as { value: unknown; unit?: string };
     return `${String(q.value)} ${q.unit ?? ""}`.trim();
@@ -70,7 +70,7 @@ export function formatAttribute(def: AttributeDefinition | undefined, value: unk
   if (value === null || value === undefined) return "—";
   if (Array.isArray(value)) return value.map((v) => formatAttribute(def, v, enumerations)).join(", ");
   if (isQuantity(value)) return `${value.value} ${value.unit}`;
-  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "boolean") return value ? t("Yes") : t("No");
   if (def?.dataType === "ENUMERATION" && def.enumerationId) {
     const entry = enumerations?.get(def.enumerationId)?.values.find((v) => v.key === value);
     if (entry) return pickLabel(entry.labels, String(value));
@@ -112,15 +112,15 @@ export function AttributeValues({
         columns: g.columns,
         names: g.attributes.filter((n) => byName.get(n)?.active),
       }))
-    : [{ key: "attributes", title: "Attributes", columns: 2, names: definitions.filter((d) => d.active).map((d) => d.name) }];
+    : [{ key: "attributes", title: t("Attributes"), columns: 2, names: definitions.filter((d) => d.active).map((d) => d.name) }];
   const other = [
     ...definitions.filter((d) => !d.active && values[d.name] != null).map((d) => d.name),
     ...Object.keys(values).filter((k) => !byName.has(k)),
   ];
-  if (other.length > 0) sections.push({ key: "other", title: "Other values", columns: 2, names: other });
+  if (other.length > 0) sections.push({ key: "other", title: t("Other values"), columns: 2, names: other });
   const shown = sections.filter((section) => section.names.length > 0);
 
-  if (shown.length === 0) return <p className="muted">No attributes.</p>;
+  if (shown.length === 0) return <p className="muted">{t("No attributes.")}</p>;
   // A single group needs no heading: the panel title says it all.
   if (shown.length === 1 && shown[0]!.key !== "other") {
     return <Props items={shown[0]!.names.map(item)} columns={shown[0]!.columns === 1 ? 1 : 2} />;
@@ -221,9 +221,9 @@ export function AttributeForm({
         )}
         {def.formula ? (
           // Calculated: the server computes it on save, so it's shown, not edited.
-          <output id={id} className="calc-value" title={`Calculated: ${def.formula}`}>
+          <output id={id} className="calc-value" title={t("Calculated: {formula}", { formula: def.formula })}>
             {formatCalculated(values[def.name])}
-            <span className="tag">Calculated</span>
+            <span className="tag">{t("Calculated")}</span>
           </output>
         ) : (
           <Input
@@ -336,7 +336,7 @@ function Input({
             )
           }
         />
-        <span className="hint">One value per line.</span>
+        <span className="hint">{t("One value per line.")}</span>
       </>
     );
   }
@@ -371,7 +371,7 @@ function Input({
             onChange={(e) => onChange(e.target.value === "" ? undefined : { value: Number(e.target.value), unit })}
           />
           <select
-            aria-label={`${pickLabel(def.labels, def.name)} unit`}
+            aria-label={t("{attribute} unit", { attribute: pickLabel(def.labels, def.name) })}
             value={unit}
             onChange={(e) => q && onChange({ value: q.value, unit: e.target.value })}
             style={{ flex: "0 0 auto", width: "auto" }}

@@ -8,16 +8,26 @@ import { ErrorBanner, Loading, Panel, StateBadge } from "../components/common";
 import { PageHeader } from "../components/Layout";
 import { formatSize } from "../components/ObjectFiles";
 import { pickLabel } from "../components/AttributeForm";
+import { t, tn } from "../i18n/i18n";
 
 type Comparison = Schemas["Comparison"];
 type DiffLine = Schemas["DiffLine"];
 
-const CHANGE: Record<string, [string, string]> = {
-  SAME: ["tag", "same"],
-  CHANGED: ["tag warn", "changed"],
-  ADDED: ["tag allow", "added"],
-  REMOVED: ["tag deny", "removed"],
-};
+/** A file's change: its tag's class and label. */
+function changeTag(change: string): [string, string] {
+  switch (change) {
+    case "SAME":
+      return ["tag", t("same")];
+    case "CHANGED":
+      return ["tag warn", t("changed")];
+    case "ADDED":
+      return ["tag allow", t("added")];
+    case "REMOVED":
+      return ["tag deny", t("removed")];
+    default:
+      return ["tag", change.toLowerCase()];
+  }
+}
 
 /** A value as people read it: quantities with their unit, lists joined, empty as a dash. */
 function show(v: unknown): string {
@@ -27,7 +37,7 @@ function show(v: unknown): string {
     return `${String(q.value)}${q.unit ? ` ${q.unit}` : ""}`;
   }
   if (Array.isArray(v)) return v.map(show).join(", ");
-  if (typeof v === "boolean") return v ? "Yes" : "No";
+  if (typeof v === "boolean") return v ? t("Yes") : t("No");
   return typeof v === "object" ? JSON.stringify(v) : String(v);
 }
 
@@ -48,7 +58,7 @@ export function ComparePage() {
   const label = (name: string) => pickLabel(definitions?.find((d) => d.name === name)?.labels, name);
 
   if (isLoading) return <Loading />;
-  if (error || !data) return <ErrorBanner error={error ?? new Error("Choose two versions to compare")} />;
+  if (error || !data) return <ErrorBanner error={error ?? new Error(t("Choose two versions to compare"))} />;
   const changed = data.attributes.filter((a) => a.changed).length;
   const rows = onlyChanges ? data.attributes.filter((a) => a.changed) : data.attributes;
 
@@ -56,10 +66,12 @@ export function ComparePage() {
     <>
       <PageHeader
         icon={<GitCompare size={18} aria-hidden />}
-        title={<span className="nm">Compare</span>}
+        title={<span className="nm">{t("Compare")}</span>}
         meta={
           <span className="sub">
-            {changed} value{changed === 1 ? "" : "s"} and {data.files.filter((f) => f.change !== "SAME").length} file(s) differ
+            {tn("{n} value and {files} file(s) differ", "{n} values and {files} file(s) differ", changed, {
+              files: data.files.filter((f) => f.change !== "SAME").length,
+            })}
           </span>
         }
       />
@@ -70,22 +82,22 @@ export function ComparePage() {
           <Side v={data.right} />
         </div>
         <Panel
-          title="Attributes"
+          title={t("Attributes")}
           flush
           actions={
             <label className="check">
               <input type="checkbox" checked={onlyChanges} onChange={(e) => setOnlyChanges(e.target.checked)} />
-              Only differences
+              {t("Only differences")}
             </label>
           }
         >
           {rows.length === 0 ? (
-            <p className="empty">{onlyChanges ? "Every value is the same." : "No attributes."}</p>
+            <p className="empty">{onlyChanges ? t("Every value is the same.") : t("No attributes.")}</p>
           ) : (
-            <table className="grid compare" aria-label="Attribute differences">
+            <table className="grid compare" aria-label={t("Attribute differences")}>
               <thead>
                 <tr>
-                  <th>Attribute</th>
+                  <th>{t("Attribute")}</th>
                   <th>
                     {data.left.number} {data.left.version}
                   </th>
@@ -106,26 +118,26 @@ export function ComparePage() {
             </table>
           )}
         </Panel>
-        <Panel title="Files" flush>
+        <Panel title={t("Files")} flush>
           {data.files.length === 0 ? (
-            <p className="empty">Neither has files.</p>
+            <p className="empty">{t("Neither has files.")}</p>
           ) : (
-            <table className="grid" aria-label="File differences">
+            <table className="grid" aria-label={t("File differences")}>
               <thead>
                 <tr>
-                  <th>File</th>
-                  <th>Role</th>
-                  <th>Change</th>
-                  <th>Size</th>
+                  <th>{t("File")}</th>
+                  <th>{t("Role")}</th>
+                  <th>{t("Change")}</th>
+                  <th>{t("Size")}</th>
                 </tr>
               </thead>
               <tbody>
                 {data.files.map((f) => (
                   <tr key={`${f.role}:${f.fileName}`}>
                     <td>{f.fileName}</td>
-                    <td className="muted">{f.role === "PRIMARY" ? "Primary" : "Attachment"}</td>
+                    <td className="muted">{f.role === "PRIMARY" ? t("Primary") : t("Attachment")}</td>
                     <td>
-                      <span className={CHANGE[f.change]![0]}>{CHANGE[f.change]![1]}</span>
+                      <span className={changeTag(f.change)[0]}>{changeTag(f.change)[1]}</span>
                     </td>
                     <td className="nowrap muted">
                       {f.leftSize != null ? formatSize(f.leftSize) : "—"} → {f.rightSize != null ? formatSize(f.rightSize) : "—"}
@@ -161,12 +173,12 @@ function TextDiff({ diff }: { diff: Schemas["TextDifference"] }) {
   const [expanded, setExpanded] = useState(false);
   const lines = expanded ? diff.lines : fold(diff.lines, 2);
   return (
-    <Panel title={`Lines of ${diff.fileName}`} note={diff.skipped ?? `+${diff.added} −${diff.removed}`} flush>
+    <Panel title={t("Lines of {file}", { file: diff.fileName })} note={diff.skipped ?? `+${diff.added} −${diff.removed}`} flush>
       {diff.skipped ? null : diff.added + diff.removed === 0 ? (
-        <p className="empty">The text is the same.</p>
+        <p className="empty">{t("The text is the same.")}</p>
       ) : (
         <>
-          <pre className="text-diff" aria-label="Line differences">
+          <pre className="text-diff" aria-label={t("Line differences")}>
             {lines.map((l, i) =>
               l === null ? (
                 <div key={i} className="fold">
@@ -184,7 +196,7 @@ function TextDiff({ diff }: { diff: Schemas["TextDifference"] }) {
           </pre>
           <div className="panel-foot">
             <button className="btn small ghost" onClick={() => setExpanded(!expanded)}>
-              {expanded ? "Show only the changes" : "Show every line"}
+              {expanded ? t("Show only the changes") : t("Show every line")}
             </button>
           </div>
         </>

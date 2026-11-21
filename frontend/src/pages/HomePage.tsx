@@ -1,4 +1,5 @@
 import { useMe, useSite } from "../api/queries";
+import { t } from "../i18n/i18n";
 import { ErrorBanner, Loading, Panel } from "../components/common";
 import { HomeDashboard } from "../reports/Dashboards";
 
@@ -17,10 +18,12 @@ export function HomePage() {
 
   return (
     <div className="content notice">
-      <Panel title={`Welcome${me ? `, ${me.user.displayName}` : ""}`}>
+      <Panel title={me ? t("Welcome, {name}", { name: me.user.displayName }) : t("Welcome")}>
         <p style={{ margin: 0 }}>
-          You're signed in, but not on any team yet, so there's nothing to show. Ask a site administrator or a product manager to add you.
-          Your username is <code>{me?.user.username}</code>.
+          {t(
+            "You're signed in, but not on any team yet, so there's nothing to show. Ask a site administrator or a product manager to add you.",
+          )}{" "}
+          {t("Your username is")} <code>{me?.user.username}</code>.
         </p>
       </Panel>
     </div>

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import type { AvailableAction } from "../api/queries";
+import { t } from "../i18n/i18n";
 import { MenuButton, StateBadge } from "../components/common";
 
 /** Icons an action may name (registry `icon`). Unknown names fall back to a generic one. */
@@ -52,6 +53,52 @@ export const ACTION_ICONS: Record<string, LucideIcon> = {
 function ActionIcon({ name, size }: { name?: string | null; size: number }) {
   const Icon = (name && ACTION_ICONS[name]) || Play;
   return <Icon size={size} aria-hidden />;
+}
+
+/**
+ * The label of a built-in action in the interface language. Labels are configuration (Admin →
+ * Actions): one an administrator changed, and extension actions, show as the server sends them.
+ */
+export function actionLabel(a: Pick<AvailableAction, "id" | "label">): string {
+  const builtin = (english: string, translated: string) => (a.label === english ? translated : a.label);
+  switch (a.id) {
+    case "object.check-out":
+      return builtin("Check out", t("Check out"));
+    case "object.check-in":
+      return builtin("Check in", t("Check in"));
+    case "object.undo-check-out":
+      return builtin("Undo check-out", t("Undo check-out"));
+    case "object.revise":
+      return builtin("Revise", t("Revise"));
+    case "object.set-state":
+      return builtin("Set state", t("Set state"));
+    case "object.copy-number":
+      return builtin("Copy number", t("Copy number"));
+    case "object.copy-link":
+      return builtin("Copy link", t("Copy link"));
+    case "object.rename":
+      return builtin("Rename or renumber…", t("Rename or renumber…"));
+    case "object.change-lifecycle":
+      return builtin("Change lifecycle…", t("Change lifecycle…"));
+    case "object.save-as":
+      return builtin("Save as…", t("Save as…"));
+    case "object.compare":
+      return builtin("Compare…", t("Compare…"));
+    case "object.add-to-clipboard":
+      return builtin("Add to clipboard", t("Add to clipboard"));
+    case "object.reserve":
+      return builtin("Reserve", t("Reserve"));
+    case "object.release":
+      return builtin("Release reservation", t("Release reservation"));
+    case "object.move":
+      return builtin("Move…", t("Move…"));
+    case "object.change-owner":
+      return builtin("Change owner…", t("Change owner…"));
+    case "object.delete":
+      return builtin("Delete…", t("Delete…"));
+    default:
+      return a.label;
+  }
 }
 
 /**
@@ -92,17 +139,21 @@ export function ObjectActionBar({
   const unavailable = (a: AvailableAction) => !a.enabled || busy || !handlerOf(a);
   const why = (a: AvailableAction) =>
     a.reason ??
-    (handlerOf(a) ? (a.handler === "URL" ? `Opens ${a.url}` : undefined) : "This action isn't available in this version of the app");
+    (handlerOf(a)
+      ? a.handler === "URL"
+        ? t("Opens {url}", { url: a.url ?? "" })
+        : undefined
+      : t("This action isn't available in this version of the app"));
 
   const toolbarItem = (a: AvailableAction) =>
     a.options.length > 0 && !unavailable(a) ? (
-      <MenuButton key={a.id} label={a.label} icon={<ActionIcon name={a.icon} size={15} />} align="left">
+      <MenuButton key={a.id} label={actionLabel(a)} icon={<ActionIcon name={a.icon} size={15} />} align="left">
         {(close) => <Options action={a} onPick={(o) => (handlers[a.id]?.(o), close())} stateLabel={stateLabel} />}
       </MenuButton>
     ) : (
       <button key={a.id} className="btn ghost" data-action={a.id} disabled={unavailable(a)} title={why(a)} onClick={() => handlerOf(a)?.()}>
         <ActionIcon name={a.icon} size={15} />
-        {a.label}
+        {actionLabel(a)}
       </button>
     );
 
@@ -116,14 +167,14 @@ export function ObjectActionBar({
       ))}
       <span className="grow" />
       {more.length > 0 && (
-        <MenuButton label="More" icon={<MoreHorizontal size={15} aria-hidden />}>
+        <MenuButton label={t("More")} icon={<MoreHorizontal size={15} aria-hidden />}>
           {(close) =>
             more.map((a, i) => (
               <Fragment key={a.id}>
                 {i > 0 && more[i - 1]!.group !== a.group && <hr />}
                 {a.options.length > 0 ? (
                   <>
-                    <div className="menu-label">{a.label}</div>
+                    <div className="menu-label">{actionLabel(a)}</div>
                     <Options action={a} onPick={(o) => (handlers[a.id]?.(o), close())} stateLabel={stateLabel} />
                   </>
                 ) : (
@@ -137,7 +188,7 @@ export function ObjectActionBar({
                       close();
                     }}
                   >
-                    <ActionIcon name={a.icon} size={14} /> {a.label}
+                    <ActionIcon name={a.icon} size={14} /> {actionLabel(a)}
                   </button>
                 )}
               </Fragment>
@@ -176,10 +227,10 @@ function Options({
             <button
               key={o.value}
               role="menuitem"
-              title="Site administrator override: ignores the lifecycle's transitions"
+              title={t("Site administrator override: ignores the lifecycle's transitions")}
               onClick={() => onPick(o)}
             >
-              <ShieldAlert size={14} aria-hidden /> {o.label} (override)
+              <ShieldAlert size={14} aria-hidden /> {t("{state} (override)", { state: o.label })}
             </button>
           ))}
         </>

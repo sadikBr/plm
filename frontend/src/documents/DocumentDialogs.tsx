@@ -4,12 +4,13 @@ import { useNavigate } from "react-router";
 import { api, unwrap } from "../api/client";
 import { useHistory, type VersionedObject } from "../api/queries";
 import { Dialog, ErrorBanner, stateLabel } from "../components/common";
+import { t } from "../i18n/i18n";
 
 /** Save As (roadmap 3.3): a copy with a new number, the latest version's values and files. */
 export function SaveAsDialog({ obj, onClose }: { obj: VersionedObject; onClose: () => void }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [name, setName] = useState(`Copy of ${obj.name}`);
+  const [name, setName] = useState(() => t("Copy of {name}", { name: obj.name }));
   const [number, setNumber] = useState("");
   const [withFiles, setWithFiles] = useState(true);
   const save = useMutation({
@@ -29,15 +30,15 @@ export function SaveAsDialog({ obj, onClose }: { obj: VersionedObject; onClose: 
   return (
     <Dialog
       open
-      title={`Save ${obj.number} as…`}
+      title={t("Save {number} as…", { number: obj.number })}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button className="btn primary" disabled={save.isPending || !name.trim()} onClick={() => save.mutate()}>
-            Save as
+            {t("Save as")}
           </button>
         </>
       }
@@ -45,19 +46,22 @@ export function SaveAsDialog({ obj, onClose }: { obj: VersionedObject; onClose: 
       <div className="attr-form">
         <ErrorBanner error={save.error} />
         <p className="muted wide" style={{ margin: 0 }}>
-          A new object of the same type in the same place, starting at A.1 with the values of {obj.number} {obj.version}.
+          {t("A new object of the same type in the same place, starting at A.1 with the values of {number} {version}.", {
+            number: obj.number,
+            version: obj.version,
+          })}
         </p>
         <div className="field wide">
-          <label htmlFor="saveas-name">Name</label>
+          <label htmlFor="saveas-name">{t("Name")}</label>
           <input id="saveas-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         </div>
         <div className="field">
-          <label htmlFor="saveas-number">Number</label>
-          <input id="saveas-number" value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Assigned automatically" />
+          <label htmlFor="saveas-number">{t("Number")}</label>
+          <input id="saveas-number" value={number} onChange={(e) => setNumber(e.target.value)} placeholder={t("Assigned automatically")} />
         </div>
         <label className="check wide">
           <input type="checkbox" checked={withFiles} onChange={(e) => setWithFiles(e.target.checked)} />
-          Copy its files too
+          {t("Copy its files too")}
         </label>
       </div>
     </Dialog>
@@ -92,35 +96,35 @@ export function CompareDialog({ obj, onClose }: { obj: VersionedObject; onClose:
   return (
     <Dialog
       open
-      title={`Compare ${obj.number}`}
+      title={t("Compare {number}", { number: obj.number })}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button className="btn primary" disabled={mode === "versions" ? !l || !r || l === r : !picked} onClick={go}>
-            Compare
+            {t("Compare")}
           </button>
         </>
       }
     >
       <div className="attr-form">
         <fieldset className="check-list wide" style={{ gridTemplateColumns: "1fr" }}>
-          <legend>Compare</legend>
+          <legend>{t("Compare")}</legend>
           <label className="check">
             <input type="radio" name="cmp-mode" checked={mode === "versions"} onChange={() => setMode("versions")} />
-            Two versions of {obj.number}
+            {t("Two versions of {number}", { number: obj.number })}
           </label>
           <label className="check">
             <input type="radio" name="cmp-mode" checked={mode === "object"} onChange={() => setMode("object")} />
-            {obj.number} {obj.version} with another object
+            {t("{number} {version} with another object", { number: obj.number, version: obj.version })}
           </label>
         </fieldset>
         {mode === "versions" ? (
           <>
             <div className="field">
-              <label htmlFor="cmp-left">From</label>
+              <label htmlFor="cmp-left">{t("From")}</label>
               <select id="cmp-left" value={l} onChange={(e) => setLeft(e.target.value)}>
                 {versions.map((v) => (
                   <option key={v.id} value={v.id}>
@@ -130,7 +134,7 @@ export function CompareDialog({ obj, onClose }: { obj: VersionedObject; onClose:
               </select>
             </div>
             <div className="field">
-              <label htmlFor="cmp-right">To</label>
+              <label htmlFor="cmp-right">{t("To")}</label>
               <select id="cmp-right" value={r} onChange={(e) => setRight(e.target.value)}>
                 {versions.map((v) => (
                   <option key={v.id} value={v.id}>
@@ -139,13 +143,13 @@ export function CompareDialog({ obj, onClose }: { obj: VersionedObject; onClose:
                 ))}
               </select>
             </div>
-            {versions.length < 2 && <p className="muted wide">{obj.number} has only one version so far.</p>}
+            {versions.length < 2 && <p className="muted wide">{t("{number} has only one version so far.", { number: obj.number })}</p>}
           </>
         ) : (
           <div className="field wide">
-            <label htmlFor="cmp-other">Other object</label>
-            <input id="cmp-other" value={other} onChange={(e) => setOther(e.target.value)} placeholder="Number or name" autoFocus />
-            <div className="pick-list" role="listbox" aria-label="Matching objects">
+            <label htmlFor="cmp-other">{t("Other object")}</label>
+            <input id="cmp-other" value={other} onChange={(e) => setOther(e.target.value)} placeholder={t("Number or name")} autoFocus />
+            <div className="pick-list" role="listbox" aria-label={t("Matching objects")}>
               {matches
                 ?.filter((m) => m.id !== obj.id)
                 .map((m) => (

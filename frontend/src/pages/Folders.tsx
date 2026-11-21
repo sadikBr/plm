@@ -4,7 +4,8 @@ import { ChevronRight, ClipboardPaste, Folder as FolderIcon, FolderPlus, Pencil,
 import { useState } from "react";
 import { api, unwrap, type Schemas } from "../api/client";
 import { useClipboard } from "../components/Clipboard";
-import { Dialog, ErrorBanner, MenuButton } from "../components/common";
+import { Dialog, ErrorBanner, MenuButton, kindInText } from "../components/common";
+import { t, tn } from "../i18n/i18n";
 
 export type Folder = Schemas["Folder"];
 
@@ -84,7 +85,7 @@ export function FolderBar({
   return (
     <div className="folder-bar">
       <div className="row" style={{ gap: 6, padding: "8px 12px", borderBottom: "1px solid var(--border)", flexWrap: "wrap" }}>
-        <nav className="folder-path" aria-label="Folder">
+        <nav className="folder-path" aria-label={t("Folder")}>
           <button className="link-btn" onClick={() => onOpen(undefined)}>
             {contextName}
           </button>
@@ -102,14 +103,18 @@ export function FolderBar({
           <SubscribeButton kind="FOLDER" targetId={folderId} label={[contextName, ...path.map((f) => f.name)].join(" / ")} />
         )}
         {clipboard.items.length > 0 && (
-          <MenuButton label={`Paste ${clipboard.items.length} here`} icon={<ClipboardPaste size={13} aria-hidden />} className="btn small">
+          <MenuButton
+            label={t("Paste {count} here", { count: clipboard.items.length })}
+            icon={<ClipboardPaste size={13} aria-hidden />}
+            className="btn small"
+          >
             {(close) => (
               <>
                 <button role="menuitem" onClick={() => (paste.mutate("move"), close())}>
-                  Move here
+                  {t("Move here")}
                 </button>
                 <button role="menuitem" onClick={() => (paste.mutate("copy"), close())}>
-                  Copy here (Save As)
+                  {t("Copy here (Save As)")}
                 </button>
               </>
             )}
@@ -118,13 +123,13 @@ export function FolderBar({
         {canCreate && (
           <button className="btn small" onClick={() => setDialog({ kind: "new" })}>
             <FolderPlus size={13} aria-hidden />
-            New folder
+            {t("New folder")}
           </button>
         )}
       </div>
       <ErrorBanner error={remove.error ?? paste.error} />
       {!!folders?.length && (
-        <table className="grid folders" aria-label="Folders">
+        <table className="grid folders" aria-label={t("Folders")}>
           <tbody>
             {folders.map((f) => (
               <tr key={f.id} className="clickable" onClick={() => onOpen(f.id)}>
@@ -135,18 +140,22 @@ export function FolderBar({
                   </span>
                 </td>
                 <td className="muted nowrap">
-                  {f.folders > 0 && `${f.folders} folder${f.folders === 1 ? "" : "s"} · `}
-                  {f.objects} object{f.objects === 1 ? "" : "s"}
+                  {f.folders > 0 && `${tn("{n} folder", "{n} folders", f.folders)} · `}
+                  {tn("{n} object", "{n} objects", f.objects)}
                 </td>
                 <td className="nowrap" style={{ width: 1 }} onClick={(e) => e.stopPropagation()}>
-                  <button className="icon-btn" aria-label={`Rename ${f.name}`} onClick={() => setDialog({ kind: "rename", folder: f })}>
+                  <button
+                    className="icon-btn"
+                    aria-label={t("Rename {name}", { name: f.name })}
+                    onClick={() => setDialog({ kind: "rename", folder: f })}
+                  >
                     <Pencil size={13} />
                   </button>
                   <button
                     className="icon-btn"
-                    aria-label={`Delete ${f.name}`}
+                    aria-label={t("Delete {name}", { name: f.name })}
                     disabled={f.folders + f.objects > 0}
-                    title={f.folders + f.objects > 0 ? "Only empty folders can be deleted" : "Delete"}
+                    title={f.folders + f.objects > 0 ? t("Only empty folders can be deleted") : t("Delete")}
                     onClick={() => remove.mutate(f.id)}
                   >
                     <Trash2 size={13} />
@@ -202,15 +211,15 @@ function FolderDialog({
   return (
     <Dialog
       open
-      title={folder ? `Rename ${folder.name}` : "New folder"}
+      title={folder ? t("Rename {name}", { name: folder.name }) : t("New folder")}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button className="btn primary" disabled={save.isPending || !name.trim()} onClick={() => save.mutate()}>
-            {folder ? "Rename" : "Create"}
+            {folder ? t("Rename") : t("Create")}
           </button>
         </>
       }
@@ -218,7 +227,7 @@ function FolderDialog({
       <div className="attr-form">
         <ErrorBanner error={save.error} />
         <div className="field wide">
-          <label htmlFor="folder-name">Name</label>
+          <label htmlFor="folder-name">{t("Name")}</label>
           <input
             id="folder-name"
             value={name}
@@ -257,15 +266,15 @@ export function FolderPicker({
   return (
     <div className="folder-picker">
       <div className="field wide">
-        <label htmlFor="move-context">Context</label>
+        <label htmlFor="move-context">{t("Context")}</label>
         <input
           id="move-context"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={here ? here.name : "Search by name"}
+          placeholder={here ? here.name : t("Search by name")}
         />
         {!!contexts?.length && (
-          <div className="pick-list" role="listbox" aria-label="Contexts">
+          <div className="pick-list" role="listbox" aria-label={t("Contexts")}>
             {contexts
               .filter((c) => c.kind !== "SITE" && c.kind !== "ORGANIZATION")
               .map((c) => (
@@ -279,15 +288,15 @@ export function FolderPicker({
                     setQuery("");
                   }}
                 >
-                  <strong>{c.name}</strong> <span className="muted">{c.kind.toLowerCase()}</span>
+                  <strong>{c.name}</strong> <span className="muted">{kindInText(c.kind)}</span>
                 </button>
               ))}
           </div>
         )}
       </div>
       <div className="field wide">
-        <span className="label">Folder</span>
-        <nav className="folder-path" aria-label="Destination folder">
+        <span className="label">{t("Folder")}</span>
+        <nav className="folder-path" aria-label={t("Destination folder")}>
           <button className="link-btn" onClick={() => onChange(contextId, undefined)}>
             {here?.name ?? "…"}
           </button>
@@ -300,13 +309,13 @@ export function FolderPicker({
             </span>
           ))}
         </nav>
-        <div className="pick-list" role="listbox" aria-label="Folders">
+        <div className="pick-list" role="listbox" aria-label={t("Folders")}>
           {folders?.map((f) => (
             <button key={f.id} role="option" aria-selected={false} onClick={() => onChange(contextId, f.id)}>
               <FolderIcon size={13} className="folder-icon" aria-hidden /> {f.name}
             </button>
           ))}
-          {folders?.length === 0 && <span className="muted small">No folders inside.</span>}
+          {folders?.length === 0 && <span className="muted small">{t("No folders inside.")}</span>}
         </div>
       </div>
     </div>

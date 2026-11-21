@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Eye, File, FileImage, FileText, Paperclip, Star, Trash2, Upload } from "lucide-react";
 import { useRef, useState, type DragEvent } from "react";
 import { api, unwrap, type Schemas } from "../api/client";
+import { t } from "../i18n/i18n";
 import { Dialog, ErrorBanner, Loading, Panel, PrincipalName, formatDate } from "./common";
 
 export type ContentItem = Schemas["ContentItem"];
@@ -10,10 +11,10 @@ type Role = ContentItem["role"];
 const PREVIEWABLE = /^(image\/(png|jpeg|gif|bmp|webp|svg\+xml)|application\/pdf|text\/.*|application\/json|application\/xml)$/;
 
 export function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  if (bytes < 1024) return t("{size} B", { size: bytes });
+  if (bytes < 1024 * 1024) return t("{size} KB", { size: (bytes / 1024).toFixed(1) });
+  if (bytes < 1024 * 1024 * 1024) return t("{size} MB", { size: (bytes / 1024 / 1024).toFixed(1) });
+  return t("{size} GB", { size: (bytes / 1024 / 1024 / 1024).toFixed(2) });
 }
 
 function FileIcon({ type, size = 16 }: { type: string; size?: number }) {
@@ -60,7 +61,7 @@ export async function uploadFile(
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) resolve();
       else {
-        let detail = `The upload failed (${xhr.status})`;
+        let detail = t("The upload failed ({status})", { status: xhr.status });
         try {
           detail = (JSON.parse(xhr.responseText) as { detail?: string }).detail ?? detail;
         } catch {
@@ -69,7 +70,7 @@ export async function uploadFile(
         reject(new Error(detail));
       }
     };
-    xhr.onerror = () => reject(new Error("The upload failed: the connection was lost"));
+    xhr.onerror = () => reject(new Error(t("The upload failed: the connection was lost")));
     xhr.send(file);
   });
   return unwrap(
@@ -165,18 +166,28 @@ export function ObjectFiles({ objectId, iterationKey, editable }: { objectId: st
       </td>
       <td className="nowrap">
         {PREVIEWABLE.test(item.contentType) && (
-          <button className="icon-btn" aria-label={`Preview ${item.fileName}`} title="Preview" onClick={() => setPreview(item)}>
+          <button
+            className="icon-btn"
+            aria-label={t("Preview {name}", { name: item.fileName })}
+            title={t("Preview")}
+            onClick={() => setPreview(item)}
+          >
             <Eye size={14} />
           </button>
         )}
-        <button className="icon-btn" aria-label={`Download ${item.fileName}`} title="Download" onClick={() => void download(item)}>
+        <button
+          className="icon-btn"
+          aria-label={t("Download {name}", { name: item.fileName })}
+          title={t("Download")}
+          onClick={() => void download(item)}
+        >
           <Download size={14} />
         </button>
         {editable && (
           <button
             className="icon-btn"
-            aria-label={`Remove ${item.fileName}`}
-            title="Remove from the working copy"
+            aria-label={t("Remove {name}", { name: item.fileName })}
+            title={t("Remove from the working copy")}
             disabled={remove.isPending}
             onClick={() => remove.mutate(item.id)}
           >
@@ -189,8 +200,8 @@ export function ObjectFiles({ objectId, iterationKey, editable }: { objectId: st
 
   return (
     <Panel
-      title="Files"
-      note={editable ? "Your working copy's files: they become the object's when you check in" : undefined}
+      title={t("Files")}
+      note={editable ? t("Your working copy's files: they become the object's when you check in") : undefined}
       flush
       actions={
         editable ? (
@@ -199,7 +210,7 @@ export function ObjectFiles({ objectId, iterationKey, editable }: { objectId: st
               ref={primaryInput}
               type="file"
               hidden
-              aria-label="Primary file"
+              aria-label={t("Primary file")}
               onChange={(e) => e.target.files && void send(e.target.files, "PRIMARY")}
             />
             <input
@@ -207,16 +218,16 @@ export function ObjectFiles({ objectId, iterationKey, editable }: { objectId: st
               type="file"
               multiple
               hidden
-              aria-label="Attachments"
+              aria-label={t("Attachments")}
               onChange={(e) => e.target.files && void send(e.target.files, "ATTACHMENT")}
             />
             <button className="btn small" onClick={() => primaryInput.current?.click()}>
               <Star size={13} aria-hidden />
-              {primary ? "Replace primary file" : "Add primary file"}
+              {primary ? t("Replace primary file") : t("Add primary file")}
             </button>
             <button className="btn small" onClick={() => attachmentInput.current?.click()}>
               <Paperclip size={13} aria-hidden />
-              Attach files
+              {t("Attach files")}
             </button>
           </>
         ) : undefined
@@ -251,7 +262,7 @@ export function ObjectFiles({ objectId, iterationKey, editable }: { objectId: st
               <div className="primary-file">
                 <Thumbnail item={primary} size={96} />
                 <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
-                  <span className="muted small">Primary file</span>
+                  <span className="muted small">{t("Primary file")}</span>
                   <strong className="wrap-code" style={{ fontFamily: "inherit", fontSize: 14 }}>
                     {primary.fileName}
                   </strong>
@@ -262,15 +273,15 @@ export function ObjectFiles({ objectId, iterationKey, editable }: { objectId: st
                   <div className="row" style={{ gap: 6 }}>
                     {PREVIEWABLE.test(primary.contentType) && (
                       <button className="btn small" onClick={() => setPreview(primary)}>
-                        <Eye size={13} aria-hidden /> Preview
+                        <Eye size={13} aria-hidden /> {t("Preview")}
                       </button>
                     )}
                     <button className="btn small" onClick={() => void download(primary)}>
-                      <Download size={13} aria-hidden /> Download
+                      <Download size={13} aria-hidden /> {t("Download")}
                     </button>
                     {editable && (
                       <button className="btn small ghost" onClick={() => remove.mutate(primary.id)} disabled={remove.isPending}>
-                        <Trash2 size={13} aria-hidden /> Remove
+                        <Trash2 size={13} aria-hidden /> {t("Remove")}
                       </button>
                     )}
                   </div>
@@ -278,18 +289,18 @@ export function ObjectFiles({ objectId, iterationKey, editable }: { objectId: st
               </div>
             ) : (
               <p className="empty">
-                No primary file. {editable ? "Drop files here, or use the buttons above." : "Check the object out to add one."}
+                {t("No primary file.")} {editable ? t("Drop files here, or use the buttons above.") : t("Check the object out to add one.")}
               </p>
             )}
             {attachments.length > 0 && (
-              <table className="grid" aria-label="Attachments">
+              <table className="grid" aria-label={t("Attachments")}>
                 <thead>
                   <tr>
-                    <th>Attachment</th>
-                    <th>Size</th>
-                    <th>Type</th>
-                    <th>Added</th>
-                    <th aria-label="Actions" />
+                    <th>{t("Attachment")}</th>
+                    <th>{t("Size")}</th>
+                    <th>{t("Type")}</th>
+                    <th>{t("Added")}</th>
+                    <th aria-label={t("Actions")} />
                   </tr>
                 </thead>
                 <tbody>{attachments.map(row)}</tbody>
@@ -325,10 +336,10 @@ export function PreviewDialog({ item, onClose, onDownload }: { item: ContentItem
       footer={
         <>
           <button className="btn" onClick={onDownload}>
-            <Download size={14} aria-hidden /> Download
+            <Download size={14} aria-hidden /> {t("Download")}
           </button>
           <button className="btn primary" onClick={onClose}>
-            Close
+            {t("Close")}
           </button>
         </>
       }
@@ -361,21 +372,24 @@ function PdfPages({ item, inlineUrl }: { item: ContentItem; inlineUrl: string })
     <div className="pdf-pages">
       <div className="row" style={{ gap: 8, justifyContent: "center" }}>
         <button className="btn small" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-          Previous
+          {t("Previous")}
         </button>
         <span className="muted small" aria-live="polite">
-          Page {page}
-          {data ? ` of ${data.pages}` : ""}
+          {data ? t("Page {page} of {pages}", { page, pages: data.pages }) : t("Page {page}", { page })}
         </span>
         <button className="btn small" disabled={!data || page >= data.pages} onClick={() => setPage(page + 1)}>
-          Next
+          {t("Next")}
         </button>
         <a className="btn small ghost" href={inlineUrl} target="_blank" rel="noreferrer">
-          Open in a new tab
+          {t("Open in a new tab")}
         </a>
       </div>
       <ErrorBanner error={error} />
-      {data ? <img src={data.url} alt={`${item.fileName}, page ${page}`} style={{ opacity: isFetching ? 0.6 : 1 }} /> : <Loading />}
+      {data ? (
+        <img src={data.url} alt={t("{name}, page {page}", { name: item.fileName, page })} style={{ opacity: isFetching ? 0.6 : 1 }} />
+      ) : (
+        <Loading />
+      )}
     </div>
   );
 }

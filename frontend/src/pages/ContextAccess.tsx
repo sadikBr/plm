@@ -28,18 +28,22 @@ import {
 } from "../api/queries";
 import { pickLabel } from "../components/AttributeForm";
 import { ErrorBanner, Loading, Panel, PrincipalName, Props, formatDate, kindLabel, stateLabel } from "../components/common";
+import { language, t } from "../i18n/i18n";
 
 // ---------- Shared bits ----------
 
-export const PERMISSIONS: { key: Permission; label: string; help: string }[] = [
-  { key: "READ", label: "Read", help: "See objects and their history" },
-  { key: "CREATE", label: "Create", help: "Create objects" },
-  { key: "MODIFY", label: "Modify", help: "Check out, edit and check in" },
-  { key: "REVISE", label: "Revise", help: "Start a new revision" },
-  { key: "PROMOTE", label: "Change state", help: "Move objects along their lifecycle" },
-  { key: "MANAGE", label: "Manage", help: "Manage the team, access rules and sub-contexts" },
+export const PERMISSIONS = (): { key: Permission; label: string; help: string }[] => [
+  { key: "READ", label: t("Read"), help: t("See objects and their history") },
+  { key: "CREATE", label: t("Create"), help: t("Create objects") },
+  { key: "MODIFY", label: t("Modify"), help: t("Check out, edit and check in") },
+  { key: "REVISE", label: t("Revise"), help: t("Start a new revision") },
+  { key: "PROMOTE", label: t("Change state"), help: t("Move objects along their lifecycle") },
+  { key: "MANAGE", label: t("Manage"), help: t("Manage the team, access rules and sub-contexts") },
 ];
-const permissionLabel = (p: Permission) => PERMISSIONS.find((x) => x.key === p)?.label ?? p;
+const permissionLabel = (p: Permission) => PERMISSIONS().find((x) => x.key === p)?.label ?? p;
+
+/** Lower case for use inside a sentence; German nouns keep their capital. */
+const inSentence = (s: string) => (language() === "de" ? s : s.toLowerCase());
 
 /** Role labels and descriptions, by key. Unknown keys fall back to the key itself. */
 function useRoleLookup() {
@@ -56,7 +60,7 @@ function useRoleLookup() {
 
 function ContextLink({ id, current }: { id: string; current: string }) {
   const { data } = useContextById(id);
-  if (id === current) return <span className="muted">This context</span>;
+  if (id === current) return <span className="muted">{t("This context")}</span>;
   return data ? <Link to={`/contexts/${id}?tab=access`}>{data.name}</Link> : <span className="muted">…</span>;
 }
 
@@ -102,21 +106,25 @@ export function TeamTab({ context, canManage }: { context: Context; canManage: b
   return (
     <div className="cols">
       <div className="stack">
-        <Panel title="Team" note={`Roles also apply to everything inside this ${kindLabel(context.kind).toLowerCase()}`} flush>
+        <Panel
+          title={t("Team")}
+          note={t("Roles also apply to everything inside this {kind}", { kind: inSentence(kindLabel(context.kind)) })}
+          flush
+        >
           <ErrorBanner error={error ?? put.error ?? remove.error} />
           {isLoading ? (
             <Loading />
           ) : !members?.length ? (
-            <p className="empty">No direct members.</p>
+            <p className="empty">{t("No direct members.")}</p>
           ) : (
             <div className="grid-wrap">
-              <table className="grid" aria-label="Team members">
+              <table className="grid" aria-label={t("Team members")}>
                 <thead>
                   <tr>
-                    <th>User</th>
-                    <th id="team-role-col">Role</th>
-                    <th>Added</th>
-                    {canManage && <th aria-label="Actions" />}
+                    <th>{t("User")}</th>
+                    <th id="team-role-col">{t("Role")}</th>
+                    <th>{t("Added")}</th>
+                    {canManage && <th aria-label={t("Actions")} />}
                   </tr>
                 </thead>
                 <tbody>
@@ -145,7 +153,7 @@ export function TeamTab({ context, canManage }: { context: Context; canManage: b
                       {canManage && (
                         <td style={{ width: 80 }}>
                           <button className="btn small danger" onClick={() => remove.mutate(m.principalId)}>
-                            Remove
+                            {t("Remove")}
                           </button>
                         </td>
                       )}
@@ -158,14 +166,14 @@ export function TeamTab({ context, canManage }: { context: Context; canManage: b
         </Panel>
         <SharedTeamsPanel contextId={context.id} canManage={canManage} roleLabel={roles.label} />
         {inherited.length > 0 && (
-          <Panel title="Inherited from parent contexts" note="Their roles apply here too" flush>
+          <Panel title={t("Inherited from parent contexts")} note={t("Their roles apply here too")} flush>
             <div className="grid-wrap">
-              <table className="grid" aria-label="Inherited members">
+              <table className="grid" aria-label={t("Inherited members")}>
                 <thead>
                   <tr>
-                    <th>User</th>
-                    <th>Role</th>
-                    <th>From</th>
+                    <th>{t("User")}</th>
+                    <th>{t("Role")}</th>
+                    <th>{t("From")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -207,26 +215,26 @@ function SharedTeamsPanel({
   const { data: attached } = useAttachedTeams(contextId);
   const { data: all } = useUsableTeams(contextId);
   const change = useAttachTeam(contextId);
-  const available = (all ?? []).filter((t) => !attached?.some((a) => a.id === t.id));
+  const available = (all ?? []).filter((team) => !attached?.some((a) => a.id === team.id));
   if (!canManage && !attached?.length) return null;
   return (
     <Panel
-      title="Shared teams"
-      note="Teams maintained in one place; their members get their roles here and below"
+      title={t("Shared teams")}
+      note={t("Teams maintained in one place; their members get their roles here and below")}
       flush
       actions={
         canManage &&
         available.length > 0 && (
           <select
-            aria-label="Attach a shared team"
+            aria-label={t("Attach a shared team")}
             value=""
             onChange={(e) => e.target.value && change.mutate({ teamId: e.target.value, attach: true })}
             style={{ width: 200 }}
           >
-            <option value="">Attach a shared team…</option>
-            {available.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
+            <option value="">{t("Attach a shared team…")}</option>
+            {available.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
               </option>
             ))}
           </select>
@@ -235,28 +243,28 @@ function SharedTeamsPanel({
     >
       <ErrorBanner error={change.error} />
       {!attached?.length ? (
-        <p className="empty">No shared teams attached.</p>
+        <p className="empty">{t("No shared teams attached.")}</p>
       ) : (
-        <table className="grid" aria-label="Shared teams">
+        <table className="grid" aria-label={t("Shared teams")}>
           <thead>
             <tr>
-              <th>Team</th>
-              <th>Members</th>
-              {canManage && <th aria-label="Actions" />}
+              <th>{t("Team")}</th>
+              <th>{t("Members")}</th>
+              {canManage && <th aria-label={t("Actions")} />}
             </tr>
           </thead>
           <tbody>
-            {attached.map((t) => (
-              <tr key={t.id}>
+            {attached.map((team) => (
+              <tr key={team.id}>
                 <td className="nowrap">
-                  {t.name}
-                  {t.description && <div className="muted">{t.description}</div>}
+                  {team.name}
+                  {team.description && <div className="muted">{team.description}</div>}
                 </td>
                 <td>
-                  {t.members.length === 0 ? (
-                    <span className="muted">Nobody yet</span>
+                  {team.members.length === 0 ? (
+                    <span className="muted">{t("Nobody yet")}</span>
                   ) : (
-                    t.members.map((m, i) => (
+                    team.members.map((m, i) => (
                       <span key={m.principalId}>
                         {i > 0 && ", "}
                         <PrincipalName id={m.principalId} /> <span className="muted">({roleLabel(m.role)})</span>
@@ -266,8 +274,8 @@ function SharedTeamsPanel({
                 </td>
                 {canManage && (
                   <td style={{ width: 80 }}>
-                    <button className="btn small danger" onClick={() => change.mutate({ teamId: t.id, attach: false })}>
-                      Detach
+                    <button className="btn small danger" onClick={() => change.mutate({ teamId: team.id, attach: false })}>
+                      {t("Detach")}
                     </button>
                   </td>
                 )}
@@ -283,7 +291,7 @@ function SharedTeamsPanel({
 function RolesPanel() {
   const roles = useRoleLookup();
   return (
-    <Panel title="Roles">
+    <Panel title={t("Roles")}>
       <Props items={roles.roles.filter((r) => r.active).map((r) => [roles.label(r.key), r.description])} />
     </Panel>
   );
@@ -310,17 +318,17 @@ function AddMemberPanel({ contextId }: { contextId: string }) {
   return (
     <form className="panel" aria-labelledby="add-member-title" onSubmit={(e) => void submit(e)}>
       <div className="panel-head">
-        <h2 id="add-member-title">Add a member</h2>
+        <h2 id="add-member-title">{t("Add a member")}</h2>
       </div>
       <div className="panel-body" style={{ display: "grid", gap: 10 }}>
         <ErrorBanner error={lookupError ?? put.error} />
         <div className="field">
-          <label htmlFor="member-username">Username</label>
+          <label htmlFor="member-username">{t("Username")}</label>
           <input id="member-username" value={username} onChange={(e) => setUsername(e.target.value)} required />
-          <span className="hint">The user must have signed in at least once.</span>
+          <span className="hint">{t("The user must have signed in at least once.")}</span>
         </div>
         <div className="field">
-          <label htmlFor="member-role">Role</label>
+          <label htmlFor="member-role">{t("Role")}</label>
           <RoleSelect id="member-role" value={role} onChange={setRole} roles={roles.roles} label={roles.label} />
           {roles.description(role) && <span className="hint">{roles.description(role)}</span>}
         </div>
@@ -328,7 +336,7 @@ function AddMemberPanel({ contextId }: { contextId: string }) {
       <div className="panel-foot">
         <button className="btn primary" type="submit" disabled={put.isPending || !username.trim()}>
           <UserPlus size={14} aria-hidden />
-          Add
+          {t("Add")}
         </button>
       </div>
     </form>
@@ -347,7 +355,7 @@ function useTargets() {
     return {
       types: types ?? [],
       states: [...states.entries()].map(([key, label]) => ({ key, label })),
-      typeName: (id: string | null | undefined) => (id ? (types?.find((t) => t.id === id)?.displayName ?? "…") : null),
+      typeName: (id: string | null | undefined) => (id ? (types?.find((x) => x.id === id)?.displayName ?? "…") : null),
       stateName: (key: string | null | undefined) => (key ? (states.get(key) ?? stateLabel(key)) : null),
     };
   }, [types, lifecycles]);
@@ -356,11 +364,11 @@ function useTargets() {
 function EffectBadge({ effect }: { effect: PolicyEffect }) {
   return effect === "DENY" ? (
     <span className="tag deny">
-      <Ban size={11} aria-hidden /> Deny
+      <Ban size={11} aria-hidden /> {t("Deny")}
     </span>
   ) : (
     <span className="tag allow">
-      <Check size={11} aria-hidden /> Allow
+      <Check size={11} aria-hidden /> {t("Allow")}
     </span>
   );
 }
@@ -372,8 +380,8 @@ function usePolicySummary() {
   return (p: AccessPolicy) =>
     [
       roles.label(p.role),
-      p.typeId ? `${targets.typeName(p.typeId)} and subtypes` : "All types",
-      p.state ? targets.stateName(p.state) : "Any state",
+      p.typeId ? t("{type} and subtypes", { type: targets.typeName(p.typeId) ?? "" }) : t("All types"),
+      p.state ? targets.stateName(p.state) : t("Any state"),
     ].join(" · ");
 }
 
@@ -387,8 +395,8 @@ export function AccessTab({ context, canChange }: { context: Context; canChange:
     <div className="cols">
       <div className="stack">
         <Panel
-          title="Access rules"
-          note="A role gets the union of the Allow rules that apply, minus anything a Deny rule takes away"
+          title={t("Access rules")}
+          note={t("A role gets the union of the Allow rules that apply, minus anything a Deny rule takes away")}
           flush
         >
           <ErrorBanner error={error ?? remove.error} />
@@ -396,16 +404,16 @@ export function AccessTab({ context, canChange }: { context: Context; canChange:
             <Loading />
           ) : (
             <div className="grid-wrap">
-              <table className="grid" aria-label="Access rules">
+              <table className="grid" aria-label={t("Access rules")}>
                 <thead>
                   <tr>
-                    <th>Effect</th>
-                    <th>Role</th>
-                    <th>Type</th>
-                    <th>State</th>
-                    <th>Permissions</th>
-                    <th>Defined in</th>
-                    {canChange && <th aria-label="Actions" />}
+                    <th>{t("Effect")}</th>
+                    <th>{t("Role")}</th>
+                    <th>{t("Type")}</th>
+                    <th>{t("State")}</th>
+                    <th>{t("Permissions")}</th>
+                    <th>{t("Defined in")}</th>
+                    {canChange && <th aria-label={t("Actions")} />}
                   </tr>
                 </thead>
                 <tbody>
@@ -418,13 +426,13 @@ export function AccessTab({ context, canChange }: { context: Context; canChange:
                       <td className="nowrap">
                         {p.typeId ? (
                           <>
-                            {targets.typeName(p.typeId)} <span className="muted">and subtypes</span>
+                            {targets.typeName(p.typeId)} <span className="muted">{t("and subtypes")}</span>
                           </>
                         ) : (
-                          <span className="muted">All types</span>
+                          <span className="muted">{t("All types")}</span>
                         )}
                       </td>
-                      <td className="nowrap">{p.state ? targets.stateName(p.state) : <span className="muted">Any state</span>}</td>
+                      <td className="nowrap">{p.state ? targets.stateName(p.state) : <span className="muted">{t("Any state")}</span>}</td>
                       <td>
                         <span className="perm-list">
                           {p.permissions.map((perm) => (
@@ -442,8 +450,12 @@ export function AccessTab({ context, canChange }: { context: Context; canChange:
                           {!p.inherited && (
                             <button
                               className="btn small ghost icon"
-                              aria-label={`Delete rule: ${p.effect === "DENY" ? "deny" : "allow"} ${roles.label(p.role)}`}
-                              title="Delete this rule"
+                              aria-label={
+                                p.effect === "DENY"
+                                  ? t("Delete rule: deny {role}", { role: roles.label(p.role) })
+                                  : t("Delete rule: allow {role}", { role: roles.label(p.role) })
+                              }
+                              title={t("Delete this rule")}
                               onClick={() => remove.mutate(p.id)}
                             >
                               <Trash2 size={13} aria-hidden />
@@ -463,8 +475,8 @@ export function AccessTab({ context, canChange }: { context: Context; canChange:
       {canChange ? (
         <AddRulePanel contextId={context.id} />
       ) : (
-        <Panel title="Add a rule">
-          <p className="muted">Rules on the site apply everywhere, so only site administrators change them.</p>
+        <Panel title={t("Add a rule")}>
+          <p className="muted">{t("Rules on the site apply everywhere, so only site administrators change them.")}</p>
         </Panel>
       )}
     </div>
@@ -484,7 +496,15 @@ function AddRulePanel({ contextId }: { contextId: string }) {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     create.mutate(
-      { role, typeId: typeId || null, state: state || null, effect, permissions: PERMISSIONS.map((p) => p.key).filter((p) => permissions.has(p)) },
+      {
+        role,
+        typeId: typeId || null,
+        state: state || null,
+        effect,
+        permissions: PERMISSIONS()
+          .map((p) => p.key)
+          .filter((p) => permissions.has(p)),
+      },
       { onSuccess: () => setPermissions(new Set(["READ"])) },
     );
   };
@@ -493,38 +513,38 @@ function AddRulePanel({ contextId }: { contextId: string }) {
     <form className="panel" aria-labelledby="add-rule-title" onSubmit={submit}>
       <div className="panel-head">
         <ShieldCheck size={14} className="icon-muted" aria-hidden />
-        <h2 id="add-rule-title">Add a rule</h2>
+        <h2 id="add-rule-title">{t("Add a rule")}</h2>
       </div>
       <div className="panel-body" style={{ display: "grid", gap: 10 }}>
         <ErrorBanner error={create.error} />
-        <div className="segmented" role="radiogroup" aria-label="Effect">
+        <div className="segmented" role="radiogroup" aria-label={t("Effect")}>
           {(["ALLOW", "DENY"] as const).map((x) => (
             <label key={x} className={effect === x ? "on" : undefined}>
               <input type="radio" name="effect" value={x} checked={effect === x} onChange={() => setEffect(x)} />
-              {x === "ALLOW" ? "Allow" : "Deny"}
+              {x === "ALLOW" ? t("Allow") : t("Deny")}
             </label>
           ))}
         </div>
         <div className="field">
-          <label htmlFor="rule-role">Role</label>
+          <label htmlFor="rule-role">{t("Role")}</label>
           <RoleSelect id="rule-role" value={role} onChange={setRole} roles={roles.roles} label={roles.label} />
         </div>
         <div className="field">
-          <label htmlFor="rule-type">Type</label>
+          <label htmlFor="rule-type">{t("Type")}</label>
           <select id="rule-type" value={typeId} onChange={(e) => setTypeId(e.target.value)}>
-            <option value="">All types</option>
-            {targets.types.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.displayName}
+            <option value="">{t("All types")}</option>
+            {targets.types.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.displayName}
               </option>
             ))}
           </select>
-          <span className="hint">A rule on a type also applies to its subtypes.</span>
+          <span className="hint">{t("A rule on a type also applies to its subtypes.")}</span>
         </div>
         <div className="field">
-          <label htmlFor="rule-state">Lifecycle state</label>
+          <label htmlFor="rule-state">{t("Lifecycle state")}</label>
           <select id="rule-state" value={state} onChange={(e) => setState(e.target.value)}>
-            <option value="">Any state</option>
+            <option value="">{t("Any state")}</option>
             {targets.states.map((s) => (
               <option key={s.key} value={s.key}>
                 {s.label}
@@ -533,9 +553,9 @@ function AddRulePanel({ contextId }: { contextId: string }) {
           </select>
         </div>
         <fieldset className="attr-group">
-          <legend className="section-label">Permissions</legend>
+          <legend className="section-label">{t("Permissions")}</legend>
           <div className="checks column">
-            {PERMISSIONS.map((p) => (
+            {PERMISSIONS().map((p) => (
               <label key={p.key} className="check" title={p.help}>
                 <input
                   type="checkbox"
@@ -547,7 +567,7 @@ function AddRulePanel({ contextId }: { contextId: string }) {
                     setPermissions(next);
                   }}
                 />
-                {p.label} <span className="muted">— {p.help.toLowerCase()}</span>
+                {p.label} <span className="muted">— {inSentence(p.help)}</span>
               </label>
             ))}
           </div>
@@ -556,7 +576,7 @@ function AddRulePanel({ contextId }: { contextId: string }) {
       <div className="panel-foot">
         <button className="btn primary" type="submit" disabled={create.isPending || permissions.size === 0}>
           <Plus size={14} aria-hidden />
-          Add rule
+          {t("Add rule")}
         </button>
       </div>
     </form>
@@ -581,10 +601,10 @@ function CheckAccessPanel({ context }: { context: Context }) {
   const { data: why, error, isFetching } = useExplain(context.id, chosen, typeId, state);
 
   return (
-    <Panel title="Check access" note="Who can do what here, and which rules decide it">
+    <Panel title={t("Check access")} note={t("Who can do what here, and which rules decide it")}>
       <div className="row wrap" style={{ marginBottom: 10 }}>
         <div className="field">
-          <label htmlFor="check-person">Person</label>
+          <label htmlFor="check-person">{t("Person")}</label>
           <select id="check-person" value={chosen} onChange={(e) => setPrincipalId(e.target.value)}>
             {people.map((p) => (
               <PrincipalOption key={p} id={p} />
@@ -592,20 +612,20 @@ function CheckAccessPanel({ context }: { context: Context }) {
           </select>
         </div>
         <div className="field">
-          <label htmlFor="check-type">Type</label>
+          <label htmlFor="check-type">{t("Type")}</label>
           <select id="check-type" value={typeId} onChange={(e) => setTypeId(e.target.value)}>
-            <option value="">Any (context-level)</option>
-            {targets.types.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.displayName}
+            <option value="">{t("Any (context-level)")}</option>
+            {targets.types.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.displayName}
               </option>
             ))}
           </select>
         </div>
         <div className="field">
-          <label htmlFor="check-state">State</label>
+          <label htmlFor="check-state">{t("State")}</label>
           <select id="check-state" value={state} onChange={(e) => setState(e.target.value)}>
-            <option value="">Any</option>
+            <option value="">{t("Any")}</option>
             {targets.states.map((s) => (
               <option key={s.key} value={s.key}>
                 {s.label}
@@ -620,16 +640,16 @@ function CheckAccessPanel({ context }: { context: Context }) {
           <p className="muted" style={{ margin: "0 0 8px" }}>
             <PrincipalName id={why.principalId} />{" "}
             {why.roles.length === 0
-              ? "has no role here."
-              : `is ${why.roles.map((r) => roles.label(r.role)).join(", ")} here.`}
-            {why.siteAdmin && " As a site administrator, rules don't limit you."}
+              ? t("has no role here.")
+              : t("is {roles} here.", { roles: why.roles.map((r) => roles.label(r.role)).join(", ") })}
+            {why.siteAdmin && ` ${t("As a site administrator, rules don't limit you.")}`}
           </p>
-          <table className="grid" aria-label="Access check">
+          <table className="grid" aria-label={t("Access check")}>
             <thead>
               <tr>
-                <th>Permission</th>
-                <th>Result</th>
-                <th>Why</th>
+                <th>{t("Permission")}</th>
+                <th>{t("Result")}</th>
+                <th>{t("Why")}</th>
               </tr>
             </thead>
             <tbody>
@@ -639,26 +659,26 @@ function CheckAccessPanel({ context }: { context: Context }) {
                   <td className="nowrap">
                     {p.granted ? (
                       <span className="result yes">
-                        <Check size={12} aria-hidden /> Allowed
+                        <Check size={12} aria-hidden /> {t("Allowed")}
                       </span>
                     ) : p.deniedBy.length > 0 ? (
                       <span className="result no">
-                        <Ban size={12} aria-hidden /> Denied
+                        <Ban size={12} aria-hidden /> {t("Denied")}
                       </span>
                     ) : (
                       <span className="result none">
-                        <Minus size={12} aria-hidden /> Not granted
+                        <Minus size={12} aria-hidden /> {t("Not granted")}
                       </span>
                     )}
                   </td>
                   <td className="muted">
                     {p.deniedBy.length > 0
-                      ? `Denied by: ${p.deniedBy.map(summary).join("; ")}`
+                      ? t("Denied by: {rules}", { rules: p.deniedBy.map(summary).join("; ") })
                       : p.allowedBy.length > 0
-                        ? `Allowed by: ${p.allowedBy.map(summary).join("; ")}`
+                        ? t("Allowed by: {rules}", { rules: p.allowedBy.map(summary).join("; ") })
                         : why.siteAdmin
-                          ? "Site administrator"
-                          : "No rule grants it"}
+                          ? t("Site administrator")
+                          : t("No rule grants it")}
                   </td>
                 </tr>
               ))}

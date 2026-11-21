@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTypes } from "../api/queries";
 import { Dialog, ErrorBanner, Loading, Panel, PrincipalName, formatDate, typeLabel } from "../components/common";
 import { ExpressionField } from "../components/ExpressionField";
+import { t } from "../i18n/i18n";
 import {
   useDefineOperationRule,
   useDeleteOperationRule,
@@ -12,16 +13,19 @@ import {
 } from "./adminQueries";
 
 /** The operations rules can refuse, as people say them. */
-export const OPERATIONS: [string, string][] = [
-  ["object.create", "Create"],
-  ["object.check-out", "Check out"],
-  ["object.check-in", "Check in"],
-  ["object.revise", "Revise"],
-  ["object.set-state", "Set state"],
-  ["object.rename", "Rename"],
-  ["object.change-lifecycle", "Change lifecycle"],
+export const OPERATIONS = (): [string, string][] => [
+  ["object.create", t("Create")],
+  ["object.check-out", t("Check out")],
+  ["object.check-in", t("Check in")],
+  ["object.revise", t("Revise")],
+  ["object.set-state", t("Set state")],
+  ["object.rename", t("Rename")],
+  ["object.change-lifecycle", t("Change lifecycle")],
 ];
-export const OPERATION_LABEL: Record<string, string> = Object.fromEntries(OPERATIONS);
+/** The label of an operation key, or the key itself when it isn't one of [OPERATIONS]. */
+export function operationLabel(key: string): string {
+  return OPERATIONS().find(([k]) => k === key)?.[1] ?? key;
+}
 
 /**
  * Operation rules (roadmap 2.5): refuse an operation when a condition holds. The site's own are
@@ -35,32 +39,32 @@ export function RulesAdmin() {
   if (isLoading) return <Loading />;
   return (
     <Panel
-      title="Operation rules"
-      note="Checked before the operation runs; every rule that refuses is shown. Administrator overrides of the lifecycle skip them."
+      title={t("Operation rules")}
+      note={t("Checked before the operation runs; every rule that refuses is shown. Administrator overrides of the lifecycle skip them.")}
       flush
       actions={
         <button className="btn small primary" onClick={() => setEditing("new")}>
           <Plus size={13} aria-hidden />
-          New rule
+          {t("New rule")}
         </button>
       }
     >
       <ErrorBanner error={error ?? remove.error} />
       {!rules?.length ? (
         <p className="empty">
-          No rules yet. A rule refuses an operation when its condition holds, e.g. check-in when{" "}
+          {t("No rules yet. A rule refuses an operation when its condition holds, e.g. check-in when")}{" "}
           <code>object.attributes.description == null</code>.
         </p>
       ) : (
-        <table className="grid" aria-label="Operation rules">
+        <table className="grid" aria-label={t("Operation rules")}>
           <thead>
             <tr>
-              <th>Rule</th>
-              <th>Refuses</th>
-              <th>Refuse when</th>
-              <th>Message</th>
-              <th>From</th>
-              <th aria-label="Actions" />
+              <th>{t("Rule")}</th>
+              <th>{t("Refuses")}</th>
+              <th>{t("Refuse when")}</th>
+              <th>{t("Message")}</th>
+              <th>{t("From")}</th>
+              <th aria-label={t("Actions")} />
             </tr>
           </thead>
           <tbody>
@@ -69,15 +73,15 @@ export function RulesAdmin() {
                 <td>
                   <strong>{r.name}</strong>
                   <div className="muted small">
-                    {r.types.length ? r.types.join(", ") : "All types"}
-                    {!r.active && " · inactive"}
+                    {r.types.length ? r.types.join(", ") : t("All types")}
+                    {!r.active && ` · ${t("inactive")}`}
                   </div>
                 </td>
                 <td>
                   <div className="row wrap" style={{ gap: 4 }}>
                     {r.operations.map((o) => (
                       <span key={o} className="tag">
-                        {OPERATION_LABEL[o] ?? o}
+                        {operationLabel(o)}
                       </span>
                     ))}
                   </div>
@@ -87,7 +91,7 @@ export function RulesAdmin() {
                 </td>
                 <td>{r.message}</td>
                 <td className="nowrap">
-                  {r.source === "site" ? "This site" : <code>{r.source}</code>}
+                  {r.source === "site" ? t("This site") : <code>{r.source}</code>}
                   {r.updatedAt && (
                     <div className="muted small">
                       {formatDate(r.updatedAt)}
@@ -103,21 +107,21 @@ export function RulesAdmin() {
                 <td className="nowrap">
                   {r.source === "site" ? (
                     <>
-                      <button className="icon-btn" aria-label={`Edit ${r.name}`} onClick={() => setEditing(r)}>
+                      <button className="icon-btn" aria-label={t("Edit {name}", { name: r.name })} onClick={() => setEditing(r)}>
                         <Pencil size={13} />
                       </button>
                       <button
                         className="icon-btn"
-                        aria-label={`Delete ${r.name}`}
+                        aria-label={t("Delete {name}", { name: r.name })}
                         disabled={remove.isPending}
-                        onClick={() => window.confirm(`Delete the rule “${r.name}”?`) && remove.mutate(r.id)}
+                        onClick={() => window.confirm(t("Delete the rule “{name}”?", { name: r.name })) && remove.mutate(r.id)}
                       >
                         <Trash2 size={13} />
                       </button>
                     </>
                   ) : (
-                    <span className="muted small" title="Changed by upgrading or disabling the extension">
-                      Extension
+                    <span className="muted small" title={t("Changed by upgrading or disabling the extension")}>
+                      {t("Extension")}
                     </span>
                   )}
                 </td>
@@ -155,19 +159,19 @@ function RuleDialog({ rule, onClose }: { rule: OperationRule | null; onClose: ()
     <Dialog
       open
       wide
-      title={rule ? `Edit ${rule.name}` : "New operation rule"}
+      title={rule ? t("Edit {name}", { name: rule.name }) : t("New operation rule")}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             className="btn primary"
             disabled={saving || !name.trim() || !condition.trim() || !message.trim() || operations.length === 0}
             onClick={save}
           >
-            Save
+            {t("Save")}
           </button>
         </>
       }
@@ -175,12 +179,12 @@ function RuleDialog({ rule, onClose }: { rule: OperationRule | null; onClose: ()
       <div className="attr-form">
         <ErrorBanner error={define.error ?? update.error} />
         <div className="field wide">
-          <label htmlFor="op-rule-name">Name</label>
+          <label htmlFor="op-rule-name">{t("Name")}</label>
           <input id="op-rule-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         </div>
         <fieldset className="check-list wide">
-          <legend>Refuses</legend>
-          {OPERATIONS.map(([key, label]) => (
+          <legend>{t("Refuses")}</legend>
+          {OPERATIONS().map(([key, label]) => (
             <label key={key} className="check">
               <input type="checkbox" checked={operations.includes(key)} onChange={() => toggle(operations, setOperations, key)} />
               {label}
@@ -189,34 +193,34 @@ function RuleDialog({ rule, onClose }: { rule: OperationRule | null; onClose: ()
         </fieldset>
         <ExpressionField
           id="op-rule-condition"
-          label="Refuse when"
+          label={t("Refuse when")}
           value={condition}
           onChange={setCondition}
           rows={3}
           placeholder="event.to == 'RELEASED' && event.comment == null"
-          hint="The operation is refused when this is true."
+          hint={t("The operation is refused when this is true.")}
         />
         <div className="field wide">
-          <label htmlFor="op-rule-message">Message</label>
+          <label htmlFor="op-rule-message">{t("Message")}</label>
           <input
             id="op-rule-message"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="What the user sees, and what to do"
+            placeholder={t("What the user sees, and what to do")}
           />
         </div>
         <fieldset className="check-list wide">
-          <legend>Types (subtypes included; none ticked = all types)</legend>
-          {types?.map((t) => (
-            <label key={t.id} className="check">
-              <input type="checkbox" checked={typeNames.includes(t.name)} onChange={() => toggle(typeNames, setTypeNames, t.name)} />
-              {typeLabel(t)}
+          <legend>{t("Types (subtypes included; none ticked = all types)")}</legend>
+          {types?.map((ty) => (
+            <label key={ty.id} className="check">
+              <input type="checkbox" checked={typeNames.includes(ty.name)} onChange={() => toggle(typeNames, setTypeNames, ty.name)} />
+              {typeLabel(ty)}
             </label>
           ))}
         </fieldset>
         <label className="check wide">
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
-          Active
+          {t("Active")}
         </label>
       </div>
     </Dialog>

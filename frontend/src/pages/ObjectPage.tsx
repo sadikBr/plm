@@ -1,4 +1,5 @@
 import { auditAction } from "../audit/AuditReport";
+import { language, t } from "../i18n/i18n";
 import { DiscussionTab, ShareButton, useComments } from "../collaboration/Collaboration";
 import { FavoriteButton, SubscribeButton, useRecordVisit } from "../personal/Personal";
 import { Bookmark, Lock, Pencil } from "lucide-react";
@@ -13,6 +14,7 @@ import {
   useLifecycle,
   useMe,
   usePermissions,
+  useTypes,
   useObject,
   useObjectActions,
   useRenameObject,
@@ -74,18 +76,18 @@ function ObjectView({ id }: { id: string }) {
   if (error || !obj) return <ErrorBanner error={error} />;
 
   const tabs: [Tab, string][] = [
-    ["details", "Details"],
-    ["discussion", discussionCount ? `Discussion (${discussionCount})` : "Discussion"],
-    ...(shows("object.history") ? [["history", "History"] as [Tab, string]] : []),
-    ...(me?.siteAdmin && shows("object.audit") ? [["audit", "Audit"] as [Tab, string]] : []),
+    ["details", t("Details")],
+    ["discussion", discussionCount ? t("Discussion ({count})", { count: discussionCount }) : t("Discussion")],
+    ...(shows("object.history") ? [["history", t("History")] as [Tab, string]] : []),
+    ...(me?.siteAdmin && shows("object.audit") ? [["audit", t("Audit")] as [Tab, string]] : []),
   ];
   const asked = params.get("tab") as Tab | null;
-  const tab: Tab = asked && tabs.some(([t]) => t === asked) ? asked : "details";
+  const tab: Tab = asked && tabs.some(([k]) => k === asked) ? asked : "details";
   const myId = me?.user.id;
 
   return (
     <>
-      <ObjectHeader obj={obj} myId={myId} tabs={<Tabs tabs={tabs} active={tab} onSelect={(t) => setParams({ tab: t })} />} />
+      <ObjectHeader obj={obj} myId={myId} tabs={<Tabs tabs={tabs} active={tab} onSelect={(k) => setParams({ tab: k })} />} />
       <div className="content">
         {tab === "details" && <DetailsTab obj={obj} myId={myId} />}
         {tab === "discussion" && <DiscussionTab obj={obj} />}
@@ -166,13 +168,25 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
             {obj.checkedOutBy && (
               <span className="tag warn" data-testid="checked-out">
                 <Lock size={11} aria-hidden />
-                Checked out by {mine ? "you" : <PrincipalName id={obj.checkedOutBy} />}
+                {mine ? (
+                  t("Checked out by you")
+                ) : (
+                  <>
+                    {t("Checked out by")} <PrincipalName id={obj.checkedOutBy} />
+                  </>
+                )}
               </span>
             )}
             {obj.reservedBy && (
               <span className="tag" data-testid="reserved">
                 <Bookmark size={11} aria-hidden />
-                Reserved by {obj.reservedBy === myId ? "you" : <PrincipalName id={obj.reservedBy} />}
+                {obj.reservedBy === myId ? (
+                  t("Reserved by you")
+                ) : (
+                  <>
+                    {t("Reserved by")} <PrincipalName id={obj.reservedBy} />
+                  </>
+                )}
               </span>
             )}
             <span className="sub">{typeName}</span>
@@ -233,7 +247,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
       />
       <Dialog
         open={checkingIn}
-        title={`Check in ${obj.number}`}
+        title={t("Check in {number}", { number: obj.number })}
         onClose={() => {
           setCheckingIn(false);
           actions.checkIn.reset();
@@ -247,12 +261,12 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
                 actions.checkIn.reset();
               }}
             >
-              Cancel
+              {t("Cancel")}
             </button>
             <button
               className="btn primary"
               disabled={busy || (commentRequired && !comment.trim())}
-              title={commentRequired && !comment.trim() ? "A comment is required here" : undefined}
+              title={commentRequired && !comment.trim() ? t("A comment is required here") : undefined}
               onClick={() =>
                 actions.checkIn.mutate(comment, {
                   onSuccess: () => {
@@ -262,7 +276,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
                 })
               }
             >
-              Check in
+              {t("Check in")}
             </button>
           </>
         }
@@ -270,7 +284,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
         <ErrorBanner error={actions.checkIn.error} />
         <div className="field">
           <div className="label-row">
-            <label htmlFor="checkin-comment">Comment</label>
+            <label htmlFor="checkin-comment">{t("Comment")}</label>
             {commentRequired && (
               <span aria-hidden className="required">
                 *
@@ -282,7 +296,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
             required={commentRequired}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="What changed?"
+            placeholder={t("What changed?")}
             autoFocus
           />
         </div>
@@ -293,7 +307,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
 
 function stateName(lifecycle: ObjectLifecycle | undefined, state: string): string {
   const labels = lifecycle?.states.find((s) => s.key === state)?.labels;
-  return labels?.en ?? state.charAt(0) + state.slice(1).toLowerCase().replace(/_/g, " ");
+  return labels?.[language()] ?? labels?.en ?? state.charAt(0) + state.slice(1).toLowerCase().replace(/_/g, " ");
 }
 
 function ChangeLifecycleDialog({ obj, current, onClose }: { obj: VersionedObject; current: ObjectLifecycle; onClose: () => void }) {
@@ -309,12 +323,12 @@ function ChangeLifecycleDialog({ obj, current, onClose }: { obj: VersionedObject
   return (
     <Dialog
       open
-      title={`Change the lifecycle of ${obj.number}`}
+      title={t("Change the lifecycle of {number}", { number: obj.number })}
       onClose={onClose}
       footer={
         <>
           <button className="btn" type="button" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             className="btn primary"
@@ -322,7 +336,7 @@ function ChangeLifecycleDialog({ obj, current, onClose }: { obj: VersionedObject
             form="lifecycle-form"
             disabled={change.isPending || !chosen || !target || (chosen.id === current.lifecycleId && target === obj.latest.state)}
           >
-            Move
+            {t("Move")}
           </button>
         </>
       }
@@ -338,11 +352,12 @@ function ChangeLifecycleDialog({ obj, current, onClose }: { obj: VersionedObject
       >
         <ErrorBanner error={change.error} />
         <p className="muted" style={{ margin: 0 }}>
-          Now: {current.lifecycleName} version {current.lifecycleVersion}
-          {!current.lifecycleLatest && " (a newer version exists)"}, {stateName(current, obj.latest.state)}. Recorded in the audit trail.
+          {t("Now: {lifecycle} version {version}", { lifecycle: current.lifecycleName, version: current.lifecycleVersion })}
+          {!current.lifecycleLatest && ` ${t("(a newer version exists)")}`}, {stateName(current, obj.latest.state)}.{" "}
+          {t("Recorded in the audit trail.")}
         </p>
         <div className="field">
-          <label htmlFor="lc-target">Lifecycle</label>
+          <label htmlFor="lc-target">{t("Lifecycle")}</label>
           <select
             id="lc-target"
             value={chosen?.id ?? ""}
@@ -353,15 +368,15 @@ function ChangeLifecycleDialog({ obj, current, onClose }: { obj: VersionedObject
           >
             {lifecycles?.map((l) => (
               <option key={l.id} value={l.id}>
-                {pickLabel(l.labels, l.name)} (version {l.version})
+                {t("{name} (version {version})", { name: pickLabel(l.labels, l.name), version: l.version })}
               </option>
             ))}
           </select>
         </div>
         <div className="field">
-          <label htmlFor="lc-state">State</label>
+          <label htmlFor="lc-state">{t("State")}</label>
           <select id="lc-state" value={target} onChange={(e) => setState(e.target.value)}>
-            {!target && <option value="">Choose…</option>}
+            {!target && <option value="">{t("Choose…")}</option>}
             {chosen?.states.map((s) => (
               <option key={s.key} value={s.key}>
                 {pickLabel(s.labels, s.key)}
@@ -369,7 +384,9 @@ function ChangeLifecycleDialog({ obj, current, onClose }: { obj: VersionedObject
             ))}
           </select>
           {!keeps && chosen && (
-            <span className="hint">This lifecycle has no {stateName(current, obj.latest.state)} state: choose one.</span>
+            <span className="hint">
+              {t("This lifecycle has no {state} state: choose one.", { state: stateName(current, obj.latest.state) })}
+            </span>
           )}
         </div>
       </form>
@@ -386,12 +403,12 @@ function RenameDialog({ obj, onClose }: { obj: VersionedObject; onClose: () => v
   return (
     <Dialog
       open
-      title={`Rename or renumber ${obj.number}`}
+      title={t("Rename or renumber {number}", { number: obj.number })}
       onClose={onClose}
       footer={
         <>
           <button className="btn" type="button" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             className="btn primary"
@@ -399,7 +416,7 @@ function RenameDialog({ obj, onClose }: { obj: VersionedObject; onClose: () => v
             form="rename-form"
             disabled={rename.isPending || !changed || !name.trim() || !number.trim()}
           >
-            Save
+            {t("Save")}
           </button>
         </>
       }
@@ -422,23 +439,23 @@ function RenameDialog({ obj, onClose }: { obj: VersionedObject; onClose: () => v
       >
         <ErrorBanner error={rename.error} />
         <p className="muted" style={{ margin: 0 }}>
-          Applies to every version. The old number and name stay in the audit trail.
+          {t("Applies to every version. The old number and name stay in the audit trail.")}
         </p>
         <div className="field">
-          <label htmlFor="rename-number">Number</label>
+          <label htmlFor="rename-number">{t("Number")}</label>
           <input id="rename-number" value={number} onChange={(e) => setNumber(e.target.value)} />
         </div>
         <div className="field">
-          <label htmlFor="rename-name">Name</label>
+          <label htmlFor="rename-name">{t("Name")}</label>
           <input id="rename-name" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         <div className="field">
-          <label htmlFor="rename-comment">Reason</label>
+          <label htmlFor="rename-comment">{t("Reason")}</label>
           <input
             id="rename-comment"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="e.g. Align with the ERP number"
+            placeholder={t("e.g. Align with the ERP number")}
           />
         </div>
       </form>
@@ -469,15 +486,15 @@ function StateChangeDialog({
   return (
     <Dialog
       open={change !== null}
-      title={`Set state of ${objectNumber}`}
+      title={t("Set state of {number}", { number: objectNumber })}
       onClose={onCancel}
       footer={
         <>
           <button className="btn" onClick={onCancel}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button className="btn primary" disabled={busy} onClick={() => onConfirm(comment)}>
-            Set state
+            {t("Set state")}
           </button>
         </>
       }
@@ -489,15 +506,15 @@ function StateChangeDialog({
             {from} → <strong>{label(change.to)}</strong>
           </p>
           {change.override && (
-            <div className="banner warn">This ignores the lifecycle's transitions. It is recorded in the audit trail.</div>
+            <div className="banner warn">{t("This ignores the lifecycle's transitions. It is recorded in the audit trail.")}</div>
           )}
           <div className="field">
-            <label htmlFor="state-comment">Comment</label>
+            <label htmlFor="state-comment">{t("Comment")}</label>
             <textarea
               id="state-comment"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Why? e.g. approved in design review DR-12"
+              placeholder={t("Why? e.g. approved in design review DR-12")}
             />
           </div>
         </>
@@ -514,6 +531,8 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
   const { data: editLayout } = useLayout(obj.typeId, "EDIT");
   const { data: context } = useContextById(obj.contextId);
   const typeName = useTypeName(obj.typeId);
+  const { data: types } = useTypes();
+  const isDocument = types?.find((ty) => ty.id === obj.typeId)?.baseClass === "DOCUMENT";
   const latest = obj.latest;
 
   return (
@@ -530,13 +549,13 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
               initial={workingCopy.data.attributes as Attributes}
             />
           ) : (
-            <Panel title="Working copy">
+            <Panel title={t("Working copy")}>
               <ErrorBanner error={workingCopy.error} />
               <Loading />
             </Panel>
           )
         ) : (
-          <Panel title="Attributes" note={`as of ${latest.version}`}>
+          <Panel title={t("Attributes")} note={t("as of {version}", { version: latest.version })}>
             {definitions && infoLayout ? (
               <AttributeValues definitions={definitions} groups={infoLayout.groups} values={latest.attributes as Attributes} />
             ) : (
@@ -544,28 +563,28 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
             )}
           </Panel>
         )}
-        <Panel title="General">
+        <Panel title={t("General")}>
           <Props
             items={[
-              ["Number", obj.number],
-              ["Name", obj.name],
-              ["Type", typeName],
-              ["Version", <span className="version">{latest.version}</span>],
-              ["State", <StateBadge state={latest.state} />],
-              ["Context", context ? <Link to={`/contexts/${obj.contextId}`}>{context.name}</Link> : null],
-              ["Folder", <FolderLocation obj={obj} />],
-              ["Owner", <PrincipalName id={obj.owner} />],
-              ["Checked out by", obj.checkedOutBy ? <PrincipalName id={obj.checkedOutBy} /> : null],
-              ["Reserved by", obj.reservedBy ? <PrincipalName id={obj.reservedBy} /> : null],
+              [t("Number"), obj.number],
+              [t("Name"), obj.name],
+              [t("Type"), typeName],
+              [t("Version"), <span className="version">{latest.version}</span>],
+              [t("State"), <StateBadge state={latest.state} />],
+              [t("Context"), context ? <Link to={`/contexts/${obj.contextId}`}>{context.name}</Link> : null],
+              [t("Folder"), <FolderLocation obj={obj} />],
+              [t("Owner"), <PrincipalName id={obj.owner} />],
+              [t("Checked out by"), obj.checkedOutBy ? <PrincipalName id={obj.checkedOutBy} /> : null],
+              [t("Reserved by"), obj.reservedBy ? <PrincipalName id={obj.reservedBy} /> : null],
               [
-                "Last checked in",
+                t("Last checked in"),
                 <>
                   {formatDate(latest.checkedInAt)} · <PrincipalName id={latest.createdBy} />
                 </>,
               ],
-              ["Comment", latest.comment],
+              [t("Comment"), latest.comment],
               [
-                "Created",
+                t("Created"),
                 <>
                   {formatDate(obj.createdAt)} · <PrincipalName id={obj.createdBy} />
                 </>,
@@ -574,7 +593,8 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
           />
         </Panel>
       </div>
-      <ObjectFiles objectId={obj.id} iterationKey={mine ? `wc:${workingCopy.data?.id ?? ""}` : latest.id} editable={mine} />
+      {/* Only documents hold files (primary content and attachments). */}
+      {isDocument && <ObjectFiles objectId={obj.id} iterationKey={mine ? `wc:${workingCopy.data?.id ?? ""}` : latest.id} editable={mine} />}
     </div>
   );
 }
@@ -609,9 +629,9 @@ function WorkingCopyEditor({
       <div className="panel-head">
         <Pencil size={13} className="icon-muted" aria-hidden />
         <h2>
-          Working copy <span className="version">{version}</span>
+          {t("Working copy")} <span className="version">{version}</span>
         </h2>
-        <span className="note">Only you see these edits until you check in.</span>
+        <span className="note">{t("Only you see these edits until you check in.")}</span>
       </div>
       <div className="panel-body" style={{ display: "grid", gap: 10 }}>
         {updateAttributes.error != null && Object.keys(errors).length === 0 && <ErrorBanner error={updateAttributes.error} />}
@@ -629,9 +649,13 @@ function WorkingCopyEditor({
       </div>
       <div className="panel-foot">
         <button className="btn primary" type="submit" disabled={updateAttributes.isPending || !dirty}>
-          Save attributes
+          {t("Save attributes")}
         </button>
-        {dirty ? <span className="muted">Unsaved changes</span> : updateAttributes.isSuccess && <span className="muted">Saved.</span>}
+        {dirty ? (
+          <span className="muted">{t("Unsaved changes")}</span>
+        ) : (
+          updateAttributes.isSuccess && <span className="muted">{t("Saved.")}</span>
+        )}
       </div>
     </form>
   );
@@ -640,20 +664,20 @@ function WorkingCopyEditor({
 function HistoryTab({ id }: { id: string }) {
   const { data, isLoading, error } = useHistory(id);
   return (
-    <Panel title="Iterations" note={data ? String(data.length) : undefined} flush>
+    <Panel title={t("Iterations")} note={data ? String(data.length) : undefined} flush>
       <ErrorBanner error={error} />
       {isLoading ? (
         <Loading />
       ) : (
         <div className="grid-wrap">
-          <table className="grid" aria-label="Iteration history">
+          <table className="grid" aria-label={t("Iteration history")}>
             <thead>
               <tr>
-                <th>Version</th>
-                <th>State</th>
-                <th>Comment</th>
-                <th>Checked in by</th>
-                <th>Checked in</th>
+                <th>{t("Version")}</th>
+                <th>{t("State")}</th>
+                <th>{t("Comment")}</th>
+                <th>{t("Checked in by")}</th>
+                <th>{t("Checked in")}</th>
               </tr>
             </thead>
             <tbody>
@@ -681,19 +705,19 @@ function HistoryTab({ id }: { id: string }) {
 function AuditTab({ id }: { id: string }) {
   const { data, isLoading, error } = useAudit(id, true);
   return (
-    <Panel title="Audit trail" note={data ? String(data.length) : undefined} flush>
+    <Panel title={t("Audit trail")} note={data ? String(data.length) : undefined} flush>
       <ErrorBanner error={error} />
       {isLoading ? (
         <Loading />
       ) : (
         <div className="grid-wrap">
-          <table className="grid" aria-label="Audit trail">
+          <table className="grid" aria-label={t("Audit trail")}>
             <thead>
               <tr>
-                <th>When</th>
-                <th>Action</th>
-                <th>Who</th>
-                <th>Details</th>
+                <th>{t("When")}</th>
+                <th>{t("Action")}</th>
+                <th>{t("Who")}</th>
+                <th>{t("Details")}</th>
               </tr>
             </thead>
             <tbody>
@@ -707,7 +731,7 @@ function AuditTab({ id }: { id: string }) {
                   <td>
                     {"version" in entry.details && <span className="version">{String(entry.details.version)}</span>}
                     {"previousNumber" in entry.details &&
-                      ` · was ${String(entry.details.previousNumber)} “${String(entry.details.previousName)}”, now ${String(entry.details.number)} “${String(entry.details.name)}”`}
+                      ` · ${t("was {oldNumber} “{oldName}”, now {number} “{name}”", { oldNumber: String(entry.details.previousNumber), oldName: String(entry.details.previousName), number: String(entry.details.number), name: String(entry.details.name) })}`}
                     {"from" in entry.details && "to" in entry.details && ` · ${String(entry.details.from)} → ${String(entry.details.to)}`}
                     {"comment" in entry.details && entry.details.comment ? ` · “${String(entry.details.comment)}”` : ""}
                     {"actionId" in entry.details && (
