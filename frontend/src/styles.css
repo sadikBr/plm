@@ -980,3 +980,12 @@ textarea.script-source { min-height: 220px; line-height: 1.45; tab-size: 2; }
 /* Extension panels and tabs (roadmap 5.15). */
 .ext-frame { display: block; width: 100%; border: 0; background: var(--panel); }
 .ext-source { display: inline-flex; align-items: center; gap: 3px; }
+/* Automations (roadmap 5.16): when → if → then. */
+.automation-flow { display: grid; gap: 12px; margin-top: 12px; }
+.automation-flow section { border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; display: grid; gap: 8px; }
+.automation-flow h4 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-2); }
+.automation-actions { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.automation-actions li { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--row-hover); }
+.step-no { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 650; }
+.run-steps { margin: 0; padding-left: 18px; font-size: 12.5px; }
+.run-steps li.failed { color: var(--danger); }

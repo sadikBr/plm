@@ -850,6 +850,198 @@
         "required" : [ "byAction", "byActor", "entries", "total" ],
         "type" : "object"
       },
+      "Automation" : {
+        "properties" : {
+          "actions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AutomationAction"
+            },
+            "type" : "array"
+          },
+          "active" : {
+            "type" : "boolean"
+          },
+          "condition" : {
+            "type" : [ "string", "null" ]
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "event" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "types" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "updatedBy" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "actions", "active", "event", "id", "name", "types", "updatedAt", "updatedBy" ],
+        "type" : "object"
+      },
+      "AutomationAction" : {
+        "properties" : {
+          "attribute" : {
+            "type" : [ "string", "null" ]
+          },
+          "kind" : {
+            "enum" : [ "SET_STATE", "SET_ATTRIBUTE", "NOTIFY", "START_PROCESS", "WEBHOOK", "RUN_SCRIPT" ],
+            "type" : "string"
+          },
+          "message" : {
+            "type" : [ "string", "null" ]
+          },
+          "recipients" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "scriptId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "secret" : {
+            "type" : [ "string", "null" ]
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          },
+          "templateId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "url" : {
+            "type" : [ "string", "null" ]
+          },
+          "value" : { }
+        },
+        "required" : [ "kind", "recipients" ],
+        "type" : "object"
+      },
+      "AutomationRun" : {
+        "properties" : {
+          "automationId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "durationMs" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "eventType" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "objectNumber" : {
+            "type" : [ "string", "null" ]
+          },
+          "outcome" : {
+            "type" : "string"
+          },
+          "ranAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "steps" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AutomationStep"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "automationId", "durationMs", "eventType", "id", "outcome", "ranAt", "steps" ],
+        "type" : "object"
+      },
+      "AutomationSettings" : {
+        "properties" : {
+          "actions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AutomationAction"
+            },
+            "type" : "array"
+          },
+          "active" : {
+            "type" : "boolean"
+          },
+          "condition" : {
+            "type" : [ "string", "null" ]
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "event" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "types" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "actions", "active", "event", "name", "types" ],
+        "type" : "object"
+      },
+      "AutomationStep" : {
+        "properties" : {
+          "kind" : {
+            "enum" : [ "SET_STATE", "SET_ATTRIBUTE", "NOTIFY", "START_PROCESS", "WEBHOOK", "RUN_SCRIPT" ],
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "ok" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "kind", "message", "ok" ],
+        "type" : "object"
+      },
+      "AutomationTrigger" : {
+        "properties" : {
+          "event" : {
+            "type" : "string"
+          },
+          "fields" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "label" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "event", "fields", "label" ],
+        "type" : "object"
+      },
       "AvailableActionResponse" : {
         "properties" : {
           "enabled" : {
@@ -8609,6 +8801,219 @@
           }
         },
         "tags" : [ "Audit" ]
+      }
+    },
+    "/api/v1/automation-triggers" : {
+      "get" : {
+        "operationId" : "automationTriggers",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/AutomationTrigger"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Automation" ]
+      }
+    },
+    "/api/v1/automations" : {
+      "get" : {
+        "operationId" : "automationList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Automation"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Automation" ]
+      },
+      "post" : {
+        "operationId" : "automationDefine",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AutomationSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Automation"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Automation" ]
+      }
+    },
+    "/api/v1/automations/{id}" : {
+      "delete" : {
+        "operationId" : "automationDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Automation" ]
+      },
+      "put" : {
+        "operationId" : "automationUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AutomationSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Automation"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Automation" ]
+      }
+    },
+    "/api/v1/automations/{id}/runs" : {
+      "get" : {
+        "operationId" : "automationRuns",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/AutomationRun"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Automation" ]
       }
     },
     "/api/v1/baselines" : {
@@ -22449,6 +22854,8 @@
     "name" : "Attribute"
   }, {
     "name" : "Audit"
+  }, {
+    "name" : "Automation"
   }, {
     "name" : "Background action"
   }, {

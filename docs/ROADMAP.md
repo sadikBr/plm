@@ -417,8 +417,14 @@ affected objects; and the platform can be extended with scripts, UI slots and no
       `endpoints:` makes the platform serve /api/v1/ext/<id>/<path> to signed-in users, forwarded
       signed (with the user) to the extension's service. New permissions: ui:panels, endpoints:serve.
       The erp-sync sample 2.2 adds a live "ERP stock" panel with reservations.
-- [ ] 5.16 No-code automations: trigger (an event) → condition → actions (set state, set a value,
+- [x] 5.16 No-code automations: trigger (an event) → condition → actions (set state, set a value,
       notify, start a process, call a webhook), built in the admin pages, with a run history.
+      Done: Administration › Automations: when (an event, for some types) → if (an optional CEL
+      condition over the event, the object and the user) → then (set the state, set a value,
+      notify, start a process, call a signed webhook, run an automation script), in order. They
+      run after the triggering change commits, each step in its own transaction, as "automation";
+      changes they make don't trigger automations. Every run is kept with each step's outcome; a
+      failing step stops the run (the release gate and lifecycles still apply).
 
 **Exit:** a part can only reach Released through an approved change notice or promotion request;
 the e2e suite takes a problem report through a change request and notice to a released part, with

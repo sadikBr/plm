@@ -228,6 +228,7 @@ function ScriptEditor({ script, onSaved, onDeleted }: { script: Script | null; o
           <legend>{t("For types (none: all)")}</legend>
           {(types ?? [])
             .filter((x) => x.baseClass === "PART" || x.baseClass === "DOCUMENT" || x.baseClass === "CHANGE")
+            .sort((x, y) => Number(typeNames.includes(y.name)) - Number(typeNames.includes(x.name)))
             .map((x) => (
               <label key={x.id} className="check">
                 <input type="checkbox" checked={typeNames.includes(x.name)} onChange={() => toggle(typeNames, setTypeNames, x.name)} />
