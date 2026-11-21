@@ -39,6 +39,7 @@ Three layers enforce this:
 | workflow | Processes on Temporal: versioned templates run by one interpreter; tasks, history | access, identity, types, versioning, notifications |
 | change | Promotion requests (and, next, PR / CR / CN / change tasks) | access, types, versioning, lifecycle, workflow |
 | automation | No-code automations: an event, a condition, actions (set state or a value, notify, start a process, call a webhook, run a script), with a run history | access, types, versioning, workflow, notifications, extensions, identity |
+| cad | CAD documents (part, assembly, drawing) and their versioned dependencies: components with placements, drawings' models, tree and where-used | access, types, versioning |
 | search | Search: indexing from events (OpenSearch or Postgres), queries with facets, saved searches | access, types, versioning, content, jobs |
 | configuration | Export/import of the whole configuration as one bundle (config as code) | types, lifecycle, access |
 | preferences | Typed preferences set per site / organization / context / user, with locking; profiles | access, types |

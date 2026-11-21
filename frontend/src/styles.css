@@ -993,3 +993,8 @@ textarea.script-source { min-height: 220px; line-height: 1.45; tab-size: 2; }
 @media (max-width: 1440px) {
   .topbar .tl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
+/* CAD structure (roadmap 6.1). */
+.cad-tree tr.root td { background: var(--row-hover); }
+.cad-tree .tree-cell { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.cad-tree .tree-toggle { display: inline-grid; place-items: center; width: 18px; height: 18px; padding: 0; }
+.cad-add { padding: 10px 16px; border-top: 1px solid var(--border); }

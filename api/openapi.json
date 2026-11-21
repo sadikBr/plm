@@ -292,6 +292,33 @@
         "required" : [ "role", "targetId" ],
         "type" : "object"
       },
+      "AddDependency" : {
+        "properties" : {
+          "childId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "COMPONENT", "DRAWING", "REFERENCE" ],
+            "type" : "string"
+          },
+          "occurrence" : {
+            "type" : [ "string", "null" ]
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "transform" : {
+            "items" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : [ "array", "null" ]
+          }
+        },
+        "required" : [ "childId", "kind", "required" ],
+        "type" : "object"
+      },
       "AddRedline" : {
         "properties" : {
           "attribute" : {
@@ -1191,6 +1218,129 @@
           "value" : { }
         },
         "required" : [ "objectIds", "operation" ],
+        "type" : "object"
+      },
+      "CadDependency" : {
+        "properties" : {
+          "child" : {
+            "$ref" : "#/components/schemas/CadModel"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "COMPONENT", "DRAWING", "REFERENCE" ],
+            "type" : "string"
+          },
+          "occurrence" : {
+            "type" : [ "string", "null" ]
+          },
+          "position" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "transform" : {
+            "items" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : [ "array", "null" ]
+          }
+        },
+        "required" : [ "child", "id", "kind", "position", "required" ],
+        "type" : "object"
+      },
+      "CadModel" : {
+        "properties" : {
+          "hasDependencies" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "PART", "ASSEMBLY", "DRAWING" ],
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "number" : {
+            "type" : [ "string", "null" ]
+          },
+          "readable" : {
+            "type" : "boolean"
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "version" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "hasDependencies", "id", "readable" ],
+        "type" : "object"
+      },
+      "CadTreeNode" : {
+        "properties" : {
+          "dependency" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/CadDependency"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "depth" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "model" : {
+            "$ref" : "#/components/schemas/CadModel"
+          },
+          "worldTransform" : {
+            "items" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : [ "array", "null" ]
+          }
+        },
+        "required" : [ "depth", "model" ],
+        "type" : "object"
+      },
+      "CadWhereUsed" : {
+        "properties" : {
+          "dependencyId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "COMPONENT", "DRAWING", "REFERENCE" ],
+            "type" : "string"
+          },
+          "latest" : {
+            "type" : "boolean"
+          },
+          "occurrence" : {
+            "type" : [ "string", "null" ]
+          },
+          "parent" : {
+            "$ref" : "#/components/schemas/CadModel"
+          },
+          "parentVersion" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "dependencyId", "kind", "latest", "parent", "parentVersion" ],
         "type" : "object"
       },
       "CancelProcess" : {
@@ -7752,6 +7902,25 @@
           }
         },
         "required" : [ "unread" ],
+        "type" : "object"
+      },
+      "UpdateDependency" : {
+        "properties" : {
+          "occurrence" : {
+            "type" : [ "string", "null" ]
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "transform" : {
+            "items" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : [ "array", "null" ]
+          }
+        },
+        "required" : [ "required" ],
         "type" : "object"
       },
       "UpdatePolicyRequest" : {
@@ -15554,6 +15723,287 @@
         "tags" : [ "Replacement" ]
       }
     },
+    "/api/v1/objects/{id}/cad/dependencies" : {
+      "get" : {
+        "operationId" : "cadDependencies",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "workingCopy",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/CadDependency"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Cad" ]
+      },
+      "post" : {
+        "operationId" : "cadAdd",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddDependency"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CadDependency"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Cad" ]
+      }
+    },
+    "/api/v1/objects/{id}/cad/dependencies/{dependencyId}" : {
+      "delete" : {
+        "operationId" : "cadRemove",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "dependencyId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Cad" ]
+      },
+      "put" : {
+        "operationId" : "cadUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "dependencyId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateDependency"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CadDependency"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Cad" ]
+      }
+    },
+    "/api/v1/objects/{id}/cad/tree" : {
+      "get" : {
+        "operationId" : "cadTree",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "depth",
+          "required" : false,
+          "schema" : {
+            "default" : 30,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "workingCopy",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/CadTreeNode"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Cad" ]
+      }
+    },
+    "/api/v1/objects/{id}/cad/where-used" : {
+      "get" : {
+        "operationId" : "cadWhereUsed",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/CadWhereUsed"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Cad" ]
+      }
+    },
     "/api/v1/objects/{id}/changes" : {
       "get" : {
         "operationId" : "changeChangesOf",
@@ -22864,6 +23314,8 @@
     "name" : "Bom"
   }, {
     "name" : "Bulk"
+  }, {
+    "name" : "Cad"
   }, {
     "name" : "Change"
   }, {

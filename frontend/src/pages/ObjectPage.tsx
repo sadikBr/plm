@@ -2,6 +2,7 @@ import { ReferencedBy } from "../components/References";
 import { ProcessesTab } from "../workflow/Processes";
 import { ChangeTab, ObjectChangesTab, VariancesBanner, changeKindOf, kindLabel, useReleaseGate } from "../changes/Changes";
 import { SignaturesPanel } from "../workflow/Signatures";
+import { CadTab, cadKindOf } from "../cad/CadTab";
 import { ExtensionPanels, ExtensionTab, useUiSlots } from "../extensions/ExtensionFrame";
 import { ReplacementsTab } from "../structure/Replacements";
 import { DocumentLinksTab, LinkingPartsTab } from "../structure/DocumentLinks";
@@ -72,6 +73,7 @@ type Tab =
   | "parts"
   | "processes"
   | "change"
+  | "cad"
   | "changes"
   | "discussion"
   | "history"
@@ -101,8 +103,12 @@ function ObjectView({ id }: { id: string }) {
 
   const isPart = allTypes?.find((ty) => ty.id === obj.typeId)?.baseClass === "PART";
   const changeKind = changeKindOf(allTypes, obj.typeId);
+  const cadKind = cadKindOf(allTypes, obj.typeId);
   const tabs: [Tab, string][] = [
     ["details", t("Details")],
+    ...(cadKind
+      ? [["cad", cadKind === "PART" ? t("Where used") : cadKind === "DRAWING" ? t("Models") : t("Model structure")] as [Tab, string]]
+      : []),
     ...(isPart
       ? [
           ["structure", t("Structure")] as [Tab, string],
@@ -129,6 +135,7 @@ function ObjectView({ id }: { id: string }) {
       <ObjectHeader obj={obj} myId={myId} tabs={<Tabs tabs={tabs} active={tab} onSelect={(k) => setParams({ tab: k })} />} />
       <div className="content">
         {tab === "details" && <DetailsTab obj={obj} myId={myId} />}
+        {tab === "cad" && cadKind && <CadTab obj={obj} kind={cadKind} mine={!!myId && obj.checkedOutBy === myId} />}
         {tab === "structure" && <StructureTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}
         {tab === "where-used" && <WhereUsedTab obj={obj} />}
         {tab === "documents" && <DocumentLinksTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}

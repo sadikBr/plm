@@ -22,6 +22,12 @@ value class TypeId(
         val CHANGE_TASK = TypeId(UUID.fromString("00000000-0000-7000-8000-000000000107"))
         val VARIANCE = TypeId(UUID.fromString("00000000-0000-7000-8000-000000000108"))
 
+        /** CAD documents (roadmap 6.1): the root and its three kinds. */
+        val CAD_DOCUMENT = TypeId(UUID.fromString("00000000-0000-7000-8000-000000000109"))
+        val CAD_PART = TypeId(UUID.fromString("00000000-0000-7000-8000-00000000010a"))
+        val CAD_ASSEMBLY = TypeId(UUID.fromString("00000000-0000-7000-8000-00000000010b"))
+        val CAD_DRAWING = TypeId(UUID.fromString("00000000-0000-7000-8000-00000000010c"))
+
         /** Stands for "no type" on a global attribute's own definition (it is used by types, not defined on one). */
         val GLOBAL = TypeId(UUID(0, 0))
     }

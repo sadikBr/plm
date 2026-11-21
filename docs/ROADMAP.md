@@ -442,9 +442,15 @@ dependencies, travel together through check-out, revise and release, build the p
 and are viewable in the browser (3D and 2D, with measures, sections and markups) without a CAD
 seat.
 
-- [ ] 6.1 CAD documents and their dependency structure: a CAD document type (part, assembly,
+- [x] 6.1 CAD documents and their dependency structure: a CAD document type (part, assembly,
       drawing; authoring application and format), with versioned dependencies (an assembly's
       components with their placement, a drawing's models); a dependency tree and where-used.
+      Done: CAD part, CAD assembly and CAD drawing types (numbered CAD-, with authoring
+      application and file format). An assembly's components (one line per placement, with an
+      occurrence name and a 4x4 placement) and a drawing's models are kept per version, edited on
+      the working copy and carried into new versions; the Model structure tab shows the tree with
+      each model placed in the root, and Where used the versions that depend on a model. Cycles
+      are refused and a model others depend on can't be deleted.
 - [ ] 6.2 Collector: act on a CAD document with what it depends on and what depends on it
       (required, optional, drawings), chosen in one dialog: check out, check in, revise, set state.
 - [ ] 6.3 Family tables: a generic model and its instances (a table of parameters per instance),

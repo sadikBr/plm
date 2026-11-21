@@ -2,6 +2,9 @@ import { language, locale, t } from "../i18n/i18n";
 import {
   Bolt,
   Box,
+  Boxes,
+  DraftingCompass,
+  Shapes,
   ClipboardList,
   Building2,
   Cable,
@@ -159,6 +162,9 @@ export function ContextIcon({ kind, size = 15 }: { kind: ContextKind; size?: num
 /** Icons an administrator can give a type (Admin → Types → Properties). */
 export const TYPE_ICONS: Record<string, LucideIcon> = {
   box: Box,
+  boxes: Boxes,
+  shapes: Shapes,
+  "drafting-compass": DraftingCompass,
   "file-text": FileText,
   bolt: Bolt,
   cog: Cog,
