@@ -300,10 +300,32 @@ ensure_docker_running() {
     # Docker Desktop's own command on Windows: it answers once the engine runs, WSL integration or not.
     local windows_docker told=0 i
     windows_docker="$(dirname "$exe")/resources/bin/docker.exe"
+    local err shown_err="" restart_told=0
     for i in $(seq 1 600); do
-      if docker info >/dev/null 2>&1; then
+      if err="$(docker info 2>&1 >/dev/null)"; then
         ok "Docker is running"
         return 0
+      fi
+      if [[ $((i % 5)) == 0 ]] && command -v docker >/dev/null 2>&1; then
+        case "$err" in
+          *"permission denied"*)
+            warn "Docker answers, but $(id -un) may not use it yet (permission denied)."
+            join_docker_group
+            ;;
+          *"could not be found in this WSL"* | *"Cannot connect"* | "") ;;
+          *)
+            if [[ "$err" != "$shown_err" ]]; then
+              warn "Docker says: $(printf '%s' "$err" | head -n 2 | tr '\n' ' ')"
+              shown_err="$err"
+            fi
+            ;;
+        esac
+      fi
+      # Integration turned on a while ago, still no Docker here: WSL needs a restart to pick it up.
+      if [[ "$told" == 1 && "$restart_told" == 0 && $i -ge 90 ]]; then
+        warn "Still nothing in ${WSL_DISTRO_NAME:-WSL}. If WSL integration is on already, restart WSL: close this"
+        warn "terminal, run  wsl --shutdown  in Windows PowerShell, open ${WSL_DISTRO_NAME:-Ubuntu} again and run ./plm $COMMAND."
+        restart_told=1
       fi
       if [[ "$told" == 0 && $((i % 5)) == 0 && -f "$windows_docker" ]] && "$windows_docker" info >/dev/null 2>&1; then
         warn "Docker Desktop runs on Windows, but isn't connected to ${WSL_DISTRO_NAME:-this distribution} yet. In Docker Desktop:"
@@ -322,7 +344,13 @@ ensure_docker_running() {
   fi
   [[ "$DRY_RUN" == 1 ]] && return 0
   docker info >/dev/null 2>&1 && return 0
-  # The daemon runs, but this user may not use it yet: join the docker group.
+  join_docker_group
+}
+
+# Docker runs, but this user may not use it ("permission denied"): join the docker group, and
+# carry on inside it.
+join_docker_group() {
+  getent group docker >/dev/null 2>&1 || as_root groupadd docker
   if ! id -nG | tr ' ' '\n' | grep -qx docker; then
     echo "  Letting $(id -un) use Docker (the docker group)"
     as_root usermod -aG docker "$(id -un)"
