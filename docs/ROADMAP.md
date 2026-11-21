@@ -203,13 +203,42 @@ and access; full-text search with facets, saved searches, views and reports; cov
 suite.)
 
 ## Phase 4 — Parts and product structure
-Usage links to masters · occurrences and reference designators · config specs (latest, released,
-baseline) · baselines, managed baselines and collections · multi-level BOM tree table · structure
-editing and find in structure · where-used · BOM compare · alternates and substitutes ·
-part↔document links · reference and alias attributes · roll-ups and multi-level reports ·
-BOM import/export · bulk revise.
 
-**Exit:** a 10-level, 50k-line BOM expands in < 2 s with access filtering applied.
+**Goal:** parts form multi-level product structures that people build, configure, compare,
+baseline and report on, fast at the scale of real products.
+
+- [ ] 4.1 Usage links: a parent part iteration uses child part masters, with quantity, unit, line
+      and find numbers; structure is edited on the parent's working copy and frozen at check-in.
+- [ ] 4.2 Configuration specifications: latest, latest released, latest in a state, as of a date;
+      chosen per user in the structure view, with a default per context.
+- [ ] 4.3 Multi-level BOM tree table: lazy expansion, columns and views (3.7), Excel export,
+      access filtered per line (unreadable children show as placeholders).
+- [ ] 4.4 Structure editing: add existing or new children, copy and paste lines, replace, remove,
+      reorder, edit quantities, find in structure; all in the checked-out parent.
+- [ ] 4.5 Occurrences and reference designators: individual instances under a usage line (R1,
+      R2…, ranges), checked against the quantity.
+- [ ] 4.6 Where-used: single and multi-level, under a configuration specification, up to end
+      items; exportable.
+- [ ] 4.7 Part↔document links: "described by" (a document iteration) and "references" (a
+      document master, always its latest), on both sides, carried on revise, allowed type pairs.
+- [ ] 4.8 Alternates and substitutes: a part's global alternates; substitutes on one usage line,
+      shown in the BOM and where-used.
+- [ ] 4.9 BOM compare: two iterations, two parts, or one part under two configuration
+      specifications; added, removed and changed lines side by side; exportable.
+- [ ] 4.10 Baselines and collections: frozen sets of exact iterations (also a configuration
+      specification), managed baselines with a lifecycle, collecting a structure with its documents
+      for bulk actions.
+- [ ] 4.11 Roll-ups and multi-level reports: values summed up the tree (mass, cost, counts), a
+      flattened BOM with total quantities, multi-level reports in the report engine (3.8).
+- [ ] 4.12 Reference and alias attributes: attributes that point to another object, or show a
+      value of a related object; filterable and reportable.
+- [ ] 4.13 BOM import and export: Excel/CSV with preview, validation and matching (create or
+      update), as a background job.
+- [ ] 4.14 Bulk revise and structure operations: revise a structure or a selection in one go,
+      mass replace across where-used; background jobs with per-object results.
+
+**Exit:** a 10-level, 50k-line BOM expands in < 2 s with access filtering applied; the e2e suite
+builds, compares, baselines and imports a structure.
 
 ## Phase 5 — Workflow, change management and extensibility v2
 Temporal integration · process template editor · tasks and inbox, voting, delegation, escalation ·
