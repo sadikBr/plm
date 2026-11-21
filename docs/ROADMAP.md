@@ -179,9 +179,14 @@ platform gets the background machinery (jobs, schedules, notifications) later ph
       the object's context but nothing else in it); an audit report by period, person, kind of change
       and context, with counts by kind and person and an Excel export, for site administrators and
       context managers.)
-- [ ] 3.11 Long-running extension actions: a webhook action can start a background job that
+- [x] 3.11 Long-running extension actions: a webhook action can start a background job that
       reports progress; the user is notified when it's done (e.g. a document generated from a long
       query).
+      (Done: `background: true` webhook actions run as a job of the person who started them, for up
+      to an hour; the service reports progress and may answer 202 and post its answer later, both
+      with a per-job token; the object page follows the job, can cancel it, and offers its file; the
+      notification carries the service's message and a link back. Sample: erp-sync 2.1's cost
+      roll-up with the mock ERP.)
 - [ ] 3.12 Interface translations: every screen translated, each user picks a language.
 
 **Exit:** a team manages real documents end-to-end with files, permissions and fast search.

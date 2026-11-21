@@ -74,6 +74,36 @@ createServer((req, res) => {
       };
       return void report().catch((e) => send(res, 502, { message: `The report failed: ${e.message}` }));
     }
+    if (req.url.startsWith("/rollup")) {
+      // A background action (roadmap 3.11): accept at once (202), then work, reporting progress to
+      // job.progressUrl, and post the final answer to job.completeUrl. Both carry the job's token.
+      send(res, 202, { message: "Accepted" });
+      const { job } = call;
+      const headers = { "Content-Type": "application/json", "X-PLM-Job-Token": job.token };
+      const plants = call.parameters.plants === "All" ? ["P100", "P200", "P300", "P400"] : [call.parameters.plants];
+      const steps = Number(process.env.ROLLUP_STEPS ?? 8);
+      void (async () => {
+        const lines = ["plant,material,labour,overhead,total"];
+        for (let i = 1; i <= steps; i++) {
+          await new Promise((r) => setTimeout(r, Number(process.env.ROLLUP_STEP_MS ?? 1500)));
+          const plant = plants[(i - 1) % plants.length];
+          const r = await fetch(job.progressUrl, { method: "POST", headers, body: JSON.stringify({ done: i, total: steps, message: `Costing ${part.number} at ${plant}` }) });
+          if (r.ok && (await r.json()).cancelRequested) return console.log(`Roll-up of ${part.number} cancelled`);
+          if (i <= plants.length) lines.push(`${plant},${(30 + i * 1.7).toFixed(2)},${(12 + i).toFixed(2)},4.10,${(46.1 + i * 2.7).toFixed(2)}`);
+        }
+        const csv = lines.join("\n") + "\n";
+        await fetch(job.completeUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            message: `Cost roll-up of ${part.number}: ${plants.length} plant${plants.length === 1 ? "" : "s"}, lowest at ${plants[0]}`,
+            download: { filename: `rollup-${part.number}.csv`, contentType: "text/csv", content: Buffer.from(csv).toString("base64") },
+          }),
+        });
+        console.log(`Roll-up of ${part.number} done`);
+      })().catch((e) => console.log(`Roll-up failed: ${e.message}`));
+      return;
+    }
     send(res, 404, { message: `No such service: ${req.url}` });
   });
 }).listen(port, () => console.log(`Mock ERP listening on http://localhost:${port} (secret: ${secret})`));

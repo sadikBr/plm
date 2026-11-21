@@ -779,3 +779,15 @@ table.folders td { padding-top: 7px; padding-bottom: 7px; }
 .audit-charts { display: grid; grid-template-columns: 220px minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
 @media (max-width: 1000px) { .audit-charts { grid-template-columns: 1fr; } }
 .discussion input[type="checkbox"], .share-form input[type="checkbox"] { width: auto; min-height: 0; margin: 0; }
+
+/* ---------- Background actions (roadmap 3.11) ---------- */
+.bg-actions { display: grid; gap: 8px; padding: 12px 16px 0; }
+.bg-action { display: grid; gap: 6px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 4px; }
+.bg-action.succeeded { border-left-color: var(--ok); }
+.bg-action.failed { border-left-color: var(--danger); }
+.bg-action.cancelled { border-left-color: var(--warn); }
+.bg-action .ok-icon { color: var(--ok); }
+.bg-action .error-icon { color: var(--danger); }
+.bg-action .error-text { color: var(--danger); }
+.bg-action .spin { animation: bg-spin 1s linear infinite; }
+@keyframes bg-spin { to { transform: rotate(360deg); } }

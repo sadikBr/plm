@@ -49,7 +49,7 @@ import { useClipboard } from "../components/Clipboard";
 import { FolderLocation } from "./FolderLocation";
 import { DeleteDialog, MoveDialog, OwnerDialog, useReservation } from "./OrganizeDialogs";
 import { NotFoundPage } from "./NotFoundPage";
-import { useActionRunner } from "./ActionRunner";
+import { BackgroundActions, useActionRunner } from "./ActionRunner";
 import { ObjectActionBar, type ActionHandlers } from "./ObjectActions";
 
 type Tab = "details" | "discussion" | "history" | "audit";
@@ -201,6 +201,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
         </div>
       )}
       {runner.ui}
+      <BackgroundActions objectId={obj.id} refreshKey={runner.started} />
       {renaming && <RenameDialog obj={obj} onClose={() => setRenaming(false)} />}
       {docDialog === "save-as" && <SaveAsDialog obj={obj} onClose={() => setDocDialog(null)} />}
       {docDialog === "compare" && <CompareDialog obj={obj} onClose={() => setDocDialog(null)} />}

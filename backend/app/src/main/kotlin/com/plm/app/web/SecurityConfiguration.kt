@@ -48,6 +48,12 @@ internal class SecurityConfiguration(
                     // Vault links are signed and short-lived: the URL is the permission (roadmap 3.2).
                     .requestMatchers(HttpMethod.PUT, "/api/v1/vault/uploads/*")
                     .permitAll()
+                    // A background action's service reports back with the job's own token (roadmap 3.11).
+                    .requestMatchers(
+                        HttpMethod.POST,
+                        "/api/v1/extension-jobs/*/progress",
+                        "/api/v1/extension-jobs/*/complete",
+                    ).permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/v1/vault/files")
                     .permitAll()
                     .anyRequest()

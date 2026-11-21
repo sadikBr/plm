@@ -108,7 +108,13 @@ internal object Manifests {
                 ) {
                     errors += "$at: webhook secret must name a setting of type secret"
                 }
-                if (w.timeoutSeconds !in 1..30) errors += "$at: timeoutSeconds must be 1 to 30"
+                if (!w.background && w.timeoutSeconds !in 1..30) errors += "$at: timeoutSeconds must be 1 to 30"
+                if (w.background &&
+                    w.timeoutSeconds !in 1..3600
+                ) {
+                    errors +=
+                        "$at: timeoutSeconds must be 1 to 3600 for a background action"
+                }
             }
             a.form?.let { f ->
                 f.properties.forEach { (name, field) ->

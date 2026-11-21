@@ -96,7 +96,15 @@ data class WebhookHandler(
     val url: String,
     /** The `secret` setting the request is signed with. */
     val secret: String,
+    /** Up to 30 s; up to 3600 s for [background] actions. */
     val timeoutSeconds: Int = 10,
+    /**
+     * Long-running (roadmap 3.11): the action runs as a background job the person can follow, and
+     * they're notified when it ends. The call carries `job.progressUrl` and `job.completeUrl` with a
+     * `job.token` (header `X-PLM-Job-Token`): the service may report progress while it works, and
+     * may answer 202 at once and post its final answer to `completeUrl` later.
+     */
+    val background: Boolean = false,
 )
 
 data class AppliesTo(

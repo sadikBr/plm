@@ -10,6 +10,7 @@ dependencies {
     implementation(project(":backend:modules:configuration"))
     implementation(project(":backend:modules:identity"))
     implementation(project(":backend:modules:preferences"))
+    implementation(project(":backend:modules:jobs"))
     implementation(libs.slf4j.api)
     implementation(libs.jackson.yaml)
     implementation(libs.jackson.kotlin)

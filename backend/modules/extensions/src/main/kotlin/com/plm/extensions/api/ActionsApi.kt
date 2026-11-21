@@ -135,6 +135,8 @@ data class ActionResult(
     /** ...or open this address. */
     val navigateToUrl: String? = null,
     val download: ActionDownload? = null,
+    /** For background actions (roadmap 3.11): the job that runs it; follow it at `/api/v1/jobs/{id}`. */
+    val jobId: java.util.UUID? = null,
 )
 
 data class ActionDownload(

@@ -10,6 +10,7 @@ a manifest, `plm-extension.yaml`, installed by a site administrator under **Admi
 | [erp-sync 1.1](samples/erp-sync/plm-extension-1.1.yaml) | The same extension, one version later: an upgrade adds an action and a permission |
 | [quality-rules](samples/quality-rules/plm-extension.yaml) | Operation rules only: no check-in without a description, no release without a reason, released parts keep their number |
 | [erp-sync 2.0](samples/erp-sync/plm-extension-2.0.yaml) | Webhooks: "Send to ERP" asks for a plant and a quantity and shows the ERP's answer; "ERP cost report" downloads a file |
+| [erp-sync 2.1](samples/erp-sync/plm-extension-2.1.yaml) | A long-running "Cost roll-up" that runs in the background, reports progress and ends with a file |
 
 ## Trying the webhooks
 
@@ -20,7 +21,7 @@ like a real service should:
 ERP_SECRET=demo-key node extensions/samples/erp-sync/mock-erp.mjs
 ```
 
-Install (or upgrade to) `plm-extension-2.0.yaml` with *ERP service address* `http://localhost:8099`
+Install (or upgrade to) `plm-extension-2.0.yaml` (or 2.1) with *ERP service address* `http://localhost:8099`
 and *API key* `demo-key`, release a part, and use **Send to ERP**.
 
 ## Writing a webhook service
@@ -45,6 +46,39 @@ the action's `timeoutSeconds` (default 10, at most 30) with a 2xx and, optionall
 
 `navigate` may instead be `{ "url": "https://…" }`. A non-2xx answer is shown as an error, with its
 `message` if it has one. Redirects aren't followed.
+
+## Long-running actions
+
+Work that takes longer than 30 seconds (a report from a slow query, a costing run) is declared
+`background: true`, with a `timeoutSeconds` of up to 3600:
+
+```yaml
+handler:
+  webhook:
+    url: "${config.erpApiUrl}/rollup"
+    secret: apiKey
+    background: true
+    timeoutSeconds: 600
+```
+
+Running it starts a background job as the person who ran it. They follow it on the object's page
+(and can cancel it), and they're notified when it ends, with its message and a link back to the
+object, where its file can be downloaded. The call carries the job:
+
+```json
+"job": { "id": "…", "token": "pjt_…", "progressUrl": "https://…/api/v1/extension-jobs/…/progress",
+         "completeUrl": "https://…/api/v1/extension-jobs/…/complete" }
+```
+
+- Report progress as often as useful: `POST progressUrl` with header `X-PLM-Job-Token: <token>` and
+  `{ "done": 3, "total": 8, "message": "Costing at P200" }`. The answer
+  `{ "cancelRequested": true }` means the person cancelled: stop.
+- Either keep the request open and answer as usual, or answer `202` at once and later
+  `POST completeUrl` (same header) with the answer you would have given.
+- The token works only while the job runs. If no answer comes within `timeoutSeconds`, the job fails.
+
+The mock ERP's `/rollup` does the second: it accepts, reports eight steps of progress, then posts a
+CSV. Install `plm-extension-2.1.yaml` to try it.
 
 
 ## Calling the PLM API

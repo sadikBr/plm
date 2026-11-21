@@ -11,6 +11,10 @@ import com.plm.extensions.api.ExtensionActionInvoked
 import com.plm.extensions.infra.InvocationRepository
 import com.plm.identity.api.TokenAuthenticator
 import com.plm.identity.api.TokenScopes
+import com.plm.jobs.api.JobCancelledException
+import com.plm.jobs.api.JobContext
+import com.plm.jobs.api.JobService
+import com.plm.jobs.api.SubmitJob
 import com.plm.platform.actor.Actor
 import com.plm.platform.error.ConflictException
 import com.plm.platform.error.ForbiddenException
@@ -34,10 +38,15 @@ import java.net.http.HttpTimeoutException
 import java.time.Clock
 import java.time.Duration
 import java.util.Base64
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 private val log = LoggerFactory.getLogger(DefaultActionInvocationService::class.java)
 private const val MAX_ANSWER = 5 * 1024 * 1024
 private val DELEGATION_TTL = Duration.ofMinutes(15)
+private val HEARTBEAT = Duration.ofSeconds(15)
 
 /**
  * Runs extension actions on the server: a signed POST to the extension's service, then its answer
@@ -54,6 +63,8 @@ internal class DefaultActionInvocationService(
     private val tx: TransactionTemplate,
     private val clock: Clock,
     private val tokens: TokenAuthenticator,
+    private val jobs: JobService,
+    private val background: BackgroundActions,
     @param:Value("\${plm.public-url:http://localhost:8080}") private val publicUrl: String,
 ) : ActionInvocationService {
     private val http: HttpClient =
@@ -91,13 +102,20 @@ internal class DefaultActionInvocationService(
         )
     }
 
-    override fun invoke(
+    private class Prepared(
+        val label: String,
+        val row: com.plm.extensions.infra.ExtensionRow,
+        val webhook: com.plm.extensions.api.WebhookHandler,
+        val answers: Map<String, Any?>,
+    )
+
+    /** The same checks as the toolbar: permission, type, state, visibility condition; then the form. */
+    private fun prepare(
         actor: Actor,
         objectId: MasterId,
         actionId: String,
         parameters: Map<String, Any?>,
-    ): ActionResult {
-        // The same checks as the toolbar: permission, type, state, visibility condition.
+    ): Prepared {
         val available =
             actions.available(actor, objectId).firstOrNull { it.id == actionId }
                 ?: throw NotFoundException(
@@ -122,13 +140,66 @@ internal class DefaultActionInvocationService(
                         "actionId" to actionId,
                     ),
                 )
-        val webhook = action.handler.webhook!!
-        val answers = validate(action.form, parameters)
+        return Prepared(available.label, row, action.handler.webhook!!, validate(action.form, parameters))
+    }
 
+    override fun invoke(
+        actor: Actor,
+        objectId: MasterId,
+        actionId: String,
+        parameters: Map<String, Any?>,
+    ): ActionResult {
+        val prepared = prepare(actor, objectId, actionId, parameters)
+        if (prepared.webhook.background) {
+            val obj = versioning.get(actor, objectId)
+            val job =
+                jobs.submit(
+                    actor,
+                    SubmitJob(
+                        ActionJob.TYPE,
+                        mapOf(
+                            "objectId" to obj.id.value.toString(),
+                            "actionId" to actionId,
+                            "parameters" to prepared.answers,
+                        ),
+                        "${prepared.label}: ${obj.number} ${obj.name}",
+                    ),
+                )
+            return ActionResult(
+                ok = true,
+                level = "INFO",
+                message = "Started in the background. You'll be notified when it's done.",
+                jobId = job.id,
+            )
+        }
+        return execute(actor, objectId, actionId, prepared, null)
+    }
+
+    /** For [ActionJob]: the checks again (access may have changed since), then the call, waiting as long as it may. */
+    fun runInBackground(context: JobContext): ActionResult {
+        val objectId = MasterId(java.util.UUID.fromString(context.payload["objectId"].toString()))
+        val actionId = context.payload["actionId"].toString()
+
+        @Suppress("UNCHECKED_CAST")
+        val parameters = context.payload["parameters"] as? Map<String, Any?> ?: emptyMap()
+        val prepared = prepare(context.actor, objectId, actionId, parameters)
+        return execute(context.actor, objectId, actionId, prepared, context)
+    }
+
+    private fun execute(
+        actor: Actor,
+        objectId: MasterId,
+        actionId: String,
+        prepared: Prepared,
+        job: JobContext?,
+    ): ActionResult {
+        val row = prepared.row
+        val webhook = prepared.webhook
         val obj = versioning.get(actor, objectId)
         val model = versioning.expressionModel(actor, objectId)
         val invocationId = UuidV7.generate(clock)
         val timestamp = clock.instant().epochSecond.toString()
+        val registered = job?.let { background.start(it) }
 
         @Suppress("UNCHECKED_CAST")
         val payload =
@@ -139,17 +210,33 @@ internal class DefaultActionInvocationService(
                 "timestamp" to timestamp,
                 "object" to (model["object"] as Map<String, Any?>) + ("id" to obj.id.value.toString()),
                 "user" to model["user"],
-                "parameters" to answers,
+                "parameters" to prepared.answers,
             )
+        val jobInfo =
+            if (job == null || registered == null) {
+                emptyMap()
+            } else {
+                val base = publicUrl.trimEnd('/') + "/api/v1/extension-jobs/" + job.jobId
+                mapOf(
+                    "job" to
+                        mapOf(
+                            "id" to job.jobId.toString(),
+                            "token" to registered.first,
+                            "progressUrl" to "$base/progress",
+                            "completeUrl" to "$base/complete",
+                        ),
+                )
+            }
         val body =
             Manifests.json.writeValueAsString(
-                payload + delegation(actor, row.manifest.id, row.manifest.permissions),
+                payload + jobInfo + delegation(actor, row.manifest.id, row.manifest.permissions),
             )
         val url = extensionActions.fill(extensionActions.fillConfig(webhook.url, row.config), obj, model, actor)
         val secret = row.secrets[webhook.secret].orEmpty()
 
         val started = System.nanoTime()
         var httpStatus: Int? = null
+        var cancelled: JobCancelledException? = null
         val (status, result) =
             try {
                 val request =
@@ -164,14 +251,31 @@ internal class DefaultActionInvocationService(
                         .header("X-PLM-Signature", Signatures.sign(secret, timestamp, body))
                         .POST(HttpRequest.BodyPublishers.ofString(body))
                         .build()
-                val response = http.send(request, HttpResponse.BodyHandlers.ofByteArray())
-                httpStatus = response.statusCode()
-                answer(response.statusCode(), response.body())
+                if (job == null || registered == null) {
+                    val response = http.send(request, HttpResponse.BodyHandlers.ofByteArray())
+                    httpStatus = response.statusCode()
+                    answer(response.statusCode(), response.body())
+                } else {
+                    val (code, bytes) =
+                        callInBackground(
+                            request,
+                            Duration.ofSeconds(webhook.timeoutSeconds.toLong()),
+                            job,
+                            registered.second,
+                        )
+                    httpStatus = code
+                    answer(code, bytes)
+                }
+            } catch (e: JobCancelledException) {
+                cancelled = e
+                "CANCELLED" to failure("Cancelled")
             } catch (e: HttpTimeoutException) {
                 "TIMEOUT" to failure("${row.manifest.name} didn't answer within ${webhook.timeoutSeconds} s")
             } catch (e: Exception) {
                 log.info("Webhook {} of {} failed: {}", actionId, url, e.toString())
                 "ERROR" to failure("${row.manifest.name} couldn't be reached (${e.javaClass.simpleName})")
+            } finally {
+                job?.let { background.end(it.jobId) }
             }
         val duration = (System.nanoTime() - started) / 1_000_000
 
@@ -197,7 +301,52 @@ internal class DefaultActionInvocationService(
                 ExtensionActionInvoked(obj.id.value, obj.number, actionId, row.manifest.id, status, result.message),
             )
         }
+        cancelled?.let { throw it }
         return result
+    }
+
+    /**
+     * Waits for a background action's answer: the HTTP answer, or (after a 202) the one posted to
+     * `completeUrl`. Every 15 s it renews the job's lease with the latest progress, and stops if the
+     * job was cancelled.
+     */
+    private fun callInBackground(
+        request: HttpRequest,
+        timeout: Duration,
+        context: JobContext,
+        running: BackgroundActions.Running,
+    ): Pair<Int, ByteArray> {
+        val deadline = System.nanoTime() + timeout.toNanos()
+        val call = http.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray())
+        try {
+            val response = await(call, deadline, context, running)
+            if (response.statusCode() != 202) return response.statusCode() to response.body()
+            context.log("The service accepted it and works on it")
+            return 200 to await(running.completion, deadline, context, running)
+        } finally {
+            call.cancel(true)
+        }
+    }
+
+    private fun <T : Any> await(
+        future: CompletableFuture<T>,
+        deadline: Long,
+        context: JobContext,
+        running: BackgroundActions.Running,
+    ): T {
+        while (true) {
+            val left = deadline - System.nanoTime()
+            if (left <= 0) throw HttpTimeoutException("No answer in time")
+            try {
+                return future.get(minOf(left, HEARTBEAT.toNanos()), TimeUnit.NANOSECONDS)
+            } catch (_: TimeoutException) {
+                val p = running.progress
+                context.progress(p?.first ?: 0, p?.second, p?.third)
+                context.checkCancelled()
+            } catch (e: ExecutionException) {
+                throw (e.cause as? Exception) ?: e
+            }
+        }
     }
 
     override fun invocations(

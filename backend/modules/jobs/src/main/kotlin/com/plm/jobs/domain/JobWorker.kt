@@ -204,7 +204,19 @@ internal class JobWorker(
             },
         )
         val actor = Actor(claimed.tenant, PrincipalId(job.submittedBy), siteAdmin = claimed.runAsAdmin)
-        events.publish(actor, JobFinished(job.id, job.type, job.title, status, job.submittedBy, error))
+        events.publish(
+            actor,
+            JobFinished(
+                job.id,
+                job.type,
+                job.title,
+                status,
+                job.submittedBy,
+                error,
+                result?.get("message")?.toString()?.take(500),
+                result?.get("link")?.toString()?.takeIf { it.startsWith("/") },
+            ),
+        )
     }
 
     private inner class Context(

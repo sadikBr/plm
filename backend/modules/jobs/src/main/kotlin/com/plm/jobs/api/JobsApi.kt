@@ -250,6 +250,10 @@ data class JobFinished(
     val status: JobStatus,
     val submittedBy: String,
     val error: String?,
+    /** A handler's result entry `message`: what to tell the submitter (roadmap 3.11). */
+    val message: String? = null,
+    /** A handler's result entry `link`: where the submitter can see the outcome, e.g. `/objects/<id>`. */
+    val link: String? = null,
 ) : DomainEvent {
     override val eventType = "jobs.JobFinished.v1"
     override val aggregateType = "job"

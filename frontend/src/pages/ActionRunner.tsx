@@ -1,18 +1,23 @@
-import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from "lucide-react";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CircleAlert, CircleCheck, Download, Info, Loader, TriangleAlert, X } from "lucide-react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { useInvokeAction, type ActionForm, type ActionResult, type AvailableAction } from "../api/queries";
+import { api, unwrap, type Schemas } from "../api/client";
 import { Dialog, ErrorBanner } from "../components/common";
+import { JobProgress, JobStatusTag, duration } from "../components/JobProgress";
 
 /**
  * Runs actions carried out on the server (extension webhooks): asks the action's form, if it has
  * one, then shows what the service answered and does what it asked (refresh, navigate, download).
  */
-export function useActionRunner(objectId: string): { run: (a: AvailableAction) => void; busy: boolean; ui: ReactNode } {
+export function useActionRunner(objectId: string): { run: (a: AvailableAction) => void; busy: boolean; ui: ReactNode; started: number } {
   const invoke = useInvokeAction(objectId);
   const navigate = useNavigate();
   const [asking, setAsking] = useState<AvailableAction | null>(null);
   const [shown, setShown] = useState<{ label: string; result: ActionResult } | null>(null);
+  // Bumped when a background action starts, so its panel picks the job up at once.
+  const [started, setStarted] = useState(0);
 
   const start = (a: AvailableAction, parameters: Record<string, unknown>) =>
     invoke.mutate(
@@ -21,6 +26,7 @@ export function useActionRunner(objectId: string): { run: (a: AvailableAction) =
         onSuccess: (result) => {
           setAsking(null);
           setShown({ label: a.label, result });
+          if (result.jobId) setStarted((n) => n + 1);
           if (result.download) save(result.download);
           if (result.navigateToObject) navigate(`/objects/${result.navigateToObject}`);
           else if (result.navigateToUrl) window.open(result.navigateToUrl, "_blank", "noopener,noreferrer");
@@ -58,7 +64,7 @@ export function useActionRunner(objectId: string): { run: (a: AvailableAction) =
       )}
     </>
   );
-  return { run, busy: invoke.isPending, ui };
+  return { run, busy: invoke.isPending, ui, started };
 }
 
 /** Hands a file the service returned to the browser. */
@@ -209,5 +215,90 @@ function FormDialog({
         })}
       </form>
     </Dialog>
+  );
+}
+
+type Job = Schemas["Job"];
+type JobDownload = NonNullable<ActionResult["download"]>;
+
+/**
+ * Background actions (roadmap 3.11) the user started on this object in the last day: their
+ * progress while they run, then the service's answer and file. Polls quickly only while one runs.
+ */
+export function BackgroundActions({ objectId, refreshKey }: { objectId: string; refreshKey: number }) {
+  const qc = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["backgroundActions", objectId, refreshKey],
+    queryFn: async () => {
+      const jobs = await unwrap(api.GET("/api/v1/jobs", { params: { query: { type: "extensions.action", mine: true, limit: 30 } } }));
+      const dayAgo = Date.now() - 86_400_000;
+      return jobs.filter((j) => j.payload.objectId === objectId && new Date(j.createdAt).getTime() > dayAgo);
+    },
+    refetchInterval: (q) => (q.state.data?.some((j) => j.status === "QUEUED" || j.status === "RUNNING") ? 1000 : 30_000),
+  });
+  // When one ends, its notification is there: show it on the bell without waiting for its poll.
+  const runningCount = data?.filter((j) => j.status === "QUEUED" || j.status === "RUNNING").length ?? 0;
+  useEffect(() => {
+    if (runningCount === 0) void qc.invalidateQueries({ queryKey: ["me", "notifications"] });
+  }, [runningCount, qc]);
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const cancel = useMutation({
+    mutationFn: (id: string) => unwrap(api.POST("/api/v1/jobs/{id}/cancel", { params: { path: { id } } })),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["backgroundActions", objectId] }),
+  });
+  const shown = (data ?? []).filter((j) => !hidden.has(j.id)).slice(0, 3);
+  if (!shown.length) return null;
+  return (
+    <div className="bg-actions" aria-label="Background actions">
+      {shown.map((j) => (
+        <BackgroundJob key={j.id} job={j} onCancel={() => cancel.mutate(j.id)} onHide={() => setHidden(new Set(hidden).add(j.id))} />
+      ))}
+    </div>
+  );
+}
+
+function BackgroundJob({ job, onCancel, onHide }: { job: Job; onCancel: () => void; onHide: () => void }) {
+  const running = job.status === "QUEUED" || job.status === "RUNNING";
+  const download = job.result?.download as JobDownload | undefined;
+  return (
+    <section className={`bg-action ${job.status.toLowerCase()}`} aria-label={job.title}>
+      <div className="row" style={{ gap: 8 }}>
+        {running ? (
+          <Loader size={15} className="spin icon-muted" aria-hidden />
+        ) : job.status === "SUCCEEDED" ? (
+          <CircleCheck size={15} className="ok-icon" aria-hidden />
+        ) : (
+          <CircleAlert size={15} className="error-icon" aria-hidden />
+        )}
+        <strong>{job.title}</strong>
+        <JobStatusTag job={job} />
+        <span className="muted small">
+          {running ? `for ${duration(job.startedAt ?? job.createdAt)}` : `took ${duration(job.startedAt, job.finishedAt)}`}
+        </span>
+        <span className="grow" />
+        {running ? (
+          <button className="btn small" onClick={onCancel} disabled={job.cancelRequested}>
+            Cancel
+          </button>
+        ) : (
+          <button className="icon-btn" aria-label="Dismiss" onClick={onHide}>
+            <X size={13} />
+          </button>
+        )}
+      </div>
+      {running && <JobProgress job={job} />}
+      {job.status === "SUCCEEDED" && (
+        <div className="row" style={{ gap: 8 }}>
+          <span>{String(job.result?.message ?? "Done")}</span>
+          {download && (
+            <button className="btn small" onClick={() => save(download)}>
+              <Download size={13} aria-hidden /> {download.filename}
+            </button>
+          )}
+        </div>
+      )}
+      {job.status === "FAILED" && <span className="error-text">{job.error}</span>}
+      {job.status === "CANCELLED" && <span className="muted">Cancelled.</span>}
+    </section>
   );
 }

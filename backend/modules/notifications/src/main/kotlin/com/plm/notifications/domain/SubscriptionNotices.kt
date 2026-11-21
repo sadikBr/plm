@@ -53,7 +53,8 @@ internal class SubscriptionNotices(
                 JobStatus.CANCELLED.name -> "Cancelled: $title"
                 else -> "Failed: $title"
             }
-        personal.notify(TenantId(event.tenantId), who, text, p["error"]?.toString(), null, actor = "system")
+        val body = p["error"]?.toString() ?: p["message"]?.toString()
+        personal.notify(TenantId(event.tenantId), who, text, body, p["link"]?.toString(), actor = "system")
     }
 
     private fun shared(event: EventEnvelope) {

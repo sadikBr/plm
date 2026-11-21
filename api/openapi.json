@@ -178,6 +178,32 @@
         "required" : [ "label", "override", "value" ],
         "type" : "object"
       },
+      "ActionProgress" : {
+        "properties" : {
+          "done" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "message" : {
+            "type" : [ "string", "null" ]
+          },
+          "total" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "required" : [ "done" ],
+        "type" : "object"
+      },
+      "ActionProgressReply" : {
+        "properties" : {
+          "cancelRequested" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "cancelRequested" ],
+        "type" : "object"
+      },
       "ActionResult" : {
         "properties" : {
           "download" : {
@@ -186,6 +212,10 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "jobId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
           },
           "level" : {
             "type" : "string"
@@ -5468,6 +5498,9 @@
       },
       "WebhookHandler" : {
         "properties" : {
+          "background" : {
+            "type" : "boolean"
+          },
           "secret" : {
             "type" : "string"
           },
@@ -5479,7 +5512,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "secret", "timeoutSeconds", "url" ],
+        "required" : [ "background", "secret", "timeoutSeconds", "url" ],
         "type" : "object"
       },
       "Widget" : {
@@ -8372,6 +8405,108 @@
           }
         },
         "tags" : [ "Expression" ]
+      }
+    },
+    "/api/v1/extension-jobs/{jobId}/complete" : {
+      "post" : {
+        "operationId" : "backgroundActionComplete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "jobId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "X-PLM-Job-Token",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "format" : "byte",
+                "type" : "string"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Background action" ]
+      }
+    },
+    "/api/v1/extension-jobs/{jobId}/progress" : {
+      "post" : {
+        "operationId" : "backgroundActionProgress",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "jobId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "X-PLM-Job-Token",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ActionProgress"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ActionProgressReply"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Background action" ]
       }
     },
     "/api/v1/extensions" : {
@@ -14905,6 +15040,8 @@
     "name" : "Attribute"
   }, {
     "name" : "Audit"
+  }, {
+    "name" : "Background action"
   }, {
     "name" : "Bulk"
   }, {
