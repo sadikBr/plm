@@ -292,11 +292,27 @@ ensure_docker_running() {
   if is_wsl && ! wsl_own_docker; then
     local exe
     exe="$(windows_docker_desktop)" || fail "Docker Desktop for Windows isn't installed: run ./plm install"
-    echo "  Starting Docker Desktop on Windows (the first time, accept its terms in the window that opens)"
+    echo "  Starting Docker Desktop on Windows (if a window asks you to accept its terms, do so)"
     [[ "$DRY_RUN" == 1 ]] && return 0
     "$(windows_powershell)" -NoProfile -Command "Start-Process '$(wslpath -w "$exe")'" >/dev/null 2>&1 || true
-    wait_for "docker info" 300 "Docker is running" || fail "$(wsl_integration_help)"
-    return 0
+    echo "  Waiting for Docker to answer in ${WSL_DISTRO_NAME:-WSL}..."
+    # Docker Desktop's own command on Windows: it answers once the engine runs, WSL integration or not.
+    local windows_docker told=0 i
+    windows_docker="$(dirname "$exe")/resources/bin/docker.exe"
+    for i in $(seq 1 600); do
+      if docker info >/dev/null 2>&1; then
+        ok "Docker is running"
+        return 0
+      fi
+      if [[ "$told" == 0 && $((i % 5)) == 0 && -f "$windows_docker" ]] && "$windows_docker" info >/dev/null 2>&1; then
+        warn "Docker Desktop runs on Windows, but isn't connected to ${WSL_DISTRO_NAME:-this distribution} yet. In Docker Desktop:"
+        warn "Settings (the gear, top right) › Resources › WSL integration: turn on ${WSL_DISTRO_NAME:-this distribution}, then Apply & restart."
+        echo "  Waiting until that's done (Ctrl-C stops; ./plm install carries on later)..."
+        told=1
+      fi
+      sleep 1
+    done
+    fail "$(wsl_integration_help)"
   fi
   if ! as_root docker info >/dev/null 2>&1; then
     echo "  Starting the Docker service"
