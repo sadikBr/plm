@@ -6,6 +6,7 @@ import { api, unwrap, type Schemas } from "../api/client";
 import { useEffectivePreferences, useLifecycles, type VersionedObject } from "../api/queries";
 import { ErrorBanner, Loading, StateBadge, TypeIcon, stateLabel } from "../components/common";
 import { language, locale, t, tn } from "../i18n/i18n";
+import { formatDesignators } from "./designators";
 import { copyLines, useUnits } from "./Structure";
 
 // The multi-level structure (roadmap 4.2, 4.3): a tree table under a configuration specification.
@@ -189,7 +190,18 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
     if (!r) return;
     const body = {
       sheetName: obj.number,
-      columns: [t("Level"), t("Line"), t("Number"), t("Name"), t("Version"), t("State"), t("Find no."), t("Quantity"), t("Unit")],
+      columns: [
+        t("Level"),
+        t("Line"),
+        t("Number"),
+        t("Name"),
+        t("Version"),
+        t("State"),
+        t("Find no."),
+        t("Quantity"),
+        t("Unit"),
+        t("Reference designators"),
+      ],
       rows: r.nodes.map((n) => [
         n.level,
         n.path,
@@ -200,6 +212,7 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
         n.line.findNumber ?? "",
         n.line.quantity,
         unitLabel(n.line.unit),
+        formatDesignators(n.line.designators),
       ]),
     };
     const res = await api.POST("/api/v1/export/xlsx", {
@@ -273,6 +286,7 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
               <th>{t("Find no.")}</th>
               <th className="num">{t("Quantity")}</th>
               <th>{t("Unit")}</th>
+              <th>{t("Reference designators")}</th>
             </tr>
           </thead>
           <tbody>
@@ -339,13 +353,14 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
                   <td>{n.line.findNumber}</td>
                   <td className="num">{qty(n.line.quantity)}</td>
                   <td>{unitLabel(n.line.unit)}</td>
+                  <td className="designators">{formatDesignators(n.line.designators)}</td>
                 </tr>
               );
             })}
             {last < rows.length && <tr style={{ height: (rows.length - last) * ROW }} aria-hidden />}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={9} className="empty">
+                <td colSpan={10} className="empty">
                   {t("This part uses no other parts.")}
                 </td>
               </tr>

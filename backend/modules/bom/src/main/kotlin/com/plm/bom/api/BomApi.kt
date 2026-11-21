@@ -33,6 +33,8 @@ data class UsageLine(
     /** A key of the `unitOfUse` value list. */
     val unit: String,
     val notes: String?,
+    /** Reference designators of its occurrences (roadmap 4.5), e.g. R1, R2, R3. */
+    val designators: List<String>,
     val child: UsedPart,
     val createdAt: Instant,
     val createdBy: String,
@@ -47,6 +49,8 @@ data class AddUsage(
     val lineNumber: Int? = null,
     val findNumber: String? = null,
     val notes: String? = null,
+    /** e.g. `R1-R4, R7`: as many as the quantity (a whole number, unit each). */
+    val designators: String? = null,
 )
 
 data class UpdateUsage(
@@ -55,6 +59,8 @@ data class UpdateUsage(
     val lineNumber: Int,
     val findNumber: String? = null,
     val notes: String? = null,
+    /** e.g. `R1-R4, R7`; empty or null: none. */
+    val designators: String? = null,
 )
 
 /**
@@ -65,7 +71,7 @@ data class UpdateUsage(
  * check-out and revise. Only parts have structure, and a part can't (indirectly) use itself.
  *
  * Errors: `OBJECT_NOT_FOUND`, `NOT_CHECKED_OUT`, `NOT_A_PART`, `CYCLE`, `USAGE_NOT_FOUND`,
- * `INVALID_USAGE`, `DUPLICATE_LINE_NUMBER`.
+ * `INVALID_USAGE`, `DUPLICATE_LINE_NUMBER`, `INVALID_DESIGNATORS`.
  */
 interface BomService {
     /** The lines of [parentId]'s latest iteration, its working copy ([workingCopy]), or [iterationId]. */
@@ -89,6 +95,19 @@ interface BomService {
         workingCopy: Boolean = false,
         limit: Int = 100_000,
     ): StructureResult
+
+    /**
+     * Where [childId] is used (roadmap 4.6): the parts whose iteration under [spec] uses it, and
+     * up to [depth] levels above them. Parts the reader may not read show as placeholders and
+     * aren't followed further up.
+     */
+    fun whereUsed(
+        actor: Actor,
+        childId: MasterId,
+        spec: ConfigSpec = ConfigSpec.LATEST,
+        depth: Int = 1,
+        limit: Int = 20_000,
+    ): WhereUsedResult
 
     fun add(
         actor: Actor,
@@ -180,6 +199,30 @@ data class StructureResult(
     /** True when [StructureNode] count reached the limit and lower levels were left out. */
     val truncated: Boolean,
     val elapsedMs: Long,
+)
+
+/** A part that uses the part asked about, directly or higher up (roadmap 4.6). */
+data class WhereUsedNode(
+    /** 1: uses it directly. */
+    val level: Int,
+    /** Unique within the result. */
+    val path: String,
+    val parentPath: String?,
+    /** The using part, at the iteration the specification picks. */
+    val parent: UsedPart,
+    val lineNumber: Int,
+    val findNumber: String?,
+    val quantity: BigDecimal,
+    val unit: String,
+    /** Nothing uses it in turn: an end item (or the top of what may be seen). */
+    val top: Boolean,
+)
+
+data class WhereUsedResult(
+    val childId: UUID,
+    val spec: ConfigSpec,
+    val nodes: List<WhereUsedNode>,
+    val truncated: Boolean,
 )
 
 /** A change to a working copy's structure, recorded on the parent's audit trail. */

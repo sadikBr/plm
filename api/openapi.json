@@ -246,6 +246,9 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "designators" : {
+            "type" : [ "string", "null" ]
+          },
           "findNumber" : {
             "type" : [ "string", "null" ]
           },
@@ -5390,6 +5393,9 @@
       },
       "UpdateUsage" : {
         "properties" : {
+          "designators" : {
+            "type" : [ "string", "null" ]
+          },
           "findNumber" : {
             "type" : [ "string", "null" ]
           },
@@ -5466,6 +5472,12 @@
           "createdBy" : {
             "type" : "string"
           },
+          "designators" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "findNumber" : {
             "type" : [ "string", "null" ]
           },
@@ -5491,7 +5503,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "child", "createdAt", "createdBy", "id", "lineNumber", "parentIterationId", "quantity", "unit" ],
+        "required" : [ "child", "createdAt", "createdBy", "designators", "id", "lineNumber", "parentIterationId", "quantity", "unit" ],
         "type" : "object"
       },
       "UsedPart" : {
@@ -5729,6 +5741,63 @@
           }
         },
         "required" : [ "background", "secret", "timeoutSeconds", "url" ],
+        "type" : "object"
+      },
+      "WhereUsedNode" : {
+        "properties" : {
+          "findNumber" : {
+            "type" : [ "string", "null" ]
+          },
+          "level" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "lineNumber" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "parent" : {
+            "$ref" : "#/components/schemas/UsedPart"
+          },
+          "parentPath" : {
+            "type" : [ "string", "null" ]
+          },
+          "path" : {
+            "type" : "string"
+          },
+          "quantity" : {
+            "type" : "number"
+          },
+          "top" : {
+            "type" : "boolean"
+          },
+          "unit" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "level", "lineNumber", "parent", "path", "quantity", "top", "unit" ],
+        "type" : "object"
+      },
+      "WhereUsedResult" : {
+        "properties" : {
+          "childId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "nodes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/WhereUsedNode"
+            },
+            "type" : "array"
+          },
+          "spec" : {
+            "$ref" : "#/components/schemas/ConfigSpec"
+          },
+          "truncated" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "childId", "nodes", "spec", "truncated" ],
         "type" : "object"
       },
       "Widget" : {
@@ -12598,6 +12667,76 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/UsageLine"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Bom" ]
+      }
+    },
+    "/api/v1/objects/{id}/where-used" : {
+      "get" : {
+        "operationId" : "bomWhereUsed",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "spec",
+          "required" : false,
+          "schema" : {
+            "default" : "LATEST",
+            "enum" : [ "LATEST", "STATE", "AS_OF" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "state",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "depth",
+          "required" : false,
+          "schema" : {
+            "default" : 1,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WhereUsedResult"
                 }
               }
             },

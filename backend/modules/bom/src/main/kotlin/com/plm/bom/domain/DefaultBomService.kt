@@ -13,6 +13,8 @@ import com.plm.bom.api.StructureResult
 import com.plm.bom.api.UpdateUsage
 import com.plm.bom.api.UsageLine
 import com.plm.bom.api.UsedPart
+import com.plm.bom.api.WhereUsedNode
+import com.plm.bom.api.WhereUsedResult
 import com.plm.bom.infra.BomRepository
 import com.plm.bom.infra.LinkRow
 import com.plm.bom.infra.Resolved
@@ -83,36 +85,40 @@ internal class DefaultBomService(
     ): List<UsageLine> {
         if (links.isEmpty()) return emptyList()
         val resolved = repository.resolve(links.map { it.childMasterId }.distinct(), spec, readable(actor))
-        return links.map { it.toLine(resolved[it.childMasterId]) }
+        val designators = repository.designators(links.map { it.id })
+        return links.map { it.toLine(resolved[it.childMasterId], designators[it.id].orEmpty()) }
     }
 
-    private fun LinkRow.toLine(child: Resolved?) =
-        UsageLine(
-            id,
-            parentIterationId,
-            lineNumber,
-            findNumber,
-            quantity,
-            unit,
-            notes,
-            if (child == null) {
-                UsedPart(childMasterId, false, null, null, null, null, null, null, false)
-            } else {
-                UsedPart(
-                    childMasterId,
-                    true,
-                    child.number,
-                    child.name,
-                    child.typeId,
-                    child.iterationId,
-                    child.version,
-                    child.state,
-                    child.hasChildren,
-                )
-            },
-            createdAt,
-            createdBy,
-        )
+    private fun LinkRow.toLine(
+        child: Resolved?,
+        designators: List<String>,
+    ) = UsageLine(
+        id,
+        parentIterationId,
+        lineNumber,
+        findNumber,
+        quantity,
+        unit,
+        notes,
+        designators,
+        if (child == null) {
+            UsedPart(childMasterId, false, null, null, null, null, null, null, false)
+        } else {
+            UsedPart(
+                childMasterId,
+                true,
+                child.number,
+                child.name,
+                child.typeId,
+                child.iterationId,
+                child.version,
+                child.state,
+                child.hasChildren,
+            )
+        },
+        createdAt,
+        createdBy,
+    )
 
     @Transactional(readOnly = true)
     override fun structure(
@@ -156,6 +162,7 @@ internal class DefaultBomService(
                     spec,
                     readable(actor),
                 )
+            val designatorsOf = repository.designators(links.values.flatten().map { it.id })
             val next = ArrayList<Pair<UUID, String?>>()
             for ((iteration, parentPath) in frontier) {
                 for (link in links[iteration].orEmpty()) {
@@ -165,7 +172,8 @@ internal class DefaultBomService(
                     }
                     val path = if (parentPath == null) "${link.lineNumber}" else "$parentPath.${link.lineNumber}"
                     val child = children[link.childMasterId]
-                    nodes += StructureNode(level, path, parentPath, link.toLine(child))
+                    nodes +=
+                        StructureNode(level, path, parentPath, link.toLine(child, designatorsOf[link.id].orEmpty()))
                     if (child?.iterationId != null && child.hasChildren) next += child.iterationId to path
                 }
             }
@@ -182,6 +190,96 @@ internal class DefaultBomService(
             truncated,
             (System.nanoTime() - started) / 1_000_000,
         )
+    }
+
+    @Transactional(readOnly = true)
+    override fun whereUsed(
+        actor: Actor,
+        childId: MasterId,
+        spec: ConfigSpec,
+        depth: Int,
+        limit: Int,
+    ): WhereUsedResult {
+        val child = versioning.get(actor, childId)
+        val nodes = ArrayList<WhereUsedNode>()
+        var truncated = false
+        // Upwards, a level at a time: the lines using the frontier's parts, kept only where the
+        // using part's iteration under the specification is the one the line is on.
+        var frontier: List<Pair<UUID, String?>> = listOf(child.id.value to null)
+        var level = 1
+        while (frontier.isNotEmpty() && level <= depth.coerceIn(1, 50) && !truncated) {
+            val using = repository.usingLines(frontier.map { it.first }.distinct())
+            val parents = repository.resolve(using.map { it.second }.distinct(), spec, readable(actor))
+            val unreadable = using.map { it.second }.filter { it !in parents }.toSet()
+            val byChild = using.groupBy { it.first.childMasterId }
+            val next = ArrayList<Pair<UUID, String?>>()
+            for ((id, path) in frontier) {
+                val lines =
+                    byChild[id].orEmpty().filter { (link, parent) ->
+                        parent in unreadable || parents[parent]?.iterationId == link.parentIterationId
+                    }
+                // A part nobody may read is shown once per child, without details.
+                for ((link, parent) in lines.distinctBy { if (it.second in unreadable) it.second else it.first.id }) {
+                    if (nodes.size >= limit) {
+                        truncated = true
+                        break
+                    }
+                    val p = parents[parent]
+                    val here = if (path == null) "$parent" else "$path/$parent"
+                    nodes +=
+                        WhereUsedNode(
+                            level,
+                            here,
+                            path,
+                            if (p == null) {
+                                UsedPart(parent, false, null, null, null, null, null, null, false)
+                            } else {
+                                UsedPart(
+                                    parent,
+                                    true,
+                                    p.number,
+                                    p.name,
+                                    p.typeId,
+                                    p.iterationId,
+                                    p.version,
+                                    p.state,
+                                    true,
+                                )
+                            },
+                            link.lineNumber,
+                            link.findNumber,
+                            link.quantity,
+                            link.unit,
+                            false,
+                        )
+                    if (p != null) next += parent to here
+                }
+            }
+            frontier = next
+            level++
+        }
+        // Tops: lines nothing above them in the result (and, within the depth, nothing uses).
+        val withParents = nodes.mapNotNull { it.parentPath }.toSet()
+        val atDepthLimit = level > depth.coerceIn(1, 50)
+        val marked =
+            nodes.map { n ->
+                val top = n.path !in withParents && n.parent.readable && (!atDepthLimit || n.level < depth)
+                n.copy(top = top)
+            }
+        return WhereUsedResult(child.id.value, spec, whereUsedOrder(marked), truncated)
+    }
+
+    private fun whereUsedOrder(nodes: List<WhereUsedNode>): List<WhereUsedNode> {
+        val byParent = nodes.groupBy { it.parentPath }
+        val out = ArrayList<WhereUsedNode>(nodes.size)
+        val stack = ArrayDeque<WhereUsedNode>()
+        byParent[null].orEmpty().sortedByDescending { it.parent.number }.forEach(stack::addLast)
+        while (stack.isNotEmpty()) {
+            val n = stack.removeLast()
+            out += n
+            byParent[n.path].orEmpty().sortedByDescending { it.parent.number }.forEach(stack::addLast)
+        }
+        return out
     }
 
     private fun treeOrder(nodes: List<StructureNode>): List<StructureNode> {
@@ -237,6 +335,50 @@ internal class DefaultBomService(
         }
     }
 
+    /** Designators match the quantity: one per piece, counted in units of each. */
+    private fun designators(
+        text: String?,
+        quantity: BigDecimal,
+        unit: String,
+        others: Set<String>,
+    ): List<String> {
+        val list = Designators.parse(text)
+        if (list.isEmpty()) return list
+        if (unit != "each" || quantity.stripTrailingZeros().scale() > 0) {
+            throw ValidationException(
+                "INVALID_DESIGNATORS",
+                "Reference designators need a whole quantity of single pieces (unit: each)",
+            )
+        }
+        if (BigDecimal(list.size).compareTo(quantity) != 0) {
+            throw ValidationException(
+                "INVALID_DESIGNATORS",
+                "${list.size} designators (${Designators.format(list)}) for a quantity of ${quantity.toPlainString()}",
+            )
+        }
+        val clash = list.filter { it in others }
+        if (clash.isNotEmpty()) {
+            throw ValidationException(
+                "INVALID_DESIGNATORS",
+                "Already used on another line: ${Designators.format(clash)}",
+            )
+        }
+        return list
+    }
+
+    /** Designators of the working copy's other lines. */
+    private fun othersDesignators(
+        wc: UUID,
+        except: UUID?,
+    ): Set<String> {
+        val ids = repository.links(wc).map { it.id }.filter { it != except }
+        return repository
+            .designators(ids)
+            .values
+            .flatten()
+            .toSet()
+    }
+
     override fun add(
         actor: Actor,
         parentId: MasterId,
@@ -279,7 +421,9 @@ internal class DefaultBomService(
                 clock.instant(),
                 actor.principal.value,
             )
+        val designators = designators(usage.designators, usage.quantity, unit, othersDesignators(wc.id.value, null))
         repository.insert(actor.tenant, row)
+        repository.setDesignators(row.id, designators)
         events.publish(
             actor,
             StructureChanged(
@@ -333,7 +477,9 @@ internal class DefaultBomService(
                         ?.ifEmpty { null }
                         ?.take(2000),
             )
+        val designators = designators(usage.designators, usage.quantity, usage.unit, othersDesignators(wc, usageId))
         repository.update(updated)
+        repository.setDesignators(usageId, designators)
         // Not get(): a failed read would mark the transaction for rollback.
         val number =
             versioning
@@ -455,6 +601,7 @@ internal class DefaultBomService(
                     )
                 next += 10
                 repository.insert(actor.tenant, row)
+                repository.copyDesignators(src.id, row.id)
                 events.publish(
                     actor,
                     StructureChanged(

@@ -48,6 +48,17 @@ internal class BomController(
         @RequestParam(defaultValue = "false") workingCopy: Boolean,
     ) = bom.structure(actor, MasterId(id), ConfigSpec(spec, state, asOf), depth, workingCopy)
 
+    /** Where the part is used (roadmap 4.6), under a configuration specification, `depth` levels up. */
+    @GetMapping("/api/v1/objects/{id}/where-used")
+    fun whereUsed(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestParam(defaultValue = "LATEST") spec: ConfigSpecType,
+        @RequestParam(required = false) state: String?,
+        @RequestParam(required = false) asOf: Instant?,
+        @RequestParam(defaultValue = "1") depth: Int,
+    ) = bom.whereUsed(actor, MasterId(id), ConfigSpec(spec, state, asOf), depth)
+
     @PostMapping("/api/v1/objects/{id}/usages")
     @ResponseStatus(HttpStatus.CREATED)
     fun add(

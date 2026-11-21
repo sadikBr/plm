@@ -226,10 +226,14 @@ baseline and report on, fast at the scale of real products.
       (Done: add an existing part or create one in place, edit, move up and down, replace,
       remove; copy lines from any structure you can read and paste them into your working copy;
       find in structure shows matches with the lines above them.)
-- [ ] 4.5 Occurrences and reference designators: individual instances under a usage line (R1,
+- [x] 4.5 Occurrences and reference designators: individual instances under a usage line (R1,
       R2…, ranges), checked against the quantity.
-- [ ] 4.6 Where-used: single and multi-level, under a configuration specification, up to end
+      (Done: designators entered as ranges (R1-R4, R7), one per piece of a whole quantity in units
+      of each, unique within a structure, carried with the line, shown and exported as ranges.)
+- [x] 4.6 Where-used: single and multi-level, under a configuration specification, up to end
       items; exportable.
+      (Done: one level or all levels up, under any configuration specification, end items
+      flagged, unreadable users shown as placeholders and not followed; Where used tab, Excel.)
 - [ ] 4.7 Part↔document links: "described by" (a document iteration) and "references" (a
       document master, always its latest), on both sides, carried on revise, allowed type pairs.
 - [ ] 4.8 Alternates and substitutes: a part's global alternates; substitutes on one usage line,

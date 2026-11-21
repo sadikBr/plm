@@ -209,6 +209,59 @@ internal class BomRepository(
             .list()
             .toMap()
 
+    /** Reference designators of these lines, in order (roadmap 4.5). */
+    fun designators(usageIds: Collection<UUID>): Map<UUID, List<String>> {
+        if (usageIds.isEmpty()) return emptyMap()
+        return jdbc
+            .sql(
+                "select usage_id, designator from usage_occurrence where usage_id = any(cast(:ids as uuid[])) order by usage_id, position",
+            ).param("ids", usageIds.toTypedArray())
+            .query { rs, _ -> rs.getObject("usage_id", UUID::class.java) to rs.getString("designator") }
+            .list()
+            .groupBy({ it.first }, { it.second })
+    }
+
+    fun setDesignators(
+        usageId: UUID,
+        designators: List<String>,
+    ) {
+        jdbc.sql("delete from usage_occurrence where usage_id = :id").param("id", usageId).update()
+        designators.forEachIndexed { i, d ->
+            jdbc
+                .sql("insert into usage_occurrence (usage_id, designator, position) values (:id, :d, :p)")
+                .param("id", usageId)
+                .param("d", d)
+                .param("p", i)
+                .update()
+        }
+    }
+
+    fun copyDesignators(
+        from: UUID,
+        to: UUID,
+    ) {
+        jdbc
+            .sql(
+                "insert into usage_occurrence (usage_id, designator, position) select :to, designator, position from usage_occurrence where usage_id = :from",
+            ).param("from", from)
+            .param("to", to)
+            .update()
+    }
+
+    /** Lines using any of [children], with the master of the iteration they're on. */
+    fun usingLines(children: Collection<UUID>): List<Pair<LinkRow, UUID>> {
+        if (children.isEmpty()) return emptyList()
+        return jdbc
+            .sql(
+                """
+                select ul.*, i.master_id from usage_link ul join object_iteration i on i.id = ul.parent_iteration_id
+                where ul.child_master_id = any(cast(:ids as uuid[])) and i.status = 'CHECKED_IN'
+                """.trimIndent(),
+            ).param("ids", children.toTypedArray())
+            .query { rs, n -> mapper.mapRow(rs, n) to rs.getObject("master_id", UUID::class.java) }
+            .list()
+    }
+
     fun delete(id: UUID) {
         jdbc.sql("delete from usage_link where id = :id").param("id", id).update()
     }
@@ -271,7 +324,11 @@ internal class BomRepository(
                 ).param("id", iterationId)
                 .query { rs, _ -> TenantId(rs.getObject("tenant_id", UUID::class.java)) }
                 .single()
-        rows.forEach { insert(tenant, it.copy(id = newId(), parentIterationId = iterationId)) }
+        rows.forEach {
+            val copy = it.copy(id = newId(), parentIterationId = iterationId)
+            insert(tenant, copy)
+            copyDesignators(it.id, copy.id)
+        }
         return rows.size
     }
 

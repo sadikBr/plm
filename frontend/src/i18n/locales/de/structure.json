@@ -47,5 +47,15 @@
   "Replace with": "Ersetzen durch",
   "Select": "Auswählen",
   "Select all lines": "Alle Positionen auswählen",
-  "Select line {line}": "Position {line} auswählen"
+  "Select line {line}": "Position {line} auswählen",
+  "All levels, up to the end items": "Alle Ebenen bis zu den Endprodukten",
+  "End item": "Endprodukt",
+  "No part uses this one.": "Kein Teil verwendet dieses.",
+  "Ref. des., e.g. {example}": "Ref.-Bez., z. B. {example}",
+  "Reference designators": "Referenzbezeichner",
+  "Used directly in {n} part": "Direkt in {n} Teil verwendet",
+  "Used directly in {n} parts": "Direkt in {n} Teilen verwendet",
+  "Where used": "Verwendungsnachweis",
+  "{n} end item": "{n} Endprodukt",
+  "{n} end items": "{n} Endprodukte"
 }

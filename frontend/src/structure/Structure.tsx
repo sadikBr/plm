@@ -7,6 +7,7 @@ import { useEnumerations, useObjectSearch, useTypes, type VersionedObject } from
 import { pickLabel } from "../components/AttributeForm";
 import { ErrorBanner, Loading, Panel, StateBadge, TypeIcon } from "../components/common";
 import { locale, t, tn } from "../i18n/i18n";
+import { formatDesignators } from "./designators";
 import { SpecPicker, StructureTree, useDefaultSpec, type Spec } from "./StructureTree";
 
 // Product structure (roadmap 4.1, 4.4): the parts a part uses, edited on its working copy.
@@ -163,6 +164,7 @@ function EditableStructure({ obj }: { obj: VersionedObject }) {
                 <th>{t("State")}</th>
                 <th className="num">{t("Quantity")}</th>
                 <th>{t("Unit")}</th>
+                <th>{t("Reference designators")}</th>
                 <th />
               </tr>
             </thead>
@@ -222,6 +224,7 @@ function EditableStructure({ obj }: { obj: VersionedObject }) {
                     )}
                     <td className="num">{qty(l.quantity)}</td>
                     <td>{unitLabel(l.unit)}</td>
+                    <td className="designators">{formatDesignators(l.designators)}</td>
                     <td className="nowrap" style={{ width: 1 }}>
                       <button
                         className="icon-btn"
@@ -266,7 +269,7 @@ function EditableStructure({ obj }: { obj: VersionedObject }) {
               )}
               {data?.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="empty">
+                  <td colSpan={12} className="empty">
                     {t("No parts yet: add the first one below.")}
                   </td>
                 </tr>
@@ -295,6 +298,7 @@ function EditRow({
   const [find, setFind] = useState(line.findNumber ?? "");
   const [quantity, setQuantity] = useState(String(line.quantity));
   const [unit, setUnit] = useState(line.unit);
+  const [designators, setDesignators] = useState(formatDesignators(line.designators));
   const save = useMutation({
     mutationFn: () =>
       unwrap(
@@ -306,6 +310,7 @@ function EditRow({
             quantity: Number(quantity),
             unit,
             notes: line.notes ?? undefined,
+            designators: designators || undefined,
           },
         }),
       ),
@@ -349,6 +354,14 @@ function EditRow({
             </option>
           ))}
         </select>
+      </td>
+      <td>
+        <input
+          aria-label={t("Reference designators")}
+          value={designators}
+          onChange={(e) => setDesignators(e.target.value)}
+          placeholder="R1-R4, R7"
+        />
       </td>
       <td className="nowrap">
         <button className="icon-btn" aria-label={t("Save")} onClick={() => save.mutate()} disabled={save.isPending}>
@@ -443,18 +456,26 @@ function AddLine({ obj, units, onAdded }: { obj: VersionedObject; units: { key: 
   const [quantity, setQuantity] = useState("1");
   const [unit, setUnit] = useState("");
   const [find, setFind] = useState("");
+  const [designators, setDesignators] = useState("");
   const add = useMutation({
     mutationFn: () =>
       unwrap(
         api.POST("/api/v1/objects/{id}/usages", {
           params: { path: { id: obj.id } },
-          body: { childId: chosen!.id, quantity: Number(quantity), unit: unit || undefined, findNumber: find || undefined },
+          body: {
+            childId: chosen!.id,
+            quantity: Number(quantity),
+            unit: unit || undefined,
+            findNumber: find || undefined,
+            designators: designators || undefined,
+          },
         }),
       ),
     onSuccess: () => {
       setChosen(null);
       setQuantity("1");
       setFind("");
+      setDesignators("");
       onAdded();
     },
   });
@@ -497,6 +518,13 @@ function AddLine({ obj, units, onAdded }: { obj: VersionedObject; units: { key: 
         placeholder={t("Find no.")}
         value={find}
         onChange={(e) => setFind(e.target.value)}
+      />
+      <input
+        aria-label={t("Reference designators")}
+        className="designators-input"
+        placeholder={t("Ref. des., e.g. {example}", { example: "R1-R4" })}
+        value={designators}
+        onChange={(e) => setDesignators(e.target.value)}
       />
       <button className="btn primary" type="submit" disabled={!chosen || add.isPending}>
         <Plus size={14} aria-hidden /> {t("Add")}

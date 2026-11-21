@@ -47,5 +47,15 @@
   "Replace with": "Remplacer par",
   "Select": "Sélectionner",
   "Select all lines": "Sélectionner toutes les lignes",
-  "Select line {line}": "Sélectionner la ligne {line}"
+  "Select line {line}": "Sélectionner la ligne {line}",
+  "All levels, up to the end items": "Tous les niveaux, jusqu'aux articles finaux",
+  "End item": "Article final",
+  "No part uses this one.": "Aucune pièce n'utilise celle-ci.",
+  "Ref. des., e.g. {example}": "Repères topo., ex. {example}",
+  "Reference designators": "Repères topologiques",
+  "Used directly in {n} part": "Utilisée directement dans {n} pièce",
+  "Used directly in {n} parts": "Utilisée directement dans {n} pièces",
+  "Where used": "Cas d'emploi",
+  "{n} end item": "{n} article final",
+  "{n} end items": "{n} articles finaux"
 }

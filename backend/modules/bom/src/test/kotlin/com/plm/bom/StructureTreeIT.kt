@@ -145,4 +145,29 @@ internal class StructureTreeIT(
         assertThat(result.truncated).isFalse()
         assertThat(result.elapsedMs).isLessThan(2_000)
     }
+
+    @Test
+    fun `where-used finds the parts using a part, up to the end items, under a specification`() {
+        val p = product()
+        val vehicle = part(p, "Vehicle")
+        val drive = part(p, "Drive")
+        val other = part(p, "Spare kit")
+        val bolt = part(p, "Bolt")
+        use(drive, bolt to 8)
+        use(vehicle, drive to 4)
+        use(other, bolt to 20)
+        val direct = bom.whereUsed(alice, bolt)
+        assertThat(direct.nodes.map { it.parent.name to it.quantity }).containsExactlyInAnyOrder(
+            "Drive" to BigDecimal("8"),
+            "Spare kit" to BigDecimal("20"),
+        )
+        val all = bom.whereUsed(alice, bolt, depth = 10)
+        assertThat(all.nodes.map { it.parent.name to it.level }).contains("Vehicle" to 2)
+        assertThat(all.nodes.filter { it.top }.map { it.parent.name }).containsExactlyInAnyOrder("Vehicle", "Spare kit")
+        // The drive's previous iteration used the bolt, its next one doesn't: latest drops it.
+        versioning.checkOut(alice, drive)
+        bom.remove(alice, drive, bom.usages(alice, drive, workingCopy = true).single().id)
+        versioning.checkIn(alice, drive)
+        assertThat(bom.whereUsed(alice, bolt).nodes.map { it.parent.name }).containsExactly("Spare kit")
+    }
 }

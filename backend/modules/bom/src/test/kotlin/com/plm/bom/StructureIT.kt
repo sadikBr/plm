@@ -190,4 +190,33 @@ internal class StructureIT(
             bom.replace(alice, z, bom.add(alice, z, AddUsage(y.value)).id, a.value)
         }.hasMessageContaining("already uses")
     }
+
+    @Test
+    fun `reference designators name each occurrence and match the quantity`() {
+        val p = product()
+        val board = part(p, "Board")
+        val resistor = part(p, "Resistor 10k")
+        val cap = part(p, "Capacitor 1uF")
+        versioning.checkOut(alice, board)
+        val r = bom.add(alice, board, AddUsage(resistor.value, BigDecimal("5"), designators = "R1-R4, R7"))
+        assertThat(r.designators).containsExactly("R1", "R2", "R3", "R4", "R7")
+        assertThatThrownBy { bom.add(alice, board, AddUsage(cap.value, BigDecimal("2"), designators = "C1")) }
+            .hasMessageContaining("1 designators (C1) for a quantity of 2")
+        assertThatThrownBy { bom.add(alice, board, AddUsage(cap.value, BigDecimal("2"), designators = "C1, R7")) }
+            .hasMessageContaining("Already used on another line: R7")
+        assertThatThrownBy {
+            bom.add(
+                alice,
+                board,
+                AddUsage(cap.value, BigDecimal("0.5"), unit = "kg", designators = "C1"),
+            )
+        }.hasMessageContaining("whole quantity")
+        bom.add(alice, board, AddUsage(cap.value, BigDecimal("3"), designators = "C1 - C3"))
+        bom.update(alice, board, r.id, UpdateUsage(BigDecimal("2"), "each", 10, null, null, "R1, R2"))
+        versioning.checkIn(alice, board)
+        // Carried to the next iteration.
+        versioning.checkOut(alice, board)
+        assertThat(bom.usages(alice, board, workingCopy = true).map { it.designators })
+            .containsExactly(listOf("R1", "R2"), listOf("C1", "C2", "C3"))
+    }
 }
