@@ -295,16 +295,50 @@ builds, compares, baselines and imports a structure.
 earlier version and baselines it.
 
 ## Phase 5 — Workflow, change management and extensibility v2
-Temporal integration · process template editor · tasks and inbox, voting, delegation, escalation ·
-lifecycle and workflow assignments per organization ·
-e-signatures (21 CFR Part 11) · promotion requests · Problem Report → Change Request → Change
-Notice → Change Tasks, fast and full track · affected/resulting objects and end items ·
-implementation plans · change board · change templates and association rules · variances ·
-redlines and mass change · change dashboards · **extensibility v2**: sandboxed server scripts
-(rules, numbering, automation steps), UI extension slots (panels, tabs, micro-frontends),
-extension endpoints, no-code automations (trigger → condition → actions).
 
-**Exit:** a part can only reach Released through an approved change notice or promotion request.
+**Goal:** changes to released data are governed: people review, approve and sign in processes
+that survive restarts; problems flow into change requests and notices that revise and release the
+affected objects; and the platform can be extended with scripts, UI slots and no-code automations.
+
+- [ ] 5.1 Workflow engine: processes run on Temporal (ADR 0006) through one generic interpreter of
+      versioned process templates; start, cancel, history; processes survive restarts and deploys.
+- [ ] 5.2 Process template editor: a visual editor for templates made of tasks, votes, automatic
+      steps (set state, set attribute, run an action, notify), conditions, parallel branches and
+      timers; versioned, validated, and exported with the configuration.
+- [ ] 5.3 Tasks and inbox: work items for users, team roles or groups; claim, complete with an
+      outcome and comment; an inbox with filters and counts, notifications and mail.
+- [ ] 5.4 Voting, delegation and escalation: reviewer sets with voting rules (all, any, majority);
+      reassign and delegate, out-of-office stand-ins; due dates, reminders and escalation.
+- [ ] 5.5 Process assignments: which process runs for which type, lifecycle state or transition,
+      per organization or product, inherited down the context tree.
+- [ ] 5.6 Electronic signatures (21 CFR Part 11): signing tasks ask for the password again; the
+      signature (who, when, meaning) is recorded immutably, shown on the object and audited.
+- [ ] 5.7 Promotion requests: ask for a set of objects to move to a target state; a review process
+      approves or rejects; objects are locked while under review and promoted on approval.
+- [ ] 5.8 Change objects: problem reports, change requests, change notices and change tasks with
+      their own types, lifecycles and numbers, linked to each other; affected and resulting objects
+      and end items; fast track (notice directly) and full track.
+- [ ] 5.9 Implementation plans and change board: a notice's tasks with assignees and due dates;
+      a change board reviews requests and votes; completing a notice releases its resulting objects.
+- [ ] 5.10 Change templates, association rules and variances: templates prefill changes; rules say
+      which types may be affected or linked; variances (deviations, waivers) with a limited scope.
+- [ ] 5.11 Redlines and mass change: proposed structure edits inside a change task, applied when
+      it is implemented; mass changes (replace, set value) across a change's affected objects.
+- [ ] 5.12 Change dashboards: open changes by state and age, my changes, cycle time; widgets for
+      the home dashboards.
+- [ ] 5.13 Release gate: parts and documents reach Released only through an approved change notice
+      or promotion request (administrators can override, audited).
+- [ ] 5.14 Sandboxed server scripts: JavaScript scripts for validation rules, numbering and
+      automation steps, run with time, memory and API limits.
+- [ ] 5.15 UI extension slots and extension endpoints: extensions add panels and tabs to object
+      pages (sandboxed frames with a message bridge) and serve their own endpoints through the
+      platform.
+- [ ] 5.16 No-code automations: trigger (an event) → condition → actions (set state, set a value,
+      notify, start a process, call a webhook), built in the admin pages, with a run history.
+
+**Exit:** a part can only reach Released through an approved change notice or promotion request;
+the e2e suite takes a problem report through a change request and notice to a released part, with
+a signed approval.
 
 ## Phase 6 — CAD data and visualization
 CAD document type, dependency structure, family tables, collector · part↔CAD association and
