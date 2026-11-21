@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Check, ClipboardPaste, Copy, Lock, Pencil, Plus, Repeat, Trash2, X } from "lucide-react";
-import { useState, useSyncExternalStore, type FormEvent } from "react";
+import { ArrowDown, ArrowUp, Check, ClipboardPaste, Copy, Lock, Pencil, Plus, Repeat, Shuffle, Trash2, X } from "lucide-react";
+import { Fragment, useState, useSyncExternalStore, type FormEvent } from "react";
 import { Link } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
 import { useEnumerations, useObjectSearch, useTypes, type VersionedObject } from "../api/queries";
@@ -8,6 +8,7 @@ import { pickLabel } from "../components/AttributeForm";
 import { ErrorBanner, Loading, Panel, StateBadge, TypeIcon } from "../components/common";
 import { locale, t, tn } from "../i18n/i18n";
 import { formatDesignators } from "./designators";
+import { SubstitutesEditor } from "./Replacements";
 import { SpecPicker, StructureTree, useDefaultSpec, type Spec } from "./StructureTree";
 
 // Product structure (roadmap 4.1, 4.4): the parts a part uses, edited on its working copy.
@@ -86,6 +87,7 @@ function EditableStructure({ obj }: { obj: VersionedObject }) {
   const copied = useCopiedLines();
   const [editing, setEditing] = useState<string | null>(null);
   const [replacing, setReplacing] = useState<string | null>(null);
+  const [substituting, setSubstituting] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const refresh = () => void qc.invalidateQueries({ queryKey: ["usages", obj.id] });
   const removeLine = useMutation({
@@ -173,98 +175,118 @@ function EditableStructure({ obj }: { obj: VersionedObject }) {
                 editing === l.id ? (
                   <EditRow key={l.id} obj={obj} line={l} units={units} onDone={() => (setEditing(null), refresh())} />
                 ) : (
-                  <tr key={l.id} className={selected.has(l.id) ? "selected" : undefined}>
-                    <td className="check-cell">
-                      <input
-                        type="checkbox"
-                        aria-label={t("Select line {line}", { line: l.lineNumber })}
-                        checked={selected.has(l.id)}
-                        onChange={() => toggle(l.id)}
-                      />
-                    </td>
-                    <td className="num">{l.lineNumber}</td>
-                    <td>{l.findNumber ?? <span className="muted">—</span>}</td>
-                    <td className="icon-cell">
-                      {l.child.typeId ? <TypeIcon typeId={l.child.typeId} /> : <Lock size={14} className="icon-muted" />}
-                    </td>
-                    {replacing === l.id ? (
-                      <td colSpan={4}>
-                        <PartPicker
-                          exclude={obj.id}
-                          contextId={obj.contextId}
-                          label={t("Replace with")}
-                          onPick={async (part) => {
-                            await unwrap(
-                              api.PUT("/api/v1/objects/{id}/usages/{usageId}/child", {
-                                params: { path: { id: obj.id, usageId: l.id } },
-                                body: { childId: part.id },
-                              }),
-                            );
-                            setReplacing(null);
-                            refresh();
-                          }}
-                          onCancel={() => setReplacing(null)}
+                  <Fragment key={l.id}>
+                    <tr className={selected.has(l.id) ? "selected" : undefined}>
+                      <td className="check-cell">
+                        <input
+                          type="checkbox"
+                          aria-label={t("Select line {line}", { line: l.lineNumber })}
+                          checked={selected.has(l.id)}
+                          onChange={() => toggle(l.id)}
                         />
                       </td>
-                    ) : l.child.readable ? (
-                      <>
-                        <td className="nowrap">
-                          <Link className="num-link" to={`/objects/${l.child.id}`}>
-                            {l.child.number}
-                          </Link>
-                        </td>
-                        <td>{l.child.name}</td>
-                        <td className="version">{l.child.version}</td>
-                        <td>{l.child.state && <StateBadge state={l.child.state} />}</td>
-                      </>
-                    ) : (
-                      <td colSpan={4} className="muted">
-                        {t("A part you don't have access to")}
+                      <td className="num">{l.lineNumber}</td>
+                      <td>{l.findNumber ?? <span className="muted">—</span>}</td>
+                      <td className="icon-cell">
+                        {l.child.typeId ? <TypeIcon typeId={l.child.typeId} /> : <Lock size={14} className="icon-muted" />}
                       </td>
+                      {replacing === l.id ? (
+                        <td colSpan={4}>
+                          <PartPicker
+                            exclude={obj.id}
+                            contextId={obj.contextId}
+                            label={t("Replace with")}
+                            onPick={async (part) => {
+                              await unwrap(
+                                api.PUT("/api/v1/objects/{id}/usages/{usageId}/child", {
+                                  params: { path: { id: obj.id, usageId: l.id } },
+                                  body: { childId: part.id },
+                                }),
+                              );
+                              setReplacing(null);
+                              refresh();
+                            }}
+                            onCancel={() => setReplacing(null)}
+                          />
+                        </td>
+                      ) : l.child.readable ? (
+                        <>
+                          <td className="nowrap">
+                            <Link className="num-link" to={`/objects/${l.child.id}`}>
+                              {l.child.number}
+                            </Link>
+                          </td>
+                          <td>
+                            {l.child.name}
+                            <ReplacementMarks line={l} />
+                          </td>
+                          <td className="version">{l.child.version}</td>
+                          <td>{l.child.state && <StateBadge state={l.child.state} />}</td>
+                        </>
+                      ) : (
+                        <td colSpan={4} className="muted">
+                          {t("A part you don't have access to")}
+                        </td>
+                      )}
+                      <td className="num">{qty(l.quantity)}</td>
+                      <td>{unitLabel(l.unit)}</td>
+                      <td className="designators">{formatDesignators(l.designators)}</td>
+                      <td className="nowrap" style={{ width: 1 }}>
+                        <button
+                          className="icon-btn"
+                          aria-label={t("Move line {line} up", { line: l.lineNumber })}
+                          disabled={i === 0}
+                          onClick={() => move(i, -1)}
+                        >
+                          <ArrowUp size={13} />
+                        </button>
+                        <button
+                          className="icon-btn"
+                          aria-label={t("Move line {line} down", { line: l.lineNumber })}
+                          disabled={i === data.length - 1}
+                          onClick={() => move(i, 1)}
+                        >
+                          <ArrowDown size={13} />
+                        </button>
+                        <button
+                          className="icon-btn"
+                          aria-label={t("Edit line {line}", { line: l.lineNumber })}
+                          onClick={() => setEditing(l.id)}
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          className="icon-btn"
+                          aria-label={t("Replace the part on line {line}", { line: l.lineNumber })}
+                          onClick={() => setReplacing(l.id)}
+                        >
+                          <Repeat size={13} />
+                        </button>
+                        <button
+                          className={substituting === l.id ? "icon-btn on" : "icon-btn"}
+                          aria-label={t("Substitutes for line {line}", { line: l.lineNumber })}
+                          onClick={() => setSubstituting(substituting === l.id ? null : l.id)}
+                        >
+                          <Shuffle size={13} />
+                        </button>
+                        <button
+                          className="icon-btn"
+                          aria-label={t("Remove line {line}", { line: l.lineNumber })}
+                          onClick={() => removeLine.mutate(l.id)}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </td>
+                    </tr>
+                    {substituting === l.id && (
+                      <tr className="sub-row">
+                        <td />
+                        <td colSpan={11}>
+                          <SubstitutesEditor obj={obj} usageId={l.id} onChanged={refresh} />
+                        </td>
+                      </tr>
                     )}
-                    <td className="num">{qty(l.quantity)}</td>
-                    <td>{unitLabel(l.unit)}</td>
-                    <td className="designators">{formatDesignators(l.designators)}</td>
-                    <td className="nowrap" style={{ width: 1 }}>
-                      <button
-                        className="icon-btn"
-                        aria-label={t("Move line {line} up", { line: l.lineNumber })}
-                        disabled={i === 0}
-                        onClick={() => move(i, -1)}
-                      >
-                        <ArrowUp size={13} />
-                      </button>
-                      <button
-                        className="icon-btn"
-                        aria-label={t("Move line {line} down", { line: l.lineNumber })}
-                        disabled={i === data.length - 1}
-                        onClick={() => move(i, 1)}
-                      >
-                        <ArrowDown size={13} />
-                      </button>
-                      <button
-                        className="icon-btn"
-                        aria-label={t("Edit line {line}", { line: l.lineNumber })}
-                        onClick={() => setEditing(l.id)}
-                      >
-                        <Pencil size={13} />
-                      </button>
-                      <button
-                        className="icon-btn"
-                        aria-label={t("Replace the part on line {line}", { line: l.lineNumber })}
-                        onClick={() => setReplacing(l.id)}
-                      >
-                        <Repeat size={13} />
-                      </button>
-                      <button
-                        className="icon-btn"
-                        aria-label={t("Remove line {line}", { line: l.lineNumber })}
-                        onClick={() => removeLine.mutate(l.id)}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </td>
-                  </tr>
+                  </Fragment>
                 ),
               )}
               {data?.length === 0 && (
@@ -379,7 +401,7 @@ function EditRow({
  * Finds a part by number or name; with nothing matching, offers to create one in [contextId] with
  * the typed name (roadmap 4.4).
  */
-function PartPicker({
+export function PartPicker({
   exclude,
   contextId,
   label,
@@ -535,5 +557,23 @@ function AddLine({ obj, units, onAdded }: { obj: VersionedObject; units: { key: 
         </div>
       )}
     </form>
+  );
+}
+
+/** Small marks on a line: its substitutes, its part's alternates (roadmap 4.8). */
+export function ReplacementMarks({ line }: { line: Pick<UsageLine, "substitutes" | "alternates"> }) {
+  return (
+    <>
+      {line.substitutes > 0 && (
+        <span className="tag small-tag" title={t("Substitutes on this line")}>
+          {tn("{n} substitute", "{n} substitutes", line.substitutes)}
+        </span>
+      )}
+      {line.alternates > 0 && (
+        <span className="tag small-tag" title={t("Alternates of this part")}>
+          {tn("{n} alternate", "{n} alternates", line.alternates)}
+        </span>
+      )}
+    </>
   );
 }

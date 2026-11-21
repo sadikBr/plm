@@ -262,6 +262,18 @@ internal class BomRepository(
             .list()
     }
 
+    fun copySubstitutes(
+        from: UUID,
+        to: UUID,
+    ) {
+        jdbc
+            .sql(
+                "insert into usage_substitute (usage_id, substitute_id, quantity, notes) select :to, substitute_id, quantity, notes from usage_substitute where usage_id = :from",
+            ).param("from", from)
+            .param("to", to)
+            .update()
+    }
+
     fun delete(id: UUID) {
         jdbc.sql("delete from usage_link where id = :id").param("id", id).update()
     }
@@ -328,6 +340,7 @@ internal class BomRepository(
             val copy = it.copy(id = newId(), parentIterationId = iterationId)
             insert(tenant, copy)
             copyDesignators(it.id, copy.id)
+            copySubstitutes(it.id, copy.id)
         }
         return rows.size
     }

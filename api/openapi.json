@@ -240,6 +240,38 @@
         "required" : [ "level", "ok", "refresh" ],
         "type" : "object"
       },
+      "AddAlternate" : {
+        "properties" : {
+          "alternateId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "notes" : {
+            "type" : [ "string", "null" ]
+          },
+          "twoWay" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "alternateId", "twoWay" ],
+        "type" : "object"
+      },
+      "AddSubstitute" : {
+        "properties" : {
+          "notes" : {
+            "type" : [ "string", "null" ]
+          },
+          "quantity" : {
+            "type" : [ "number", "null" ]
+          },
+          "substituteId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "substituteId" ],
+        "type" : "object"
+      },
       "AddUsage" : {
         "properties" : {
           "childId" : {
@@ -267,6 +299,28 @@
           }
         },
         "required" : [ "childId", "quantity" ],
+        "type" : "object"
+      },
+      "Alternate" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "notes" : {
+            "type" : [ "string", "null" ]
+          },
+          "part" : {
+            "$ref" : "#/components/schemas/UsedPart"
+          },
+          "twoWay" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "createdAt", "createdBy", "part", "twoWay" ],
         "type" : "object"
       },
       "ApiTokenResponse" : {
@@ -4920,6 +4974,43 @@
         "required" : [ "dead", "delivered", "pending", "subscriptionId" ],
         "type" : "object"
       },
+      "Substitute" : {
+        "properties" : {
+          "notes" : {
+            "type" : [ "string", "null" ]
+          },
+          "part" : {
+            "$ref" : "#/components/schemas/UsedPart"
+          },
+          "quantity" : {
+            "type" : [ "number", "null" ]
+          }
+        },
+        "required" : [ "part" ],
+        "type" : "object"
+      },
+      "SubstituteUse" : {
+        "properties" : {
+          "lineNumber" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "original" : {
+            "$ref" : "#/components/schemas/UsedPart"
+          },
+          "parent" : {
+            "$ref" : "#/components/schemas/UsedPart"
+          },
+          "quantity" : {
+            "type" : "number"
+          },
+          "unit" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "lineNumber", "original", "parent", "quantity", "unit" ],
+        "type" : "object"
+      },
       "TableView" : {
         "properties" : {
           "definition" : {
@@ -5559,6 +5650,10 @@
       },
       "UsageLine" : {
         "properties" : {
+          "alternates" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
           "child" : {
             "$ref" : "#/components/schemas/UsedPart"
           },
@@ -5596,11 +5691,15 @@
           "quantity" : {
             "type" : "number"
           },
+          "substitutes" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
           "unit" : {
             "type" : "string"
           }
         },
-        "required" : [ "child", "createdAt", "createdBy", "designators", "id", "lineNumber", "parentIterationId", "quantity", "unit" ],
+        "required" : [ "alternates", "child", "createdAt", "createdBy", "designators", "id", "lineNumber", "parentIterationId", "quantity", "substitutes", "unit" ],
         "type" : "object"
       },
       "UsedPart" : {
@@ -11346,6 +11445,132 @@
         "tags" : [ "Action" ]
       }
     },
+    "/api/v1/objects/{id}/alternates" : {
+      "get" : {
+        "operationId" : "replacementAlternates",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Alternate"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Replacement" ]
+      },
+      "post" : {
+        "operationId" : "replacementAddAlternate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddAlternate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Alternate"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Replacement" ]
+      }
+    },
+    "/api/v1/objects/{id}/alternates/{alternateId}" : {
+      "delete" : {
+        "operationId" : "replacementRemoveAlternate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "alternateId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Replacement" ]
+      }
+    },
     "/api/v1/objects/{id}/checkin" : {
       "post" : {
         "operationId" : "versionedObjectCheckIn",
@@ -12720,6 +12945,46 @@
         "tags" : [ "Bom" ]
       }
     },
+    "/api/v1/objects/{id}/substitute-uses" : {
+      "get" : {
+        "operationId" : "replacementSubstituteUses",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/SubstituteUse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Replacement" ]
+      }
+    },
     "/api/v1/objects/{id}/undo-checkout" : {
       "post" : {
         "operationId" : "versionedObjectUndoCheckOut",
@@ -13102,6 +13367,156 @@
           }
         },
         "tags" : [ "Bom" ]
+      }
+    },
+    "/api/v1/objects/{id}/usages/{usageId}/substitutes" : {
+      "get" : {
+        "operationId" : "replacementSubstitutes",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "usageId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Substitute"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Replacement" ]
+      },
+      "post" : {
+        "operationId" : "replacementAddSubstitute",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "usageId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddSubstitute"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Substitute"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Replacement" ]
+      }
+    },
+    "/api/v1/objects/{id}/usages/{usageId}/substitutes/{substituteId}" : {
+      "delete" : {
+        "operationId" : "replacementRemoveSubstitute",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "usageId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "substituteId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Replacement" ]
       }
     },
     "/api/v1/objects/{id}/where-used" : {
@@ -16286,6 +16701,8 @@
     "name" : "Profile"
   }, {
     "name" : "Reference data"
+  }, {
+    "name" : "Replacement"
   }, {
     "name" : "Report"
   }, {

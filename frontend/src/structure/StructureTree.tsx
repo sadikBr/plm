@@ -7,7 +7,7 @@ import { useEffectivePreferences, useLifecycles, type VersionedObject } from "..
 import { ErrorBanner, Loading, StateBadge, TypeIcon, stateLabel } from "../components/common";
 import { language, locale, t, tn } from "../i18n/i18n";
 import { formatDesignators } from "./designators";
-import { copyLines, useUnits } from "./Structure";
+import { ReplacementMarks, copyLines, useUnits } from "./Structure";
 
 // The multi-level structure (roadmap 4.2, 4.3): a tree table under a configuration specification.
 
@@ -346,7 +346,10 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
                       <span className="muted">{t("(no access)")}</span>
                     )}
                   </td>
-                  <td className="ellipsis">{c.name}</td>
+                  <td className="ellipsis">
+                    {c.name}
+                    <ReplacementMarks line={n.line} />
+                  </td>
                   <td className="version">{c.version ?? (c.readable ? <span className="muted">{t("none")}</span> : null)}</td>
                   <td>{c.state && <StateBadge state={c.state} />}</td>
                   <td className="num muted">{n.line.lineNumber}</td>

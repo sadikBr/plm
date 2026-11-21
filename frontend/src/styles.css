@@ -826,3 +826,9 @@ table.folders td { padding-top: 7px; padding-bottom: 7px; }
 td.tree-cell { display: table-cell; height: auto; }
 td.tree-cell > * { vertical-align: middle; }
 .small-tag { margin-left: 6px; font-size: 10.5px; }
+.grid.structure tr.sub-row td { background: var(--panel-2); }
+.substitutes { display: grid; gap: 6px; padding: 6px 0; }
+.substitutes ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.substitutes li { display: flex; align-items: center; gap: 6px; }
+.icon-btn.on { color: var(--accent); background: var(--accent-soft); }
+.add-line label input[type="checkbox"] { width: auto; min-height: 0; }

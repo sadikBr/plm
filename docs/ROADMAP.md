@@ -239,8 +239,11 @@ baseline and report on, fast at the scale of real products.
       (Done: links on the part's iteration, carried forward; "newer exists" with an update to the
       latest; a Documents tab on parts, a Parts tab on documents; admin rules limiting document
       types per part type, inherited down the type tree.)
-- [ ] 4.8 Alternates and substitutes: a part's global alternates; substitutes on one usage line,
+- [x] 4.8 Alternates and substitutes: a part's global alternates; substitutes on one usage line,
       shown in the BOM and where-used.
+      (Done: alternates on the part (one or both ways, needing MODIFY); substitutes on a line,
+      edited on the working copy and carried with it; marked in the structure, a Replacements tab,
+      and "also allowed as a substitute in" with where-used.)
 - [ ] 4.9 BOM compare: two iterations, two parts, or one part under two configuration
       specifications; added, removed and changed lines side by side; exportable.
 - [ ] 4.10 Baselines and collections: frozen sets of exact iterations (also a configuration

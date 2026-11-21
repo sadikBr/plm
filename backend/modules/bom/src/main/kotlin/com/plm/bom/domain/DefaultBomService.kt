@@ -41,6 +41,7 @@ import java.util.UUID
 @Transactional
 internal class DefaultBomService(
     private val repository: BomRepository,
+    private val replacements: com.plm.bom.infra.ReplacementRepository,
     private val versioning: VersioningService,
     private val access: AccessService,
     private val types: TypeService,
@@ -86,12 +87,23 @@ internal class DefaultBomService(
         if (links.isEmpty()) return emptyList()
         val resolved = repository.resolve(links.map { it.childMasterId }.distinct(), spec, readable(actor))
         val designators = repository.designators(links.map { it.id })
-        return links.map { it.toLine(resolved[it.childMasterId], designators[it.id].orEmpty()) }
+        val subs = replacements.substituteCounts(links.map { it.id })
+        val alts = replacements.alternateCounts(links.map { it.childMasterId })
+        return links.map {
+            it.toLine(
+                resolved[it.childMasterId],
+                designators[it.id].orEmpty(),
+                subs[it.id] ?: 0,
+                alts[it.childMasterId] ?: 0,
+            )
+        }
     }
 
     private fun LinkRow.toLine(
         child: Resolved?,
         designators: List<String>,
+        substitutes: Int = 0,
+        alternates: Int = 0,
     ) = UsageLine(
         id,
         parentIterationId,
@@ -101,6 +113,8 @@ internal class DefaultBomService(
         unit,
         notes,
         designators,
+        substitutes,
+        alternates,
         if (child == null) {
             UsedPart(childMasterId, false, null, null, null, null, null, null, false)
         } else {
@@ -163,6 +177,14 @@ internal class DefaultBomService(
                     readable(actor),
                 )
             val designatorsOf = repository.designators(links.values.flatten().map { it.id })
+            val subsOf = replacements.substituteCounts(links.values.flatten().map { it.id })
+            val altsOf =
+                replacements.alternateCounts(
+                    links.values
+                        .flatten()
+                        .map { it.childMasterId }
+                        .distinct(),
+                )
             val next = ArrayList<Pair<UUID, String?>>()
             for ((iteration, parentPath) in frontier) {
                 for (link in links[iteration].orEmpty()) {
@@ -173,7 +195,17 @@ internal class DefaultBomService(
                     val path = if (parentPath == null) "${link.lineNumber}" else "$parentPath.${link.lineNumber}"
                     val child = children[link.childMasterId]
                     nodes +=
-                        StructureNode(level, path, parentPath, link.toLine(child, designatorsOf[link.id].orEmpty()))
+                        StructureNode(
+                            level,
+                            path,
+                            parentPath,
+                            link.toLine(
+                                child,
+                                designatorsOf[link.id].orEmpty(),
+                                subsOf[link.id] ?: 0,
+                                altsOf[link.childMasterId] ?: 0,
+                            ),
+                        )
                     if (child?.iterationId != null && child.hasChildren) next += child.iterationId to path
                 }
             }
@@ -602,6 +634,7 @@ internal class DefaultBomService(
                 next += 10
                 repository.insert(actor.tenant, row)
                 repository.copyDesignators(src.id, row.id)
+                repository.copySubstitutes(src.id, row.id)
                 events.publish(
                     actor,
                     StructureChanged(

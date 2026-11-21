@@ -35,6 +35,10 @@ data class UsageLine(
     val notes: String?,
     /** Reference designators of its occurrences (roadmap 4.5), e.g. R1, R2, R3. */
     val designators: List<String>,
+    /** How many substitutes the line has (roadmap 4.8). */
+    val substitutes: Int = 0,
+    /** How many alternates its child has (roadmap 4.8). */
+    val alternates: Int = 0,
     val child: UsedPart,
     val createdAt: Instant,
     val createdBy: String,
