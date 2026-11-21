@@ -210,7 +210,8 @@ windows_docker_desktop() {
 wsl_own_docker() { is_wsl && [[ -f /lib/systemd/system/docker.service || -f /usr/lib/systemd/system/docker.service ]]; }
 wsl_integration_help() {
   echo "Docker Desktop is installed but doesn't answer in WSL. In Docker Desktop: Settings › Resources ›" \
-    "WSL integration: turn on ${WSL_DISTRO_NAME:-this distribution}, Apply & restart; then run ./plm ${COMMAND} again" \
+    "WSL integration: turn on ${WSL_DISTRO_NAME:-this distribution}, Apply & restart (no such page? Settings › General: tick" \
+    "\"Use the WSL 2 based engine\" first); then run ./plm ${COMMAND} again" \
     "(if Docker Desktop asked you to sign out of Windows or restart it, do that first)"
 }
 install_docker_desktop_from_wsl() {
@@ -307,6 +308,7 @@ ensure_docker_running() {
       if [[ "$told" == 0 && $((i % 5)) == 0 && -f "$windows_docker" ]] && "$windows_docker" info >/dev/null 2>&1; then
         warn "Docker Desktop runs on Windows, but isn't connected to ${WSL_DISTRO_NAME:-this distribution} yet. In Docker Desktop:"
         warn "Settings (the gear, top right) › Resources › WSL integration: turn on ${WSL_DISTRO_NAME:-this distribution}, then Apply & restart."
+        warn "(No WSL integration there? Settings › General: tick \"Use the WSL 2 based engine\" first.)"
         echo "  Waiting until that's done (Ctrl-C stops; ./plm install carries on later)..."
         told=1
       fi
