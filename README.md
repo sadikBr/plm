@@ -116,11 +116,44 @@ platform sends at http://localhost:8025, workflows at http://localhost:8233.
 | `./plm restart` | Stop, then start (after pulling new code, say) |
 | `./plm logs backend` | Follows the backend's log (`ui` and `services` too); Ctrl-C to stop following |
 | `./plm admin-password` | Changes `plmadmin`'s password (or sets a forgotten one) |
+| `./plm load-data` | Loads the demo data (below): asks for `plmadmin`'s password |
 | `./plm setup` | Only checks the prerequisites, installs and builds |
 | `./plm reset` | Stops everything and deletes all local data, passwords included (asks first) |
 
 Logs are kept in `.plm/`. If something goes wrong, `./plm status` and `./plm logs backend` say
 where; see also [Troubleshooting](docs/DEVELOPMENT.md#troubleshooting).
+
+### Demo data
+
+To explore with realistic data rather than an empty database, load the demo: a fictional
+electric-vehicle maker, **Voltara Motors**, that makes its own battery cells and packs, electric
+drive units and SiC power modules, shares one EV platform across three vehicle lines and builds
+them in one plant.
+
+```bash
+./plm load-data
+```
+
+It takes about a minute and loads, through the API like any client would:
+
+- **4 products, a library and a project**: the *VX-3 EV Platform*, the *Aurora Sedan* (in
+  production), the *Tern Hatchback* (in development), the *Ridge SUV* (plug-in hybrid, in
+  validation), *Standard Parts*, and *Plant 2 – Line 3 Launch*, with alice (chief engineer), bob
+  (manufacturing) and carol (quality) on their teams.
+- **101 parts in multi-level structures** (vehicle, battery packs of 102 to 187 cells, 8-in-1 drive
+  units, suspension, electronics), released, under review or in work by programme.
+- **Configuration**: Aurora options (battery, drive, trim, roof) with rules, a 150% structure,
+  two variant specifications with their generated variants; the Aurora as an end item with
+  serial effectivity.
+- **Classification** of cells, motors, semiconductors, sensors, controllers, fasteners and seals.
+- **14 documents with PDFs**: specifications, test reports, and the plant's work instructions,
+  PFMEA and control plans in folders by shop.
+- **Changes**: three problem reports with discussions; one through a change request and a
+  resolved change notice (a door seal's revision B, effective from vehicle 5000).
+- **A frozen baseline** of the Aurora at start of production.
+
+Name the company yourself with `./plm load-data --company "My Motors"`. It loads once per database;
+`./plm reset` empties the database to load it again. All the data is invented.
 
 ### 4. Installing the prerequisites yourself
 

@@ -10,6 +10,8 @@
 #   ./plm status           what's running, and where
 #   ./plm logs [backend|ui|services]   follow a log (Ctrl-C to stop following)
 #   ./plm admin-password   change the site administrator's (plmadmin's) password, or set a forgotten one
+#   ./plm load-data [--company "Name"]
+#                          load demo data: an electric-vehicle maker, its platform, three cars and a plant
 #   ./plm setup            only check the prerequisites, install the dependencies, build the backend
 #   ./plm reset            stop everything and delete all local data (asks first)
 #
@@ -657,6 +659,18 @@ cmd_admin_password() {
   set_admin_password always || true
 }
 
+cmd_load_data() {
+  command -v node >/dev/null || fail "Node.js is needed: run ./plm install"
+  http_ok "$API_URL/actuator/health" || fail "The platform isn't running: ./plm start first"
+  if [[ -z "${PLM_ADMIN_PASSWORD:-}" ]]; then
+    [[ -t 0 ]] || fail "Set PLM_ADMIN_PASSWORD to $ADMIN_USER's password"
+    read -r -s -p "  $ADMIN_USER's password: " PLM_ADMIN_PASSWORD </dev/tty
+    echo
+  fi
+  PLM_ADMIN_PASSWORD="$PLM_ADMIN_PASSWORD" PLM_API_URL="$API_URL" PLM_OIDC_ISSUER="$KEYCLOAK/realms/plm" \
+    node "$ROOT/scripts/demo-data/load.mjs" "$@"
+}
+
 cmd_install() {
   bold "Installing the PLM platform on this computer"
   [[ "$DRY_RUN" == 1 ]] && echo "  (dry run: nothing is installed or changed)"
@@ -730,9 +744,13 @@ case "${1:-}" in
   status) cmd_status ;;
   logs) cmd_logs "${2:-backend}" ;;
   admin-password) cmd_admin_password ;;
+  load-data)
+    shift
+    cmd_load_data "$@"
+    ;;
   reset) cmd_reset ;;
   *)
-    sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'
     exit 1
     ;;
 esac

@@ -1,9 +1,11 @@
 COMPOSE := docker compose -f deploy/docker-compose.yml
 
-.PHONY: install up up-full down reset build test run fmt events ui ui-install ui-test e2e api-contract converter-install start stop status ci
+.PHONY: install demo-data up up-full down reset build test run fmt events ui ui-install ui-test e2e api-contract converter-install start stop status ci
 
 install:   ## Install what's missing, build, start, set the administrator's password (same as ./plm install)
 	./plm install
+demo-data: ## Load the demo data (same as ./plm load-data)
+	./plm load-data
 start:     ## Start the whole platform and wait until it's ready (same as ./plm start)
 	./plm start
 stop:      ## Stop the whole platform, keep the data (same as ./plm stop)

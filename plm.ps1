@@ -10,6 +10,8 @@
 #   plm status           what's running, and where
 #   plm logs [backend|ui|services]   follow a log (Ctrl-C to stop following)
 #   plm admin-password   change the site administrator's (plmadmin's) password, or set a forgotten one
+#   plm load-data [--company "Name"]
+#                        load demo data: an electric-vehicle maker, its platform, three cars and a plant
 #   plm setup            only check the prerequisites, install the dependencies, build the backend
 #   plm reset            stop everything and delete all local data (asks first)
 #
@@ -480,6 +482,18 @@ function AdminPassword {
   $null = SetAdminPassword 'always'
 }
 
+function LoadData([string[]]$rest) {
+  if (-not (Get-Command node -ErrorAction SilentlyContinue)) { Fail 'Node.js is needed: run plm install' }
+  if (-not (HttpOk "$ApiUrl/actuator/health")) { Fail "The platform isn't running: plm start first" }
+  $had = $env:PLM_ADMIN_PASSWORD
+  if (-not $env:PLM_ADMIN_PASSWORD) { $env:PLM_ADMIN_PASSWORD = PlainText (Read-Host "  $AdminUser's password" -AsSecureString) }
+  try {
+    & node (Join-Path $Root 'scripts\demo-data\load.mjs') @rest | Out-Host
+  } finally {
+    $env:PLM_ADMIN_PASSWORD = $had
+  }
+}
+
 function InstallAll {
   Say 'Installing the PLM platform on this computer'
   if ($script:DryRun) { Write-Host '  (dry run: nothing is installed or changed)' }
@@ -558,9 +572,10 @@ switch ($command) {
     ShowLogs $which
   }
   'admin-password' { AdminPassword }
+  'load-data' { LoadData ($args | Select-Object -Skip 1) }
   'reset' { ResetAll }
   default {
-    Get-Content $PSCommandPath -TotalCount 19 | Select-Object -Skip 3 | ForEach-Object { $_ -replace '^# ?', '' }
+    Get-Content $PSCommandPath -TotalCount 21 | Select-Object -Skip 3 | ForEach-Object { $_ -replace '^# ?', '' }
     exit 1
   }
 }
