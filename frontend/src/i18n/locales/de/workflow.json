@@ -1,0 +1,21 @@
+{
+  "Cancel the process": "Prozess abbrechen",
+  "Comment (optional)": "Kommentar (optional)",
+  "Hide the steps": "Schritte ausblenden",
+  "No process has run on it yet.": "Für dieses Objekt lief noch kein Prozess.",
+  "Note for the people involved": "Hinweis für die Beteiligten",
+  "Now": "Aktuell",
+  "Process history": "Prozessverlauf",
+  "Process tasks": "Prozessaufgaben",
+  "Process": "Prozess",
+  "Processes": "Prozesse",
+  "Show the steps": "Schritte anzeigen",
+  "Start a process on {number}": "Prozess für {number} starten",
+  "Start a process…": "Prozess starten…",
+  "Steps": "Schritte",
+  "Tasks": "Aufgaben",
+  "completed": "abgeschlossen",
+  "due {date}": "fällig {date}",
+  "not needed": "nicht mehr nötig",
+  "waiting": "ausstehend"
+}

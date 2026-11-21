@@ -38,6 +38,9 @@ const DEFAULTS: Record<string, Handler> = {
   "GET /api/v1/objects/:id/linking-parts": () => [],
   "GET /api/v1/objects/:id/where-used": () => ({ childId: "", spec: { type: "LATEST" }, nodes: [], truncated: false }),
   "GET /api/v1/objects/:id/referenced-by": () => [],
+  "GET /api/v1/objects/:id/processes": () => [],
+  "GET /api/v1/process-templates": () => [],
+  "GET /api/v1/tasks": () => [],
   "GET /api/v1/objects/:id/structure": () => ({ rootId: "", spec: { type: "LATEST" }, nodes: [], truncated: false, elapsedMs: 0 }),
   "GET /api/v1/preferences/effective": () => [],
 };

@@ -911,6 +911,14 @@
         "required" : [ "objectIds", "operation" ],
         "type" : "object"
       },
+      "CancelProcess" : {
+        "properties" : {
+          "reason" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
       "ChangeLifecycleRequest" : {
         "properties" : {
           "lifecycleId" : {
@@ -958,6 +966,18 @@
             "type" : [ "string", "null" ]
           }
         },
+        "type" : "object"
+      },
+      "CheckResult" : {
+        "properties" : {
+          "errors" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "errors" ],
         "type" : "object"
       },
       "CollectedObject" : {
@@ -1186,6 +1206,18 @@
           }
         },
         "required" : [ "attributes", "files", "left", "right" ],
+        "type" : "object"
+      },
+      "CompleteWorkItem" : {
+        "properties" : {
+          "comment" : {
+            "type" : [ "string", "null" ]
+          },
+          "outcome" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "outcome" ],
         "type" : "object"
       },
       "ConfigBundle" : {
@@ -4265,6 +4297,238 @@
         },
         "type" : "object"
       },
+      "ProcessDefinition" : {
+        "properties" : {
+          "nodes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ProcessNode"
+            },
+            "type" : "array"
+          },
+          "start" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "nodes", "start" ],
+        "type" : "object"
+      },
+      "ProcessEvent" : {
+        "properties" : {
+          "actor" : {
+            "type" : [ "string", "null" ]
+          },
+          "at" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "nodeId" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "at", "kind", "message" ],
+        "type" : "object"
+      },
+      "ProcessInstance" : {
+        "properties" : {
+          "comment" : {
+            "type" : [ "string", "null" ]
+          },
+          "current" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "endedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "outcome" : {
+            "type" : [ "string", "null" ]
+          },
+          "startedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "startedBy" : {
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "RUNNING", "COMPLETED", "CANCELLED", "FAILED" ],
+            "type" : "string"
+          },
+          "subjectId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "subjectNumber" : {
+            "type" : [ "string", "null" ]
+          },
+          "templateId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "templateVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "current", "id", "name", "startedAt", "startedBy", "status", "templateId", "templateVersion" ],
+        "type" : "object"
+      },
+      "ProcessNode" : {
+        "properties" : {
+          "action" : {
+            "enum" : [ "SET_STATE", "SET_ATTRIBUTE", "NOTIFY" ],
+            "type" : [ "string", "null" ]
+          },
+          "assignees" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "attribute" : {
+            "type" : [ "string", "null" ]
+          },
+          "branches" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "choices" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "dueIn" : {
+            "type" : [ "string", "null" ]
+          },
+          "duration" : {
+            "type" : [ "string", "null" ]
+          },
+          "expression" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "instructions" : {
+            "type" : [ "string", "null" ]
+          },
+          "join" : {
+            "type" : [ "string", "null" ]
+          },
+          "kind" : {
+            "enum" : [ "TASK", "VOTE", "ACTION", "CONDITION", "PARALLEL", "JOIN", "TIMER", "END" ],
+            "type" : "string"
+          },
+          "label" : {
+            "type" : [ "string", "null" ]
+          },
+          "message" : {
+            "type" : [ "string", "null" ]
+          },
+          "next" : {
+            "type" : [ "string", "null" ]
+          },
+          "outcome" : {
+            "type" : [ "string", "null" ]
+          },
+          "outcomes" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "rule" : {
+            "enum" : [ "ALL", "ANY", "MAJORITY" ],
+            "type" : [ "string", "null" ]
+          },
+          "signature" : {
+            "type" : "boolean"
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          },
+          "value" : { },
+          "x" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "y" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "required" : [ "assignees", "branches", "choices", "id", "kind", "outcomes", "signature" ],
+        "type" : "object"
+      },
+      "ProcessTemplate" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "definition" : {
+            "$ref" : "#/components/schemas/ProcessDefinition"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "updatedBy" : {
+            "type" : "string"
+          },
+          "version" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "active", "definition", "id", "name", "updatedAt", "updatedBy", "version" ],
+        "type" : "object"
+      },
+      "ProcessTemplateVersion" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "version" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "createdAt", "createdBy", "version" ],
+        "type" : "object"
+      },
       "Profile" : {
         "properties" : {
           "description" : {
@@ -4897,6 +5161,24 @@
         "required" : [ "groups" ],
         "type" : "object"
       },
+      "SaveProcessTemplate" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "definition" : {
+            "$ref" : "#/components/schemas/ProcessDefinition"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "definition", "name" ],
+        "type" : "object"
+      },
       "SaveSearch" : {
         "properties" : {
           "name" : {
@@ -5326,6 +5608,23 @@
           }
         },
         "required" : [ "rows" ],
+        "type" : "object"
+      },
+      "StartProcess" : {
+        "properties" : {
+          "comment" : {
+            "type" : [ "string", "null" ]
+          },
+          "subjectId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "templateId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "templateId" ],
         "type" : "object"
       },
       "StateDto" : {
@@ -6536,6 +6835,83 @@
           }
         },
         "required" : [ "id", "kind", "limit", "width" ],
+        "type" : "object"
+      },
+      "WorkItem" : {
+        "properties" : {
+          "assignee" : {
+            "type" : "string"
+          },
+          "choices" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "comment" : {
+            "type" : [ "string", "null" ]
+          },
+          "completedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "completedBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "dueAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "instanceId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "instructions" : {
+            "type" : [ "string", "null" ]
+          },
+          "kind" : {
+            "enum" : [ "TASK", "VOTE", "ACTION", "CONDITION", "PARALLEL", "JOIN", "TIMER", "END" ],
+            "type" : "string"
+          },
+          "nodeId" : {
+            "type" : "string"
+          },
+          "outcome" : {
+            "type" : [ "string", "null" ]
+          },
+          "processName" : {
+            "type" : "string"
+          },
+          "signature" : {
+            "type" : "boolean"
+          },
+          "status" : {
+            "enum" : [ "OPEN", "DONE", "CANCELLED" ],
+            "type" : "string"
+          },
+          "subjectId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "subjectName" : {
+            "type" : [ "string", "null" ]
+          },
+          "subjectNumber" : {
+            "type" : [ "string", "null" ]
+          },
+          "title" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "assignee", "choices", "createdAt", "id", "instanceId", "kind", "nodeId", "processName", "signature", "status", "title" ],
         "type" : "object"
       }
     },
@@ -13473,6 +13849,46 @@
         "tags" : [ "Organizing" ]
       }
     },
+    "/api/v1/objects/{id}/processes" : {
+      "get" : {
+        "operationId" : "processForObject",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ProcessInstance"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process" ]
+      }
+    },
     "/api/v1/objects/{id}/referenced-by" : {
       "get" : {
         "operationId" : "versionedObjectReferencedBy",
@@ -15286,6 +15702,482 @@
         "tags" : [ "Principal" ]
       }
     },
+    "/api/v1/process-templates" : {
+      "get" : {
+        "operationId" : "processTemplateList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ProcessTemplate"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process template" ]
+      },
+      "post" : {
+        "operationId" : "processTemplateCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveProcessTemplate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessTemplate"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process template" ]
+      }
+    },
+    "/api/v1/process-templates/check" : {
+      "post" : {
+        "operationId" : "processTemplateCheck",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProcessDefinition"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CheckResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process template" ]
+      }
+    },
+    "/api/v1/process-templates/{id}" : {
+      "get" : {
+        "operationId" : "processTemplateGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessTemplate"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process template" ]
+      },
+      "put" : {
+        "operationId" : "processTemplateUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveProcessTemplate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessTemplate"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process template" ]
+      }
+    },
+    "/api/v1/process-templates/{id}/versions" : {
+      "get" : {
+        "operationId" : "processTemplateVersions",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ProcessTemplateVersion"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process template" ]
+      }
+    },
+    "/api/v1/processes" : {
+      "get" : {
+        "operationId" : "processList",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "RUNNING", "COMPLETED", "CANCELLED", "FAILED" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 100,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ProcessInstance"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process" ]
+      },
+      "post" : {
+        "operationId" : "processStart",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StartProcess"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessInstance"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process" ]
+      }
+    },
+    "/api/v1/processes/{id}" : {
+      "get" : {
+        "operationId" : "processGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessInstance"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process" ]
+      }
+    },
+    "/api/v1/processes/{id}/cancel" : {
+      "post" : {
+        "operationId" : "processCancel",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CancelProcess"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessInstance"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process" ]
+      }
+    },
+    "/api/v1/processes/{id}/history" : {
+      "get" : {
+        "operationId" : "processHistory",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ProcessEvent"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process" ]
+      }
+    },
+    "/api/v1/processes/{id}/tasks" : {
+      "get" : {
+        "operationId" : "processTasks",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/WorkItem"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Process" ]
+      }
+    },
     "/api/v1/profiles" : {
       "get" : {
         "operationId" : "profileList",
@@ -16644,6 +17536,155 @@
           }
         },
         "tags" : [ "Table view" ]
+      }
+    },
+    "/api/v1/tasks" : {
+      "get" : {
+        "operationId" : "workItemList",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "all",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "OPEN", "DONE", "CANCELLED" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "anyStatus",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 200,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/WorkItem"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Work item" ]
+      }
+    },
+    "/api/v1/tasks/{id}" : {
+      "get" : {
+        "operationId" : "workItemGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkItem"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Work item" ]
+      }
+    },
+    "/api/v1/tasks/{id}/complete" : {
+      "post" : {
+        "operationId" : "workItemComplete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompleteWorkItem"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkItem"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Work item" ]
       }
     },
     "/api/v1/team-roles" : {
@@ -18067,6 +19108,10 @@
   }, {
     "name" : "Principal"
   }, {
+    "name" : "Process"
+  }, {
+    "name" : "Process template"
+  }, {
     "name" : "Profile"
   }, {
     "name" : "Reference data"
@@ -18104,5 +19149,7 @@
     "name" : "Versioned object"
   }, {
     "name" : "Webhook"
+  }, {
+    "name" : "Work item"
   } ]
 }

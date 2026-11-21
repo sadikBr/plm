@@ -300,8 +300,14 @@ earlier version and baselines it.
 that survive restarts; problems flow into change requests and notices that revise and release the
 affected objects; and the platform can be extended with scripts, UI slots and no-code automations.
 
-- [ ] 5.1 Workflow engine: processes run on Temporal (ADR 0006) through one generic interpreter of
+- [x] 5.1 Workflow engine: processes run on Temporal (ADR 0006) through one generic interpreter of
       versioned process templates; start, cancel, history; processes survive restarts and deploys.
+      Done: templates are JSON graphs (tasks, votes, actions, conditions, parallel branches, timers,
+      ends), checked and versioned; one Temporal workflow interprets the version a process started
+      with, routing only, while activities do the work (work items, state changes, notifications,
+      history) each in a transaction; answers reach it as signals after commit. Processes on an
+      object show their steps and tasks; a built-in "Review and release" template. Runs on the
+      Temporal service (PLM_TEMPORAL_TARGET) or its in-process server (tests, trying out).
 - [ ] 5.2 Process template editor: a visual editor for templates made of tasks, votes, automatic
       steps (set state, set attribute, run an action, notify), conditions, parallel branches and
       timers; versioned, validated, and exported with the configuration.

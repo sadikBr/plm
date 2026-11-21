@@ -36,7 +36,7 @@ Three layers enforce this:
 | documents | Document templates, Save As, compare | access, types, versioning, content, extensions |
 | parts | Part types | versioning, lifecycle |
 | bom | Usage links, config specs, where-used | parts |
-| workflow | Temporal workflows, tasks | lifecycle, identity |
+| workflow | Processes on Temporal: versioned templates run by one interpreter; tasks, history | access, identity, types, versioning, notifications |
 | change | PR / CR / CN / change tasks | versioning, lifecycle, workflow |
 | search | Search: indexing from events (OpenSearch or Postgres), queries with facets, saved searches | access, types, versioning, content, jobs |
 | configuration | Export/import of the whole configuration as one bundle (config as code) | types, lifecycle, access |

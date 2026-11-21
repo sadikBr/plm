@@ -1,0 +1,21 @@
+{
+  "Cancel the process": "Annuler le processus",
+  "Comment (optional)": "Commentaire (facultatif)",
+  "Hide the steps": "Masquer les étapes",
+  "No process has run on it yet.": "Aucun processus n'a encore porté sur cet objet.",
+  "Note for the people involved": "Note pour les personnes concernées",
+  "Now": "En cours",
+  "Process history": "Historique du processus",
+  "Process tasks": "Tâches du processus",
+  "Process": "Processus",
+  "Processes": "Processus",
+  "Show the steps": "Afficher les étapes",
+  "Start a process on {number}": "Lancer un processus sur {number}",
+  "Start a process…": "Lancer un processus…",
+  "Steps": "Étapes",
+  "Tasks": "Tâches",
+  "completed": "terminé",
+  "due {date}": "échéance {date}",
+  "not needed": "plus nécessaire",
+  "waiting": "en attente"
+}

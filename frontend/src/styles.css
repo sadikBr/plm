@@ -871,3 +871,17 @@ td.tree-cell > * { vertical-align: middle; }
 .import-preview tr.row-error td { background: color-mix(in srgb, var(--danger, #c62828) 6%, transparent); }
 .error-text { color: var(--danger, #c62828); }
 .import-progress { margin: 12px; }
+
+/* Processes (roadmap 5.1) */
+.detail-row > td { background: var(--panel-2); padding: 12px 16px; }
+.process-detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.timeline { list-style: none; margin: 6px 0 0; padding: 0 0 0 14px; border-left: 2px solid var(--border); display: grid; gap: 8px; }
+.timeline li { position: relative; display: grid; grid-template-columns: 150px 1fr; gap: 8px; }
+.timeline li::before { content: ""; position: absolute; left: -20px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--border); border: 2px solid var(--panel); }
+.timeline li.ev-task_done::before, .timeline li.ev-ended::before { background: var(--success, #2e7d32); }
+.timeline li.ev-task_opened::before, .timeline li.ev-started::before { background: var(--accent); }
+.timeline li.ev-failed::before, .timeline li.ev-cancelled::before, .timeline li.ev-cancel::before { background: var(--danger, #c62828); }
+.timeline li.ev-action::before, .timeline li.ev-decided::before { background: var(--warning, #b26a00); }
+.task-answer { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.task-answer input { flex: 1 1 180px; }
+table.grid.compact td { padding: 6px 8px; vertical-align: top; }

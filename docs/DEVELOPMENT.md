@@ -37,6 +37,8 @@ Test reports: `backend/<project>/build/reports/tests/test/index.html`.
 ```bash
 make up          # postgres, s3, keycloak, redpanda
 make up-full     # + opensearch, temporal (≈3 GB RAM more)
+# Processes run on Temporal's in-process server unless the backend gets PLM_TEMPORAL_TARGET=localhost:7233
+# (with make up-full): only then do they survive a backend restart.
 ```
 
 Without make: `docker compose -f deploy/docker-compose.yml up -d` (add `--profile full` for everything).

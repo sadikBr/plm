@@ -67,6 +67,12 @@ plm:
       bucket: ${PLM_VAULT_S3_BUCKET:plm-vault}
       access-key: ${PLM_VAULT_S3_ACCESS_KEY:plm}
       secret-key: ${PLM_VAULT_S3_SECRET_KEY:plm-dev-secret}
+  workflow:
+    temporal:
+      # The Temporal service (make up-full runs one at localhost:7233), or in-memory: Temporal's
+      # in-process server, for trying things out (processes then don't survive a restart).
+      target: ${PLM_TEMPORAL_TARGET:in-memory}
+      namespace: ${PLM_TEMPORAL_NAMESPACE:default}
   events:
     topic: plm.domain-events
     relay:

@@ -1,4 +1,5 @@
 import { ReferencedBy } from "../components/References";
+import { ProcessesTab } from "../workflow/Processes";
 import { ReplacementsTab } from "../structure/Replacements";
 import { DocumentLinksTab, LinkingPartsTab } from "../structure/DocumentLinks";
 import { WhereUsedTab } from "../structure/WhereUsed";
@@ -59,7 +60,17 @@ import { NotFoundPage } from "./NotFoundPage";
 import { BackgroundActions, useActionRunner } from "./ActionRunner";
 import { ObjectActionBar, type ActionHandlers } from "./ObjectActions";
 
-type Tab = "details" | "structure" | "where-used" | "documents" | "replacements" | "parts" | "discussion" | "history" | "audit";
+type Tab =
+  | "details"
+  | "structure"
+  | "where-used"
+  | "documents"
+  | "replacements"
+  | "parts"
+  | "processes"
+  | "discussion"
+  | "history"
+  | "audit";
 
 /** Remounts per object, so page state never leaks between objects. */
 export function ObjectPage() {
@@ -94,6 +105,7 @@ function ObjectView({ id }: { id: string }) {
       : allTypes
         ? [["parts", t("Parts")] as [Tab, string]]
         : []),
+    ["processes", t("Processes")],
     ["discussion", discussionCount ? t("Discussion ({count})", { count: discussionCount }) : t("Discussion")],
     ...(shows("object.history") ? [["history", t("History")] as [Tab, string]] : []),
     ...(me?.siteAdmin && shows("object.audit") ? [["audit", t("Audit")] as [Tab, string]] : []),
@@ -112,6 +124,7 @@ function ObjectView({ id }: { id: string }) {
         {tab === "documents" && <DocumentLinksTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}
         {tab === "parts" && <LinkingPartsTab obj={obj} />}
         {tab === "replacements" && <ReplacementsTab obj={obj} />}
+        {tab === "processes" && <ProcessesTab obj={obj} />}
         {tab === "discussion" && <DiscussionTab obj={obj} />}
         {tab === "history" && <HistoryTab id={obj.id} />}
         {tab === "audit" && me?.siteAdmin && <AuditTab id={obj.id} />}
