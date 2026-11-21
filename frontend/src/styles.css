@@ -1044,3 +1044,17 @@ table.collected td input[type="checkbox"] { width: 16px; height: 16px; }
 .viewer-panel dd { margin: 0; text-align: right; }
 .viewer-panel input[type="range"] { width: 100%; }
 .viewer-panel .row.spread { justify-content: space-between; }
+.viewer-overlay .pin { position: absolute; display: flex; align-items: center; gap: 6px; transform: translate(-12px, -12px); pointer-events: none; }
+.viewer-overlay .pin span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50% 50% 50% 0; background: #d6336c; color: #fff; font-size: 12px; font-weight: 600; box-shadow: 0 1px 3px rgb(0 0 0 / 0.3); }
+.viewer-overlay .pin em { font-style: normal; padding: 2px 7px; border-radius: 4px; background: rgb(17 22 29 / 0.88); color: #fff; font-size: 12px; white-space: nowrap; }
+.markup-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.markup-list li { display: grid; gap: 2px; padding: 6px 8px; border-radius: 4px; }
+.markup-list li.selected { background: var(--row-selected); }
+.markup-list .markup-title { text-align: left; font-weight: 600; }
+.markup-list a { display: inline-flex; align-items: center; gap: 4px; }
+.markup-draft { display: grid; gap: 8px; }
+.pin-list { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.pin-list li > * { vertical-align: middle; }
+.pin-list li { display: list-item; }
+.pin-list input { width: calc(100% - 30px); }
+@media (max-width: 1700px) { .viewer-toolbar .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }

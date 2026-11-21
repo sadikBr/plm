@@ -509,8 +509,13 @@ seat.
       along the model's X, Y or Z or through a clicked face, moved with a slider, flipped, and
       capped so cut solids read as solid (stencil caps; where two solids overlap, the cap shows
       gaps).
-- [ ] 6.10 3D markups and saved views: annotations pinned on the model, with a camera, saved per
+- [x] 6.10 3D markups and saved views: annotations pinned on the model, with a camera, saved per
       version, shared and discussed.
+      Done: the 3D view's Markups panel saves the camera, hidden parts and see-through with
+      numbered pins and notes (model coordinates) on the model's latest version; everyone who can
+      read the model sees them (earlier versions' marked as such) and opens one to get its view
+      back. Each markup opens a topic in the object's discussion, with its reply count shown;
+      authors delete their own, site administrators any.
 - [ ] 6.11 2D/PDF viewer with markups: drawings and PDFs rendered in the browser with pages and
       zoom; markups (arrows, text, clouds, rectangles) saved per version.
 - [ ] 6.12 MBD/PMI: dimensions, tolerances, datums and notes attached to the 3D model, grouped in

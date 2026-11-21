@@ -30,7 +30,7 @@ export function ViewTab({ obj, modelId }: { obj: VersionedObject; modelId: strin
       <Viewer3D
         url={data.url.startsWith("/") ? config.apiBase + data.url : data.url}
         title={`${obj.number} · ${data.version}`}
-        tools={(h) => <InspectTools h={h} />}
+        tools={(h) => <InspectTools h={h} objectId={modelId} />}
       />
     </Suspense>
   );

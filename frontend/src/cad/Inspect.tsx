@@ -1,8 +1,9 @@
-import { Ruler, Scissors, X } from "lucide-react";
+import { MapPinned, Ruler, Scissors, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import * as THREE from "three";
 import { t } from "../i18n/i18n";
+import { Markups3D } from "./Markups3D";
 import type { ViewerHandle } from "./Viewer3D";
 
 /** A point picked on the model: where, on which face (its normal), both in viewer coordinates. */
@@ -75,6 +76,7 @@ function Measure({ h, onClose }: { h: ViewerHandle; onClose: () => void }) {
     const place = () => {
       if (!tag.current) return;
       if (!anchor) return void (tag.current.style.display = "none");
+      h.camera.updateMatrixWorld();
       const s = anchor.clone().project(h.camera);
       const r = h.renderer.domElement;
       tag.current.style.display = "";
@@ -363,29 +365,29 @@ function Section({ h, onClose }: { h: ViewerHandle; onClose: () => void }) {
   );
 }
 
-/** The viewer's inspection tools: one at a time. */
-export function InspectTools({ h }: { h: ViewerHandle }) {
-  const [tool, setTool] = useState<"measure" | "section" | null>(null);
-  const toggle = (x: "measure" | "section") => setTool(tool === x ? null : x);
+type Tool = "measure" | "section" | "markups";
+
+/** The viewer's tools: one panel at a time. Markups belong to [objectId], the model shown. */
+export function InspectTools({ h, objectId }: { h: ViewerHandle; objectId: string }) {
+  const [tool, setTool] = useState<Tool | null>(null);
+  const button = (x: Tool, icon: React.ReactNode, label: string) => (
+    <button
+      className={`btn small ghost ${tool === x ? "on" : ""}`}
+      aria-pressed={tool === x}
+      onClick={() => setTool(tool === x ? null : x)}
+    >
+      {icon} {label}
+    </button>
+  );
   return (
     <>
       <span className="sep" />
-      <button
-        className={`btn small ghost ${tool === "measure" ? "on" : ""}`}
-        aria-pressed={tool === "measure"}
-        onClick={() => toggle("measure")}
-      >
-        <Ruler size={13} aria-hidden /> {t("Measure")}
-      </button>
-      <button
-        className={`btn small ghost ${tool === "section" ? "on" : ""}`}
-        aria-pressed={tool === "section"}
-        onClick={() => toggle("section")}
-      >
-        <Scissors size={13} aria-hidden /> {t("Section")}
-      </button>
+      {button("measure", <Ruler size={13} aria-hidden />, t("Measure"))}
+      {button("section", <Scissors size={13} aria-hidden />, t("Section"))}
+      {button("markups", <MapPinned size={13} aria-hidden />, t("Markups"))}
       {tool === "measure" && <Measure h={h} onClose={() => setTool(null)} />}
       {tool === "section" && <Section h={h} onClose={() => setTool(null)} />}
+      {tool === "markups" && <Markups3D h={h} objectId={objectId} onClose={() => setTool(null)} />}
     </>
   );
 }

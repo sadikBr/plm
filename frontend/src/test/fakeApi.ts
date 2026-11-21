@@ -58,6 +58,7 @@ const DEFAULTS: Record<string, Handler> = {
   "GET /api/v1/objects/:id/cad/family": () => ({ role: "NONE", table: null }),
   "GET /api/v1/objects/:id/cad/associations": () => [],
   "GET /api/v1/objects/:id/cad/viewable": () => ({ status: "NONE", modelId: "x" }),
+  "GET /api/v1/objects/:id/markups": () => [],
   "GET /api/v1/publish-settings": () => ({ watermarkDownloads: false }),
   "GET /api/v1/objects/:id/publications": () => [],
   "GET /api/v1/publish-rules": () => [],

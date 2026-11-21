@@ -4631,6 +4631,68 @@
         "required" : [ "ids" ],
         "type" : "object"
       },
+      "Markup" : {
+        "properties" : {
+          "author" : {
+            "type" : "string"
+          },
+          "contentId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "iterationId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "MODEL", "SHEET" ],
+            "type" : "string"
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "shapes" : {
+            "items" : {
+              "additionalProperties" : { },
+              "type" : "object"
+            },
+            "type" : "array"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "topicId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          },
+          "view" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          }
+        },
+        "required" : [ "author", "createdAt", "id", "iterationId", "kind", "objectId", "shapes", "title", "updatedAt", "version", "view" ],
+        "type" : "object"
+      },
       "MassChange" : {
         "properties" : {
           "attribute" : {
@@ -6842,6 +6904,41 @@
           }
         },
         "required" : [ "groups" ],
+        "type" : "object"
+      },
+      "SaveMarkup" : {
+        "properties" : {
+          "contentId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "kind" : {
+            "enum" : [ "MODEL", "SHEET" ],
+            "type" : "string"
+          },
+          "note" : {
+            "type" : [ "string", "null" ]
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "shapes" : {
+            "items" : {
+              "additionalProperties" : { },
+              "type" : "object"
+            },
+            "type" : "array"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "view" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          }
+        },
+        "required" : [ "kind", "shapes", "title", "view" ],
         "type" : "object"
       },
       "SaveProcessAssignment" : {
@@ -15106,6 +15203,81 @@
         "tags" : [ "Lifecycle" ]
       }
     },
+    "/api/v1/markups/{markupId}" : {
+      "delete" : {
+        "operationId" : "markupDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "markupId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Markup" ]
+      },
+      "put" : {
+        "operationId" : "markupUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "markupId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveMarkup"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Markup"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Markup" ]
+      }
+    },
     "/api/v1/me" : {
       "get" : {
         "operationId" : "principalMe",
@@ -18359,6 +18531,99 @@
           }
         },
         "tags" : [ "Document link" ]
+      }
+    },
+    "/api/v1/objects/{id}/markups" : {
+      "get" : {
+        "operationId" : "markupList",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "kind",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "MODEL", "SHEET" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Markup"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Markup" ]
+      },
+      "post" : {
+        "operationId" : "markupCreate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveMarkup"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Markup"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Markup" ]
       }
     },
     "/api/v1/objects/{id}/move" : {
@@ -25025,6 +25290,8 @@
     "name" : "Layout"
   }, {
     "name" : "Lifecycle"
+  }, {
+    "name" : "Markup"
   }, {
     "name" : "Operation rule"
   }, {

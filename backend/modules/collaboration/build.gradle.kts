@@ -8,6 +8,7 @@ dependencies {
     implementation(project(":backend:modules:types"))
     implementation(project(":backend:modules:versioning"))
     implementation(project(":backend:modules:notifications"))
+    implementation(libs.jackson.kotlin)
 }
 
 dependencies {

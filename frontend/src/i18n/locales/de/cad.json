@@ -173,5 +173,22 @@
   "Click a flat face: the plane goes through it.": "Klicken Sie auf eine ebene Fläche: Die Ebene verläuft durch sie.",
   "Position": "Position",
   "Flip": "Umkehren",
-  "Cap the cut": "Schnitt schließen"
+  "Cap the cut": "Schnitt schließen",
+  "Markups": "Markups",
+  "Title": "Titel",
+  "Note": "Notiz",
+  "Pin {n}": "Markierung {n}",
+  "What's here?": "Was ist hier?",
+  "Click the model…": "Klicken Sie auf das Modell…",
+  "Add a pin": "Markierung hinzufügen",
+  "The current camera, hidden parts and see-through are saved with it.": "Aktuelle Kamera, ausgeblendete Teile und Durchsicht werden mitgespeichert.",
+  "Save markup": "Markup speichern",
+  "New markup": "Neues Markup",
+  "No markups yet.": "Noch keine Markups.",
+  "on {version}": "auf {version}",
+  "{n} pin": "{n} Markierung",
+  "{n} pins": "{n} Markierungen",
+  "{n} reply": "{n} Antwort",
+  "{n} replies": "{n} Antworten",
+  "Delete": "Löschen"
 }

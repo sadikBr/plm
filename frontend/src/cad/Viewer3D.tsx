@@ -35,7 +35,13 @@ export type ViewerHandle = {
   overlay: HTMLDivElement;
   /** While set, clicks on the model go to [fn] instead of selecting. */
   setPicker: (fn: ((hit: THREE.Intersection) => void) | null) => void;
+  /** What's on screen, to save with a markup, and to put back. */
+  snapshot: () => ViewState;
+  restore: (s: ViewState) => void;
 };
+
+/** A saved view: camera (viewer coordinates), hidden branches (tree paths) and see-through. */
+export type ViewState = { camera: { position: number[]; target: number[] }; hidden: string[]; transparent: boolean };
 
 /** True for objects tools add to the scene (markers, caps): never picked, never part of the tree. */
 export const isHelper = (o: THREE.Object3D) => !!o.userData.helper;
@@ -62,6 +68,8 @@ export function Viewer3D({
   const [selected, setSelected] = useState<string | null>(null);
   const [transparent, setTransparent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const live = useRef({ hidden, transparent });
+  live.current = { hidden, transparent };
   const overlay = useRef<HTMLDivElement>(null);
   const picker = useRef<((hit: THREE.Intersection) => void) | null>(null);
   const [picking, setPicking] = useState(false);
@@ -140,18 +148,32 @@ export function Viewer3D({
             picker.current = fn;
             setPicking(!!fn);
           },
+          snapshot: () => ({
+            camera: { position: camera.position.toArray(), target: controls.target.toArray() },
+            hidden: [...live.current.hidden],
+            transparent: live.current.transparent,
+          }),
+          restore: (v) => {
+            camera.position.fromArray(v.camera.position);
+            controls.target.fromArray(v.camera.target);
+            controls.update();
+            setHidden(new Set(v.hidden));
+            setTransparent(v.transparent);
+            render();
+          },
         };
         setHandle(h);
         // The tree: named groups, depth first.
         const out: TreeItem[] = [];
-        const walk = (o: THREE.Object3D, depth: number) => {
+        // Ids are tree paths, the same each time the model loads (saved views name them).
+        const walk = (o: THREE.Object3D, depth: number, path: string) => {
           const meshes: THREE.Mesh[] = [];
           o.traverse((c) => c instanceof THREE.Mesh && !isHelper(c) && meshes.push(c));
           const named = !!o.name && !(o instanceof THREE.Mesh);
-          if (named && meshes.length) out.push({ id: o.uuid, name: o.name.replace(/_/g, " "), depth, object: o, meshes });
-          o.children.filter((c) => !isHelper(c)).forEach((c) => walk(c, named ? depth + 1 : depth));
+          if (named && meshes.length) out.push({ id: path, name: o.name.replace(/_/g, " "), depth, object: o, meshes });
+          o.children.filter((c) => !isHelper(c)).forEach((c, i) => walk(c, named ? depth + 1 : depth, `${path}/${i}`));
         };
-        walk(model, 0);
+        walk(model, 0, "");
         setItems(out);
         setView(h, "iso");
         onReady?.(h);
@@ -306,16 +328,28 @@ export function Viewer3D({
             aria-pressed={transparent}
             onClick={() => setTransparent(!transparent)}
           >
-            <Layers size={13} aria-hidden /> {t("See through")}
+            <Layers size={13} aria-hidden /> <span className="lbl">{t("See through")}</span>
           </button>
-          <button className="btn small ghost" disabled={!chosen} onClick={isolate}>
-            <Focus size={13} aria-hidden /> {t("Isolate")}
+          <button className="btn small ghost" disabled={!chosen} title={t("Isolate")} aria-label={t("Isolate")} onClick={isolate}>
+            <Focus size={13} aria-hidden /> <span className="lbl">{t("Isolate")}</span>
           </button>
-          <button className="btn small ghost" disabled={!chosen} onClick={() => chosen && fit([chosen.object])}>
-            <ScanEye size={13} aria-hidden /> {t("Zoom to")}
+          <button
+            className="btn small ghost"
+            disabled={!chosen}
+            title={t("Zoom to")}
+            aria-label={t("Zoom to")}
+            onClick={() => chosen && fit([chosen.object])}
+          >
+            <ScanEye size={13} aria-hidden /> <span className="lbl">{t("Zoom to")}</span>
           </button>
-          <button className="btn small ghost" disabled={!hidden.size} onClick={() => setHidden(new Set())}>
-            <Box size={13} aria-hidden /> {t("Show all")}
+          <button
+            className="btn small ghost"
+            disabled={!hidden.size}
+            title={t("Show all")}
+            aria-label={t("Show all")}
+            onClick={() => setHidden(new Set())}
+          >
+            <Box size={13} aria-hidden /> <span className="lbl">{t("Show all")}</span>
           </button>
           {handle && tools?.(handle)}
         </div>
