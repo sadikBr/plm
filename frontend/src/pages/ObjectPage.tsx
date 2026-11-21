@@ -149,7 +149,7 @@ function ObjectView({ id }: { id: string }) {
         {tab === "details" && <DetailsTab obj={obj} myId={myId} />}
         {tab === "cad" && cadKind && <CadTab obj={obj} kind={cadKind} mine={!!myId && obj.checkedOutBy === myId} />}
         {tab === "view2d" && <SheetTab obj={obj} />}
-        {tab === "view3d" && <ViewTab obj={obj} modelId={cadKind ? obj.id : ownerModel!} />}
+        {tab === "view3d" && <ViewTab obj={obj} modelId={cadKind ? obj.id : ownerModel!} mine={!!myId && obj.checkedOutBy === myId} />}
         {tab === "structure" && <PartCadPanel obj={obj} mine={!!myId && obj.checkedOutBy === myId} />}
         {tab === "structure" && <StructureTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}
         {tab === "where-used" && <WhereUsedTab obj={obj} />}

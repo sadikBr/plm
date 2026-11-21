@@ -1,9 +1,10 @@
-import { MapPinned, Ruler, Scissors, X } from "lucide-react";
+import { MapPinned, Ruler, Scissors, Spline, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import * as THREE from "three";
 import { t } from "../i18n/i18n";
 import { Markups3D } from "./Markups3D";
+import { PmiPanel } from "./Pmi";
 import type { ViewerHandle } from "./Viewer3D";
 
 /** A point picked on the model: where, on which face (its normal), both in viewer coordinates. */
@@ -365,10 +366,10 @@ function Section({ h, onClose }: { h: ViewerHandle; onClose: () => void }) {
   );
 }
 
-type Tool = "measure" | "section" | "markups";
+type Tool = "measure" | "section" | "markups" | "pmi";
 
 /** The viewer's tools: one panel at a time. Markups belong to [objectId], the model shown. */
-export function InspectTools({ h, objectId }: { h: ViewerHandle; objectId: string }) {
+export function InspectTools({ h, objectId, editable }: { h: ViewerHandle; objectId: string; editable: boolean }) {
   const [tool, setTool] = useState<Tool | null>(null);
   const button = (x: Tool, icon: React.ReactNode, label: string) => (
     <button
@@ -385,8 +386,10 @@ export function InspectTools({ h, objectId }: { h: ViewerHandle; objectId: strin
       {button("measure", <Ruler size={13} aria-hidden />, t("Measure"))}
       {button("section", <Scissors size={13} aria-hidden />, t("Section"))}
       {button("markups", <MapPinned size={13} aria-hidden />, t("Markups"))}
+      {button("pmi", <Spline size={13} aria-hidden />, t("PMI"))}
       {tool === "measure" && <Measure h={h} onClose={() => setTool(null)} />}
       {tool === "section" && <Section h={h} onClose={() => setTool(null)} />}
+      {tool === "pmi" && <PmiPanel h={h} objectId={objectId} editable={editable} onClose={() => setTool(null)} />}
       {tool === "markups" && <Markups3D h={h} objectId={objectId} onClose={() => setTool(null)} />}
     </>
   );

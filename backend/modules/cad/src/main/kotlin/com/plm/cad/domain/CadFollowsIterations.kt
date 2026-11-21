@@ -74,6 +74,17 @@ internal class CadFollowsIterations(
             ).param("it", iteration)
             .param("s", source)
             .update()
+        // So does PMI (6.12).
+        jdbc
+            .sql(
+                """
+                insert into cad_pmi (iteration_id, tenant_id, views, source, updated_at, updated_by)
+                select :it, tenant_id, views, source, updated_at, updated_by from cad_pmi where iteration_id = :s
+                on conflict do nothing
+                """.trimIndent(),
+            ).param("it", iteration)
+            .param("s", source)
+            .update()
         if (existing > 0) return
         val ids =
             jdbc

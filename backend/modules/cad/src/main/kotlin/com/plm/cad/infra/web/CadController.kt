@@ -216,3 +216,29 @@ internal class ViewableController(
         @PathVariable id: UUID,
     ) = conversions.convert(actor, id)
 }
+
+data class PutPmi(
+    val views: List<com.plm.cad.api.PmiView>,
+    /** The file it was read from, when imported in the browser. */
+    val source: String? = null,
+)
+
+/** Model-based definition (roadmap 6.12): a model's PMI views and annotations. */
+@RestController
+internal class PmiController(
+    private val pmi: com.plm.cad.api.PmiService,
+) {
+    @GetMapping("/api/v1/objects/{id}/cad/pmi")
+    fun get(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestParam(defaultValue = "false") workingCopy: Boolean,
+    ) = pmi.get(actor, id, workingCopy)
+
+    @PutMapping("/api/v1/objects/{id}/cad/pmi")
+    fun put(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: PutPmi,
+    ) = pmi.put(actor, id, request.views, request.source)
+}

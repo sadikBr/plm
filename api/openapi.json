@@ -4821,6 +4821,35 @@
         "required" : [ "addedAt", "addedBy", "contextId", "principalId", "role" ],
         "type" : "object"
       },
+      "ModelPmi" : {
+        "properties" : {
+          "modelId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "source" : {
+            "type" : [ "string", "null" ]
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "updatedBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "version" : {
+            "type" : "string"
+          },
+          "views" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PmiView"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "modelId", "version", "views" ],
+        "type" : "object"
+      },
       "MoveObject" : {
         "properties" : {
           "contextId" : {
@@ -5318,6 +5347,81 @@
           }
         },
         "required" : [ "contractVersion", "extensionPermissions" ],
+        "type" : "object"
+      },
+      "PmiAnnotation" : {
+        "properties" : {
+          "at" : {
+            "items" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : "array"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "DIMENSION", "TOLERANCE", "DATUM", "SURFACE_FINISH", "NOTE" ],
+            "type" : "string"
+          },
+          "label" : {
+            "items" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : [ "array", "null" ]
+          },
+          "text" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "at", "id", "kind", "text" ],
+        "type" : "object"
+      },
+      "PmiCamera" : {
+        "properties" : {
+          "position" : {
+            "items" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : "array"
+          },
+          "target" : {
+            "items" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "position", "target" ],
+        "type" : "object"
+      },
+      "PmiView" : {
+        "properties" : {
+          "annotations" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PmiAnnotation"
+            },
+            "type" : "array"
+          },
+          "camera" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/PmiCamera"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "annotations", "id", "name" ],
         "type" : "object"
       },
       "PolicyResponse" : {
@@ -6226,6 +6330,21 @@
           }
         },
         "required" : [ "role" ],
+        "type" : "object"
+      },
+      "PutPmi" : {
+        "properties" : {
+          "source" : {
+            "type" : [ "string", "null" ]
+          },
+          "views" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PmiView"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "views" ],
         "type" : "object"
       },
       "ReassignTask" : {
@@ -17303,6 +17422,96 @@
         "tags" : [ "Family" ]
       }
     },
+    "/api/v1/objects/{id}/cad/pmi" : {
+      "get" : {
+        "operationId" : "pmiGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "workingCopy",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ModelPmi"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Pmi" ]
+      },
+      "put" : {
+        "operationId" : "pmiPut",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PutPmi"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ModelPmi"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Pmi" ]
+      }
+    },
     "/api/v1/objects/{id}/cad/tree" : {
       "get" : {
         "operationId" : "cadTree",
@@ -25298,6 +25507,8 @@
     "name" : "Organizing"
   }, {
     "name" : "Personal"
+  }, {
+    "name" : "Pmi"
   }, {
     "name" : "Policy"
   }, {

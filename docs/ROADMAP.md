@@ -523,8 +523,15 @@ seat.
       downloads), page by page, zoomed in or fitted to the width, sharp at any zoom. Markups of
       arrows, rectangles, revision clouds and numbered notes, in page units, are saved per version
       and page through the same markups as the 3D view, each discussed in its own topic.
-- [ ] 6.12 MBD/PMI: dimensions, tolerances, datums and notes attached to the 3D model, grouped in
+- [x] 6.12 MBD/PMI: dimensions, tolerances, datums and notes attached to the 3D model, grouped in
       views, shown in the viewer and kept with the version; imported with the model when present.
+      Done: CAD parts and assemblies carry PMI per iteration (dimensions, geometric tolerances,
+      datums, surface finishes and notes at points of the model, grouped in views with their own
+      camera), carried into new iterations and revisions. The 3D view's PMI panel shows them as
+      labels with leaders, all at once or a view at a time, and authors them on the working copy
+      (place on the model, new views, keep the camera, import a file). The converter can't read
+      PMI out of STEP AP242, so "with the model" means a sidecar `*.pmi.json` file attached to the
+      model: it's read when that iteration is checked in. Semantic AP242 PMI is not read.
 
 **Exit:** a STEP assembly is imported as CAD documents associated with parts and builds their
 structure; it is converted on check-in, explored in the browser (structure, measure, section,

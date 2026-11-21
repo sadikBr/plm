@@ -10,7 +10,7 @@ const Viewer3D = lazy(() => import("./Viewer3D").then((m) => ({ default: m.Viewe
 const InspectTools = lazy(() => import("./Inspect").then((m) => ({ default: m.InspectTools })));
 
 /** The 3D tab (roadmap 6.8): the model's viewable in the browser. [modelId]: the model to show. */
-export function ViewTab({ obj, modelId }: { obj: VersionedObject; modelId: string }) {
+export function ViewTab({ obj, modelId, mine }: { obj: VersionedObject; modelId: string; mine: boolean }) {
   const { data } = useViewable(modelId);
   if (!data) return <Loading />;
   if (data.status !== "READY" || !data.url) {
@@ -30,7 +30,7 @@ export function ViewTab({ obj, modelId }: { obj: VersionedObject; modelId: strin
       <Viewer3D
         url={data.url.startsWith("/") ? config.apiBase + data.url : data.url}
         title={`${obj.number} · ${data.version}`}
-        tools={(h) => <InspectTools h={h} objectId={modelId} />}
+        tools={(h) => <InspectTools h={h} objectId={modelId} editable={mine && modelId === obj.id} />}
       />
     </Suspense>
   );
