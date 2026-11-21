@@ -9,6 +9,7 @@ import { ActionsAdmin } from "./ActionsAdmin";
 import { ChangesAdmin } from "./ChangesAdmin";
 import { ScriptsAdmin } from "./ScriptsAdmin";
 import { AutomationsAdmin } from "./AutomationsAdmin";
+import { PublishingAdmin } from "./PublishingAdmin";
 import { DeleteRulesAdmin } from "./DeleteRulesAdmin";
 import { DocumentTemplatesAdmin } from "./DocumentTemplatesAdmin";
 import { ExtensionsAdmin } from "./ExtensionsAdmin";
@@ -44,6 +45,7 @@ type Section =
   | "rules"
   | "scripts"
   | "automations"
+  | "publishing"
   | "webhooks"
   | "service-accounts"
   | "profiles"
@@ -70,6 +72,7 @@ const SECTIONS = (): [Section, string][] => [
   ["rules", t("Rules")],
   ["scripts", t("Scripts")],
   ["automations", t("Automations")],
+  ["publishing", t("Publishing")],
   ["webhooks", t("Webhooks")],
   ["service-accounts", t("Service accounts")],
   ["profiles", t("Profiles")],
@@ -126,6 +129,7 @@ export function AdminPage() {
         {tab === "rules" && <RulesAdmin />}
         {tab === "scripts" && <ScriptsAdmin />}
         {tab === "automations" && <AutomationsAdmin />}
+        {tab === "publishing" && <PublishingAdmin />}
         {tab === "webhooks" && <WebhooksAdmin />}
         {tab === "service-accounts" && <ServiceAccountsAdmin />}
         {tab === "profiles" && <ProfilesAdmin />}

@@ -4,6 +4,7 @@ import { ChangeTab, ObjectChangesTab, VariancesBanner, changeKindOf, kindLabel, 
 import { SignaturesPanel } from "../workflow/Signatures";
 import { CadTab, cadKindOf } from "../cad/CadTab";
 import { PartCadPanel } from "../cad/Associations";
+import { PublicationsPanel } from "../publishing/Publishing";
 import { ExtensionPanels, ExtensionTab, useUiSlots } from "../extensions/ExtensionFrame";
 import { ReplacementsTab } from "../structure/Replacements";
 import { DocumentLinksTab, LinkingPartsTab } from "../structure/DocumentLinks";
@@ -676,6 +677,7 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
       <VariancesBanner objectId={obj.id} />
       <ReferencedBy objectId={obj.id} />
       <SignaturesPanel objectId={obj.id} />
+      <PublicationsPanel objectId={obj.id} number={obj.number} />
       <ExtensionPanels obj={obj} />
       {isDocument && <ObjectFiles objectId={obj.id} iterationKey={mine ? `wc:${workingCopy.data?.id ?? ""}` : latest.id} editable={mine} />}
     </div>

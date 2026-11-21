@@ -514,5 +514,22 @@
   "An object is moved": "Un objet est déplacé",
   "A process ends": "Un processus se termine",
   "An approval is signed": "Une approbation est signée",
-  "A promotion request is decided": "Une demande de promotion est tranchée"
+  "A promotion request is decided": "Une demande de promotion est tranchée",
+  "Publishing": "Publication",
+  "Watermarks": "Filigranes",
+  "PDFs handed out by the platform: files, publications and data sheets.": "Les PDF remis par la plateforme : fichiers, publications et fiches.",
+  "Stamp downloaded PDFs with who downloaded them, when, and the version and state": "Tamponner les PDF téléchargés avec qui, quand, la version et l'état",
+  "Publishing rules": "Règles de publication",
+  "Which types publish a PDF, and when: the version's PDF stamped with number, version and state, or a data sheet.": "Quels types publient un PDF, et quand : le PDF de la version tamponné (numéro, version, état), ou une fiche.",
+  "+ Rule": "+ Règle",
+  "No rules: nothing is published by itself.": "Aucune règle : rien n'est publié tout seul.",
+  "Types": "Types",
+  "Watermark": "Filigrane",
+  "all": "tous",
+  "on check-in": "à l'archivage",
+  "on reaching {state}": "en atteignant {state}",
+  "Yes": "Oui",
+  "Edit": "Modifier",
+  "on reaching a state": "en atteignant un état",
+  "Stamp the state across the pages": "Tamponner l'état en travers des pages"
 }

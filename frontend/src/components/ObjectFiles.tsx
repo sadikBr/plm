@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchPdf, usePublishSettings } from "../publishing/Publishing";
 import { Download, Eye, File, FileImage, FileText, Paperclip, Star, Trash2, Upload } from "lucide-react";
 import { useRef, useState, type DragEvent } from "react";
 import { api, unwrap, type Schemas } from "../api/client";
@@ -131,7 +132,12 @@ export function ObjectFiles({ objectId, iterationKey, editable }: { objectId: st
     }
   };
 
+  const { data: watermarks } = usePublishSettings();
   const download = async (item: ContentItem) => {
+    // PDFs carry who downloaded them, when the publishing settings say so (roadmap 6.7).
+    if (watermarks?.watermarkDownloads && /\.pdf$/i.test(item.fileName) && item.iterationId) {
+      return fetchPdf(`/api/v1/content/${item.id}/watermarked`, item.fileName);
+    }
     const a = document.createElement("a");
     a.href = await fileLink(item.id, false);
     a.download = item.fileName;

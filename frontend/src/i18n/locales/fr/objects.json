@@ -270,5 +270,20 @@
   "Show every line": "Afficher toutes les lignes",
   "{n} value and {files} file(s) differ": "{n} valeur et {files} fichier(s) diffèrent",
   "{n} values and {files} file(s) differ": "{n} valeurs et {files} fichier(s) diffèrent",
-  "from {extension}": "de {extension}"
+  "from {extension}": "de {extension}",
+  "Publications": "Publications",
+  "PDFs published for its versions, as the publishing rules say.": "PDF publiés pour ses versions, selon les règles de publication.",
+  "Data sheet (PDF)": "Fiche (PDF)",
+  "Publish now": "Publier maintenant",
+  "Nothing published yet.": "Rien de publié pour l'instant.",
+  "Made from": "Fait à partir de",
+  "By rule": "Par la règle",
+  "Status": "Statut",
+  "its PDF, stamped": "son PDF, tamponné",
+  "a data sheet": "une fiche",
+  "by hand": "à la main",
+  "{n} page": "{n} page",
+  "{n} pages": "{n} pages",
+  "failed": "échec",
+  "publishing…": "publication…"
 }

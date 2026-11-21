@@ -486,9 +486,15 @@ seat.
       with the file, so later versions with the same file have it at once; a family instance shows
       its generic's. The CAD tab shows waiting, converting, ready (bodies, triangles, download) or
       the failure, with Convert again.
-- [ ] 6.7 Publishing rules, watermarks and PDF: which types publish what, when (check-in,
+- [x] 6.7 Publishing rules, watermarks and PDF: which types publish what, when (check-in,
       release); PDFs stamped with number, version, state and viewer on download; a PDF data sheet
       of any object.
+      Done: Administration › Publishing holds rules (types; on check-in or on reaching a state;
+      stamp the state across the pages) that publish a version's PDF file stamped with its number,
+      version and state, or a data sheet when it has none, as background jobs; the object's
+      Publications list them. With the watermark setting on, every PDF handed out (files,
+      publications, data sheets) carries who downloaded it and when. Any object's data sheet
+      (attributes, structure, files, history) is a PDF on demand.
 - [ ] 6.8 Web 3D viewer: the model in the browser with its structure tree (show, hide, isolate,
       select), fit, orbit, views, transparency; from the object page and the part structure.
 - [ ] 6.9 Measure and section: distances, angles and coordinates between points and faces;

@@ -514,5 +514,22 @@
   "An object is moved": "Ein Objekt wird verschoben",
   "A process ends": "Ein Prozess endet",
   "An approval is signed": "Eine Genehmigung wird signiert",
-  "A promotion request is decided": "Ein Promotionsantrag wird entschieden"
+  "A promotion request is decided": "Ein Promotionsantrag wird entschieden",
+  "Publishing": "Veröffentlichung",
+  "Watermarks": "Wasserzeichen",
+  "PDFs handed out by the platform: files, publications and data sheets.": "Von der Plattform ausgegebene PDFs: Dateien, Veröffentlichungen und Datenblätter.",
+  "Stamp downloaded PDFs with who downloaded them, when, and the version and state": "Heruntergeladene PDFs mit wer, wann, Version und Status stempeln",
+  "Publishing rules": "Veröffentlichungsregeln",
+  "Which types publish a PDF, and when: the version's PDF stamped with number, version and state, or a data sheet.": "Welche Typen wann ein PDF veröffentlichen: das PDF der Version mit Nummer, Version und Status gestempelt, oder ein Datenblatt.",
+  "+ Rule": "+ Regel",
+  "No rules: nothing is published by itself.": "Keine Regeln: Nichts wird von selbst veröffentlicht.",
+  "Types": "Typen",
+  "Watermark": "Wasserzeichen",
+  "all": "alle",
+  "on check-in": "beim Einchecken",
+  "on reaching {state}": "beim Erreichen von {state}",
+  "Yes": "Ja",
+  "Edit": "Bearbeiten",
+  "on reaching a state": "beim Erreichen eines Status",
+  "Stamp the state across the pages": "Status quer über die Seiten stempeln"
 }
