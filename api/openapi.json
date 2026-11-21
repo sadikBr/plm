@@ -1009,6 +1009,32 @@
         },
         "type" : "object"
       },
+      "ChangeAges" : {
+        "properties" : {
+          "kind" : {
+            "enum" : [ "PROBLEM_REPORT", "CHANGE_REQUEST", "CHANGE_NOTICE", "CHANGE_TASK", "VARIANCE" ],
+            "type" : "string"
+          },
+          "over90" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "upTo30" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "upTo7" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "upTo90" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "kind", "over90", "upTo30", "upTo7", "upTo90" ],
+        "type" : "object"
+      },
       "ChangeFrom" : {
         "properties" : {
           "affected" : {
@@ -1089,6 +1115,67 @@
           }
         },
         "required" : [ "changeId", "createdAt", "createdBy", "id", "role", "target" ],
+        "type" : "object"
+      },
+      "ChangeMetrics" : {
+        "properties" : {
+          "ages" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ChangeAges"
+            },
+            "type" : "array"
+          },
+          "byState" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ChangeStateCount"
+            },
+            "type" : "array"
+          },
+          "cycleTimes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CycleTime"
+            },
+            "type" : "array"
+          },
+          "flow" : {
+            "items" : {
+              "$ref" : "#/components/schemas/WeekFlow"
+            },
+            "type" : "array"
+          },
+          "mine" : {
+            "items" : {
+              "$ref" : "#/components/schemas/MyChange"
+            },
+            "type" : "array"
+          },
+          "open" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "periodDays" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "ages", "byState", "cycleTimes", "flow", "mine", "open", "periodDays" ],
+        "type" : "object"
+      },
+      "ChangeStateCount" : {
+        "properties" : {
+          "count" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "kind" : {
+            "enum" : [ "PROBLEM_REPORT", "CHANGE_REQUEST", "CHANGE_NOTICE", "CHANGE_TASK", "VARIANCE" ],
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "count", "kind", "state" ],
         "type" : "object"
       },
       "ChangeTemplate" : {
@@ -2001,6 +2088,28 @@
           }
         },
         "required" : [ "id", "name", "number", "version" ],
+        "type" : "object"
+      },
+      "CycleTime" : {
+        "properties" : {
+          "averageDays" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "kind" : {
+            "enum" : [ "PROBLEM_REPORT", "CHANGE_REQUEST", "CHANGE_NOTICE", "CHANGE_TASK", "VARIANCE" ],
+            "type" : "string"
+          },
+          "medianDays" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "resolved" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "kind", "resolved" ],
         "type" : "object"
       },
       "Dashboard" : {
@@ -4003,6 +4112,40 @@
           }
         },
         "required" : [ "contextId" ],
+        "type" : "object"
+      },
+      "MyChange" : {
+        "properties" : {
+          "ageDays" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "due" : {
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "PROBLEM_REPORT", "CHANGE_REQUEST", "CHANGE_NOTICE", "CHANGE_TASK", "VARIANCE" ],
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "why" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "ageDays", "id", "kind", "name", "number", "state", "why" ],
         "type" : "object"
       },
       "NewBaseline" : {
@@ -7580,6 +7723,24 @@
         "required" : [ "background", "secret", "timeoutSeconds", "url" ],
         "type" : "object"
       },
+      "WeekFlow" : {
+        "properties" : {
+          "opened" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "resolved" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "week" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        },
+        "required" : [ "opened", "resolved", "week" ],
+        "type" : "object"
+      },
       "WhereUsedNode" : {
         "properties" : {
           "findNumber" : {
@@ -7643,7 +7804,7 @@
             "type" : "string"
           },
           "kind" : {
-            "enum" : [ "REPORT_CHART", "REPORT_TABLE", "REPORT_COUNT", "CHECKED_OUT", "RECENT", "FAVORITES", "RECENT_VISITS", "NOTIFICATIONS" ],
+            "enum" : [ "REPORT_CHART", "REPORT_TABLE", "REPORT_COUNT", "CHECKED_OUT", "CHANGES_OPEN", "CHANGES_MINE", "RECENT", "FAVORITES", "RECENT_VISITS", "NOTIFICATIONS" ],
             "type" : "string"
           },
           "limit" : {
@@ -8607,6 +8768,61 @@
           }
         },
         "tags" : [ "Change setup" ]
+      }
+    },
+    "/api/v1/change-metrics" : {
+      "get" : {
+        "operationId" : "changeMetricsMetrics",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "contextId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "periodDays",
+          "required" : false,
+          "schema" : {
+            "default" : 180,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "weeks",
+          "required" : false,
+          "schema" : {
+            "default" : 12,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChangeMetrics"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change metrics" ]
       }
     },
     "/api/v1/change-templates" : {
@@ -21412,6 +21628,8 @@
     "name" : "Bulk"
   }, {
     "name" : "Change"
+  }, {
+    "name" : "Change metrics"
   }, {
     "name" : "Change setup"
   }, {

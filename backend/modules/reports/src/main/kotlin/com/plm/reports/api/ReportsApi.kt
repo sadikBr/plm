@@ -149,6 +149,12 @@ enum class WidgetKind {
     /** What you have checked out. */
     CHECKED_OUT,
 
+    /** Open changes by kind and state (roadmap 5.12). */
+    CHANGES_OPEN,
+
+    /** Your open changes (roadmap 5.12). */
+    CHANGES_MINE,
+
     /** What changed lately, where you can read. */
     RECENT,
 

@@ -8,7 +8,17 @@ export type Bar = { key: string; label: string; count: number };
  * value sits at the end of each bar, and hovering shows the exact share. Long tails fold into
  * "Other" past [max] bars.
  */
-export function BarChart({ bars, max = 8, onSelect }: { bars: Bar[]; max?: number; onSelect?: (key: string) => void }) {
+export function BarChart({
+  bars,
+  max = 8,
+  onSelect,
+  wideLabels,
+}: {
+  bars: Bar[];
+  max?: number;
+  onSelect?: (key: string) => void;
+  wideLabels?: boolean;
+}) {
   const [hover, setHover] = useState<string | null>(null);
   const total = bars.reduce((s, b) => s + b.count, 0);
   const shown =
@@ -25,7 +35,11 @@ export function BarChart({ bars, max = 8, onSelect }: { bars: Bar[]; max?: numbe
   const top = Math.max(1, ...shown.map((b) => b.count));
   if (!shown.length) return <p className="empty">{t("Nothing to count.")}</p>;
   return (
-    <div className="viz-root bar-chart" role="img" aria-label={shown.map((b) => `${b.label}: ${b.count}`).join(", ")}>
+    <div
+      className={`viz-root bar-chart ${wideLabels ? "wide-labels" : ""}`}
+      role="img"
+      aria-label={shown.map((b) => `${b.label}: ${b.count}`).join(", ")}
+    >
       {shown.map((b) => {
         const pct = (b.count / top) * 100;
         const clickable = onSelect && b.key !== "__other";

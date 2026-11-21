@@ -10,6 +10,7 @@ import { BarChart } from "./BarChart";
 import { useBars, useReportRun } from "./ReportsPage";
 import { favoriteLink, useFavorites, useNotifications, useRecentVisits } from "../personal/Personal";
 import { t } from "../i18n/i18n";
+import { MyChanges, OpenByState, useChangeMetrics } from "../changes/ChangeDashboard";
 
 type Dashboard = Schemas["Dashboard"];
 type Widget = Schemas["Widget"];
@@ -20,6 +21,8 @@ const KINDS = (): [WidgetKind, string, boolean][] => [
   ["REPORT_COUNT", t("A report's total"), true],
   ["REPORT_TABLE", t("A report's first rows"), true],
   ["CHECKED_OUT", t("What I have checked out"), false],
+  ["CHANGES_OPEN", t("Open changes by state"), false],
+  ["CHANGES_MINE", t("My open changes"), false],
   ["RECENT", t("Recently changed"), false],
   ["RECENT_VISITS", t("What I viewed lately"), false],
   ["FAVORITES", t("My favorites"), false],
@@ -43,6 +46,7 @@ function WidgetBody({ widget }: { widget: Widget }) {
     queryFn: () => unwrap(api.GET("/api/v1/home/recent", { params: { query: { limit: widget.limit } } })),
     enabled: widget.kind === "RECENT",
   });
+  if (widget.kind === "CHANGES_OPEN" || widget.kind === "CHANGES_MINE") return <ChangesWidget kind={widget.kind} limit={widget.limit} />;
   if (widget.kind === "RECENT_VISITS") return <VisitsWidget limit={widget.limit} />;
   if (widget.kind === "FAVORITES") return <FavoritesWidget limit={widget.limit} />;
   if (widget.kind === "NOTIFICATIONS") return <NoticesWidget limit={widget.limit} />;
@@ -469,6 +473,22 @@ export function DashboardsPage() {
           </div>
         </Dialog>
       )}
+    </>
+  );
+}
+
+/** Change widgets (roadmap 5.12). */
+function ChangesWidget({ kind, limit }: { kind: "CHANGES_OPEN" | "CHANGES_MINE"; limit: number }) {
+  const { data, error } = useChangeMetrics();
+  if (error) return <ErrorBanner error={error} />;
+  if (!data) return <Loading />;
+  if (kind === "CHANGES_MINE") return <MyChanges mine={data.mine.slice(0, limit)} compact />;
+  return (
+    <>
+      <OpenByState metrics={data} />
+      <p className="muted small" style={{ padding: "0 14px 10px" }}>
+        <Link to="/changes?view=dashboard">{t("{n} open · change dashboard", { n: data.open })}</Link>
+      </p>
     </>
   );
 }

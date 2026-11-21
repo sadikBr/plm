@@ -386,8 +386,13 @@ affected objects; and the platform can be extended with scripts, UI slots and no
       task and its notice; an edit that can't apply (object checked out, part no longer used)
       refuses the resolution. A mass change proposes one edit on every affected object it fits and
       says why it skipped the others.
-- [ ] 5.12 Change dashboards: open changes by state and age, my changes, cycle time; widgets for
+- [x] 5.12 Change dashboards: open changes by state and age, my changes, cycle time; widgets for
       the home dashboards.
+      Done: Changes › Dashboard shows, for every product the reader can read (or one), open changes
+      by kind and state, how long they have been open, changes opened and resolved per week, cycle
+      times (median and average, last 180 days) and the reader's own open changes (owned, or a task
+      planned for them). "Open changes by state" and "My open changes" are dashboard widgets. A
+      small read model, kept from the change objects' events, makes it cheap.
 - [ ] 5.13 Release gate: parts and documents reach Released only through an approved change notice
       or promotion request (administrators can override, audited).
 - [ ] 5.14 Sandboxed server scripts: JavaScript scripts for validation rules, numbering and

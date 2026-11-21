@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ClipboardList, PencilRuler, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
 import { useContextsOfKind, useTypes, type AttributeDefinition, type VersionedObject } from "../api/queries";
 import { Dialog, ErrorBanner, Loading, Panel, PrincipalName, StateBadge, TypeIcon, formatDate, typeLabel } from "../components/common";
-import { PageHeader } from "../components/Layout";
+import { PageHeader, Tabs } from "../components/Layout";
+import { ChangeDashboard } from "./ChangeDashboard";
 import { ReferenceInput } from "../components/References";
 import { useAttributeDefinitions } from "../components/ObjectTable";
 import { t, tn } from "../i18n/i18n";
@@ -105,6 +106,8 @@ export function ChangesPage() {
   const [creating, setCreating] = useState<Kind | null>(null);
   const [fromTemplate, setFromTemplate] = useState(false);
   const [kind, setKind] = useState<Kind | "">("");
+  const [params, setParams] = useSearchParams();
+  const view = params.get("view") === "dashboard" ? "dashboard" : "list";
   const rows = (data?.hits ?? []).filter((h) => !kind || h.typeId === CHANGE_TYPES[kind]);
   return (
     <>
@@ -112,68 +115,82 @@ export function ChangesPage() {
         icon={<ClipboardList size={18} className="icon-muted" aria-hidden />}
         title={<span className="nm">{t("Changes")}</span>}
         meta={<span className="sub">{t("Problem reports, change requests, change notices and their tasks.")}</span>}
+        tabs={
+          <Tabs
+            tabs={[
+              ["list", t("All changes")],
+              ["dashboard", t("Dashboard")],
+            ]}
+            active={view}
+            onSelect={(v) => setParams(v === "list" ? {} : { view: v })}
+          />
+        }
       />
       <div className="content">
-        <Panel
-          title={t("Changes")}
-          flush
-          actions={
-            <>
-              <select className="filter" aria-label={t("Kind")} value={kind} onChange={(e) => setKind(e.target.value as Kind | "")}>
-                <option value="">{t("All kinds")}</option>
-                {(Object.keys(CHANGE_TYPES) as Kind[]).map((k) => (
-                  <option key={k} value={k}>
-                    {kindLabel(k)}
-                  </option>
-                ))}
-              </select>
-              <button className="btn small" onClick={() => setFromTemplate(true)}>
-                {t("From a template…")}
-              </button>
-              {(["PROBLEM_REPORT", "CHANGE_REQUEST", "CHANGE_NOTICE", "VARIANCE"] as Kind[]).map((k) => (
-                <button key={k} className="btn small" onClick={() => setCreating(k)}>
-                  <Plus size={13} aria-hidden /> {kindLabel(k)}
+        {view === "dashboard" ? (
+          <ChangeDashboard />
+        ) : (
+          <Panel
+            title={t("Changes")}
+            flush
+            actions={
+              <>
+                <select className="filter" aria-label={t("Kind")} value={kind} onChange={(e) => setKind(e.target.value as Kind | "")}>
+                  <option value="">{t("All kinds")}</option>
+                  {(Object.keys(CHANGE_TYPES) as Kind[]).map((k) => (
+                    <option key={k} value={k}>
+                      {kindLabel(k)}
+                    </option>
+                  ))}
+                </select>
+                <button className="btn small" onClick={() => setFromTemplate(true)}>
+                  {t("From a template…")}
                 </button>
-              ))}
-            </>
-          }
-        >
-          <ErrorBanner error={error} />
-          {isLoading ? (
-            <Loading />
-          ) : !rows.length ? (
-            <div className="empty">{t("No change yet.")}</div>
-          ) : (
-            <table className="grid" aria-label={t("Changes")}>
-              <thead>
-                <tr>
-                  <th>{t("Number")}</th>
-                  <th>{t("Name")}</th>
-                  <th>{t("Kind")}</th>
-                  <th>{t("State")}</th>
-                  <th>{t("Last modified")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((h) => (
-                  <tr key={h.id}>
-                    <td className="nowrap">
-                      <TypeIcon typeId={h.typeId} /> <Link to={`/objects/${h.id}?tab=change`}>{h.number}</Link>
-                    </td>
-                    <td>{h.name}</td>
-                    <td>
-                      <TypeName id={h.typeId} />
-                    </td>
-                    <td>
-                      <StateBadge state={h.state} />
-                    </td>
-                    <td className="nowrap">{formatDate(h.modifiedAt)}</td>
-                  </tr>
+                {(["PROBLEM_REPORT", "CHANGE_REQUEST", "CHANGE_NOTICE", "VARIANCE"] as Kind[]).map((k) => (
+                  <button key={k} className="btn small" onClick={() => setCreating(k)}>
+                    <Plus size={13} aria-hidden /> {kindLabel(k)}
+                  </button>
                 ))}
-              </tbody>
-            </table>
-          )}
-        </Panel>
+              </>
+            }
+          >
+            <ErrorBanner error={error} />
+            {isLoading ? (
+              <Loading />
+            ) : !rows.length ? (
+              <div className="empty">{t("No change yet.")}</div>
+            ) : (
+              <table className="grid" aria-label={t("Changes")}>
+                <thead>
+                  <tr>
+                    <th>{t("Number")}</th>
+                    <th>{t("Name")}</th>
+                    <th>{t("Kind")}</th>
+                    <th>{t("State")}</th>
+                    <th>{t("Last modified")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((h) => (
+                    <tr key={h.id}>
+                      <td className="nowrap">
+                        <TypeIcon typeId={h.typeId} /> <Link to={`/objects/${h.id}?tab=change`}>{h.number}</Link>
+                      </td>
+                      <td>{h.name}</td>
+                      <td>
+                        <TypeName id={h.typeId} />
+                      </td>
+                      <td>
+                        <StateBadge state={h.state} />
+                      </td>
+                      <td className="nowrap">{formatDate(h.modifiedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Panel>
+        )}
       </div>
       {creating && <NewChangeDialog kind={creating} onClose={() => setCreating(null)} />}
       {fromTemplate && <FromTemplateDialog onClose={() => setFromTemplate(false)} />}
