@@ -98,6 +98,8 @@ interface BomService {
         depth: Int = 1,
         workingCopy: Boolean = false,
         limit: Int = 100_000,
+        /** Start from this iteration of the top instead of the one [spec] picks (children still follow [spec]). */
+        rootIterationId: UUID? = null,
     ): StructureResult
 
     /**
@@ -112,6 +114,18 @@ interface BomService {
         depth: Int = 1,
         limit: Int = 20_000,
     ): WhereUsedResult
+
+    /**
+     * Compares two structures (roadmap 4.9): two iterations of a part, two parts, or one part under
+     * two specifications. Lines are matched by the parts they use, level by level; parts used on
+     * several lines under the same parent are summed.
+     */
+    fun compare(
+        actor: Actor,
+        left: CompareSide,
+        right: CompareSide,
+        depth: Int = 50,
+    ): CompareResult
 
     fun add(
         actor: Actor,
@@ -227,6 +241,49 @@ data class WhereUsedResult(
     val spec: ConfigSpec,
     val nodes: List<WhereUsedNode>,
     val truncated: Boolean,
+)
+
+/** One side of a comparison: a part at an iteration, or as a specification picks it. */
+data class CompareSide(
+    val partId: UUID,
+    val iterationId: UUID? = null,
+    val spec: ConfigSpec = ConfigSpec.LATEST,
+)
+
+enum class CompareStatus { SAME, CHANGED, ADDED, REMOVED }
+
+/** A line of one side, summed when a part appears on several lines under the same parent. */
+data class CompareLine(
+    val version: String?,
+    val state: String?,
+    val quantity: BigDecimal,
+    val unit: String,
+    val lineNumbers: List<Int>,
+    val findNumber: String?,
+    val designators: List<String>,
+)
+
+/** One part at one place in both structures (roadmap 4.9). */
+data class CompareRow(
+    val level: Int,
+    /** Part ids from the top, e.g. `id1/id2`: where the part sits. */
+    val path: String,
+    val parentPath: String?,
+    val part: UsedPart,
+    val status: CompareStatus,
+    val left: CompareLine?,
+    val right: CompareLine?,
+    /** What differs: VERSION, QUANTITY, UNIT, FIND_NUMBER, DESIGNATORS. */
+    val differences: List<String>,
+)
+
+data class CompareResult(
+    val leftVersion: String?,
+    val rightVersion: String?,
+    val rows: List<CompareRow>,
+    val added: Int,
+    val removed: Int,
+    val changed: Int,
 )
 
 /** A change to a working copy's structure, recorded on the parent's audit trail. */

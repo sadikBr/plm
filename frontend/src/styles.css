@@ -832,3 +832,14 @@ td.tree-cell > * { vertical-align: middle; }
 .substitutes li { display: flex; align-items: center; gap: 6px; }
 .icon-btn.on { color: var(--accent); background: var(--accent-soft); }
 .add-line label input[type="checkbox"] { width: auto; min-height: 0; }
+.grid.compare th.side { text-align: center; border-left: 1px solid var(--border); }
+.grid.compare td.diff { background: color-mix(in srgb, var(--warn) 18%, var(--panel)); font-weight: 600; }
+.grid.compare tr.cmp-added td:first-child { box-shadow: inset 3px 0 0 var(--ok); }
+.grid.compare tr.cmp-removed td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+.grid.compare tr.cmp-changed td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+.grid.compare tr.cmp-removed td { color: var(--text-3); }
+.tag.cmp-tag-added { background: var(--ok-soft); color: var(--ok); }
+.tag.cmp-tag-removed { background: var(--danger-soft); color: var(--danger); }
+.tag.cmp-tag-changed { background: var(--warn-soft); color: var(--warn); }
+.page-head .toolbar label input[type="checkbox"], .radio-list select { width: auto; min-height: 0; }
+.radio-list .add-line-pick, .radio-list select { margin-left: 24px; }

@@ -929,6 +929,113 @@
         "required" : [ "author", "body", "createdAt", "deleted", "id", "mentions", "objectId", "resolved" ],
         "type" : "object"
       },
+      "CompareLine" : {
+        "properties" : {
+          "designators" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "findNumber" : {
+            "type" : [ "string", "null" ]
+          },
+          "lineNumbers" : {
+            "items" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "type" : "array"
+          },
+          "quantity" : {
+            "type" : "number"
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          },
+          "unit" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "designators", "lineNumbers", "quantity", "unit" ],
+        "type" : "object"
+      },
+      "CompareResult" : {
+        "properties" : {
+          "added" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "changed" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "leftVersion" : {
+            "type" : [ "string", "null" ]
+          },
+          "removed" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "rightVersion" : {
+            "type" : [ "string", "null" ]
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CompareRow"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "added", "changed", "removed", "rows" ],
+        "type" : "object"
+      },
+      "CompareRow" : {
+        "properties" : {
+          "differences" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "left" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/CompareLine"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "level" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "parentPath" : {
+            "type" : [ "string", "null" ]
+          },
+          "part" : {
+            "$ref" : "#/components/schemas/UsedPart"
+          },
+          "path" : {
+            "type" : "string"
+          },
+          "right" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/CompareLine"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "status" : {
+            "enum" : [ "SAME", "CHANGED", "ADDED", "REMOVED" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "differences", "level", "part", "path", "status" ],
+        "type" : "object"
+      },
       "ComparedVersion" : {
         "properties" : {
           "iterationId" : {
@@ -15127,6 +15234,108 @@
           }
         },
         "tags" : [ "Shared team" ]
+      }
+    },
+    "/api/v1/structure-compare" : {
+      "get" : {
+        "operationId" : "bomCompare",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "left",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "leftIteration",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "leftSpec",
+          "required" : false,
+          "schema" : {
+            "default" : "LATEST",
+            "enum" : [ "LATEST", "STATE", "AS_OF" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "leftState",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "right",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "rightIteration",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "rightSpec",
+          "required" : false,
+          "schema" : {
+            "default" : "LATEST",
+            "enum" : [ "LATEST", "STATE", "AS_OF" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "rightState",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "depth",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CompareResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Bom" ]
       }
     },
     "/api/v1/table-views" : {

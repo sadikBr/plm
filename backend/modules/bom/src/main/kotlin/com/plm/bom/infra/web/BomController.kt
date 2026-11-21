@@ -2,6 +2,7 @@ package com.plm.bom.infra.web
 
 import com.plm.bom.api.AddUsage
 import com.plm.bom.api.BomService
+import com.plm.bom.api.CompareSide
 import com.plm.bom.api.ConfigSpec
 import com.plm.bom.api.ConfigSpecType
 import com.plm.bom.api.UpdateUsage
@@ -58,6 +59,26 @@ internal class BomController(
         @RequestParam(required = false) asOf: Instant?,
         @RequestParam(defaultValue = "1") depth: Int,
     ) = bom.whereUsed(actor, MasterId(id), ConfigSpec(spec, state, asOf), depth)
+
+    /** Compares two structures (roadmap 4.9): each side a part with `…Iteration` or `…Spec`. */
+    @GetMapping("/api/v1/structure-compare")
+    fun compare(
+        actor: Actor,
+        @RequestParam left: UUID,
+        @RequestParam(required = false) leftIteration: UUID?,
+        @RequestParam(defaultValue = "LATEST") leftSpec: ConfigSpecType,
+        @RequestParam(required = false) leftState: String?,
+        @RequestParam right: UUID,
+        @RequestParam(required = false) rightIteration: UUID?,
+        @RequestParam(defaultValue = "LATEST") rightSpec: ConfigSpecType,
+        @RequestParam(required = false) rightState: String?,
+        @RequestParam(defaultValue = "50") depth: Int,
+    ) = bom.compare(
+        actor,
+        CompareSide(left, leftIteration, ConfigSpec(leftSpec, leftState)),
+        CompareSide(right, rightIteration, ConfigSpec(rightSpec, rightState)),
+        depth,
+    )
 
     @PostMapping("/api/v1/objects/{id}/usages")
     @ResponseStatus(HttpStatus.CREATED)

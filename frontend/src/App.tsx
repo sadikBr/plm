@@ -1,3 +1,4 @@
+import { StructureComparePage } from "./structure/StructureCompare";
 import { browserLanguage, isLanguage, setLanguage } from "./i18n/i18n";
 import { useEffectivePreferences } from "./api/queries";
 import { AuditReportPage } from "./audit/AuditReport";
@@ -54,6 +55,7 @@ export function AppRoutes() {
         <Route path="dashboards/:id" element={<DashboardsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="audit" element={<AuditReportPage />} />
+        <Route path="structure-compare" element={<StructureComparePage />} />
         <Route path="admin" element={<AdminPage />} />
         <Route path="preferences" element={<MyPreferencesPage />} />
         <Route path="*" element={<NotFoundPage />} />

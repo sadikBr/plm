@@ -170,4 +170,60 @@ internal class StructureTreeIT(
         versioning.checkIn(alice, drive)
         assertThat(bom.whereUsed(alice, bolt).nodes.map { it.parent.name }).containsExactly("Spare kit")
     }
+
+    @Test
+    fun `two iterations of a structure compare line by line, at every level`() {
+        val p = product()
+        val top = part(p, "Top")
+        val mid = part(p, "Mid")
+        val (a, b, c) = listOf(part(p, "A"), part(p, "B"), part(p, "C"))
+        use(mid, a to 2)
+        use(top, mid to 1, b to 3)
+        val first =
+            versioning
+                .get(alice, top)
+                .latest.id.value
+        versioning.checkOut(alice, top)
+        val lines = bom.usages(alice, top, workingCopy = true)
+        bom.update(
+            alice,
+            top,
+            lines
+                .single {
+                    it.child.id == b.value
+                }.id,
+            com.plm.bom.api
+                .UpdateUsage(BigDecimal("5"), "each", 20),
+        )
+        bom.add(alice, top, AddUsage(c.value))
+        versioning.checkIn(alice, top)
+        val diff =
+            bom.compare(
+                alice,
+                com.plm.bom.api
+                    .CompareSide(top.value, first),
+                com.plm.bom.api
+                    .CompareSide(top.value),
+            )
+        assertThat(diff.rows.map { it.part.name to it.status })
+            .containsExactly(
+                "Mid" to com.plm.bom.api.CompareStatus.SAME,
+                "A" to com.plm.bom.api.CompareStatus.SAME,
+                "B" to com.plm.bom.api.CompareStatus.CHANGED,
+                "C" to com.plm.bom.api.CompareStatus.ADDED,
+            )
+        assertThat(diff.rows.single { it.part.name == "B" }.differences).containsExactly("QUANTITY")
+        assertThat(diff.rows.single { it.part.name == "A" }.level).isEqualTo(2)
+        assertThat(listOf(diff.added, diff.removed, diff.changed)).containsExactly(1, 0, 1)
+        // The other way round, C is removed.
+        val back =
+            bom.compare(
+                alice,
+                com.plm.bom.api
+                    .CompareSide(top.value),
+                com.plm.bom.api
+                    .CompareSide(top.value, first),
+            )
+        assertThat(back.rows.single { it.part.name == "C" }.status).isEqualTo(com.plm.bom.api.CompareStatus.REMOVED)
+    }
 }

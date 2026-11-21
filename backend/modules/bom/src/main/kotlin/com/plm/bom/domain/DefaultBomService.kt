@@ -5,6 +5,11 @@ import com.plm.access.api.AccessService
 import com.plm.access.api.Permission
 import com.plm.bom.api.AddUsage
 import com.plm.bom.api.BomService
+import com.plm.bom.api.CompareLine
+import com.plm.bom.api.CompareResult
+import com.plm.bom.api.CompareRow
+import com.plm.bom.api.CompareSide
+import com.plm.bom.api.CompareStatus
 import com.plm.bom.api.ConfigSpec
 import com.plm.bom.api.ConfigSpecType
 import com.plm.bom.api.StructureChanged
@@ -142,6 +147,7 @@ internal class DefaultBomService(
         depth: Int,
         workingCopy: Boolean,
         limit: Int,
+        rootIterationId: UUID?,
     ): StructureResult {
         val started = System.nanoTime()
         if (spec.type == ConfigSpecType.AS_OF &&
@@ -153,6 +159,12 @@ internal class DefaultBomService(
         val (rootIteration, rootVersion) =
             if (workingCopy) {
                 versioning.workingCopy(actor, rootId).let { it.id.value to it.version }
+            } else if (rootIterationId != null) {
+                versioning
+                    .history(actor, rootId)
+                    .firstOrNull { it.id.value == rootIterationId }
+                    ?.let { it.id.value to it.version }
+                    ?: throw NotFoundException("ITERATION_NOT_FOUND", "There's no such iteration of ${root.number}")
             } else {
                 repository.resolve(listOf(root.id.value), spec, readable(actor))[root.id.value].let {
                     it?.iterationId to
@@ -312,6 +324,110 @@ internal class DefaultBomService(
             byParent[n.path].orEmpty().sortedByDescending { it.parent.number }.forEach(stack::addLast)
         }
         return out
+    }
+
+    @Transactional(readOnly = true)
+    override fun compare(
+        actor: Actor,
+        left: CompareSide,
+        right: CompareSide,
+        depth: Int,
+    ): CompareResult {
+        fun side(s: CompareSide) = structure(actor, MasterId(s.partId), s.spec, depth, rootIterationId = s.iterationId)
+        val l = side(left)
+        val r = side(right)
+
+        // Path of part ids from the top for each node, from its line path.
+        fun keyed(result: StructureResult): Map<String, Pair<UsedPart, CompareLine>> {
+            val partPath = HashMap<String, String>()
+            val grouped = LinkedHashMap<String, MutableList<StructureNode>>()
+            for (n in result.nodes) {
+                val parentKey = n.parentPath?.let { partPath[it] }
+                val key = if (parentKey == null) "${n.line.child.id}" else "$parentKey/${n.line.child.id}"
+                partPath[n.path] = key
+                grouped.getOrPut(key) { mutableListOf() } += n
+            }
+            return grouped.mapValues { (_, nodes) ->
+                val first = nodes.first().line
+                nodes.first().line.child to
+                    CompareLine(
+                        first.child.version,
+                        first.child.state,
+                        nodes.fold(BigDecimal.ZERO) { acc, n -> acc + n.line.quantity }.stripTrailingZeros().let {
+                            if (it.scale() <
+                                0
+                            ) {
+                                it.setScale(0)
+                            } else {
+                                it
+                            }
+                        },
+                        first.unit,
+                        nodes.map { it.line.lineNumber },
+                        nodes
+                            .mapNotNull { it.line.findNumber }
+                            .distinct()
+                            .joinToString(", ")
+                            .ifEmpty { null },
+                        nodes.flatMap { it.line.designators },
+                    )
+            }
+        }
+        val a = keyed(l)
+        val b = keyed(r)
+        val rows = ArrayList<CompareRow>()
+        // Both sides' order: left first, then what's only on the right, in the right's order.
+        val keys =
+            LinkedHashSet<String>().apply {
+                addAll(a.keys)
+                addAll(b.keys)
+            }
+        var added = 0
+        var removed = 0
+        var changed = 0
+        for (key in keys) {
+            val x = a[key]
+            val y = b[key]
+            val diffs = mutableListOf<String>()
+            if (x != null && y != null) {
+                if (x.second.version != y.second.version) diffs += "VERSION"
+                if (x.second.quantity.compareTo(y.second.quantity) != 0) diffs += "QUANTITY"
+                if (x.second.unit != y.second.unit) diffs += "UNIT"
+                if (x.second.findNumber != y.second.findNumber) diffs += "FIND_NUMBER"
+                if (x.second.designators.sorted() != y.second.designators.sorted()) diffs += "DESIGNATORS"
+            }
+            val status =
+                when {
+                    x == null -> CompareStatus.ADDED.also { added++ }
+                    y == null -> CompareStatus.REMOVED.also { removed++ }
+                    diffs.isNotEmpty() -> CompareStatus.CHANGED.also { changed++ }
+                    else -> CompareStatus.SAME
+                }
+            val parent = key.substringBeforeLast('/', "").ifEmpty { null }
+            rows +=
+                CompareRow(
+                    key.count { it == '/' } + 1,
+                    key,
+                    parent,
+                    (y ?: x)!!.first,
+                    status,
+                    x?.second,
+                    y?.second,
+                    diffs,
+                )
+        }
+        // Tree order: children right under their parent.
+        val byParent = rows.groupBy { it.parentPath }
+        val ordered = ArrayList<CompareRow>(rows.size)
+
+        fun walk(p: String?) {
+            byParent[p].orEmpty().forEach {
+                ordered += it
+                walk(it.path)
+            }
+        }
+        walk(null)
+        return CompareResult(l.rootVersion, r.rootVersion, ordered, added, removed, changed)
     }
 
     private fun treeOrder(nodes: List<StructureNode>): List<StructureNode> {

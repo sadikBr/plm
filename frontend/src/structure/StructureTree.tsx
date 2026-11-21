@@ -7,6 +7,7 @@ import { useEffectivePreferences, useLifecycles, type VersionedObject } from "..
 import { ErrorBanner, Loading, StateBadge, TypeIcon, stateLabel } from "../components/common";
 import { language, locale, t, tn } from "../i18n/i18n";
 import { formatDesignators } from "./designators";
+import { CompareButton } from "./StructureCompare";
 import { ReplacementMarks, copyLines, useUnits } from "./Structure";
 
 // The multi-level structure (roadmap 4.2, 4.3): a tree table under a configuration specification.
@@ -258,6 +259,7 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
             <Copy size={13} aria-hidden /> {tn("Copy {n} line", "Copy {n} lines", selected.size)}
           </button>
         )}
+        <CompareButton obj={obj} />
         <button className="btn small" onClick={expandAll} disabled={top.isFetching}>
           <ChevronsUpDown size={13} aria-hidden /> {t("Expand all")}
         </button>

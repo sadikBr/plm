@@ -244,8 +244,11 @@ baseline and report on, fast at the scale of real products.
       (Done: alternates on the part (one or both ways, needing MODIFY); substitutes on a line,
       edited on the working copy and carried with it; marked in the structure, a Replacements tab,
       and "also allowed as a substitute in" with where-used.)
-- [ ] 4.9 BOM compare: two iterations, two parts, or one part under two configuration
+- [x] 4.9 BOM compare: two iterations, two parts, or one part under two configuration
       specifications; added, removed and changed lines side by side; exportable.
+      (Done: all levels, parts matched by where they sit and summed across lines; version,
+      quantity, unit, find number and designator differences highlighted; compare with an earlier
+      version, the released structure or another part; Excel export.)
 - [ ] 4.10 Baselines and collections: frozen sets of exact iterations (also a configuration
       specification), managed baselines with a lifecycle, collecting a structure with its documents
       for bulk actions.
