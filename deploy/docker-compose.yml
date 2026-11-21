@@ -52,6 +52,11 @@ services:
       - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:19092
     ports: ["19092:19092"]
 
+  # Catches the mail the platform sends (reports, alerts, notifications): http://localhost:8025
+  mailpit:
+    image: ${IMAGE_PREFIX:-}axllent/mailpit:v1.27
+    ports: ["1025:1025", "8025:8025"]
+
   opensearch:
     profiles: ["full"]
     image: ${IMAGE_PREFIX:-}opensearchproject/opensearch:3.10.0

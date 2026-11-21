@@ -121,6 +121,7 @@ internal class VersioningRepository(
         folder: UUID? = null,
         topLevelOnly: Boolean = false,
         ids: List<UUID>? = null,
+        checkedOutBy: String? = null,
     ): List<Pair<MasterRow, Iteration>> {
         if (ids != null && ids.isEmpty()) return emptyList()
         val masters =
@@ -138,6 +139,7 @@ internal class VersioningRepository(
                       and (cast(:folder as uuid) is null or m.folder_id = :folder)
                       and (not :topOnly or m.folder_id is null)
                       and (cast(:ids as uuid[]) is null or m.id = any(cast(:ids as uuid[])))
+                      and (cast(:cob as text) is null or wc.checked_out_by = :cob)
                       and ${filter.sql}
                     order by m.id
                     limit :limit
@@ -155,6 +157,7 @@ internal class VersioningRepository(
                 .param("folder", folder)
                 .param("topOnly", topLevelOnly)
                 .param("ids", ids?.toTypedArray())
+                .param("cob", checkedOutBy)
                 .param("limit", limit)
                 .query(masterMapper)
                 .list()

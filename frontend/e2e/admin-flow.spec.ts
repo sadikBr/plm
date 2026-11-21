@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { asUser } from "./support";
+import { asUser, openSite } from "./support";
 
 /**
  * The Phase 1 exit criterion: an admin builds a part subtype with a required enumerated attribute
@@ -28,7 +28,9 @@ test("alice models a Bolt type in the admin UI, then creates one", async ({ brow
     await list.getByLabel(`Label of value ${n - 1}`).fill(label!);
   }
   await list.getByRole("button", { name: "Create list" }).click();
-  await expect(alice.getByRole("list", { name: "Value lists" }).getByRole("button", { name: new RegExp(`Thread standard ${suffix}`) })).toBeVisible();
+  await expect(
+    alice.getByRole("list", { name: "Value lists" }).getByRole("button", { name: new RegExp(`Thread standard ${suffix}`) }),
+  ).toBeVisible();
 
   // ---- a numbering scheme ----
   await sections.getByRole("link", { name: "Numbering" }).click();
@@ -75,7 +77,7 @@ test("alice models a Bolt type in the admin UI, then creates one", async ({ brow
   await expect(alice.getByText("This type has its own layout for this screen.")).toBeVisible();
 
   // ---- using it: a product, then a new Bolt ----
-  await alice.goto("/");
+  await openSite(alice);
   await alice.getByRole("button", { name: "New organization" }).click();
   await alice.getByLabel("Name").fill(`Fasteners Inc ${suffix}`);
   await alice.getByRole("button", { name: "Create" }).click();

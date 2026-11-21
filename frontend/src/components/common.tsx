@@ -191,6 +191,7 @@ export function Panel({
   footer,
   flush = false,
   note,
+  className,
 }: {
   title: ReactNode;
   actions?: ReactNode;
@@ -198,9 +199,10 @@ export function Panel({
   footer?: ReactNode;
   flush?: boolean;
   note?: ReactNode;
+  className?: string;
 }) {
   return (
-    <section className="panel">
+    <section className={className ? `panel ${className}` : "panel"}>
       <div className="panel-head">
         <h2>{title}</h2>
         {note && <span className="note">{note}</span>}

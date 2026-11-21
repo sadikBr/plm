@@ -20,6 +20,8 @@ Three layers enforce this:
 |---|---|---|
 | identity | User directory (from OIDC sign-ins), service accounts and API tokens | jobs |
 | bulk | Mass operations on many objects, as one background job | access, versioning, jobs |
+| notifications | Outgoing mail: an outbox sent over SMTP in the background | identity |
+| reports | Reports (scheduled, mailed, alerts), dashboards, home pages | access, types, versioning, search, jobs, notifications |
 | jobs | Background jobs: queue, workers, schedules (handlers live in the modules that own the work) | — |
 | audit | Append-only audit log, fed by every domain event | — |
 | types | Type definitions, attribute schemas | — |

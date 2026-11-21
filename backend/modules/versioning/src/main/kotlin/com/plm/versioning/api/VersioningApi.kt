@@ -83,6 +83,8 @@ data class ObjectQuery(
     val topLevelOnly: Boolean = false,
     /** Only these objects (those of them the actor can read): for search hits (roadmap 3.6). */
     val ids: List<MasterId>? = null,
+    /** Only objects checked out by this principal (roadmap 3.8: "my checked-out objects"). */
+    val checkedOutBy: String? = null,
 )
 
 data class SetState(

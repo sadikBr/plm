@@ -18,3 +18,8 @@ export async function asUser(browser: Browser, user: string) {
   return page;
 }
 
+/** The site's page (where organizations are made); signing in lands on the home page. */
+export async function openSite(page: Page) {
+  await page.getByRole("navigation", { name: "Navigator" }).getByRole("link", { name: "Site", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Site" })).toBeVisible();
+}

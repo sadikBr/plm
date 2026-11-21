@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { asUser } from "./support";
+import { asUser, openSite } from "./support";
 
 /** Roadmap 1.14: an organization manager runs their own shared teams and templates, without being a site admin. */
 test("bob, manager of an organization, sets up its own shared team and product template", async ({ browser }) => {
@@ -7,6 +7,7 @@ test("bob, manager of an organization, sets up its own shared team and product t
 
   // ---- alice (site admin) creates the organization and makes bob its manager ----
   const alice = await asUser(browser, "alice");
+  await openSite(alice);
   await alice.getByRole("button", { name: "New organization" }).click();
   await alice.getByLabel("Name").fill(`Delegated ${suffix}`);
   await alice.getByRole("button", { name: "Create" }).click();
@@ -52,9 +53,15 @@ test("bob, manager of an organization, sets up its own shared team and product t
   // This time from the Products list, which offers the organizations bob manages.
   await bob.goto("/browse/products");
   await bob.getByRole("button", { name: "New product" }).click();
-  await bob.getByRole("dialog").getByLabel("Organization").selectOption({ label: `Delegated ${suffix}` });
+  await bob
+    .getByRole("dialog")
+    .getByLabel("Organization")
+    .selectOption({ label: `Delegated ${suffix}` });
   await bob.getByRole("dialog").getByLabel("Name").fill("Series");
-  await bob.getByRole("dialog").getByLabel("Template", { exact: true }).selectOption({ label: `Delegated product ${suffix}` });
+  await bob
+    .getByRole("dialog")
+    .getByLabel("Template", { exact: true })
+    .selectOption({ label: `Delegated product ${suffix}` });
   await bob.getByRole("dialog").getByRole("button", { name: "Create" }).click();
   await expect(bob.getByRole("heading", { name: "Series" })).toBeVisible();
   await bob.getByRole("link", { name: "Team", exact: true }).click();

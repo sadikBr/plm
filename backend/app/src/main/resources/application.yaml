@@ -1,4 +1,8 @@
 spring:
+  # Outgoing mail (reports, alerts, notifications). make up runs Mailpit: http://localhost:8025
+  mail:
+    host: ${PLM_MAIL_HOST:localhost}
+    port: ${PLM_MAIL_PORT:1025}
   application:
     name: plm
   datasource:
@@ -42,6 +46,11 @@ management:
         enabled: true
 
 plm:
+  # Where people open the web UI: links in mail point here.
+  ui-url: ${PLM_UI_URL:http://localhost:5173}
+  mail:
+    enabled: ${PLM_MAIL_ENABLED:true}
+    from: ${PLM_MAIL_FROM:PLM <plm@localhost>}
   search:
     # postgres (built in) or opensearch (make up-full).
     engine: ${PLM_SEARCH_ENGINE:postgres}

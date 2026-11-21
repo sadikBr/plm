@@ -23,6 +23,7 @@ import com.plm.platform.error.ValidationException
 import com.plm.platform.events.DomainEvents
 import com.plm.platform.id.TenantId
 import com.plm.platform.id.UuidV7
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -32,12 +33,15 @@ import java.util.UUID
 /** The job types this instance can run, by type. */
 @Service
 internal class JobHandlers(
-    handlers: List<JobHandler>,
+    // Looked up on first use: handlers may depend on services that queue jobs themselves.
+    private val provider: ObjectProvider<JobHandler>,
 ) {
-    val byType: Map<String, JobHandler> =
+    val byType: Map<String, JobHandler> by lazy {
+        val handlers = provider.orderedStream().toList()
         handlers.associateBy { it.type }.also {
             require(it.size == handlers.size) { "Two job handlers share a type: ${handlers.map { h -> h.type }}" }
         }
+    }
 
     fun require(type: String): JobHandler =
         byType[type]

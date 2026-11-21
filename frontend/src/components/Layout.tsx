@@ -1,5 +1,5 @@
 import { ClipboardButton } from "./Clipboard";
-import { ChevronRight, LogOut, Settings } from "lucide-react";
+import { BarChart3, ChevronRight, LayoutDashboard, LogOut, Settings } from "lucide-react";
 import { type ReactNode } from "react";
 import { Link, NavLink, Outlet, useParams } from "react-router";
 import { useCanOpen, useContextById, useMe, useShows } from "../api/queries";
@@ -22,6 +22,12 @@ export function Layout() {
         </Link>
         {shows("search") && <GlobalSearch />}
         <div className="spacer" />
+        <NavLink to="/reports" className="topbar-link">
+          <BarChart3 size={14} aria-hidden /> Reports
+        </NavLink>
+        <NavLink to="/dashboards" className="topbar-link">
+          <LayoutDashboard size={14} aria-hidden /> Dashboards
+        </NavLink>
         <ClipboardButton />
         <div className="who">
           {me?.siteAdmin && (

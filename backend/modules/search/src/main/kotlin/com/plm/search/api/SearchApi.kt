@@ -58,9 +58,20 @@ interface SearchService {
         query: SearchQuery,
     ): SearchResults
 
+    /** Every match the actor can read (at most 1000), in order; `capped` when there were more. */
+    fun matching(
+        actor: Actor,
+        query: SearchQuery,
+    ): SearchMatches
+
     /** Queues every object of the tenant for indexing again (site administrators). */
     fun reindex(actor: Actor): Int
 }
+
+data class SearchMatches(
+    val ids: List<UUID>,
+    val capped: Boolean,
+)
 
 data class SavedSearch(
     val id: UUID,

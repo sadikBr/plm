@@ -1286,6 +1286,53 @@
         "required" : [ "id", "name", "number", "version" ],
         "type" : "object"
       },
+      "Dashboard" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "owner" : {
+            "type" : "string"
+          },
+          "shared" : {
+            "type" : "boolean"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "widgets" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Widget"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "id", "name", "owner", "shared", "updatedAt", "widgets" ],
+        "type" : "object"
+      },
+      "DashboardSettings" : {
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "shared" : {
+            "type" : "boolean"
+          },
+          "widgets" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Widget"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "name", "shared", "widgets" ],
+        "type" : "object"
+      },
       "DefineAttributeRequest" : {
         "properties" : {
           "dataType" : {
@@ -2082,6 +2129,15 @@
           }
         },
         "required" : [ "attribute", "usedBy" ],
+        "type" : "object"
+      },
+      "HomeRequest" : {
+        "properties" : {
+          "dashboardId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
         "type" : "object"
       },
       "ImportPlanResponse" : {
@@ -3569,6 +3625,207 @@
         },
         "type" : "object"
       },
+      "Report" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "lastRunAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "lastTotal" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "nextRunAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "owner" : {
+            "type" : "string"
+          },
+          "settings" : {
+            "$ref" : "#/components/schemas/ReportSettings"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "owner", "settings", "updatedAt" ],
+        "type" : "object"
+      },
+      "ReportGroup" : {
+        "properties" : {
+          "count" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "key" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "count", "key" ],
+        "type" : "object"
+      },
+      "ReportResult" : {
+        "properties" : {
+          "capped" : {
+            "type" : "boolean"
+          },
+          "groups" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ReportGroup"
+            },
+            "type" : "array"
+          },
+          "ranAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "report" : {
+            "$ref" : "#/components/schemas/Report"
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ReportRow"
+            },
+            "type" : "array"
+          },
+          "total" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "capped", "groups", "ranAt", "report", "rows", "total" ],
+        "type" : "object"
+      },
+      "ReportRow" : {
+        "properties" : {
+          "attributes" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          },
+          "checkedOutBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "modifiedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "owner" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "attributes", "contextId", "createdAt", "id", "modifiedAt", "name", "number", "owner", "state", "typeId", "version" ],
+        "type" : "object"
+      },
+      "ReportRun" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "newCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "note" : {
+            "type" : [ "string", "null" ]
+          },
+          "ranAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "sentTo" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "total" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "id", "newCount", "ranAt", "sentTo", "total" ],
+        "type" : "object"
+      },
+      "ReportSettings" : {
+        "properties" : {
+          "alert" : {
+            "enum" : [ "ALWAYS", "ANY", "MORE_THAN", "NEW" ],
+            "type" : "string"
+          },
+          "columns" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "cron" : {
+            "type" : [ "string", "null" ]
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "groupBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "query" : {
+            "$ref" : "#/components/schemas/SearchQuery"
+          },
+          "recipients" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "shared" : {
+            "type" : "boolean"
+          },
+          "threshold" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "timeZone" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "alert", "columns", "name", "query", "recipients", "shared", "timeZone" ],
+        "type" : "object"
+      },
       "RequestUpload" : {
         "properties" : {
           "contentType" : {
@@ -4882,6 +5139,34 @@
           }
         },
         "required" : [ "secret", "timeoutSeconds", "url" ],
+        "type" : "object"
+      },
+      "Widget" : {
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "REPORT_CHART", "REPORT_TABLE", "REPORT_COUNT", "CHECKED_OUT", "RECENT" ],
+            "type" : "string"
+          },
+          "limit" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "reportId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "title" : {
+            "type" : [ "string", "null" ]
+          },
+          "width" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "id", "kind", "limit", "width" ],
         "type" : "object"
       }
     },
@@ -6704,6 +6989,183 @@
         "tags" : [ "Context" ]
       }
     },
+    "/api/v1/dashboards" : {
+      "get" : {
+        "operationId" : "reportDashboards",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Dashboard"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
+      },
+      "post" : {
+        "operationId" : "reportCreateDashboard",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DashboardSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Dashboard"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
+      }
+    },
+    "/api/v1/dashboards/{id}" : {
+      "delete" : {
+        "operationId" : "reportDeleteDashboard",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
+      },
+      "get" : {
+        "operationId" : "reportDashboard",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Dashboard"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
+      },
+      "put" : {
+        "operationId" : "reportUpdateDashboard",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DashboardSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Dashboard"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
+      }
+    },
     "/api/v1/delete-rules" : {
       "get" : {
         "operationId" : "organizingDeleteRules",
@@ -7769,6 +8231,153 @@
           }
         },
         "tags" : [ "Organizing" ]
+      }
+    },
+    "/api/v1/home" : {
+      "get" : {
+        "operationId" : "reportHome",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Dashboard"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
+      },
+      "put" : {
+        "operationId" : "reportSetHome",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/HomeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Dashboard"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
+      }
+    },
+    "/api/v1/home/checked-out" : {
+      "get" : {
+        "operationId" : "reportCheckedOut",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 10,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "additionalProperties" : { },
+                    "type" : "object"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
+      }
+    },
+    "/api/v1/home/recent" : {
+      "get" : {
+        "operationId" : "reportRecent",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 10,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/SearchHit"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
       }
     },
     "/api/v1/job-schedules" : {
@@ -10564,6 +11173,298 @@
         "tags" : [ "Profile" ]
       }
     },
+    "/api/v1/reports" : {
+      "get" : {
+        "operationId" : "reportList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Report"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
+      },
+      "post" : {
+        "operationId" : "reportCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReportSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Report"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
+      }
+    },
+    "/api/v1/reports/preview" : {
+      "post" : {
+        "operationId" : "reportPreview",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReportSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
+      }
+    },
+    "/api/v1/reports/{id}" : {
+      "delete" : {
+        "operationId" : "reportDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
+      },
+      "get" : {
+        "operationId" : "reportGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Report"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
+      },
+      "put" : {
+        "operationId" : "reportUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReportSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Report"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
+      }
+    },
+    "/api/v1/reports/{id}/run" : {
+      "post" : {
+        "operationId" : "reportRun",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
+      }
+    },
+    "/api/v1/reports/{id}/runs" : {
+      "get" : {
+        "operationId" : "reportRuns",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReportRun"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Report" ]
+      }
+    },
     "/api/v1/saved-searches" : {
       "get" : {
         "operationId" : "searchList",
@@ -12762,6 +13663,8 @@
     "name" : "Profile"
   }, {
     "name" : "Reference data"
+  }, {
+    "name" : "Report"
   }, {
     "name" : "Search"
   }, {

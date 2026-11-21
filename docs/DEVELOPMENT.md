@@ -84,6 +84,8 @@ Files and search:
 - The file vault uses the S3 store from `make up` (`PLM_VAULT_STORE=s3`, `PLM_VAULT_S3_*`), or a
   local folder with `PLM_VAULT_STORE=file` (`PLM_VAULT_DIR`). Set `PLM_VAULT_SIGNING_KEY` outside
   development.
+- Mail (scheduled reports, alerts) goes to Mailpit from `make up`: read it at http://localhost:8025
+  (`PLM_MAIL_HOST`, `PLM_MAIL_PORT`, `PLM_MAIL_FROM`; `PLM_UI_URL` for the links in it).
 - Search uses Postgres full-text search unless OpenSearch is running (`make up-full`) and
   `PLM_SEARCH_ENGINE=opensearch` is set (`PLM_SEARCH_OPENSEARCH_URL`, default
   `http://localhost:9200`). After switching engines, rebuild the index:

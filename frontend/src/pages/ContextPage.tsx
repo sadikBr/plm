@@ -38,6 +38,7 @@ import {
   kindLabel,
   kindPlural,
   typeLabel,
+  browsePath,
 } from "../components/common";
 import { Breadcrumbs, PageHeader, Tabs, useIdParam } from "../components/Layout";
 import { rememberVisit } from "../components/Navigator";
@@ -98,7 +99,8 @@ function ContextView({ id }: { id: string }) {
   if (isApiError(error, 404)) return <NotFoundPage what="context" />;
   if (error || !context) return <ErrorBanner error={error} />;
   // The site and organizations are for administrators; others are sent to their own work.
-  if (!canOpen!(context)) return <Navigate to="/" replace />;
+  // Not theirs to open (the site, an organization): their own work instead.
+  if (!canOpen!(context)) return <Navigate to={browsePath("PRODUCT")} replace />;
 
   const holdsObjects = HOLDS_OBJECTS.has(context.kind);
   const childKinds = ALLOWED_CHILDREN[context.kind];

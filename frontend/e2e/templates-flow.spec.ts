@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { asUser } from "./support";
+import { asUser, openSite } from "./support";
 
 /** Roadmap 1.12: shared teams and context templates, set up once and reused. */
 test("alice reuses a shared team and a product template; bob gets access through the team", async ({ browser }) => {
@@ -20,7 +20,7 @@ test("alice reuses a shared team and a product template; bob gets access through
   await expect(alice.getByRole("table", { name: "Team members" }).getByText("Bob Builder")).toBeVisible();
 
   // ---- a product set up by hand: the team attached ----
-  await alice.goto("/");
+  await openSite(alice);
   await alice.getByRole("button", { name: "New organization" }).click();
   await alice.getByLabel("Name").fill(`Templates Inc ${suffix}`);
   await alice.getByRole("button", { name: "Create" }).click();
@@ -41,11 +41,17 @@ test("alice reuses a shared team and a product template; bob gets access through
   await alice.getByRole("button", { name: "Done" }).click();
 
   // ---- a new product from the template ----
-  await alice.getByRole("link", { name: `Templates Inc ${suffix}`, exact: true }).first().click();
+  await alice
+    .getByRole("link", { name: `Templates Inc ${suffix}`, exact: true })
+    .first()
+    .click();
   await alice.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Products" }).click();
   await alice.getByRole("button", { name: "New product" }).click();
   await alice.getByLabel("Name").fill("Series");
-  await alice.getByRole("dialog").getByLabel("Template", { exact: true }).selectOption({ label: `Standard product ${suffix}` });
+  await alice
+    .getByRole("dialog")
+    .getByLabel("Template", { exact: true })
+    .selectOption({ label: `Standard product ${suffix}` });
   await expect(alice.getByText(/1 shared team/)).toBeVisible();
   await alice.getByRole("button", { name: "Create" }).click();
   await expect(alice.getByRole("heading", { name: "Series" })).toBeVisible();

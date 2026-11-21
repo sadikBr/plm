@@ -157,8 +157,12 @@ platform gets the background machinery (jobs, schedules, notifications) later ph
 - [x] 3.7 Table views: choose columns, filter and sort, save and share views, export to Excel.
       (Done: built-in and attribute columns, filters by state, type and attribute, saved views
       per person or shared, an .xlsx export of the table as shown.)
-- [ ] 3.8 Reports and home page: report definitions (a query and columns), scheduled reports and
+- [x] 3.8 Reports and home page: report definitions (a query and columns), scheduled reports and
       alerts by email, dashboards, a home page each user arranges.
+      (Done: `reports` module with charts by state, type, context, owner or attribute; cron
+      schedules mailed through a new `notifications` module (Mailpit in development) as alerts
+      when anything, more than N or something new is found; shared dashboards of widgets; the home
+      page is the dashboard each person picks.)
 - [ ] 3.9 Personal tracking: favorites, recent items, subscriptions to objects and folders,
       notifications and digests.
 - [ ] 3.10 Collaboration and access: discussions on objects, ad hoc access (share one object with

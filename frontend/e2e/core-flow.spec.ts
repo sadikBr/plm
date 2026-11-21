@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { API, KEYCLOAK, asUser } from "./support";
+import { API, KEYCLOAK, asUser, openSite } from "./support";
 
 /** Users appear in the directory after their first sign-in; do that for bob and carol via the API. */
 test.beforeAll(async ({ request }) => {
@@ -19,6 +19,7 @@ test("alice sets up a product, bob works on a part, carol sees nothing", async (
 
   // ---- alice (site admin): organization, product, team ----
   const alice = await asUser(browser, "alice");
+  await openSite(alice);
   await expect(alice.getByText("Site admin")).toBeVisible();
   await alice.getByRole("button", { name: "New organization" }).click();
   await alice.getByLabel("Name").fill(`Acme ${suffix}`);

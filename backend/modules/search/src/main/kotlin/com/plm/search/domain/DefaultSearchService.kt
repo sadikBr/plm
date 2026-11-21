@@ -11,6 +11,7 @@ import com.plm.search.api.SaveSearch
 import com.plm.search.api.SavedSearch
 import com.plm.search.api.SavedSearchService
 import com.plm.search.api.SearchHit
+import com.plm.search.api.SearchMatches
 import com.plm.search.api.SearchQuery
 import com.plm.search.api.SearchResults
 import com.plm.search.api.SearchService
@@ -79,6 +80,21 @@ internal class DefaultSearchService(
                 ),
             engine = index.name,
         )
+    }
+
+    override fun matching(
+        actor: Actor,
+        query: SearchQuery,
+    ): SearchMatches {
+        val candidates = index.candidates(actor.tenant, query, CANDIDATES)
+        val readable =
+            candidates
+                .map { it.id }
+                .chunked(500)
+                .flatMap { ids -> versioning.list(actor, ObjectQuery(ids = ids.map(::MasterId), limit = 500)) }
+                .map { it.id.value }
+                .toSet()
+        return SearchMatches(candidates.map { it.id }.filter { it in readable }, candidates.size >= CANDIDATES)
     }
 
     private fun facet(keys: List<String>) =

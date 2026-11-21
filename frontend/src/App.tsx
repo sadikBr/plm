@@ -1,3 +1,5 @@
+import { DashboardsPage } from "./reports/Dashboards";
+import { ReportsPage } from "./reports/ReportsPage";
 import { ComparePage } from "./documents/ComparePage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
@@ -42,6 +44,10 @@ export function AppRoutes() {
         <Route path="objects/:id" element={<ObjectPage />} />
         <Route path="search" element={<SearchPage />} />
         <Route path="compare" element={<ComparePage />} />
+        <Route path="reports" element={<ReportsPage />} />
+        <Route path="reports/:id" element={<ReportsPage />} />
+        <Route path="dashboards" element={<DashboardsPage />} />
+        <Route path="dashboards/:id" element={<DashboardsPage />} />
         <Route path="admin" element={<AdminPage />} />
         <Route path="preferences" element={<MyPreferencesPage />} />
         <Route path="*" element={<NotFoundPage />} />
