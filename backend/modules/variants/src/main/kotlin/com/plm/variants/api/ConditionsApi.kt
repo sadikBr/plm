@@ -22,6 +22,7 @@ data class ConfiguredLine(
 
 data class ConfiguredStructure(
     val rootId: UUID,
+    val rootIterationId: UUID?,
     val rootVersion: String?,
     val optionSet: OptionSet?,
     val selection: Map<String, String>,

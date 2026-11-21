@@ -609,9 +609,16 @@ main line, and classification makes existing parts easy to find and reuse.
       read with the latest or latest Released versions (the API also takes a date, or effectivity
       for a unit); a selection that breaks a rule isn't saved. Opening one shows its 150%
       structure, filtered to what it builds.
-- [ ] 7.9 Variant generation and reuse: generate a variant part whose structure is the filtered
+- [x] 7.9 Variant generation and reuse: generate a variant part whose structure is the filtered
       result, level by level; before making new parts, find variants already generated for the
       same selection and reuse them; the variant remembers its specification.
+      Done: "Generate" on a variant specification makes the variant part (named after the product
+      and the specification) with the lines that apply, and, below it, a variant of every
+      sub-assembly whose structure depends on the choices; others are used as they are. A
+      sub-assembly variant generated earlier from the same iteration for the same choices of the
+      options it depends on is reused, so "Expedition" and "Expedition, sand" share one pack
+      variant. Generated parts show where they came from (base, version, choices, specification);
+      base parts list their variants. Line effectivity isn't copied to variants.
 - [ ] 7.10 One-off versions: a version of a released part made for one order or unit (e.g. `B.2-1`),
       on a branch that the main line's configuration specs skip unless asked for, traceable to its
       origin and order.

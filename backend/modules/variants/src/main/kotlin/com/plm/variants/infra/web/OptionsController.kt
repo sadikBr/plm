@@ -244,3 +244,27 @@ internal class VariantSpecController(
         @PathVariable specId: UUID,
     ) = specs.structure(actor, specId)
 }
+
+/** Variant generation and reuse (roadmap 7.9). */
+@RestController
+internal class VariantGenerationController(
+    private val generation: com.plm.variants.api.VariantGenerationService,
+) {
+    @PostMapping("/api/v1/variant-specs/{specId}/generate")
+    fun generate(
+        actor: Actor,
+        @PathVariable specId: UUID,
+    ) = generation.generate(actor, specId)
+
+    @GetMapping("/api/v1/objects/{id}/variant-origin")
+    fun origin(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = generation.origin(actor, id)
+
+    @GetMapping("/api/v1/objects/{id}/variants")
+    fun variants(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = generation.variantsOf(actor, id)
+}

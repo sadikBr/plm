@@ -163,6 +163,7 @@ internal class DefaultConditionService(
             }
         return ConfiguredStructure(
             partId,
+            structure.rootIterationId,
             structure.rootVersion,
             set,
             normalized,

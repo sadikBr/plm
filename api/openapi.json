@@ -2301,6 +2301,10 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "rootIterationId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
           "rootVersion" : {
             "type" : [ "string", "null" ]
           },
@@ -3983,6 +3987,55 @@
           }
         },
         "required" : [ "enum", "type" ],
+        "type" : "object"
+      },
+      "GeneratedPart" : {
+        "properties" : {
+          "baseId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "baseNumber" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "outcome" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "baseId", "baseNumber", "id", "name", "number", "outcome" ],
+        "type" : "object"
+      },
+      "GenerationResult" : {
+        "properties" : {
+          "created" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "parts" : {
+            "items" : {
+              "$ref" : "#/components/schemas/GeneratedPart"
+            },
+            "type" : "array"
+          },
+          "reused" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "top" : {
+            "$ref" : "#/components/schemas/GeneratedPart"
+          }
+        },
+        "required" : [ "created", "parts", "reused", "top" ],
         "type" : "object"
       },
       "GlobalAttributeResponse" : {
@@ -9581,6 +9634,49 @@
           }
         },
         "required" : [ "kind" ],
+        "type" : "object"
+      },
+      "VariantOrigin" : {
+        "properties" : {
+          "baseId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "baseName" : {
+            "type" : [ "string", "null" ]
+          },
+          "baseNumber" : {
+            "type" : [ "string", "null" ]
+          },
+          "baseVersion" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "selection" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "specId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "specName" : {
+            "type" : [ "string", "null" ]
+          },
+          "variantId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "baseId", "createdAt", "createdBy", "selection", "variantId" ],
         "type" : "object"
       },
       "VariantSpec" : {
@@ -21887,6 +21983,43 @@
         "tags" : [ "Change setup" ]
       }
     },
+    "/api/v1/objects/{id}/variant-origin" : {
+      "get" : {
+        "operationId" : "variantGenerationOrigin",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VariantOrigin"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Variant generation" ]
+      }
+    },
     "/api/v1/objects/{id}/variant-specs" : {
       "get" : {
         "operationId" : "variantSpecList",
@@ -21970,6 +22103,46 @@
           }
         },
         "tags" : [ "Variant spec" ]
+      }
+    },
+    "/api/v1/objects/{id}/variants" : {
+      "get" : {
+        "operationId" : "variantGenerationVariants",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/VariantOrigin"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Variant generation" ]
       }
     },
     "/api/v1/objects/{id}/where-used" : {
@@ -27338,6 +27511,43 @@
         "tags" : [ "Variant spec" ]
       }
     },
+    "/api/v1/variant-specs/{specId}/generate" : {
+      "post" : {
+        "operationId" : "variantGenerationGenerate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "specId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GenerationResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Variant generation" ]
+      }
+    },
     "/api/v1/variant-specs/{specId}/structure" : {
       "get" : {
         "operationId" : "variantSpecStructure",
@@ -27771,6 +27981,8 @@
     "name" : "Ui extension"
   }, {
     "name" : "Validation rule"
+  }, {
+    "name" : "Variant generation"
   }, {
     "name" : "Variant spec"
   }, {

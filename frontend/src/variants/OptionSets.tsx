@@ -8,6 +8,7 @@ import { t, tn } from "../i18n/i18n";
 import { RulesSection } from "./OptionRules";
 import { ConfiguredStructurePanel } from "./Configured";
 import { VariantSpecsPanel } from "./VariantSpecs";
+import { GenerateButton, GenerationReport, VariantOriginPanels, useGenerate } from "./Generation";
 
 type OptionSet = Schemas["OptionSet"];
 
@@ -237,6 +238,7 @@ export function PartOptionsPanel({ obj }: { obj: VersionedObject }) {
   const canEdit = !!permissions?.has("MODIFY");
   const [selection, setSelection] = useState<Record<string, string>>({});
   const [specId, setSpecId] = useState<string>();
+  const generate = useGenerate(obj.id);
   const { data } = usePartOptions(obj.id);
   const { data: sets } = useOptionSets();
   const assign = useMutation({
@@ -251,7 +253,8 @@ export function PartOptionsPanel({ obj }: { obj: VersionedObject }) {
   const set = data.optionSet;
   return (
     <>
-      <ErrorBanner error={assign.error} />
+      <ErrorBanner error={assign.error ?? generate.error} />
+      <VariantOriginPanels obj={obj} />
       <Panel
         title={t("Configurable")}
         note={
@@ -294,8 +297,10 @@ export function PartOptionsPanel({ obj }: { obj: VersionedObject }) {
             setSelection(sp.selection);
             setSpecId(sp.id);
           }}
+          extra={(sp) => <GenerateButton spec={sp} generate={generate} />}
         />
       )}
+      {generate.data && <GenerationReport result={generate.data} />}
       {set && (
         <ConfiguredStructurePanel
           obj={obj}
