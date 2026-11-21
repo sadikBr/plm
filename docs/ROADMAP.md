@@ -587,8 +587,12 @@ main line, and classification makes existing parts easy to find and reuse.
       required or optional) with their choices (code, name), retired with a click and kept for
       what already uses them. A part's Options tab makes it configurable with a set (a set in use
       can't be deleted). Codes (MOTOR, HT) are what conditions and rules refer to.
-- [ ] 7.6 Option rules: includes, excludes and requires between choices, and a check of any
+- [x] 7.6 Option rules: includes, excludes and requires between choices, and a check of any
       selection that says which rule it breaks and what would fix it.
+      Done: an option set's rules say that a choice includes others, requires one of them, or
+      excludes them, with a note. Checking a selection (a choice per option) reports required
+      options left out, unknown or retired choices, and every broken rule, each with its fix: the
+      choices to make or the ones to drop, applied with a click in the set's "Check a selection".
 - [ ] 7.7 150% structures: usage lines of configurable parts carry a choice condition (and, or,
       not over choices); the full structure shows every line with its condition; filtering by a
       selection leaves the lines that apply.

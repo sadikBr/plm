@@ -40,6 +40,7 @@ internal class DefaultOptionService(
     private val versioning: VersioningService,
     private val types: TypeService,
     private val clock: Clock,
+    private val usages: org.springframework.beans.factory.ObjectProvider<OptionUsage>,
 ) : OptionService {
     internal data class SetRow(
         val id: UUID,
@@ -315,7 +316,7 @@ internal class DefaultOptionService(
     ): OptionSet {
         val setId = optionSetOf(optionId)
         row(actor, setId, Permission.MODIFY)
-        usage.ensureUnused(optionId)
+        usages.orderedStream().forEach { it.ensureUnused(optionId) }
         jdbc.sql("delete from option_def where id = :id").param("id", optionId).update()
         touch(setId)
         return get(actor, setId)
@@ -373,9 +374,6 @@ internal class DefaultOptionService(
         touch(setId)
         return get(actor, setId)
     }
-
-    /** Where options are used (conditions, rules): checked before an option goes. */
-    internal var usage: OptionUsage = OptionUsage { }
 
     private fun part(
         actor: Actor,

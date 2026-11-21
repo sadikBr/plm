@@ -135,3 +135,77 @@ interface OptionService {
         setId: UUID?,
     ): PartOptions
 }
+
+enum class RuleKind { INCLUDES, REQUIRES, EXCLUDES }
+
+/** A choice, named by its option's and its own code. */
+data class ChoiceRef(
+    val option: String,
+    val choice: String,
+)
+
+/** When [ifChoice] is chosen: [thenChoices] must all be (INCLUDES), one must be (REQUIRES), none may be (EXCLUDES). */
+data class OptionRule(
+    val id: UUID,
+    val kind: RuleKind,
+    val ifChoice: ChoiceRef,
+    val thenChoices: List<ChoiceRef>,
+    val note: String?,
+    /** E.g. "MOTOR=HT requires BATTERY=L". */
+    val text: String,
+)
+
+data class SaveRule(
+    val kind: RuleKind,
+    val ifChoice: ChoiceRef,
+    val thenChoices: List<ChoiceRef>,
+    val note: String? = null,
+)
+
+/** Something wrong with a selection, and what would put it right. */
+data class SelectionProblem(
+    /** MISSING, UNKNOWN, RETIRED, RULE */
+    val kind: String,
+    val message: String,
+    val ruleId: UUID? = null,
+    /** Choices that would fix it: any one of them (REQUIRES, a missing option), or all (INCLUDES). */
+    val fixes: List<ChoiceRef> = emptyList(),
+    /** Choices to drop to fix it (EXCLUDES). */
+    val drop: List<ChoiceRef> = emptyList(),
+)
+
+data class SelectionCheck(
+    val valid: Boolean,
+    val problems: List<SelectionProblem>,
+)
+
+/**
+ * Option rules (roadmap 7.6): kept with their option set (MODIFY in its context to change), and a
+ * check of a selection, by option code to choice code: required options chosen, codes known, no
+ * retired choices (unless [allowRetired], for checking what was chosen before), and every rule
+ * kept. Errors: `INVALID_RULE`, `RULE_NOT_FOUND`.
+ */
+interface OptionRuleService {
+    fun rules(
+        actor: Actor,
+        setId: UUID,
+    ): List<OptionRule>
+
+    fun addRule(
+        actor: Actor,
+        setId: UUID,
+        request: SaveRule,
+    ): List<OptionRule>
+
+    fun removeRule(
+        actor: Actor,
+        ruleId: UUID,
+    ): List<OptionRule>
+
+    fun check(
+        actor: Actor,
+        setId: UUID,
+        selection: Map<String, String>,
+        allowRetired: Boolean = false,
+    ): SelectionCheck
+}

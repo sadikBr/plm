@@ -113,3 +113,40 @@ internal class OptionsController(
         @RequestBody request: AssignOptionSet,
     ) = options.assign(actor, id, request.optionSetId)
 }
+
+data class CheckSelection(
+    /** Option code to choice code, e.g. MOTOR to HT. */
+    val selection: Map<String, String>,
+)
+
+/** Option rules and selection checks (roadmap 7.6). */
+@RestController
+internal class OptionRulesController(
+    private val rules: com.plm.variants.api.OptionRuleService,
+) {
+    @GetMapping("/api/v1/option-sets/{id}/rules")
+    fun rules(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = rules.rules(actor, id)
+
+    @PostMapping("/api/v1/option-sets/{id}/rules")
+    fun add(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: com.plm.variants.api.SaveRule,
+    ) = rules.addRule(actor, id, request)
+
+    @DeleteMapping("/api/v1/option-rules/{ruleId}")
+    fun remove(
+        actor: Actor,
+        @PathVariable ruleId: UUID,
+    ) = rules.removeRule(actor, ruleId)
+
+    @PostMapping("/api/v1/option-sets/{id}/check")
+    fun check(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: CheckSelection,
+    ) = rules.check(actor, id, request.selection)
+}

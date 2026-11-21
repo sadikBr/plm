@@ -1125,3 +1125,19 @@ table.collected td input[type="checkbox"] { width: 16px; height: 16px; }
 .option-form input:not([type="checkbox"]) { width: 130px; }
 .option-form .code-input { width: 90px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
 .option-add { padding: 10px 14px; border-top: 1px solid var(--border); }
+.rules-section { padding: 10px 14px 14px; border-top: 1px solid var(--border); display: grid; gap: 8px; }
+.rules-section h4, .selection-checker h4 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-2); }
+.rule-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.rule-list li { display: flex; align-items: center; gap: 6px; }
+.rule-list code { font-size: 12.5px; }
+.tag.rule-requires { background: var(--accent-soft); color: var(--accent); }
+.tag.rule-includes { background: var(--ok-soft); color: var(--ok); }
+.tag.rule-excludes { background: var(--danger-soft, #fde8e8); color: var(--danger); }
+.rule-form { align-items: end; }
+.rule-form .field.grow { flex: 1 1 260px; }
+.selection-checker { display: grid; gap: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+.selection-checker .field { flex: 0 1 180px; }
+.check-ok { color: var(--ok); margin: 0; display: flex; gap: 6px; align-items: center; }
+.check-problems { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; color: var(--danger); }
+.check-problems li { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.check-problems .fixes { display: inline-flex; gap: 4px; }

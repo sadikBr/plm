@@ -5,6 +5,7 @@ import { api, unwrap, type Schemas } from "../api/client";
 import { usePermissions, type VersionedObject } from "../api/queries";
 import { ErrorBanner, Loading, Panel } from "../components/common";
 import { t, tn } from "../i18n/i18n";
+import { RulesSection } from "./OptionRules";
 
 type OptionSet = Schemas["OptionSet"];
 
@@ -193,7 +194,9 @@ export function OptionSetsTab({ contextId, canEdit }: { contextId: string; canEd
       </p>
       <ErrorBanner error={create.error} />
       {data.map((s) => (
-        <OptionSetCard key={s.id} set={s} canEdit={canEdit} />
+        <OptionSetCard key={s.id} set={s} canEdit={canEdit}>
+          <RulesSection set={s} canEdit={canEdit} />
+        </OptionSetCard>
       ))}
       {!data.length && <div className="empty">{t("No option sets here yet.")}</div>}
       {canEdit && (
@@ -254,7 +257,12 @@ export function PartOptionsPanel({ obj }: { obj: VersionedObject }) {
         }
         actions={
           canEdit && (
-            <select aria-label={t("Option set")} style={{ width: 260 }} value={set?.id ?? ""} onChange={(e) => assign.mutate(e.target.value || null)}>
+            <select
+              aria-label={t("Option set")}
+              style={{ width: 260 }}
+              value={set?.id ?? ""}
+              onChange={(e) => assign.mutate(e.target.value || null)}
+            >
               <option value="">{t("Not configurable")}</option>
               {sets?.map((s) => (
                 <option key={s.id} value={s.id}>
