@@ -933,3 +933,13 @@ table.grid.compact td { padding: 6px 8px; vertical-align: top; }
 .assigned-note { margin: 8px 12px; }
 .signing { border: 1px solid var(--warning, #b26a00); border-radius: 6px; padding: 10px 12px; background: color-mix(in srgb, var(--warning, #b26a00) 6%, transparent); }
 .signing p { margin: 6px 0 0; }
+
+/* Changes (roadmap 5.8) */
+.change-chain { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.change-chain .tag { min-width: 84px; display: inline-block; text-align: center; }
+.add-link { padding: 8px 12px; border-top: 1px solid var(--border); }
+/* The top bar keeps one line as it gains links. */
+.topbar .topbar-link, .topbar .chip-admin, .topbar .who a { white-space: nowrap; }
+.topbar .topbar-link { padding-left: 8px; padding-right: 8px; }
+.topbar .global-search, .topbar form[role="search"] { min-width: 200px; }
+@media (max-width: 1500px) { .topbar .chip-admin { display: none; } }

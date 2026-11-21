@@ -355,9 +355,16 @@ affected objects; and the platform can be extended with scripts, UI slots and no
       or overriding it on the approval's authority), rejection or cancelling leaves them as they
       were. Processes can now be about something other than one object (a context, a label, a
       link), which tasks show.
-- [ ] 5.8 Change objects: problem reports, change requests, change notices and change tasks with
+- [x] 5.8 Change objects: problem reports, change requests, change notices and change tasks with
       their own types, lifecycles and numbers, linked to each other; affected and resulting objects
       and end items; fast track (notice directly) and full track.
+      Done: a CHANGE base class with four built-in types (numbered PR-, CR-, CN-, CT-) and a Change
+      lifecycle (Open, Under Review, Approved, Implementation, Resolved, Rejected, Cancelled); being
+      versioned objects they get attributes, access, search, processes and history like any other.
+      Links: affected (with the version then), resulting and end items; a request addresses
+      reports, a notice implements requests and has tasks. "Create a change request / notice / task"
+      carries the affected objects and end items along; a notice can come straight from a report
+      (fast track). The Changes page lists them; parts and documents show the changes they're in.
 - [ ] 5.9 Implementation plans and change board: a notice's tasks with assignees and due dates;
       a change board reviews requests and votes; completing a notice releases its resulting objects.
 - [ ] 5.10 Change templates, association rules and variances: templates prefill changes; rules say

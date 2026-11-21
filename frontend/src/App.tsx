@@ -1,6 +1,7 @@
 import { BaselinesPage } from "./structure/Baselines";
 import { InboxPage } from "./workflow/Inbox";
 import { PromotionsPage } from "./workflow/Promotions";
+import { ChangesPage } from "./changes/Changes";
 import { StructureComparePage } from "./structure/StructureCompare";
 import { browserLanguage, isLanguage, setLanguage } from "./i18n/i18n";
 import { useEffectivePreferences } from "./api/queries";
@@ -60,6 +61,7 @@ export function AppRoutes() {
         <Route path="audit" element={<AuditReportPage />} />
         <Route path="structure-compare" element={<StructureComparePage />} />
         <Route path="inbox" element={<InboxPage />} />
+        <Route path="changes" element={<ChangesPage />} />
         <Route path="promotions" element={<PromotionsPage />} />
         <Route path="promotions/:id" element={<PromotionsPage />} />
         <Route path="baselines" element={<BaselinesPage />} />

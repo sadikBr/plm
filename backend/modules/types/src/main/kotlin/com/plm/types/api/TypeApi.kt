@@ -14,13 +14,20 @@ value class TypeId(
         val DOCUMENT = TypeId(UUID.fromString("00000000-0000-7000-8000-000000000101"))
         val PART = TypeId(UUID.fromString("00000000-0000-7000-8000-000000000102"))
 
+        /** Change objects (roadmap 5.8): the root and its four kinds. */
+        val CHANGE = TypeId(UUID.fromString("00000000-0000-7000-8000-000000000103"))
+        val PROBLEM_REPORT = TypeId(UUID.fromString("00000000-0000-7000-8000-000000000104"))
+        val CHANGE_REQUEST = TypeId(UUID.fromString("00000000-0000-7000-8000-000000000105"))
+        val CHANGE_NOTICE = TypeId(UUID.fromString("00000000-0000-7000-8000-000000000106"))
+        val CHANGE_TASK = TypeId(UUID.fromString("00000000-0000-7000-8000-000000000107"))
+
         /** Stands for "no type" on a global attribute's own definition (it is used by types, not defined on one). */
         val GLOBAL = TypeId(UUID(0, 0))
     }
 }
 
 /** The kind of object a type describes. A subtype always keeps its parent's base class. */
-enum class BaseClass { DOCUMENT, PART }
+enum class BaseClass { DOCUMENT, PART, CHANGE }
 
 data class TypeDefinition(
     val id: TypeId,

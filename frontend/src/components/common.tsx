@@ -2,6 +2,7 @@ import { language, locale, t } from "../i18n/i18n";
 import {
   Bolt,
   Box,
+  ClipboardList,
   Building2,
   Cable,
   ChevronDown,
@@ -178,7 +179,9 @@ export const TYPE_ICONS: Record<string, LucideIcon> = {
 export function TypeIcon({ typeId, size = 15 }: { typeId: string; size?: number }) {
   const { data: types } = useTypes();
   const type = types?.find((t) => t.id === typeId);
-  const Icon = (type?.icon && TYPE_ICONS[type.icon]) || (type?.baseClass === "DOCUMENT" ? FileText : Box);
+  const Icon =
+    (type?.icon && TYPE_ICONS[type.icon]) ||
+    (type?.baseClass === "DOCUMENT" ? FileText : type?.baseClass === "CHANGE" ? ClipboardList : Box);
   return <Icon size={size} className="type-icon" aria-hidden />;
 }
 

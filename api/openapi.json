@@ -256,6 +256,23 @@
         "required" : [ "alternateId", "twoWay" ],
         "type" : "object"
       },
+      "AddChangeLink" : {
+        "properties" : {
+          "note" : {
+            "type" : [ "string", "null" ]
+          },
+          "role" : {
+            "enum" : [ "AFFECTED", "RESULTING", "END_ITEM", "ADDRESSES", "IMPLEMENTS", "TASK" ],
+            "type" : "string"
+          },
+          "targetId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "role", "targetId" ],
+        "type" : "object"
+      },
       "AddSubstitute" : {
         "properties" : {
           "notes" : {
@@ -919,6 +936,34 @@
         },
         "type" : "object"
       },
+      "ChangeFrom" : {
+        "properties" : {
+          "affected" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : [ "array", "null" ]
+          },
+          "fromId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "PROBLEM_REPORT", "CHANGE_REQUEST", "CHANGE_NOTICE", "CHANGE_TASK" ],
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "fromId", "kind", "name" ],
+        "type" : "object"
+      },
       "ChangeLifecycleRequest" : {
         "properties" : {
           "lifecycleId" : {
@@ -930,6 +975,73 @@
           }
         },
         "required" : [ "lifecycleId" ],
+        "type" : "object"
+      },
+      "ChangeLink" : {
+        "properties" : {
+          "change" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/LinkedObject"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "changeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "linkedVersion" : {
+            "type" : [ "string", "null" ]
+          },
+          "note" : {
+            "type" : [ "string", "null" ]
+          },
+          "role" : {
+            "enum" : [ "AFFECTED", "RESULTING", "END_ITEM", "ADDRESSES", "IMPLEMENTS", "TASK" ],
+            "type" : "string"
+          },
+          "target" : {
+            "$ref" : "#/components/schemas/LinkedObject"
+          }
+        },
+        "required" : [ "changeId", "createdAt", "createdBy", "id", "role", "target" ],
+        "type" : "object"
+      },
+      "ChangeView" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "PROBLEM_REPORT", "CHANGE_REQUEST", "CHANGE_NOTICE", "CHANGE_TASK" ],
+            "type" : "string"
+          },
+          "linkedFrom" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ChangeLink"
+            },
+            "type" : "array"
+          },
+          "links" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ChangeLink"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "id", "kind", "linkedFrom", "links" ],
         "type" : "object"
       },
       "CheckExpressionRequest" : {
@@ -1749,6 +1861,16 @@
           }
         },
         "required" : [ "code", "dimension", "labels" ],
+        "type" : "object"
+      },
+      "Created" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "id" ],
         "type" : "object"
       },
       "CreatedObject" : {
@@ -3457,6 +3579,35 @@
           }
         },
         "required" : [ "documentTypeId", "kind", "partTypeId" ],
+        "type" : "object"
+      },
+      "LinkedObject" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "number" : {
+            "type" : [ "string", "null" ]
+          },
+          "readable" : {
+            "type" : "boolean"
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "version" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "readable" ],
         "type" : "object"
       },
       "LinkingPart" : {
@@ -8016,6 +8167,166 @@
           }
         },
         "tags" : [ "Bulk" ]
+      }
+    },
+    "/api/v1/changes/from" : {
+      "post" : {
+        "operationId" : "changeCreateFrom",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChangeFrom"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Created"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change" ]
+      }
+    },
+    "/api/v1/changes/{id}" : {
+      "get" : {
+        "operationId" : "changeView",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChangeView"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change" ]
+      }
+    },
+    "/api/v1/changes/{id}/links" : {
+      "post" : {
+        "operationId" : "changeLink",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddChangeLink"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChangeLink"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change" ]
+      }
+    },
+    "/api/v1/changes/{id}/links/{linkId}" : {
+      "delete" : {
+        "operationId" : "changeUnlink",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "linkId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change" ]
       }
     },
     "/api/v1/comments/{commentId}" : {
@@ -13224,6 +13535,46 @@
           }
         },
         "tags" : [ "Replacement" ]
+      }
+    },
+    "/api/v1/objects/{id}/changes" : {
+      "get" : {
+        "operationId" : "changeChangesOf",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ChangeLink"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change" ]
       }
     },
     "/api/v1/objects/{id}/checkin" : {
@@ -20083,6 +20434,8 @@
     "name" : "Bom"
   }, {
     "name" : "Bulk"
+  }, {
+    "name" : "Change"
   }, {
     "name" : "Configuration"
   }, {

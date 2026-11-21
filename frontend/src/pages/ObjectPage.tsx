@@ -1,5 +1,6 @@
 import { ReferencedBy } from "../components/References";
 import { ProcessesTab } from "../workflow/Processes";
+import { ChangeTab, ObjectChangesTab, changeKindOf, kindLabel } from "../changes/Changes";
 import { SignaturesPanel } from "../workflow/Signatures";
 import { ReplacementsTab } from "../structure/Replacements";
 import { DocumentLinksTab, LinkingPartsTab } from "../structure/DocumentLinks";
@@ -69,6 +70,8 @@ type Tab =
   | "replacements"
   | "parts"
   | "processes"
+  | "change"
+  | "changes"
   | "discussion"
   | "history"
   | "audit";
@@ -94,6 +97,7 @@ function ObjectView({ id }: { id: string }) {
   if (error || !obj) return <ErrorBanner error={error} />;
 
   const isPart = allTypes?.find((ty) => ty.id === obj.typeId)?.baseClass === "PART";
+  const changeKind = changeKindOf(allTypes, obj.typeId);
   const tabs: [Tab, string][] = [
     ["details", t("Details")],
     ...(isPart
@@ -103,9 +107,10 @@ function ObjectView({ id }: { id: string }) {
           ["documents", t("Documents")] as [Tab, string],
           ["replacements", t("Replacements")] as [Tab, string],
         ]
-      : allTypes
+      : allTypes && !changeKind
         ? [["parts", t("Parts")] as [Tab, string]]
         : []),
+    ...(changeKind ? [["change", kindLabel(changeKind)] as [Tab, string]] : [["changes", t("Changes")] as [Tab, string]]),
     ["processes", t("Processes")],
     ["discussion", discussionCount ? t("Discussion ({count})", { count: discussionCount }) : t("Discussion")],
     ...(shows("object.history") ? [["history", t("History")] as [Tab, string]] : []),
@@ -126,6 +131,8 @@ function ObjectView({ id }: { id: string }) {
         {tab === "parts" && <LinkingPartsTab obj={obj} />}
         {tab === "replacements" && <ReplacementsTab obj={obj} />}
         {tab === "processes" && <ProcessesTab obj={obj} />}
+        {tab === "change" && changeKind && <ChangeTab obj={obj} kind={changeKind} />}
+        {tab === "changes" && <ObjectChangesTab obj={obj} />}
         {tab === "discussion" && <DiscussionTab obj={obj} />}
         {tab === "history" && <HistoryTab id={obj.id} />}
         {tab === "audit" && me?.siteAdmin && <AuditTab id={obj.id} />}
