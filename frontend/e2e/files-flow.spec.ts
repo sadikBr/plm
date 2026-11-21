@@ -15,10 +15,10 @@ test("a file uploaded to the working copy is the object's after check-in, and ca
   const site = await (await request.get(`${API}/api/v1/contexts/site`, { headers })).json();
   const org = await post("/contexts", { parentId: site.id, kind: "ORGANIZATION", name: `Files Inc ${Date.now().toString(36)}` });
   const product = await post("/contexts", { parentId: org.id, kind: "PRODUCT", name: "Rover" });
-  const part = await post("/objects", { typeId: "00000000-0000-7000-8000-000000000102", contextId: product.id, name: "Bracket" });
+  const doc = await post("/objects", { typeId: "00000000-0000-7000-8000-000000000101", contextId: product.id, name: "Bracket assembly instructions" });
 
   const alice = await asUser(browser, "alice");
-  await alice.goto(`/objects/${part.id}`);
+  await alice.goto(`/objects/${doc.id}`);
   await expect(alice.getByText("No primary file.")).toBeVisible();
   await alice.locator('[data-action="object.check-out"]').click();
   await expect(alice.getByText("Your working copy's files")).toBeVisible();

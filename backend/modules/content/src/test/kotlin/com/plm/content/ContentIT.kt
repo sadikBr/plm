@@ -14,6 +14,7 @@ import com.plm.content.api.ThumbnailStatus
 import com.plm.content.domain.DefaultContentService
 import com.plm.platform.actor.Actor
 import com.plm.platform.error.PlmException
+import com.plm.platform.error.ValidationException
 import com.plm.platform.id.PrincipalId
 import com.plm.platform.id.TenantId
 import com.plm.types.api.TypeId
@@ -24,6 +25,7 @@ import com.plm.versioning.api.VersioningService
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import plm.testing.MutableClock
@@ -52,7 +54,15 @@ internal class ContentIT(
 
     private fun code(call: () -> Unit) = (runCatching(call).exceptionOrNull() as PlmException).code
 
-    private fun part(): MasterId {
+    private fun part(): MasterId = create(TypeId.PART, "Frame", mapOf("material" to "CF"))
+
+    private fun document(): MasterId = create(TypeId.DOCUMENT, "Frame drawing", emptyMap())
+
+    private fun create(
+        type: TypeId,
+        name: String,
+        attributes: Map<String, Any?>,
+    ): MasterId {
         val org =
             contexts.create(
                 admin,
@@ -63,15 +73,7 @@ internal class ContentIT(
         return versioning
             .create(
                 alice,
-                CreateVersionedObject(
-                    TypeId.PART,
-                    product,
-                    "Frame",
-                    attributes =
-                        mapOf(
-                            "material" to "CF",
-                        ),
-                ),
+                CreateVersionedObject(type, product, name, attributes = attributes),
             ).id
     }
 
@@ -114,7 +116,7 @@ internal class ContentIT(
 
     @Test
     fun `files go to the working copy, become the object's at check-in, and follow check-out and revise`() {
-        val id = part()
+        val id = document()
         assertThat(code { content.attach(alice, id, AttachContent(UUID.randomUUID())) }).isEqualTo("NOT_CHECKED_OUT")
 
         versioning.checkOut(alice, id)
@@ -163,8 +165,25 @@ internal class ContentIT(
     }
 
     @Test
-    fun `only people who can read the object get its files, through links that expire`() {
+    fun `only documents hold files, as with primary content and attachments`() {
         val id = part()
+        versioning.checkOut(alice, id)
+        assertThatThrownBy {
+            content.store(
+                alice,
+                id,
+                "frame.txt",
+                "text/plain",
+                "x".toByteArray(),
+                ContentRole.ATTACHMENT,
+            )
+        }.isInstanceOf(ValidationException::class.java)
+            .hasMessageContaining("Only documents hold files")
+    }
+
+    @Test
+    fun `only people who can read the object get its files, through links that expire`() {
+        val id = document()
         versioning.checkOut(alice, id)
         val item = content.attach(alice, id, AttachContent(upload("secret.txt", "classified".toByteArray())))
         // Someone else's working copy is invisible, even to readers.
@@ -197,7 +216,7 @@ internal class ContentIT(
         ).isEqualTo("UPLOAD_TOO_LARGE")
         assertThat(code { content.requestUpload(alice, RequestUpload("  ", null, 1)) }).isEqualTo("INVALID_FILE_NAME")
 
-        val id = part()
+        val id = document()
         versioning.checkOut(alice, id)
         val pending = content.requestUpload(alice, RequestUpload("late.txt", null, 1))
         assertThat(code { content.attach(alice, id, AttachContent(pending.uploadId)) }).isEqualTo("UPLOAD_NOT_RECEIVED")
@@ -209,7 +228,7 @@ internal class ContentIT(
 
     @Test
     fun `PDF pages are previewed as images`() {
-        val id = part()
+        val id = document()
         versioning.checkOut(alice, id)
         val pdf =
             ByteArrayOutputStream()
@@ -231,7 +250,7 @@ internal class ContentIT(
 
     @Test
     fun `images get a thumbnail, made in the background`() {
-        val id = part()
+        val id = document()
         versioning.checkOut(alice, id)
         val image = BufferedImage(800, 400, BufferedImage.TYPE_INT_RGB)
         image.createGraphics().apply {

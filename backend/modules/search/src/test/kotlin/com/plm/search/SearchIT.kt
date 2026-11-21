@@ -156,7 +156,7 @@ internal class SearchIT(
     @Test
     fun `changes and deletions reach the index`() {
         val p = product()
-        val id = create(p, TypeId.PART, "Axle $word")
+        val id = create(p, TypeId.DOCUMENT, "Axle notes $word")
         indexer.drain()
         assertThat(search.search(alice, SearchQuery(text = word)).total).isEqualTo(1)
 

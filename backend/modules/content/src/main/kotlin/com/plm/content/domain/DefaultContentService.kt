@@ -22,6 +22,8 @@ import com.plm.platform.error.ValidationException
 import com.plm.platform.events.DomainEvents
 import com.plm.platform.events.EventEnvelope
 import com.plm.platform.id.UuidV7
+import com.plm.types.api.BaseClass
+import com.plm.types.api.TypeService
 import com.plm.versioning.api.MasterId
 import com.plm.versioning.api.VersioningService
 import org.apache.pdfbox.Loader
@@ -52,6 +54,7 @@ internal class DefaultContentService(
     private val store: BlobStore,
     private val signer: Signer,
     private val versioning: VersioningService,
+    private val types: TypeService,
     private val events: DomainEvents,
     private val jobs: JobService,
     private val tx: TransactionTemplate,
@@ -232,6 +235,29 @@ internal class DefaultContentService(
         return PreviewPage(link.url, link.expiresAt, page, pages!!)
     }
 
+    /**
+     * Files belong to documents (their primary content and attachments); parts, like other
+     * structured objects, describe things and point to documents for files. `CONTENT_NOT_ALLOWED`.
+     */
+    private fun isDocument(
+        actor: Actor,
+        objectId: MasterId,
+    ) = types.get(actor, versioning.get(actor, objectId).typeId).baseClass == BaseClass.DOCUMENT
+
+    private fun requireDocument(
+        actor: Actor,
+        objectId: MasterId,
+    ) {
+        val type = types.get(actor, versioning.get(actor, objectId).typeId)
+        if (type.baseClass != BaseClass.DOCUMENT) {
+            throw ValidationException(
+                "CONTENT_NOT_ALLOWED",
+                "Only documents hold files: a ${type.displayName} can't have primary content or attachments",
+                mapOf("typeId" to type.id.value),
+            )
+        }
+    }
+
     @Transactional
     override fun copyLatest(
         actor: Actor,
@@ -240,6 +266,9 @@ internal class DefaultContentService(
     ): Int {
         val source = versioning.get(actor, from)
         val target = versioning.get(actor, to)
+        // Only documents hold files: a part saved as a new one (even one with files from before this
+        // rule) starts without any.
+        if (content.items(source.latest.id.value).isEmpty() || !isDocument(actor, to)) return 0
         if (target.latest.createdBy != actor.principal.value ||
             target.latest.iteration != 1 ||
             content.items(target.latest.id.value).isNotEmpty()
@@ -378,6 +407,7 @@ internal class DefaultContentService(
         description: String?,
         blobKey: String,
     ): ContentItem {
+        requireDocument(actor, objectId)
         if (role == ContentRole.PRIMARY) {
             // One primary file: a new one replaces the old.
             content

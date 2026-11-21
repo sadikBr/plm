@@ -65,7 +65,8 @@ data class PreviewPage(
 )
 
 /**
- * Object content (roadmap 3.2): files kept per iteration, in the vault. Reading needs read access
+ * Document content (roadmap 3.2): files kept per iteration, in the vault: one primary file and any
+ * number of attachments, on documents only (`CONTENT_NOT_ALLOWED` elsewhere). Reading needs read access
  * to the object; changing needs the object checked out to you (content goes to your working copy,
  * and becomes the object's at check-in). Check-out and revise carry the content forward.
  *
