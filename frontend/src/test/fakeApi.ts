@@ -72,6 +72,7 @@ const DEFAULTS: Record<string, Handler> = {
   "GET /api/v1/objects/:id/variants": () => [],
   "GET /api/v1/objects/:id/variant-origin": () => null,
   "GET /api/v1/classes": () => [],
+  "GET /api/v1/objects/:id/similar": () => ({ partId: "x", classId: null, attributes: [], values: {}, similar: [] }),
   "GET /api/v1/objects/:id/classification": () => ({ partId: "x", version: "A.1", path: [], attributes: [], values: {} }),
   "GET /api/v1/publish-settings": () => ({ watermarkDownloads: false }),
   "GET /api/v1/objects/:id/publications": () => [],

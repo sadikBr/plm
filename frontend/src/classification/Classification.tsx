@@ -5,6 +5,7 @@ import { api, unwrap, type Schemas } from "../api/client";
 import { useMe, type VersionedObject } from "../api/queries";
 import { ErrorBanner, Loading, Panel, PrincipalName, formatDate } from "../components/common";
 import { t } from "../i18n/i18n";
+import { SimilarPartsPanel } from "./ClassSearch";
 
 type ClassNode = Schemas["ClassNode"];
 type Attr = Schemas["ClassAttribute"];
@@ -240,6 +241,15 @@ const show = (a: Attr, v: unknown) =>
 
 /** A part's class and values (roadmap 7.11), edited on your working copy. */
 export function ClassificationTab({ obj }: { obj: VersionedObject }) {
+  return (
+    <>
+      <ClassificationPanel obj={obj} />
+      <SimilarPartsPanel obj={obj} />
+    </>
+  );
+}
+
+function ClassificationPanel({ obj }: { obj: VersionedObject }) {
   const qc = useQueryClient();
   const { data: me } = useMe();
   const mine = !!me && obj.checkedOutBy === me.user.id;

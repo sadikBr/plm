@@ -84,3 +84,28 @@ internal class ClassificationController(
         @RequestBody request: ClassifyPart,
     ) = classification.classify(actor, id, request.classId, request.values)
 }
+
+data class SearchClass(
+    val filters: List<com.plm.classification.api.ClassFilter> = emptyList(),
+    val limit: Int = 200,
+)
+
+/** Classification search and find similar (roadmap 7.12). */
+@RestController
+internal class ClassSearchController(
+    private val search: com.plm.classification.api.ClassSearchService,
+) {
+    @PostMapping("/api/v1/classes/{id}/search")
+    fun search(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: SearchClass,
+    ) = search.search(actor, id, request.filters, request.limit)
+
+    @GetMapping("/api/v1/objects/{id}/similar")
+    fun similar(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestParam(defaultValue = "10") limit: Int,
+    ) = search.similar(actor, id, limit)
+}

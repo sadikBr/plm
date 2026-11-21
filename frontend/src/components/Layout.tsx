@@ -2,7 +2,7 @@ import { t } from "../i18n/i18n";
 import { ClipboardButton } from "./Clipboard";
 import { NotificationBell } from "../personal/Personal";
 import { InboxLink } from "../workflow/Inbox";
-import { Archive, BarChart3, ClipboardList, ChevronRight, LayoutDashboard, LogOut, Settings } from "lucide-react";
+import { Archive, BarChart3, ClipboardList, ChevronRight, LayoutDashboard, LogOut, Settings, FolderTree } from "lucide-react";
 import { type ReactNode } from "react";
 import { Link, NavLink, Outlet, useParams } from "react-router";
 import { useCanOpen, useContextById, useMe, useShows } from "../api/queries";
@@ -28,6 +28,9 @@ export function Layout() {
         <InboxLink />
         <NavLink to="/changes" className="topbar-link" title={t("Changes")}>
           <ClipboardList size={14} aria-hidden /> <span className="tl">{t("Changes")}</span>
+        </NavLink>
+        <NavLink to="/classes" className="topbar-link" title={t("Classes")}>
+          <FolderTree size={14} aria-hidden /> <span className="tl">{t("Classes")}</span>
         </NavLink>
         <NavLink to="/reports" className="topbar-link" title={t("Reports")}>
           <BarChart3 size={14} aria-hidden /> <span className="tl">{t("Reports")}</span>

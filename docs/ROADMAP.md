@@ -637,8 +637,14 @@ main line, and classification makes existing parts easy to find and reuse.
       Classification tab shows its class path and values; on the working copy it takes a class and
       values checked against the attributes. Check-out, revise and one-offs carry them forward, so
       each version keeps its own. A class in use, or with classes under it, isn't deleted.
-- [ ] 7.12 Classification search and find similar: browse by class and filter by class attribute
+- [x] 7.12 Classification search and find similar: browse by class and filter by class attribute
       ranges; from any part, find similar ones (same class, close values), ranked by similarity.
+      Done: the Classes page (top bar) browses the class tree and lists the parts of a class and
+      its subclasses (latest versions the reader may read) with their values as columns, filtered
+      by ranges for numbers and values for the rest. A part's Classification tab lists similar
+      parts: the others of its class ranked by how close each value is (numbers by relative
+      difference, other values by equality, missing ones as far), with the likeness and the
+      values that match shown.
 
 **Exit:** a configurable product with options and rules is configured into a variant whose filtered
 structure is generated as parts, reusing a variant generated earlier for a sub-assembly; a change

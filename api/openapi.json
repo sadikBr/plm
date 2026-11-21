@@ -687,6 +687,19 @@
         "required" : [ "changed", "name" ],
         "type" : "object"
       },
+      "AttributeMatch" : {
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "score" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "key", "score" ],
+        "type" : "object"
+      },
       "AttributeResponse" : {
         "properties" : {
           "active" : {
@@ -1848,6 +1861,24 @@
         "required" : [ "allowed", "classId", "dataType", "id", "key", "label", "position", "required" ],
         "type" : "object"
       },
+      "ClassFilter" : {
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "max" : {
+            "type" : [ "number", "null" ]
+          },
+          "min" : {
+            "type" : [ "number", "null" ]
+          },
+          "value" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "key" ],
+        "type" : "object"
+      },
       "ClassNode" : {
         "properties" : {
           "attributes" : {
@@ -1883,6 +1914,64 @@
           }
         },
         "required" : [ "attributes", "code", "id", "name", "parts", "position" ],
+        "type" : "object"
+      },
+      "ClassSearchResult" : {
+        "properties" : {
+          "attributes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ClassAttribute"
+            },
+            "type" : "array"
+          },
+          "classId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "parts" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ClassifiedPart"
+            },
+            "type" : "array"
+          },
+          "truncated" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "attributes", "classId", "parts", "truncated" ],
+        "type" : "object"
+      },
+      "ClassifiedPart" : {
+        "properties" : {
+          "classId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "className" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "values" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "classId", "className", "id", "name", "number", "state", "values", "version" ],
         "type" : "object"
       },
       "ClassifyPart" : {
@@ -8056,6 +8145,22 @@
         "required" : [ "input" ],
         "type" : "object"
       },
+      "SearchClass" : {
+        "properties" : {
+          "filters" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ClassFilter"
+            },
+            "type" : "array"
+          },
+          "limit" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "filters", "limit" ],
+        "type" : "object"
+      },
       "SearchHit" : {
         "properties" : {
           "contextId" : {
@@ -8550,6 +8655,55 @@
           }
         },
         "required" : [ "columns", "rows", "sheetName" ],
+        "type" : "object"
+      },
+      "SimilarPart" : {
+        "properties" : {
+          "matches" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AttributeMatch"
+            },
+            "type" : "array"
+          },
+          "part" : {
+            "$ref" : "#/components/schemas/ClassifiedPart"
+          },
+          "score" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "matches", "part", "score" ],
+        "type" : "object"
+      },
+      "SimilarParts" : {
+        "properties" : {
+          "attributes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ClassAttribute"
+            },
+            "type" : "array"
+          },
+          "classId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "partId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "similar" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SimilarPart"
+            },
+            "type" : "array"
+          },
+          "values" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          }
+        },
+        "required" : [ "attributes", "partId", "similar", "values" ],
         "type" : "object"
       },
       "StandIn" : {
@@ -12504,6 +12658,53 @@
           }
         },
         "tags" : [ "Classification" ]
+      }
+    },
+    "/api/v1/classes/{id}/search" : {
+      "post" : {
+        "operationId" : "classSearchSearch",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SearchClass"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClassSearchResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Class search" ]
       }
     },
     "/api/v1/comments/{commentId}" : {
@@ -21623,6 +21824,52 @@
         "tags" : [ "Signature" ]
       }
     },
+    "/api/v1/objects/{id}/similar" : {
+      "get" : {
+        "operationId" : "classSearchSimilar",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 10,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SimilarParts"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Class search" ]
+      }
+    },
     "/api/v1/objects/{id}/state" : {
       "post" : {
         "operationId" : "versionedObjectSetState",
@@ -28464,6 +28711,8 @@
     "name" : "Change metrics"
   }, {
     "name" : "Change setup"
+  }, {
+    "name" : "Class search"
   }, {
     "name" : "Classification"
   }, {
