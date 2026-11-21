@@ -2700,6 +2700,72 @@
         "required" : [ "applied", "changes", "conflicts", "creates", "unchanged", "updates" ],
         "type" : "object"
       },
+      "ImportPreview" : {
+        "properties" : {
+          "assemblies" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "creates" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "errors" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "rootId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "rootNumber" : {
+            "type" : "string"
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PreviewRow"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "assemblies", "creates", "errors", "rootId", "rootNumber", "rows" ],
+        "type" : "object"
+      },
+      "ImportRow" : {
+        "properties" : {
+          "designators" : {
+            "type" : [ "string", "null" ]
+          },
+          "findNumber" : {
+            "type" : [ "string", "null" ]
+          },
+          "level" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "notes" : {
+            "type" : [ "string", "null" ]
+          },
+          "number" : {
+            "type" : [ "string", "null" ]
+          },
+          "quantity" : {
+            "type" : [ "number", "null" ]
+          },
+          "row" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "unit" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "level", "row" ],
+        "type" : "object"
+      },
       "InstallExtensionRequest" : {
         "properties" : {
           "config" : {
@@ -4081,6 +4147,44 @@
         "required" : [ "actionsAdded", "actionsChanged", "actionsRemoved", "canInstall", "compatible", "configProblems", "manifest", "mode", "permissionsAdded", "permissionsRemoved", "platformVersion", "rulesAdded", "rulesChanged", "rulesRemoved", "seedChanges" ],
         "type" : "object"
       },
+      "PreviewRow" : {
+        "properties" : {
+          "action" : {
+            "enum" : [ "MATCH", "CREATE" ],
+            "type" : [ "string", "null" ]
+          },
+          "assembly" : {
+            "type" : "boolean"
+          },
+          "errors" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "partId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "partName" : {
+            "type" : [ "string", "null" ]
+          },
+          "partNumber" : {
+            "type" : [ "string", "null" ]
+          },
+          "row" : {
+            "$ref" : "#/components/schemas/ImportRow"
+          },
+          "warnings" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "assembly", "errors", "row", "warnings" ],
+        "type" : "object"
+      },
       "PrincipalResponse" : {
         "properties" : {
           "displayName" : {
@@ -5180,6 +5284,21 @@
           }
         },
         "required" : [ "columns", "rows", "sheetName" ],
+        "type" : "object"
+      },
+      "StartImportRequest" : {
+        "properties" : {
+          "fileName" : {
+            "type" : [ "string", "null" ]
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ImportRow"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "rows" ],
         "type" : "object"
       },
       "StateDto" : {
@@ -13935,6 +14054,97 @@
         "tags" : [ "Bom" ]
       }
     },
+    "/api/v1/objects/{id}/structure-import" : {
+      "post" : {
+        "operationId" : "structureImportStart",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StartImportRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Job"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Structure import" ]
+      }
+    },
+    "/api/v1/objects/{id}/structure-import/preview" : {
+      "post" : {
+        "operationId" : "structureImportPreview",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "fileName",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ImportPreview"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Structure import" ]
+      }
+    },
     "/api/v1/objects/{id}/substitute-uses" : {
       "get" : {
         "operationId" : "replacementSubstituteUses",
@@ -17809,6 +18019,8 @@
     "name" : "Shared team"
   }, {
     "name" : "Sharing"
+  }, {
+    "name" : "Structure import"
   }, {
     "name" : "Table view"
   }, {

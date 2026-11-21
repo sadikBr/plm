@@ -196,46 +196,54 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
   const first = Math.max(0, Math.floor(scrollTop / ROW) - 10);
   const last = Math.min(rows.length, first + Math.ceil(height / ROW) + 20);
 
-  const exportRows = async () => {
+  /** The whole structure as a sheet that imports back as it is (roadmap 4.13). */
+  const exportRows = async (format: "xlsx" | "csv") => {
     const r = all ? top.data : await loadStructure(obj.id, spec, 50);
     if (!r) return;
-    const body = {
-      sheetName: obj.number,
-      columns: [
-        t("Level"),
-        t("Line"),
-        t("Number"),
-        t("Name"),
-        t("Version"),
-        t("State"),
-        t("Find no."),
-        t("Quantity"),
-        t("Unit"),
-        t("Reference designators"),
-      ],
-      rows: r.nodes.map((n) => [
-        n.level,
-        n.path,
-        n.line.child.number ?? t("(no access)"),
-        n.line.child.name ?? "",
-        n.line.child.version ?? "",
-        n.line.child.state ? stateLabel(n.line.child.state) : "",
-        n.line.findNumber ?? "",
-        n.line.quantity,
-        unitLabel(n.line.unit),
-        formatDesignators(n.line.designators),
-      ]),
-    };
-    const res = await api.POST("/api/v1/export/xlsx", {
-      body,
-      parseAs: "blob",
-      headers: { Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
-    });
-    if (!res.data) return;
-    const url = URL.createObjectURL(res.data as Blob);
+    const columns = [
+      t("Level"),
+      t("Line"),
+      t("Number"),
+      t("Name"),
+      t("Version"),
+      t("State"),
+      t("Find no."),
+      t("Quantity"),
+      t("Unit"),
+      t("Reference designators"),
+    ];
+    const rows = r.nodes.map((n) => [
+      n.level,
+      n.path,
+      n.line.child.number ?? t("(no access)"),
+      n.line.child.name ?? "",
+      n.line.child.version ?? "",
+      n.line.child.state ? stateLabel(n.line.child.state) : "",
+      n.line.findNumber ?? "",
+      n.line.quantity,
+      n.line.unit,
+      formatDesignators(n.line.designators),
+    ]);
+    let blob: Blob;
+    if (format === "csv") {
+      const cell = (v: unknown) => {
+        const s = String(v ?? "");
+        return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      blob = new Blob(["\uFEFF" + [columns, ...rows].map((row) => row.map(cell).join(",")).join("\r\n")], { type: "text/csv" });
+    } else {
+      const res = await api.POST("/api/v1/export/xlsx", {
+        body: { sheetName: obj.number, columns, rows },
+        parseAs: "blob",
+        headers: { Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+      });
+      if (!res.data) return;
+      blob = res.data as Blob;
+    }
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${obj.number} structure.xlsx`;
+    a.download = `${obj.number} structure.${format}`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
   };
@@ -277,8 +285,11 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
         <button className="btn small" onClick={collapseAll}>
           <ChevronsDownUp size={13} aria-hidden /> {t("Collapse all")}
         </button>
-        <button className="btn small" onClick={() => void exportRows()} disabled={!top.data?.nodes.length}>
+        <button className="btn small" onClick={() => void exportRows("xlsx")} disabled={!top.data?.nodes.length}>
           <FileSpreadsheet size={13} aria-hidden /> {t("Export to Excel")}
+        </button>
+        <button className="btn small" onClick={() => void exportRows("csv")} disabled={!top.data?.nodes.length}>
+          {t("CSV")}
         </button>
       </div>
       {top.data?.truncated && (

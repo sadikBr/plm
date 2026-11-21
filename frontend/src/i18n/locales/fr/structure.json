@@ -208,5 +208,22 @@
   "Matches": "Résultats",
   "Nothing found": "Rien trouvé",
   "Referenced by": "Référencé par",
-  "Through": "Via"
+  "Through": "Via",
+  "A CSV or Excel file with a Level column (1: used by {number}) and a Number or Name column; Quantity, Unit, Find no., Reference designators and Notes are optional. Parts are found by number; those not found are created. Each assembly in the file gets exactly the lines under it.": "Un fichier CSV ou Excel avec une colonne Niveau (1 : utilisé par {number}) et une colonne Numéro ou Nom ; Quantité, Unité, Repère, Repères topologiques et Notes sont facultatifs. Les pièces sont trouvées par numéro ; celles introuvables sont créées. Chaque assemblage du fichier reçoit exactement les lignes placées sous lui.",
+  "Import a structure into {number}": "Importer une structure dans {number}",
+  "Import preview": "Aperçu de l'import",
+  "Part": "Pièce",
+  "Problems": "Problèmes",
+  "Reading the file…": "Lecture du fichier…",
+  "Row": "Ligne",
+  "assembly": "assemblage",
+  "existing": "existante",
+  "new": "nouvelle",
+  "{n} line to fix": "{n} ligne à corriger",
+  "{n} lines to fix": "{n} lignes à corriger",
+  "{n} new part": "{n} nouvelle pièce",
+  "{n} new parts": "{n} nouvelles pièces",
+  "{n} structure to set": "{n} structure à définir",
+  "{n} structures to set": "{n} structures à définir",
+  "CSV": "CSV"
 }

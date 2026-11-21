@@ -258,6 +258,8 @@ export function BulkProgress({ jobId, onClose }: { jobId: string; onClose: () =>
       if (s && s !== "QUEUED" && s !== "RUNNING") {
         void qc.invalidateQueries({ queryKey: ["objects"] });
         void qc.invalidateQueries({ queryKey: ["folders"] });
+        void qc.invalidateQueries({ queryKey: ["structure"] });
+        void qc.invalidateQueries({ queryKey: ["usages"] });
         return false;
       }
       return 1000;
@@ -301,7 +303,7 @@ export function BulkProgress({ jobId, onClose }: { jobId: string; onClose: () =>
           </thead>
           <tbody>
             {results.map((r) => (
-              <tr key={r.objectId}>
+              <tr key={r.objectId ?? r.number ?? r.message}>
                 <td className="nowrap">
                   {r.number ? <Link to={`/objects/${r.objectId}`}>{r.number}</Link> : <span className="muted">{t("Deleted")}</span>}
                 </td>

@@ -271,8 +271,15 @@ baseline and report on, fast at the scale of real products.
       referenced one changes; "Referenced by" on the object page; referenced objects can't be
       deleted; object pickers in forms, search and report filters; reference columns show number
       and name.
-- [ ] 4.13 BOM import and export: Excel/CSV with preview, validation and matching (create or
+- [x] 4.13 BOM import and export: Excel/CSV with preview, validation and matching (create or
       update), as a background job.
+      Done: the structure exports to Excel or CSV in a layout that imports back (Level, Find no.,
+      Number, Name, Quantity, Unit, Reference designators); import reads CSV (comma or semicolon,
+      decimal commas) and .xlsx (no spreadsheet library; no DTDs), headers in English, French or
+      German, units by key or label. The preview matches parts by number (else creates them),
+      checks levels, quantities, units, designator counts, cycles and whether each assembly can be
+      checked out, line by line; the job creates parts, then sets each assembly's lines exactly
+      (matched lines updated, others added or removed), checks in, and reports per object.
 - [ ] 4.14 Bulk revise and structure operations: revise a structure or a selection in one go,
       mass replace across where-used; background jobs with per-object results.
 

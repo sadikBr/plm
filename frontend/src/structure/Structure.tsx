@@ -11,6 +11,8 @@ import { formatDesignators } from "./designators";
 import { FlattenedView, RollupView } from "./Rollup";
 import { SubstitutesEditor } from "./Replacements";
 import { SpecPicker, StructureTree, useDefaultSpec, type Spec } from "./StructureTree";
+import { ImportStructureButton } from "./StructureImport";
+import { BulkProgress } from "../pages/Bulk";
 
 // Product structure (roadmap 4.1, 4.4): the parts a part uses, edited on its working copy.
 
@@ -75,6 +77,7 @@ export function StructureTab({ obj, editable }: { obj: VersionedObject; editable
   const fromBaseline = params.get("baseline");
   const [chosen, setChosen] = useState<Spec | null>(fromBaseline ? { type: "BASELINE", baselineId: fromBaseline } : null);
   const [view, setView] = useState<"tree" | "flat" | "rollup">("tree");
+  const [importJob, setImportJob] = useState<string | null>(null);
   if (editable) return <EditableStructure obj={obj} />;
   const spec = chosen ?? preferred;
   return (
@@ -96,10 +99,16 @@ export function StructureTab({ obj, editable }: { obj: VersionedObject; editable
             ))}
           </span>
           <SpecPicker spec={spec} onChange={setChosen} partId={obj.id} />
+          <ImportStructureButton obj={obj} onStarted={setImportJob} />
         </>
       }
       flush
     >
+      {importJob && (
+        <div className="import-progress">
+          <BulkProgress jobId={importJob} onClose={() => setImportJob(null)} />
+        </div>
+      )}
       {view === "tree" && <StructureTree key={JSON.stringify(spec)} obj={obj} spec={spec} />}
       {view === "flat" && <FlattenedView obj={obj} spec={spec} />}
       {view === "rollup" && <RollupView obj={obj} spec={spec} />}

@@ -864,3 +864,10 @@ td.tree-cell > * { vertical-align: middle; }
 .refs { display: inline-flex; gap: 8px; flex-wrap: wrap; }
 .referenced-by { margin-top: 16px; }
 
+
+/* Structure import (roadmap 4.13) */
+.import-preview { max-height: 420px; overflow: auto; border: 1px solid var(--border); border-radius: 4px; }
+.import-preview .tag { margin-left: 6px; }
+.import-preview tr.row-error td { background: color-mix(in srgb, var(--danger, #c62828) 6%, transparent); }
+.error-text { color: var(--danger, #c62828); }
+.import-progress { margin: 12px; }
