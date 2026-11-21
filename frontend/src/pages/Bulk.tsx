@@ -8,6 +8,7 @@ import { pickLabel } from "../components/AttributeForm";
 import { useClipboard } from "../components/Clipboard";
 import { Dialog, ErrorBanner, Panel } from "../components/common";
 import { JobProgress, JobStatusTag } from "../components/JobProgress";
+import { t, tn } from "../i18n/i18n";
 import { FolderPicker } from "./Folders";
 
 type Operation = Schemas["BulkRequest"]["operation"];
@@ -33,28 +34,28 @@ export function BulkBar({
   const [dialog, setDialog] = useState<Operation | null>(null);
   const clipboard = useClipboard();
   return (
-    <div className="bulk-bar" role="toolbar" aria-label="Selected objects">
-      <strong>{objects.length} selected</strong>
+    <div className="bulk-bar" role="toolbar" aria-label={t("Selected objects")}>
+      <strong>{t("{count} selected", { count: objects.length })}</strong>
       <button className="btn small" onClick={() => setDialog("SET_STATE")}>
-        <ArrowRightLeft size={13} aria-hidden /> Set state…
+        <ArrowRightLeft size={13} aria-hidden /> {t("Set state…")}
       </button>
       <button className="btn small" onClick={() => setDialog("SET_ATTRIBUTE")}>
-        <PencilLine size={13} aria-hidden /> Change a value…
+        <PencilLine size={13} aria-hidden /> {t("Change a value…")}
       </button>
       <button className="btn small" onClick={() => setDialog("MOVE")}>
-        <FolderInput size={13} aria-hidden /> Move…
+        <FolderInput size={13} aria-hidden /> {t("Move…")}
       </button>
       <button
         className="btn small"
         onClick={() => objects.forEach((o) => clipboard.add({ id: o.id, number: o.number, name: o.name, version: o.version }))}
       >
-        <ClipboardPlus size={13} aria-hidden /> Add to clipboard
+        <ClipboardPlus size={13} aria-hidden /> {t("Add to clipboard")}
       </button>
       <button className="btn small ghost danger" onClick={() => setDialog("DELETE")}>
-        <Trash2 size={13} aria-hidden /> Delete…
+        <Trash2 size={13} aria-hidden /> {t("Delete…")}
       </button>
       <span className="grow" />
-      <button className="icon-btn" aria-label="Clear the selection" onClick={onClear}>
+      <button className="icon-btn" aria-label={t("Clear the selection")} onClick={onClear}>
         <X size={14} />
       </button>
       {dialog && (
@@ -75,12 +76,20 @@ export function BulkBar({
   );
 }
 
-const TITLES: Record<Operation, string> = {
-  SET_STATE: "Set the state of",
-  SET_ATTRIBUTE: "Change a value of",
-  MOVE: "Move",
-  DELETE: "Delete",
-};
+/** "Move 3 objects" */
+function bulkTitle(operation: Operation, n: number): string {
+  switch (operation) {
+    case "SET_STATE":
+      return tn("Set the state of {n} object", "Set the state of {n} objects", n);
+    case "SET_ATTRIBUTE":
+      return tn("Change a value of {n} object", "Change a value of {n} objects", n);
+    case "MOVE":
+      return tn("Move {n} object", "Move {n} objects", n);
+    case "DELETE":
+      return tn("Delete {n} object", "Delete {n} objects", n);
+  }
+  return `${operation} ${n}`;
+}
 
 function BulkDialog({
   operation,
@@ -142,19 +151,19 @@ function BulkDialog({
   return (
     <Dialog
       open
-      title={`${TITLES[operation]} ${objects.length} object${objects.length === 1 ? "" : "s"}`}
+      title={bulkTitle(operation, objects.length)}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             className={operation === "DELETE" ? "btn danger-fill" : "btn primary"}
             disabled={!ready || start.isPending}
             onClick={() => start.mutate()}
           >
-            {operation === "DELETE" ? "Delete them" : "Start"}
+            {operation === "DELETE" ? t("Delete them") : t("Start")}
           </button>
         </>
       }
@@ -162,15 +171,16 @@ function BulkDialog({
       <div className="attr-form">
         <ErrorBanner error={start.error} />
         <p className="muted wide" style={{ margin: 0 }}>
-          Runs in the background, object by object, with your access rights. Objects that can't be changed are listed with the reason; the
-          others go ahead.
+          {t(
+            "Runs in the background, object by object, with your access rights. Objects that can't be changed are listed with the reason; the others go ahead.",
+          )}
         </p>
         {operation === "SET_STATE" && (
           <>
             <div className="field">
-              <label htmlFor="bulk-state">New state</label>
+              <label htmlFor="bulk-state">{t("New state")}</label>
               <select id="bulk-state" value={state} onChange={(e) => setState(e.target.value)}>
-                <option value="">Choose…</option>
+                <option value="">{t("Choose…")}</option>
                 {[...states.entries()].map(([k, l]) => (
                   <option key={k} value={k}>
                     {l}
@@ -179,7 +189,7 @@ function BulkDialog({
               </select>
             </div>
             <div className="field">
-              <label htmlFor="bulk-comment">Comment</label>
+              <label htmlFor="bulk-comment">{t("Comment")}</label>
               <input id="bulk-comment" value={comment} onChange={(e) => setComment(e.target.value)} />
             </div>
           </>
@@ -187,9 +197,9 @@ function BulkDialog({
         {operation === "SET_ATTRIBUTE" && (
           <>
             <div className="field">
-              <label htmlFor="bulk-attr">Attribute</label>
+              <label htmlFor="bulk-attr">{t("Attribute")}</label>
               <select id="bulk-attr" value={attribute} onChange={(e) => (setAttribute(e.target.value), setValue(""))}>
-                <option value="">Choose…</option>
+                <option value="">{t("Choose…")}</option>
                 {editable.map((d) => (
                   <option key={d.name} value={d.name}>
                     {pickLabel(d.labels, d.name)}
@@ -198,10 +208,10 @@ function BulkDialog({
               </select>
             </div>
             <div className="field">
-              <label htmlFor="bulk-value">New value</label>
+              <label htmlFor="bulk-value">{t("New value")}</label>
               {chosen?.dataType === "ENUMERATION" && chosen.enumerationId ? (
                 <select id="bulk-value" value={value} onChange={(e) => setValue(e.target.value)}>
-                  <option value="">(empty)</option>
+                  <option value="">{t("(empty)")}</option>
                   {enumerations?.get(chosen.enumerationId)?.values.map((en) => (
                     <option key={en.key} value={en.key}>
                       {pickLabel(en.labels, en.key)}
@@ -210,14 +220,14 @@ function BulkDialog({
                 </select>
               ) : chosen?.dataType === "BOOLEAN" ? (
                 <select id="bulk-value" value={value} onChange={(e) => setValue(e.target.value)}>
-                  <option value="false">No</option>
-                  <option value="true">Yes</option>
+                  <option value="false">{t("No")}</option>
+                  <option value="true">{t("Yes")}</option>
                 </select>
               ) : (
                 <input id="bulk-value" value={value} onChange={(e) => setValue(e.target.value)} />
               )}
             </div>
-            <span className="hint wide">Each object is checked out, changed and checked in as a new iteration.</span>
+            <span className="hint wide">{t("Each object is checked out, changed and checked in as a new iteration.")}</span>
           </>
         )}
         {operation === "MOVE" && (
@@ -229,7 +239,7 @@ function BulkDialog({
         )}
         {operation === "DELETE" && (
           <div className="banner warn wide">
-            Each object and all its versions and files are removed, where the delete rules allow. This can't be undone.
+            {t("Each object and all its versions and files are removed, where the delete rules allow. This can't be undone.")}
           </div>
         )}
       </div>
@@ -260,17 +270,17 @@ export function BulkProgress({ jobId, onClose }: { jobId: string; onClose: () =>
   return (
     <Panel
       title={job.title}
-      note={running ? "Running in the background: you can leave this page" : undefined}
+      note={running ? t("Running in the background: you can leave this page") : undefined}
       flush
       actions={
         <>
           <JobStatusTag job={job} />
           {running ? (
             <button className="btn small" onClick={() => cancel.mutate()} disabled={job.cancelRequested}>
-              <Square size={12} aria-hidden /> Stop
+              <Square size={12} aria-hidden /> {t("Stop")}
             </button>
           ) : (
-            <button className="icon-btn" aria-label="Close the results" onClick={onClose}>
+            <button className="icon-btn" aria-label={t("Close the results")} onClick={onClose}>
               <X size={14} />
             </button>
           )}
@@ -282,21 +292,21 @@ export function BulkProgress({ jobId, onClose }: { jobId: string; onClose: () =>
       </div>
       {job.error && <div className="banner error">{job.error}</div>}
       {results.length > 0 && (
-        <table className="grid" aria-label="Results">
+        <table className="grid" aria-label={t("Results")}>
           <thead>
             <tr>
-              <th>Object</th>
-              <th>Outcome</th>
+              <th>{t("Object")}</th>
+              <th>{t("Outcome")}</th>
             </tr>
           </thead>
           <tbody>
             {results.map((r) => (
               <tr key={r.objectId}>
                 <td className="nowrap">
-                  {r.number ? <Link to={`/objects/${r.objectId}`}>{r.number}</Link> : <span className="muted">Deleted</span>}
+                  {r.number ? <Link to={`/objects/${r.objectId}`}>{r.number}</Link> : <span className="muted">{t("Deleted")}</span>}
                 </td>
                 <td>
-                  <span className={r.ok ? "tag allow" : "tag deny"}>{r.ok ? "done" : "not changed"}</span> {r.message}
+                  <span className={r.ok ? "tag allow" : "tag deny"}>{r.ok ? t("done") : t("not changed")}</span> {r.message}
                 </td>
               </tr>
             ))}

@@ -5,6 +5,7 @@ import { NavLink } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
 import { useMe, type VersionedObject } from "../api/queries";
 import { Dialog, ErrorBanner, Loading, PrincipalName, TypeIcon, formatDate } from "../components/common";
+import { t, tn } from "../i18n/i18n";
 
 // Discussions and ad hoc sharing (roadmap 3.10).
 
@@ -71,10 +72,10 @@ function Composer({
         }}
       />
       <div className="row" style={{ gap: 6, justifyContent: "flex-end" }}>
-        <span className="muted small grow">Type @username to mention someone · Ctrl+Enter to send</span>
+        <span className="muted small grow">{t("Type @username to mention someone · Ctrl+Enter to send")}</span>
         {onCancel && (
           <button type="button" className="btn small ghost" onClick={onCancel}>
-            Cancel
+            {t("Cancel")}
           </button>
         )}
         <button className="btn small primary" type="submit" disabled={busy || !body.trim()}>
@@ -120,21 +121,21 @@ function CommentView({
         </strong>
         <span className="muted small">
           {formatDate(c.createdAt)}
-          {c.editedAt && " · edited"}
+          {c.editedAt && ` · ${t("edited")}`}
         </span>
         <span className="grow" />
         {actions}
         {!c.deleted && mine && !editing && (
-          <button className="icon-btn" aria-label="Edit the comment" title="Edit" onClick={() => setEditing(true)}>
+          <button className="icon-btn" aria-label={t("Edit the comment")} title={t("Edit")} onClick={() => setEditing(true)}>
             <Pencil size={13} />
           </button>
         )}
         {!c.deleted && (mine || admin) && (
           <button
             className="icon-btn"
-            aria-label="Delete the comment"
-            title="Delete"
-            onClick={() => window.confirm("Delete this comment?") && remove.mutate()}
+            aria-label={t("Delete the comment")}
+            title={t("Delete")}
+            onClick={() => window.confirm(t("Delete this comment?")) && remove.mutate()}
           >
             <Trash2 size={13} />
           </button>
@@ -142,12 +143,12 @@ function CommentView({
       </div>
       <ErrorBanner error={edit.error ?? remove.error} />
       {c.deleted ? (
-        <p className="muted small">This comment was deleted.</p>
+        <p className="muted small">{t("This comment was deleted.")}</p>
       ) : editing ? (
         <Composer
-          placeholder="Edit the comment"
+          placeholder={t("Edit the comment")}
           initial={c.body}
-          submitLabel="Save"
+          submitLabel={t("Save")}
           busy={edit.isPending}
           onSubmit={(b) => edit.mutate(b)}
           onCancel={() => setEditing(false)}
@@ -182,59 +183,57 @@ export function DiscussionTab({ obj }: { obj: VersionedObject }) {
   });
   if (isLoading) return <Loading />;
   const topics = (data ?? []).filter((c) => !c.parentId);
-  const resolvedCount = topics.filter((t) => t.resolved).length;
-  const shown = topics.filter((t) => showResolved || !t.resolved);
+  const resolvedCount = topics.filter((topic) => topic.resolved).length;
+  const shown = topics.filter((topic) => showResolved || !topic.resolved);
   return (
     <div className="discussion">
       <ErrorBanner error={error ?? post.error ?? resolve.error} />
       <div className="row" style={{ gap: 8 }}>
         <MessageSquare size={15} className="icon-muted" aria-hidden />
-        <strong>
-          {topics.length} topic{topics.length === 1 ? "" : "s"}
-        </strong>
+        <strong>{tn("{n} topic", "{n} topics", topics.length)}</strong>
         {resolvedCount > 0 && (
           <label className="row small muted" style={{ gap: 4 }}>
             <input type="checkbox" checked={showResolved} onChange={(e) => setShowResolved(e.target.checked)} />
-            Show {resolvedCount} resolved
+            {t("Show {count} resolved", { count: resolvedCount })}
           </label>
         )}
       </div>
-      {shown.length === 0 && <p className="empty">No discussion yet. Ask a question or leave a note for the team.</p>}
-      {shown.map((t) => (
-        <section key={t.id} className={t.resolved ? "topic resolved" : "topic"} aria-label="Topic">
+      {shown.length === 0 && <p className="empty">{t("No discussion yet. Ask a question or leave a note for the team.")}</p>}
+      {shown.map((topic) => (
+        <section key={topic.id} className={topic.resolved ? "topic resolved" : "topic"} aria-label={t("Topic")}>
           <CommentView
-            c={t}
+            c={topic}
             me={me?.user.id}
             admin={!!me?.siteAdmin}
             onChanged={refresh}
             actions={
               <button
-                className={t.resolved ? "track-btn on" : "track-btn"}
-                onClick={() => resolve.mutate({ id: t.id, resolved: !t.resolved })}
-                title={t.resolved ? "Reopen the topic" : "Mark the topic as resolved"}
+                className={topic.resolved ? "track-btn on" : "track-btn"}
+                onClick={() => resolve.mutate({ id: topic.id, resolved: !topic.resolved })}
+                title={topic.resolved ? t("Reopen the topic") : t("Mark the topic as resolved")}
               >
-                {t.resolved ? <CheckCircle2 size={13} aria-hidden /> : <CircleDot size={13} aria-hidden />}
-                {t.resolved ? "Resolved" : "Resolve"}
+                {topic.resolved ? <CheckCircle2 size={13} aria-hidden /> : <CircleDot size={13} aria-hidden />}
+                {topic.resolved ? t("Resolved") : t("Resolve")}
               </button>
             }
           />
           <div className="replies">
             {(data ?? [])
-              .filter((r) => r.parentId === t.id)
+              .filter((r) => r.parentId === topic.id)
               .map((r) => (
                 <CommentView key={r.id} c={r} me={me?.user.id} admin={!!me?.siteAdmin} onChanged={refresh} />
               ))}
-            {replyTo === t.id ? (
+            {replyTo === topic.id ? (
               <Composer
-                placeholder="Write a reply"
-                submitLabel="Reply"
+                placeholder={t("Write a reply")}
+                submitLabel={t("Reply")}
                 busy={post.isPending}
-                onSubmit={(body) => post.mutate({ body, parentId: t.id })}
+                onSubmit={(body) => post.mutate({ body, parentId: topic.id })}
                 onCancel={() => setReplyTo(null)}
               />
             ) : (
-              <button className="link-btn reply-btn" onClick={() => setReplyTo(t.id)}>
-                <Reply size={13} aria-hidden /> Reply
+              <button className="link-btn reply-btn" onClick={() => setReplyTo(topic.id)}>
+                <Reply size={13} aria-hidden /> {t("Reply")}
               </button>
             )}
           </div>
@@ -242,8 +241,8 @@ export function DiscussionTab({ obj }: { obj: VersionedObject }) {
       ))}
       <div className="topic new-topic">
         <Composer
-          placeholder="Start a topic"
-          submitLabel="Post"
+          placeholder={t("Start a topic")}
+          submitLabel={t("Post")}
           busy={post.isPending}
           onSubmit={(body, reset) => post.mutate({ body }, { onSuccess: reset })}
         />
@@ -261,9 +260,13 @@ export function ShareButton({ obj }: { obj: VersionedObject }) {
   });
   return (
     <>
-      <button className={data?.length ? "track-btn on" : "track-btn"} onClick={() => setOpen(true)} title="Share this object with someone">
+      <button
+        className={data?.length ? "track-btn on" : "track-btn"}
+        onClick={() => setOpen(true)}
+        title={t("Share this object with someone")}
+      >
         <Share2 size={14} aria-hidden />
-        {data?.length ? `Shared with ${data.length}` : "Share"}
+        {data?.length ? t("Shared with {count}", { count: data.length }) : t("Share")}
       </button>
       {open && <ShareDialog obj={obj} shares={data ?? []} onClose={() => setOpen(false)} />}
     </>
@@ -304,17 +307,18 @@ function ShareDialog({ obj, shares, onClose }: { obj: VersionedObject; shares: S
   return (
     <Dialog
       open
-      title={`Share ${obj.number}`}
+      title={t("Share {number}", { number: obj.number })}
       onClose={onClose}
       footer={
         <button className="btn" onClick={onClose}>
-          Done
+          {t("Done")}
         </button>
       }
     >
       <p className="muted small" style={{ marginTop: 0 }}>
-        For someone who isn't on the team: they see this object (and where it lives), nothing else. Its owner and the context's managers can
-        share it.
+        {t(
+          "For someone who isn't on the team: they see this object (and where it lives), nothing else. Its owner and the context's managers can share it.",
+        )}
       </p>
       <ErrorBanner error={add.error ?? remove.error} />
       <form
@@ -325,35 +329,36 @@ function ShareDialog({ obj, shares, onClose }: { obj: VersionedObject; shares: S
         }}
       >
         <div className="field">
-          <label htmlFor="share-user">Username</label>
-          <input id="share-user" value={user} onChange={(e) => setUser(e.target.value)} placeholder="e.g. vera" required />
+          <label htmlFor="share-user">{t("Username")}</label>
+          <input id="share-user" value={user} onChange={(e) => setUser(e.target.value)} placeholder={t("e.g. vera")} required />
         </div>
         <div className="field">
-          <label htmlFor="share-until">Until (optional)</label>
+          <label htmlFor="share-until">{t("Until (optional)")}</label>
           <input id="share-until" type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
         </div>
         <div className="field" style={{ gridColumn: "1 / -1" }}>
-          <label htmlFor="share-note">Note (optional)</label>
-          <input id="share-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Why it's shared" />
+          <label htmlFor="share-note">{t("Note (optional)")}</label>
+          <input id="share-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("Why it's shared")} />
         </div>
         <label className="row" style={{ gap: 6 }}>
-          <input type="checkbox" checked={modify} onChange={(e) => setModify(e.target.checked)} /> They may also check it out and edit it
+          <input type="checkbox" checked={modify} onChange={(e) => setModify(e.target.checked)} />{" "}
+          {t("They may also check it out and edit it")}
         </label>
         <button className="btn primary" type="submit" disabled={add.isPending || !user.trim()}>
-          <Share2 size={14} aria-hidden /> Share
+          <Share2 size={14} aria-hidden /> {t("Share")}
         </button>
       </form>
-      <h3 className="section-title">Shared with</h3>
+      <h3 className="section-title">{t("Shared with")}</h3>
       {shares.length === 0 ? (
-        <p className="empty">Nobody yet.</p>
+        <p className="empty">{t("Nobody yet.")}</p>
       ) : (
-        <table className="grid" aria-label="Shared with">
+        <table className="grid" aria-label={t("Shared with")}>
           <thead>
             <tr>
-              <th>Person</th>
-              <th>May</th>
-              <th>Until</th>
-              <th>Shared by</th>
+              <th>{t("Person")}</th>
+              <th>{t("May")}</th>
+              <th>{t("Until")}</th>
+              <th>{t("Shared by")}</th>
               <th />
             </tr>
           </thead>
@@ -364,7 +369,7 @@ function ShareDialog({ obj, shares, onClose }: { obj: VersionedObject; shares: S
                   <PrincipalName id={s.principalId} />
                   {s.note && <div className="muted small">{s.note}</div>}
                 </td>
-                <td>{s.permissions.includes("MODIFY") ? "View and edit" : "View"}</td>
+                <td>{s.permissions.includes("MODIFY") ? t("View and edit") : t("View")}</td>
                 <td className="nowrap">{s.expiresAt ? formatDate(s.expiresAt) : <span className="muted">—</span>}</td>
                 <td className="nowrap">
                   <PrincipalName id={s.grantedBy} />
@@ -372,8 +377,8 @@ function ShareDialog({ obj, shares, onClose }: { obj: VersionedObject; shares: S
                 <td style={{ width: 1 }}>
                   <button
                     className="icon-btn"
-                    aria-label={`Stop sharing with ${s.principalId}`}
-                    title="Stop sharing"
+                    aria-label={t("Stop sharing with {name}", { name: s.principalId })}
+                    title={t("Stop sharing")}
                     onClick={() => remove.mutate(s.principalId)}
                   >
                     <UserX size={14} />
@@ -393,9 +398,9 @@ export function NavSharedWithMe({ section }: { section: (title: string, icon: Re
   const { data } = useSharedWithMe();
   if (!data?.length) return null;
   return section(
-    "Shared with me",
+    t("Shared with me"),
     <Share2 size={11} aria-hidden />,
-    <ul className="nav-favorites" aria-label="Shared with me">
+    <ul className="nav-favorites" aria-label={t("Shared with me")}>
       {data.slice(0, 10).map((s) => (
         <li key={s.share.objectId}>
           <div className="nav-row">

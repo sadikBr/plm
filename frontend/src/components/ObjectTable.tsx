@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { api, unwrap } from "../api/client";
 import { useContextById, useEnumerations, useTypes, type AttributeDefinition, type VersionedObject } from "../api/queries";
+import { t } from "../i18n/i18n";
 import { formatAttribute, pickLabel } from "./AttributeForm";
 import { formatDate, PrincipalName, StateBadge, stateLabel, TypeIcon, typeLabel } from "./common";
 
@@ -21,6 +22,7 @@ export type BuiltinColumn =
   | "created";
 export type ColumnKey = BuiltinColumn | `attr:${string}`;
 
+/** English names of the built-in columns; [columnLabel] gives them in the user's language. */
 export const COLUMN_LABELS: Record<BuiltinColumn, string> = {
   number: "Number",
   name: "Name",
@@ -96,6 +98,28 @@ export function columnLabel(column: ColumnKey, definitions: Map<string, Attribut
     const name = column.slice(5);
     return pickLabel(definitions.get(name)?.labels, name);
   }
+  switch (column as BuiltinColumn) {
+    case "number":
+      return t("Number");
+    case "name":
+      return t("Name");
+    case "type":
+      return t("Type");
+    case "version":
+      return t("Version");
+    case "state":
+      return t("State");
+    case "context":
+      return t("Context");
+    case "checkedOutBy":
+      return t("Checked out by");
+    case "owner":
+      return t("Owner");
+    case "modified":
+      return t("Last modified");
+    case "created":
+      return t("Created");
+  }
   return COLUMN_LABELS[column as BuiltinColumn] ?? column;
 }
 
@@ -117,7 +141,7 @@ export function ObjectTable({
   objects,
   showContext = false,
   footer,
-  label = "Objects",
+  label = t("Objects"),
   selected,
   onSelect,
   columns: chosen,
@@ -239,14 +263,14 @@ export function ObjectTable({
                 <th className="check-cell">
                   <input
                     type="checkbox"
-                    aria-label="Select all"
+                    aria-label={t("Select all")}
                     checked={allSelected}
                     onChange={() => onSelect(allSelected ? new Set() : new Set(objects.map((o) => o.id)))}
                   />
                 </th>
               )}
               <th className="icon-cell">
-                <span className="sr-only">Icon</span>
+                <span className="sr-only">{t("Icon")}</span>
               </th>
               {columns.map(header)}
             </tr>
@@ -256,7 +280,12 @@ export function ObjectTable({
               <tr key={o.id} className={selectable && selected.has(o.id) ? "selected" : undefined}>
                 {selectable && (
                   <td className="check-cell">
-                    <input type="checkbox" aria-label={`Select ${o.number}`} checked={selected.has(o.id)} onChange={() => toggle(o.id)} />
+                    <input
+                      type="checkbox"
+                      aria-label={t("Select {number}", { number: o.number })}
+                      checked={selected.has(o.id)}
+                      onChange={() => toggle(o.id)}
+                    />
                   </td>
                 )}
                 <td className="icon-cell">

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 import { api, unwrap } from "../api/client";
 import { findPrincipalByUsername, type VersionedObject } from "../api/queries";
 import { Dialog, ErrorBanner, Loading } from "../components/common";
+import { t } from "../i18n/i18n";
 import { FolderPicker } from "./Folders";
 
 function useRefresh(id: string) {
@@ -40,15 +41,15 @@ export function MoveDialog({ obj, onClose }: { obj: VersionedObject; onClose: ()
   return (
     <Dialog
       open
-      title={`Move ${obj.number}`}
+      title={t("Move {number}", { number: obj.number })}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button className="btn primary" disabled={move.isPending || same} onClick={() => move.mutate()}>
-            Move here
+            {t("Move here")}
           </button>
         </>
       }
@@ -85,15 +86,15 @@ export function DeleteDialog({ obj, onClose }: { obj: VersionedObject; onClose: 
   return (
     <Dialog
       open
-      title={`Delete ${obj.number}?`}
+      title={t("Delete {number}?", { number: obj.number })}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button className="btn danger-fill" disabled={remove.isPending || !check?.allowed} onClick={() => remove.mutate()}>
-            Delete
+            {t("Delete")}
           </button>
         </>
       }
@@ -104,11 +105,14 @@ export function DeleteDialog({ obj, onClose }: { obj: VersionedObject; onClose: 
           <Loading />
         ) : check?.allowed ? (
           <p style={{ margin: 0 }}>
-            {obj.number} · {obj.name} and all its versions and files will be removed. This can't be undone. The audit trail keeps a record.
+            {t("{number} · {name} and all its versions and files will be removed. This can't be undone. The audit trail keeps a record.", {
+              number: obj.number,
+              name: obj.name,
+            })}
           </p>
         ) : (
           <div className="banner warn" role="status">
-            It can't be deleted: {check?.reason}.
+            {t("It can't be deleted: {reason}.", { reason: check?.reason ?? "" })}
           </div>
         )}
       </div>
@@ -132,15 +136,15 @@ export function OwnerDialog({ obj, onClose }: { obj: VersionedObject; onClose: (
   return (
     <Dialog
       open
-      title={`Change the owner of ${obj.number}`}
+      title={t("Change the owner of {number}", { number: obj.number })}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button className="btn primary" disabled={save.isPending || !username.trim()} onClick={() => save.mutate()}>
-            Hand over
+            {t("Hand over")}
           </button>
         </>
       }
@@ -148,9 +152,9 @@ export function OwnerDialog({ obj, onClose }: { obj: VersionedObject; onClose: (
       <div className="attr-form">
         <ErrorBanner error={save.error} />
         <div className="field wide">
-          <label htmlFor="owner-username">New owner (username)</label>
+          <label htmlFor="owner-username">{t("New owner (username)")}</label>
           <input id="owner-username" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
-          <span className="hint">The owner answers for the object, and may delete it while the delete rules allow.</span>
+          <span className="hint">{t("The owner answers for the object, and may delete it while the delete rules allow.")}</span>
         </div>
       </div>
     </Dialog>

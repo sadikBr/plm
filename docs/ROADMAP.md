@@ -187,9 +187,20 @@ platform gets the background machinery (jobs, schedules, notifications) later ph
       with a per-job token; the object page follows the job, can cancel it, and offers its file; the
       notification carries the service's message and a link back. Sample: erp-sync 2.1's cost
       roll-up with the mock ERP.)
-- [ ] 3.12 Interface translations: every screen translated, each user picks a language.
+- [x] 3.12 Interface translations: every screen translated, each user picks a language.
+      (Done: every screen in English, French and German, gettext-style catalogs per area with a
+      test that every text has both translations; a `ui.language` preference (automatic, or a
+      language) for the site and each user; dates in the user's language; the built-in types,
+      attributes, value lists, layout groups and lifecycle states translated. Messages written by
+      the server (errors, notifications, mails) are still in English.)
+
+Content follows the document model: only documents hold files, one primary file and any number
+of attachments per iteration; parts link to documents (Phase 4, part↔document links).
 
 **Exit:** a team manages real documents end-to-end with files, permissions and fast search.
+(Met: documents with primary content and attachments, previews and templates; folders, sharing
+and access; full-text search with facets, saved searches, views and reports; covered by the e2e
+suite.)
 
 ## Phase 4 — Parts and product structure
 Usage links to masters · occurrences and reference designators · config specs (latest, released,

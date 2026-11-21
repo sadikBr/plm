@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
+import { t } from "../i18n/i18n";
 import { currentLocation, type SignInState } from "./oidc";
 
 /** Renders children only for a signed-in user. Otherwise shows the sign-in screen. */
@@ -9,7 +10,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (auth.isLoading || auth.activeNavigator) {
     return (
       <div className="center-screen">
-        <span className="spinner" role="status" aria-label="Signing in" />
+        <span className="spinner" role="status" aria-label={t("Signing in")} />
       </div>
     );
   }
@@ -21,14 +22,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
         <div className="signin">
           <img src="/favicon.svg" alt="" />
           <h1>PLM</h1>
-          <p>Sign in with your company account to manage parts, documents and changes.</p>
+          <p>{t("Sign in with your company account to manage parts, documents and changes.")}</p>
           {auth.error && (
             <div className="banner error" role="alert">
-              Sign-in failed: {auth.error.message}
+              {t("Sign-in failed: {message}", { message: auth.error.message })}
             </div>
           )}
           <button className="btn primary" onClick={() => void signIn()}>
-            Sign in
+            {t("Sign in")}
           </button>
         </div>
       </div>

@@ -2,9 +2,18 @@ import { Plus, Trash2, UserPlus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "../api/client";
-import { findPrincipalByUsername, useContextById, useContextTemplates, useSharedTeams, useTeamRoles, useTypes, type ContextTemplate } from "../api/queries";
+import {
+  findPrincipalByUsername,
+  useContextById,
+  useContextTemplates,
+  useSharedTeams,
+  useTeamRoles,
+  useTypes,
+  type ContextTemplate,
+} from "../api/queries";
 import { pickLabel } from "../components/AttributeForm";
 import { ErrorBanner, Loading, Panel, PrincipalName, formatDate, kindLabel } from "../components/common";
+import { t } from "../i18n/i18n";
 
 function useInvalidate() {
   const qc = useQueryClient();
@@ -17,7 +26,7 @@ function useInvalidate() {
 
 function OrgName({ id }: { id: string }) {
   const { data } = useContextById(id);
-  return <>{data ? data.name : "an organization"}</>;
+  return <>{data ? data.name : t("an organization")}</>;
 }
 
 // ---------- Context templates ----------
@@ -25,28 +34,30 @@ function OrgName({ id }: { id: string }) {
 /** Templates of one organization (its managers), or every template (site admins, no [organizationId]). */
 export function ContextTemplatesAdmin({ organizationId }: { organizationId?: string }) {
   const { data: all, isLoading } = useContextTemplates();
-  const templates = organizationId ? all?.filter((t) => t.organizationId === organizationId) : all;
+  const templates = organizationId ? all?.filter((tpl) => tpl.organizationId === organizationId) : all;
   const [selected, setSelected] = useState<string | null>(null);
-  const current = templates?.find((t) => t.id === selected) ?? templates?.[0];
+  const current = templates?.find((tpl) => tpl.id === selected) ?? templates?.[0];
 
   if (isLoading) return <Loading />;
   return (
     <div className="admin-split">
-      <Panel title="Context templates" flush>
+      <Panel title={t("Context templates")} flush>
         {!templates?.length ? (
           <p className="empty">
-            No templates yet. Open a {organizationId ? "product, library or project of this organization" : "product, library, project or organization"} set
-            up the way you like and use <strong>Save as template</strong>.
+            {organizationId
+              ? t("No templates yet. Open a product, library or project of this organization set up the way you like and use")
+              : t("No templates yet. Open a product, library, project or organization set up the way you like and use")}{" "}
+            <strong>{t("Save as template")}</strong>.
           </p>
         ) : (
-          <ul className="type-tree" aria-label="Context templates">
-            {templates.map((t) => (
-              <li key={t.id}>
-                <button className={current?.id === t.id ? "type-row active" : "type-row"} onClick={() => setSelected(t.id)}>
-                  {t.name}
+          <ul className="type-tree" aria-label={t("Context templates")}>
+            {templates.map((tpl) => (
+              <li key={tpl.id}>
+                <button className={current?.id === tpl.id ? "type-row active" : "type-row"} onClick={() => setSelected(tpl.id)}>
+                  {tpl.name}
                   <span className="muted" style={{ marginLeft: "auto" }}>
-                    {kindLabel(t.kind)}
-                    {!organizationId && !t.organizationId && " · site-wide"}
+                    {kindLabel(tpl.kind)}
+                    {!organizationId && !tpl.organizationId && ` · ${t("site-wide")}`}
                   </span>
                 </button>
               </li>
@@ -87,56 +98,63 @@ function TemplateDetails({ template }: { template: ContextTemplate }) {
       title={template.name}
       note={
         <>
-          {kindLabel(template.kind)} template · {template.organizationId ? <OrgName id={template.organizationId} /> : "site-wide"} · updated{" "}
-          {formatDate(template.updatedAt)}
+          {t("{kind} template", { kind: kindLabel(template.kind) })} ·{" "}
+          {template.organizationId ? <OrgName id={template.organizationId} /> : t("site-wide")} ·{" "}
+          {t("updated {date}", { date: formatDate(template.updatedAt) })}
         </>
       }
       actions={
         <button className="btn small danger" onClick={() => remove.mutate()} disabled={remove.isPending}>
           <Trash2 size={13} aria-hidden />
-          Delete
+          {t("Delete")}
         </button>
       }
       footer={
         <button className="btn primary" disabled={!dirty || save.isPending || !name.trim()} onClick={() => save.mutate()}>
-          Save
+          {t("Save")}
         </button>
       }
     >
       <ErrorBanner error={save.error ?? remove.error} />
       <div className="attr-form cols-2">
         <div className="field">
-          <label htmlFor="tpl-name">Name</label>
+          <label htmlFor="tpl-name">{t("Name")}</label>
           <input id="tpl-name" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         <div className="field">
-          <label htmlFor="tpl-description">Description</label>
+          <label htmlFor="tpl-description">{t("Description")}</label>
           <input id="tpl-description" value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
       </div>
       <div className="section-label" style={{ marginTop: 14 }}>
-        Access rules ({template.content.policies.length})
+        {t("Access rules ({count})", { count: template.content.policies.length })}
       </div>
       {template.content.policies.length === 0 ? (
-        <p className="muted">None: the new context inherits its parent's rules only.</p>
+        <p className="muted">{t("None: the new context inherits its parent's rules only.")}</p>
       ) : (
-        <table className="grid" aria-label="Template access rules">
+        <table className="grid" aria-label={t("Template access rules")}>
           <thead>
             <tr>
-              <th>Effect</th>
-              <th>Role</th>
-              <th>Type</th>
-              <th>State</th>
-              <th>Permissions</th>
+              <th>{t("Effect")}</th>
+              <th>{t("Role")}</th>
+              <th>{t("Type")}</th>
+              <th>{t("State")}</th>
+              <th>{t("Permissions")}</th>
             </tr>
           </thead>
           <tbody>
             {template.content.policies.map((p, i) => (
               <tr key={i}>
-                <td>{p.effect === "DENY" ? "Deny" : "Allow"}</td>
+                <td>{p.effect === "DENY" ? t("Deny") : t("Allow")}</td>
                 <td>{roleLabel(p.role)}</td>
-                <td>{p.type ? (types?.find((t) => t.name === p.type)?.displayName ?? p.type) : <span className="muted">All types</span>}</td>
-                <td>{p.state ?? <span className="muted">Any state</span>}</td>
+                <td>
+                  {p.type ? (
+                    (types?.find((ty) => ty.name === p.type)?.displayName ?? p.type)
+                  ) : (
+                    <span className="muted">{t("All types")}</span>
+                  )}
+                </td>
+                <td>{p.state ?? <span className="muted">{t("Any state")}</span>}</td>
                 <td>{p.permissions.join(", ")}</td>
               </tr>
             ))}
@@ -144,10 +162,10 @@ function TemplateDetails({ template }: { template: ContextTemplate }) {
         </table>
       )}
       <div className="section-label" style={{ marginTop: 14 }}>
-        Team ({template.content.members.length})
+        {t("Team ({count})", { count: template.content.members.length })}
       </div>
       {template.content.members.length === 0 ? (
-        <p className="muted">Only the creator, as manager.</p>
+        <p className="muted">{t("Only the creator, as manager.")}</p>
       ) : (
         <p style={{ margin: "4px 0" }}>
           {template.content.members.map((m, i) => (
@@ -159,11 +177,11 @@ function TemplateDetails({ template }: { template: ContextTemplate }) {
         </p>
       )}
       <div className="section-label" style={{ marginTop: 14 }}>
-        Shared teams
+        {t("Shared teams")}
       </div>
-      <p style={{ margin: "4px 0" }}>{template.content.sharedTeams.join(", ") || <span className="muted">None</span>}</p>
+      <p style={{ margin: "4px 0" }}>{template.content.sharedTeams.join(", ") || <span className="muted">{t("None")}</span>}</p>
       <p className="muted" style={{ marginBottom: 0 }}>
-        To change the rules or team, set up a context the way you want and save it as a template again.
+        {t("To change the rules or team, set up a context the way you want and save it as a template again.")}
       </p>
     </Panel>
   );
@@ -174,11 +192,11 @@ function TemplateDetails({ template }: { template: ContextTemplate }) {
 /** Shared teams of one organization (its managers), or every team (site admins, no [organizationId]). */
 export function SharedTeamsAdmin({ organizationId }: { organizationId?: string }) {
   const { data: all, isLoading } = useSharedTeams();
-  const teams = organizationId ? all?.filter((t) => t.organizationId === organizationId) : all;
+  const teams = organizationId ? all?.filter((tm) => tm.organizationId === organizationId) : all;
   const invalidate = useInvalidate();
   const [selected, setSelected] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const current = teams?.find((t) => t.id === selected) ?? teams?.[0];
+  const current = teams?.find((tm) => tm.id === selected) ?? teams?.[0];
   const create = useMutation({
     mutationFn: () => unwrap(api.POST("/api/v1/shared-teams", { body: { name: name.trim(), organizationId: organizationId ?? null } })),
     onSuccess: (team) => {
@@ -192,7 +210,7 @@ export function SharedTeamsAdmin({ organizationId }: { organizationId?: string }
   return (
     <div className="admin-split">
       <Panel
-        title="Shared teams"
+        title={t("Shared teams")}
         flush
         footer={
           <form
@@ -203,23 +221,28 @@ export function SharedTeamsAdmin({ organizationId }: { organizationId?: string }
               create.mutate();
             }}
           >
-            <input aria-label="New team name" placeholder="New team, e.g. Quality" value={name} onChange={(e) => setName(e.target.value)} />
+            <input
+              aria-label={t("New team name")}
+              placeholder={t("New team, e.g. Quality")}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
             <button className="btn" type="submit" disabled={!name.trim() || create.isPending}>
               <Plus size={14} aria-hidden />
-              Create
+              {t("Create")}
             </button>
           </form>
         }
       >
         <ErrorBanner error={create.error} />
-        <ul className="type-tree" aria-label="Shared teams">
-          {teams?.map((t) => (
-            <li key={t.id}>
-              <button className={current?.id === t.id ? "type-row active" : "type-row"} onClick={() => setSelected(t.id)}>
-                {t.name}
+        <ul className="type-tree" aria-label={t("Shared teams")}>
+          {teams?.map((tm) => (
+            <li key={tm.id}>
+              <button className={current?.id === tm.id ? "type-row active" : "type-row"} onClick={() => setSelected(tm.id)}>
+                {tm.name}
                 <span className="muted" style={{ marginLeft: "auto" }}>
-                  {!organizationId && t.organizationId ? "org · " : ""}
-                  {t.members.length}
+                  {!organizationId && tm.organizationId ? `${t("org")} · ` : ""}
+                  {tm.members.length}
                 </span>
               </button>
             </li>
@@ -235,7 +258,7 @@ function TeamDetails({ teamId }: { teamId: string }) {
   const { data: teams } = useSharedTeams();
   const { data: roles } = useTeamRoles();
   const invalidate = useInvalidate();
-  const team = teams?.find((t) => t.id === teamId);
+  const team = teams?.find((tm) => tm.id === teamId);
   const [username, setUsername] = useState("");
   const [role, setRole] = useState("MEMBER");
   const [lookupError, setLookupError] = useState<unknown>();
@@ -270,18 +293,18 @@ function TeamDetails({ teamId }: { teamId: string }) {
   return (
     <Panel
       title={team.name}
-      note="Attach it to contexts from their Team tab; changes here apply everywhere it is attached"
+      note={t("Attach it to contexts from their Team tab; changes here apply everywhere it is attached")}
       flush
       actions={
         <button className="btn small danger" onClick={() => removeTeam.mutate()} disabled={removeTeam.isPending}>
           <Trash2 size={13} aria-hidden />
-          Delete team
+          {t("Delete team")}
         </button>
       }
       footer={
-        <form className="row" style={{ width: "100%" }} onSubmit={(e) => void add(e)} aria-label="Add a team member">
-          <input aria-label="Username" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-          <select aria-label="Role" value={role} onChange={(e) => setRole(e.target.value)} style={{ width: 180 }}>
+        <form className="row" style={{ width: "100%" }} onSubmit={(e) => void add(e)} aria-label={t("Add a team member")}>
+          <input aria-label={t("Username")} placeholder={t("Username")} value={username} onChange={(e) => setUsername(e.target.value)} />
+          <select aria-label={t("Role")} value={role} onChange={(e) => setRole(e.target.value)} style={{ width: 180 }}>
             {roles
               ?.filter((r) => r.active)
               .map((r) => (
@@ -292,22 +315,22 @@ function TeamDetails({ teamId }: { teamId: string }) {
           </select>
           <button className="btn" type="submit" disabled={!username.trim() || put.isPending}>
             <UserPlus size={14} aria-hidden />
-            Add
+            {t("Add")}
           </button>
         </form>
       }
     >
       <ErrorBanner error={lookupError ?? put.error ?? remove.error ?? removeTeam.error} />
       {team.members.length === 0 ? (
-        <p className="empty">No members yet.</p>
+        <p className="empty">{t("No members yet.")}</p>
       ) : (
-        <table className="grid" aria-label="Team members">
+        <table className="grid" aria-label={t("Team members")}>
           <thead>
             <tr>
-              <th>User</th>
-              <th>Role</th>
-              <th>Added</th>
-              <th aria-label="Actions" />
+              <th>{t("User")}</th>
+              <th>{t("Role")}</th>
+              <th>{t("Added")}</th>
+              <th aria-label={t("Actions")} />
             </tr>
           </thead>
           <tbody>
@@ -320,7 +343,7 @@ function TeamDetails({ teamId }: { teamId: string }) {
                 <td className="muted">{formatDate(m.addedAt)}</td>
                 <td style={{ width: 80 }}>
                   <button className="btn small danger" onClick={() => remove.mutate(m.principalId)}>
-                    Remove
+                    {t("Remove")}
                   </button>
                 </td>
               </tr>

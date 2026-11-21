@@ -11,12 +11,13 @@ import {
 } from "../api/queries";
 import { ErrorBanner, Loading, Panel } from "../components/common";
 import { PageHeader } from "../components/Layout";
+import { t } from "../i18n/i18n";
 
 type Pref = ContextPreference | UserPreference;
 
 function show(p: Pref, value: unknown): string {
-  if (value === null || value === undefined) return p.definition.type === "CHOICE" ? "None" : "—";
-  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (value === null || value === undefined) return p.definition.type === "CHOICE" ? t("None") : "—";
+  if (typeof value === "boolean") return value ? t("Yes") : t("No");
   if (p.definition.type === "CHOICE") return p.definition.options.find((o) => o.value === value)?.label ?? String(value);
   return String(value);
 }
@@ -32,21 +33,21 @@ function Source({ p, here }: { p: Pref; here?: string }) {
   if (e.lockedAt && e.lockedAt !== here) {
     return (
       <span className="pref-source locked">
-        <Lock size={11} aria-hidden /> Locked by <ContextName id={e.lockedAt} />
+        <Lock size={11} aria-hidden /> {t("Locked by")} <ContextName id={e.lockedAt} />
       </span>
     );
   }
-  if (e.source === "USER") return <span className="pref-source">Your setting</span>;
+  if (e.source === "USER") return <span className="pref-source">{t("Your setting")}</span>;
   if (e.source === "CONTEXT" && e.sourceContextId) {
     return e.sourceContextId === here ? (
-      <span className="pref-source own">Set here{e.lockedAt ? ", locked" : ""}</span>
+      <span className="pref-source own">{e.lockedAt ? t("Set here, locked") : t("Set here")}</span>
     ) : (
       <span className="pref-source">
-        From <ContextName id={e.sourceContextId} />
+        {t("From")} <ContextName id={e.sourceContextId} />
       </span>
     );
   }
-  return <span className="pref-source">Default</span>;
+  return <span className="pref-source">{t("Default")}</span>;
 }
 
 function ValueInput({ p, id, value, onChange }: { p: Pref; id: string; value: unknown; onChange: (v: unknown) => void }) {
@@ -55,8 +56,8 @@ function ValueInput({ p, id, value, onChange }: { p: Pref; id: string; value: un
     case "BOOLEAN":
       return (
         <select id={id} value={value === true ? "true" : "false"} onChange={(e) => onChange(e.target.value === "true")}>
-          <option value="true">Yes</option>
-          <option value="false">No</option>
+          <option value="true">{t("Yes")}</option>
+          <option value="false">{t("No")}</option>
         </select>
       );
     case "INTEGER":
@@ -73,7 +74,7 @@ function ValueInput({ p, id, value, onChange }: { p: Pref; id: string; value: un
     case "CHOICE":
       return (
         <select id={id} value={(value as string | undefined) ?? ""} onChange={(e) => onChange(e.target.value || undefined)}>
-          <option value="">Choose…</option>
+          <option value="">{t("Choose…")}</option>
           {d.options.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
@@ -113,14 +114,14 @@ function PreferenceRow({ p, contextId }: { p: Pref; contextId?: string }) {
           <div className="row">
             <ValueInput p={p} id={id} value={value} onChange={setValue} />
             {contextId && (
-              <label className="check" title="Nothing below this context can change it">
+              <label className="check" title={t("Nothing below this context can change it")}>
                 <input type="checkbox" checked={locked} onChange={(e) => setLocked(e.target.checked)} />
-                Lock
+                {t("Lock")}
               </label>
             )}
           </div>
         ) : (
-          <span className="muted">{p.effective.lockedAt ? "Locked above" : "You can't change this here"}</span>
+          <span className="muted">{p.effective.lockedAt ? t("Locked above") : t("You can't change this here")}</span>
         )}
         <ErrorBanner error={set.error} />
       </td>
@@ -132,13 +133,13 @@ function PreferenceRow({ p, contextId }: { p: Pref; contextId?: string }) {
               disabled={!dirty || value === undefined || set.isPending}
               onClick={() => set.mutate({ key: p.definition.key, value, locked })}
             >
-              Save
+              {t("Save")}
             </button>{" "}
             {own && (
               <button
                 className="btn small ghost icon"
-                aria-label={`Reset ${p.definition.label}`}
-                title={contextId ? "Remove the value set here: inherit again" : "Back to the default"}
+                aria-label={t("Reset {preference}", { preference: p.definition.label })}
+                title={contextId ? t("Remove the value set here: inherit again") : t("Back to the default")}
                 onClick={() => set.mutate({ key: p.definition.key, clear: true })}
               >
                 <RotateCcw size={13} aria-hidden />
@@ -153,12 +154,12 @@ function PreferenceRow({ p, contextId }: { p: Pref; contextId?: string }) {
 
 function PreferenceTable({ prefs, contextId }: { prefs: Pref[]; contextId?: string }) {
   const categories = [...new Set(prefs.map((p) => p.definition.category))];
-  if (prefs.length === 0) return <p className="empty">No preferences can be set here.</p>;
+  if (prefs.length === 0) return <p className="empty">{t("No preferences can be set here.")}</p>;
   return (
     <div className="stack">
       {categories.map((c) => (
         <Panel key={c} title={c} flush>
-          <table className="grid prefs" aria-label={`${c} preferences`}>
+          <table className="grid prefs" aria-label={t("{category} preferences", { category: c })}>
             <colgroup>
               <col />
               <col style={{ width: 220 }} />
@@ -167,10 +168,10 @@ function PreferenceTable({ prefs, contextId }: { prefs: Pref[]; contextId?: stri
             </colgroup>
             <thead>
               <tr>
-                <th>Preference</th>
-                <th>In effect</th>
-                <th>Set here</th>
-                <th aria-label="Actions" />
+                <th>{t("Preference")}</th>
+                <th>{t("In effect")}</th>
+                <th>{t("Set here")}</th>
+                <th aria-label={t("Actions")} />
               </tr>
             </thead>
             <tbody>
@@ -207,11 +208,11 @@ export function MyPreferencesPage() {
     <>
       <PageHeader
         icon={<SlidersHorizontal size={18} className="icon-muted" aria-hidden />}
-        title={<span className="nm">My preferences</span>}
+        title={<span className="nm">{t("My preferences")}</span>}
         meta={
           <span className="sub">
-            Apply wherever an administrator hasn't locked a value. Mail about notifications is set under{" "}
-            <Link to="/notifications">Notifications</Link>.
+            {t("Apply wherever an administrator hasn't locked a value. Mail about notifications is set under")}{" "}
+            <Link to="/notifications">{t("Notifications")}</Link>.
           </span>
         }
       />

@@ -9,20 +9,21 @@ import { PageHeader } from "../components/Layout";
 import { BarChart } from "./BarChart";
 import { useBars, useReportRun } from "./ReportsPage";
 import { favoriteLink, useFavorites, useNotifications, useRecentVisits } from "../personal/Personal";
+import { t } from "../i18n/i18n";
 
 type Dashboard = Schemas["Dashboard"];
 type Widget = Schemas["Widget"];
 type WidgetKind = Widget["kind"];
 
-const KINDS: [WidgetKind, string, boolean][] = [
-  ["REPORT_CHART", "A report's chart", true],
-  ["REPORT_COUNT", "A report's total", true],
-  ["REPORT_TABLE", "A report's first rows", true],
-  ["CHECKED_OUT", "What I have checked out", false],
-  ["RECENT", "Recently changed", false],
-  ["RECENT_VISITS", "What I viewed lately", false],
-  ["FAVORITES", "My favorites", false],
-  ["NOTIFICATIONS", "My notifications", false],
+const KINDS = (): [WidgetKind, string, boolean][] => [
+  ["REPORT_CHART", t("A report's chart"), true],
+  ["REPORT_COUNT", t("A report's total"), true],
+  ["REPORT_TABLE", t("A report's first rows"), true],
+  ["CHECKED_OUT", t("What I have checked out"), false],
+  ["RECENT", t("Recently changed"), false],
+  ["RECENT_VISITS", t("What I viewed lately"), false],
+  ["FAVORITES", t("My favorites"), false],
+  ["NOTIFICATIONS", t("My notifications"), false],
 ];
 const DEFAULT_HOME_ID = "00000000-0000-0000-0000-000000000000";
 
@@ -55,7 +56,7 @@ function WidgetBody({ widget }: { widget: Widget }) {
             {report.data.total}
             {report.data.capped ? "+" : ""}
           </span>
-          <span className="muted small">found · {formatDate(report.data.ranAt)}</span>
+          <span className="muted small">{t("found · {date}", { date: formatDate(report.data.ranAt) })}</span>
         </div>
       );
     if (widget.kind === "REPORT_CHART") return <BarChart bars={bars} />;
@@ -63,21 +64,22 @@ function WidgetBody({ widget }: { widget: Widget }) {
   }
   const items = widget.kind === "CHECKED_OUT" ? checkedOut : recent;
   if (!items) return <Loading />;
-  if (!items.length) return <p className="empty">{widget.kind === "CHECKED_OUT" ? "Nothing checked out." : "Nothing changed lately."}</p>;
+  if (!items.length)
+    return <p className="empty">{widget.kind === "CHECKED_OUT" ? t("Nothing checked out.") : t("Nothing changed lately.")}</p>;
   return <MiniList items={items as Item[]} />;
 }
 
 function VisitsWidget({ limit }: { limit: number }) {
   const { data } = useRecentVisits(limit);
   if (!data) return <Loading />;
-  if (!data.length) return <p className="empty">Nothing viewed yet.</p>;
+  if (!data.length) return <p className="empty">{t("Nothing viewed yet.")}</p>;
   return <MiniList items={data.map((v) => ({ ...v, id: v.objectId }))} />;
 }
 
 function FavoritesWidget({ limit }: { limit: number }) {
   const { data } = useFavorites();
   if (!data) return <Loading />;
-  if (!data.length) return <p className="empty">No favorites yet: use the star on an object, product or report.</p>;
+  if (!data.length) return <p className="empty">{t("No favorites yet: use the star on an object, product or report.")}</p>;
   return (
     <ul className="mini-list">
       {data.slice(0, limit).map((f) => (
@@ -86,7 +88,7 @@ function FavoritesWidget({ limit }: { limit: number }) {
           <Link to={favoriteLink(f)} className="grow ellipsis">
             {f.label}
           </Link>
-          <span className="muted small">{f.kind === "OBJECT" ? "Object" : f.kind === "REPORT" ? "Report" : "Context"}</span>
+          <span className="muted small">{f.kind === "OBJECT" ? t("Object") : f.kind === "REPORT" ? t("Report") : t("Context")}</span>
         </li>
       ))}
     </ul>
@@ -96,7 +98,7 @@ function FavoritesWidget({ limit }: { limit: number }) {
 function NoticesWidget({ limit }: { limit: number }) {
   const { data } = useNotifications(false, limit);
   if (!data) return <Loading />;
-  if (!data.length) return <p className="empty">No notifications.</p>;
+  if (!data.length) return <p className="empty">{t("No notifications.")}</p>;
   return (
     <ul className="mini-list">
       {data.map((n) => (
@@ -159,7 +161,7 @@ export function DashboardView({ dashboard, editable }: { dashboard: Dashboard; e
   const shown = editing ? widgets : dashboard.widgets;
   const titleOf = (w: Widget) =>
     w.title ||
-    (w.reportId ? (reports?.find((r) => r.id === w.reportId)?.settings.name ?? "Report") : KINDS.find(([k]) => k === w.kind)?.[1]);
+    (w.reportId ? (reports?.find((r) => r.id === w.reportId)?.settings.name ?? t("Report")) : KINDS().find(([k]) => k === w.kind)?.[1]);
   const move = (i: number, d: number) => {
     const next = [...widgets];
     const [w] = next.splice(i, 1);
@@ -175,18 +177,18 @@ export function DashboardView({ dashboard, editable }: { dashboard: Dashboard; e
             <>
               <ErrorBanner error={save.error} />
               <button className="btn small" onClick={() => setAdding(true)}>
-                <Plus size={13} aria-hidden /> Add a widget
+                <Plus size={13} aria-hidden /> {t("Add a widget")}
               </button>
               <button className="btn small" onClick={() => (setEditing(false), setWidgets(dashboard.widgets))}>
-                Cancel
+                {t("Cancel")}
               </button>
               <button className="btn small primary" disabled={save.isPending} onClick={() => save.mutate()}>
-                Save layout
+                {t("Save layout")}
               </button>
             </>
           ) : (
             <button className="btn small" onClick={() => (setWidgets(dashboard.widgets), setEditing(true))}>
-              <Pencil size={13} aria-hidden /> Edit layout
+              <Pencil size={13} aria-hidden /> {t("Edit layout")}
             </button>
           )}
         </div>
@@ -201,25 +203,29 @@ export function DashboardView({ dashboard, editable }: { dashboard: Dashboard; e
             actions={
               editing ? (
                 <span className="row" style={{ gap: 2 }}>
-                  <button className="icon-btn" aria-label="Move up" disabled={i === 0} onClick={() => move(i, -1)}>
+                  <button className="icon-btn" aria-label={t("Move up")} disabled={i === 0} onClick={() => move(i, -1)}>
                     <ArrowUp size={12} />
                   </button>
-                  <button className="icon-btn" aria-label="Move down" disabled={i === widgets.length - 1} onClick={() => move(i, 1)}>
+                  <button className="icon-btn" aria-label={t("Move down")} disabled={i === widgets.length - 1} onClick={() => move(i, 1)}>
                     <ArrowDown size={12} />
                   </button>
                   <button
                     className="btn small"
                     onClick={() => setWidgets(widgets.map((x, j) => (j === i ? { ...x, width: x.width === 2 ? 1 : 2 } : x)))}
                   >
-                    {w.width === 2 ? "Half width" : "Full width"}
+                    {w.width === 2 ? t("Half width") : t("Full width")}
                   </button>
-                  <button className="icon-btn" aria-label="Remove the widget" onClick={() => setWidgets(widgets.filter((_, j) => j !== i))}>
+                  <button
+                    className="icon-btn"
+                    aria-label={t("Remove the widget")}
+                    onClick={() => setWidgets(widgets.filter((_, j) => j !== i))}
+                  >
                     <X size={13} />
                   </button>
                 </span>
               ) : w.reportId ? (
                 <Link className="small" to={`/reports/${w.reportId}`}>
-                  Open report
+                  {t("Open report")}
                 </Link>
               ) : undefined
             }
@@ -227,7 +233,7 @@ export function DashboardView({ dashboard, editable }: { dashboard: Dashboard; e
             <WidgetBody widget={w} />
           </Panel>
         ))}
-        {!shown.length && <p className="empty">No widgets yet.</p>}
+        {!shown.length && <p className="empty">{t("No widgets yet.")}</p>}
       </div>
       {adding && <AddWidgetDialog onClose={() => setAdding(false)} onAdd={(w) => setWidgets([...widgets, w])} />}
     </div>
@@ -240,16 +246,16 @@ function AddWidgetDialog({ onClose, onAdd }: { onClose: () => void; onAdd: (w: W
   const [reportId, setReportId] = useState("");
   const [title, setTitle] = useState("");
   const [width, setWidth] = useState(1);
-  const needsReport = KINDS.find(([k]) => k === kind)?.[2];
+  const needsReport = KINDS().find(([k]) => k === kind)?.[2];
   return (
     <Dialog
       open
-      title="Add a widget"
+      title={t("Add a widget")}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             className="btn primary"
@@ -259,16 +265,16 @@ function AddWidgetDialog({ onClose, onAdd }: { onClose: () => void; onAdd: (w: W
               onClose();
             }}
           >
-            Add
+            {t("Add")}
           </button>
         </>
       }
     >
       <div className="attr-form">
         <div className="field wide">
-          <label htmlFor="w-kind">Shows</label>
+          <label htmlFor="w-kind">{t("Shows")}</label>
           <select id="w-kind" value={kind} onChange={(e) => setKind(e.target.value as WidgetKind)}>
-            {KINDS.map(([k, l]) => (
+            {KINDS().map(([k, l]) => (
               <option key={k} value={k}>
                 {l}
               </option>
@@ -277,9 +283,9 @@ function AddWidgetDialog({ onClose, onAdd }: { onClose: () => void; onAdd: (w: W
         </div>
         {needsReport && (
           <div className="field wide">
-            <label htmlFor="w-report">Report</label>
+            <label htmlFor="w-report">{t("Report")}</label>
             <select id="w-report" value={reportId} onChange={(e) => setReportId(e.target.value)}>
-              <option value="">Choose…</option>
+              <option value="">{t("Choose…")}</option>
               {reports?.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.settings.name}
@@ -289,14 +295,14 @@ function AddWidgetDialog({ onClose, onAdd }: { onClose: () => void; onAdd: (w: W
           </div>
         )}
         <div className="field">
-          <label htmlFor="w-title">Title</label>
-          <input id="w-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Optional" />
+          <label htmlFor="w-title">{t("Title")}</label>
+          <input id="w-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("Optional")} />
         </div>
         <div className="field">
-          <label htmlFor="w-width">Width</label>
+          <label htmlFor="w-width">{t("Width")}</label>
           <select id="w-width" value={width} onChange={(e) => setWidth(Number(e.target.value))}>
-            <option value={1}>Half</option>
-            <option value={2}>Full</option>
+            <option value={1}>{t("Half")}</option>
+            <option value={2}>{t("Full")}</option>
           </select>
         </div>
       </div>
@@ -314,7 +320,7 @@ function HomeChooser({ current }: { current: Dashboard }) {
   });
   const customize = useMutation({
     mutationFn: async () => {
-      const d = await unwrap(api.POST("/api/v1/dashboards", { body: { name: "My home", widgets: current.widgets, shared: false } }));
+      const d = await unwrap(api.POST("/api/v1/dashboards", { body: { name: t("My home"), widgets: current.widgets, shared: false } }));
       return unwrap(api.PUT("/api/v1/home", { body: { dashboardId: d.id } }));
     },
     onSuccess: () => {
@@ -326,14 +332,14 @@ function HomeChooser({ current }: { current: Dashboard }) {
     <>
       {current.id === DEFAULT_HOME_ID && (
         <button className="btn ghost" onClick={() => customize.mutate()} disabled={customize.isPending}>
-          <Pencil size={14} aria-hidden /> Arrange my home page
+          <Pencil size={14} aria-hidden /> {t("Arrange my home page")}
         </button>
       )}
-      <MenuButton label="Home page" icon={<Home size={14} aria-hidden />}>
+      <MenuButton label={t("Home page")} icon={<Home size={14} aria-hidden />}>
         {(close) => (
           <>
             <button role="menuitem" onClick={() => (set.mutate(null), close())}>
-              The default
+              {t("The default")}
             </button>
             {dashboards?.map((d) => (
               <button key={d.id} role="menuitem" onClick={() => (set.mutate(d.id), close())}>
@@ -355,7 +361,7 @@ export function HomeDashboard() {
     <>
       <PageHeader
         icon={<Home size={18} className="icon-muted" aria-hidden />}
-        title={<span className="nm">{me ? `Welcome, ${me.user.displayName}` : "Home"}</span>}
+        title={<span className="nm">{me ? t("Welcome, {name}", { name: me.user.displayName }) : t("Home")}</span>}
         meta={home && home.id !== DEFAULT_HOME_ID ? <span className="sub">{home.name}</span> : undefined}
         toolbar={home ? <HomeChooser current={home} /> : undefined}
       />
@@ -397,10 +403,10 @@ export function DashboardsPage() {
     <>
       <PageHeader
         icon={<LayoutDashboard size={18} className="icon-muted" aria-hidden />}
-        title={<span className="nm">{current ? current.name : "Dashboards"}</span>}
+        title={<span className="nm">{current ? current.name : t("Dashboards")}</span>}
         toolbar={
           <>
-            <MenuButton label="Open" align="left">
+            <MenuButton label={t("Open")} align="left">
               {(close) => (
                 <>
                   {dashboards?.map((d) => (
@@ -412,11 +418,14 @@ export function DashboardsPage() {
               )}
             </MenuButton>
             <button className="btn ghost" onClick={() => setCreating(true)}>
-              <Plus size={15} aria-hidden /> New dashboard
+              <Plus size={15} aria-hidden /> {t("New dashboard")}
             </button>
             {current?.owner === me?.user.id && current && (
-              <button className="btn ghost" onClick={() => window.confirm(`Delete “${current.name}”?`) && remove.mutate(current.id)}>
-                <Trash2 size={14} aria-hidden /> Delete
+              <button
+                className="btn ghost"
+                onClick={() => window.confirm(t("Delete “{name}”?", { name: current.name })) && remove.mutate(current.id)}
+              >
+                <Trash2 size={14} aria-hidden /> {t("Delete")}
               </button>
             )}
           </>
@@ -428,21 +437,21 @@ export function DashboardsPage() {
         ) : current ? (
           <DashboardView key={current.id + current.updatedAt} dashboard={current} editable={current.owner === me?.user.id} />
         ) : (
-          <p className="empty">No dashboards yet.</p>
+          <p className="empty">{t("No dashboards yet.")}</p>
         )}
       </div>
       {creating && (
         <Dialog
           open
-          title="New dashboard"
+          title={t("New dashboard")}
           onClose={() => setCreating(false)}
           footer={
             <>
               <button className="btn" onClick={() => setCreating(false)}>
-                Cancel
+                {t("Cancel")}
               </button>
               <button className="btn primary" disabled={!name.trim() || create.isPending} onClick={() => create.mutate()}>
-                Create
+                {t("Create")}
               </button>
             </>
           }
@@ -450,12 +459,12 @@ export function DashboardsPage() {
           <div className="attr-form">
             <ErrorBanner error={create.error} />
             <div className="field wide">
-              <label htmlFor="dash-name">Name</label>
+              <label htmlFor="dash-name">{t("Name")}</label>
               <input id="dash-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
             </div>
             <label className="check wide">
               <input type="checkbox" checked={shared} onChange={(e) => setShared(e.target.checked)} />
-              Share it: anyone can open it or make it their home page
+              {t("Share it: anyone can open it or make it their home page")}
             </label>
           </div>
         </Dialog>

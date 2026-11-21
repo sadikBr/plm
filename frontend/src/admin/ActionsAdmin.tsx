@@ -10,15 +10,16 @@ import {
 } from "../api/queries";
 import { Dialog, ErrorBanner, Loading, Panel, PrincipalName, formatDate } from "../components/common";
 import { ExpressionField } from "../components/ExpressionField";
+import { t, tn } from "../i18n/i18n";
 import { ACTION_ICONS } from "../pages/ObjectActions";
 
 type Placement = RegisteredAction["effective"]["placement"];
 
-const PLACEMENTS: [Placement, string][] = [
-  ["OBJECT_TOOLBAR", "Object toolbar"],
-  ["OBJECT_MORE", "Object More menu"],
+const PLACEMENTS = (): [Placement, string][] => [
+  ["OBJECT_TOOLBAR", t("Object toolbar")],
+  ["OBJECT_MORE", t("Object More menu")],
 ];
-const SHORT: Record<Placement, string> = { OBJECT_TOOLBAR: "Toolbar", OBJECT_MORE: "More menu" };
+const SHORT = (): Record<Placement, string> => ({ OBJECT_TOOLBAR: t("Toolbar"), OBJECT_MORE: t("More menu") });
 
 /** The current configuration of an action, ready to send back with one field changed. */
 function configOf(a: RegisteredAction): ActionConfiguration {
@@ -51,20 +52,25 @@ export function ActionsAdmin() {
   return (
     <div style={{ display: "grid", gap: 12 }}>
       <ErrorBanner error={error ?? configure.error ?? reset.error} />
-      {PLACEMENTS.map(([placement, title]) => {
+      {PLACEMENTS().map(([placement, title]) => {
         const list = (registry ?? []).filter((a) => a.effective.placement === placement);
         return (
-          <Panel key={placement} title={title} note={`${list.length} action${list.length === 1 ? "" : "s"}, in display order`} flush>
+          <Panel
+            key={placement}
+            title={title}
+            note={tn("{n} action, in display order", "{n} actions, in display order", list.length)}
+            flush
+          >
             <table className="grid" aria-label={title}>
               <thead>
                 <tr>
-                  <th aria-label="Order" />
-                  <th>Action</th>
-                  <th>Shows in</th>
-                  <th>Applies to</th>
-                  <th>Source</th>
-                  <th>Changed</th>
-                  <th aria-label="Actions" />
+                  <th aria-label={t("Order")} />
+                  <th>{t("Action")}</th>
+                  <th>{t("Shows in")}</th>
+                  <th>{t("Applies to")}</th>
+                  <th>{t("Source")}</th>
+                  <th>{t("Changed")}</th>
+                  <th aria-label={t("Actions")} />
                 </tr>
               </thead>
               <tbody>
@@ -75,7 +81,7 @@ export function ActionsAdmin() {
                       <td className="nowrap">
                         <button
                           className="icon-btn"
-                          aria-label={`Move ${a.effective.label} up`}
+                          aria-label={t("Move {label} up", { label: a.effective.label })}
                           disabled={busy || i === 0}
                           onClick={() => move(list, i, -1)}
                         >
@@ -83,7 +89,7 @@ export function ActionsAdmin() {
                         </button>
                         <button
                           className="icon-btn"
-                          aria-label={`Move ${a.effective.label} down`}
+                          aria-label={t("Move {label} down", { label: a.effective.label })}
                           disabled={busy || i === list.length - 1}
                           onClick={() => move(list, i, 1)}
                         >
@@ -102,7 +108,7 @@ export function ActionsAdmin() {
                       <td>
                         <select
                           className="placement-select"
-                          aria-label={`Where ${a.effective.label} shows`}
+                          aria-label={t("Where {label} shows", { label: a.effective.label })}
                           value={a.hidden ? "HIDDEN" : a.effective.placement}
                           disabled={busy}
                           onChange={(e) =>
@@ -111,38 +117,38 @@ export function ActionsAdmin() {
                               : put(a, { hidden: false, placement: e.target.value as Placement })
                           }
                         >
-                          {PLACEMENTS.map(([p]) => (
+                          {PLACEMENTS().map(([p]) => (
                             <option key={p} value={p}>
-                              {SHORT[p]}
+                              {SHORT()[p]}
                             </option>
                           ))}
-                          <option value="HIDDEN">Hidden</option>
+                          <option value="HIDDEN">{t("Hidden")}</option>
                         </select>
                       </td>
                       <td className="muted">{scope(a)}</td>
-                      <td className="nowrap">{a.source === "platform" ? "Built in" : a.source}</td>
+                      <td className="nowrap">{a.source === "platform" ? t("Built in") : a.source}</td>
                       <td className="nowrap muted">
                         {a.configuredAt ? (
                           <>
                             {formatDate(a.configuredAt)} · <PrincipalName id={a.configuredBy!} />
                           </>
                         ) : (
-                          "Default"
+                          t("Default")
                         )}
                       </td>
                       <td className="nowrap">
                         <button
                           className="icon-btn"
-                          aria-label={`Edit ${a.effective.label}`}
-                          title="Label, types and states"
+                          aria-label={t("Edit {label}", { label: a.effective.label })}
+                          title={t("Label, types and states")}
                           onClick={() => setEditing(a)}
                         >
                           <Pencil size={13} />
                         </button>
                         <button
                           className="icon-btn"
-                          aria-label={`Reset ${a.effective.label}`}
-                          title="Back to the defaults"
+                          aria-label={t("Reset {label}", { label: a.effective.label })}
+                          title={t("Back to the defaults")}
                           disabled={busy || !a.configuration}
                           onClick={() => reset.mutate(a.id)}
                         >
@@ -163,10 +169,11 @@ export function ActionsAdmin() {
 }
 
 function scope(a: RegisteredAction) {
-  const types = a.effective.types.length ? a.effective.types.join(", ") : "All types";
-  const states = a.effective.states.length ? a.effective.states.join(", ") : "all states";
-  const condition = a.effective.visibleWhen ? ` · when ${a.effective.visibleWhen}` : "";
-  return `${types} · ${states}${a.effective.requires ? ` · needs ${a.effective.requires.toLowerCase()}` : ""}${condition}`;
+  const types = a.effective.types.length ? a.effective.types.join(", ") : t("All types");
+  const states = a.effective.states.length ? a.effective.states.join(", ") : t("all states");
+  const condition = a.effective.visibleWhen ? ` · ${t("when {condition}", { condition: a.effective.visibleWhen })}` : "";
+  const needs = a.effective.requires ? ` · ${t("needs {permission}", { permission: a.effective.requires.toLowerCase() })}` : "";
+  return `${types} · ${states}${needs}${condition}`;
 }
 
 /** Label, and which types and states the action applies to. */
@@ -187,12 +194,12 @@ function ActionDialog({ action, onClose }: { action: RegisteredAction; onClose: 
   return (
     <Dialog
       open
-      title={`Edit ${action.effective.label}`}
+      title={t("Edit {label}", { label: action.effective.label })}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             className="btn primary"
@@ -215,7 +222,7 @@ function ActionDialog({ action, onClose }: { action: RegisteredAction; onClose: 
               )
             }
           >
-            Save
+            {t("Save")}
           </button>
         </>
       }
@@ -223,32 +230,32 @@ function ActionDialog({ action, onClose }: { action: RegisteredAction; onClose: 
       <div style={{ display: "grid", gap: 14 }}>
         <ErrorBanner error={configure.error} />
         <div className="field">
-          <label htmlFor="action-label">Label</label>
+          <label htmlFor="action-label">{t("Label")}</label>
           <input id="action-label" value={label} placeholder={action.declared.label} onChange={(e) => setLabel(e.target.value)} />
-          <span className="hint">Leave empty for the default, “{action.declared.label}”.</span>
+          <span className="hint">{t("Leave empty for the default, “{label}”.", { label: action.declared.label })}</span>
         </div>
         <fieldset className="check-list">
-          <legend>Types (subtypes included; none ticked = all types)</legend>
+          <legend>{t("Types (subtypes included; none ticked = all types)")}</legend>
           {types
-            ?.filter((t) => !t.parentId)
-            .concat(types.filter((t) => t.parentId))
-            .map((t) => (
-              <label key={t.id} className="check">
-                <input type="checkbox" checked={typeNames.includes(t.name)} onChange={() => toggle(typeNames, setTypeNames, t.name)} />
-                {t.displayName} <code className="muted">{t.name}</code>
+            ?.filter((ty) => !ty.parentId)
+            .concat(types.filter((ty) => ty.parentId))
+            .map((ty) => (
+              <label key={ty.id} className="check">
+                <input type="checkbox" checked={typeNames.includes(ty.name)} onChange={() => toggle(typeNames, setTypeNames, ty.name)} />
+                {ty.displayName} <code className="muted">{ty.name}</code>
               </label>
             ))}
         </fieldset>
         <ExpressionField
           id="action-visible-when"
-          label="Visible when"
+          label={t("Visible when")}
           value={visibleWhen}
           onChange={setVisibleWhen}
-          placeholder="e.g. object.attributes.source == 'make'"
-          hint="Optional. The action shows only on objects where this is true."
+          placeholder={t("e.g. {example}", { example: "object.attributes.source == 'make'" })}
+          hint={t("Optional. The action shows only on objects where this is true.")}
         />
         <fieldset className="check-list">
-          <legend>States (none ticked = every state)</legend>
+          <legend>{t("States (none ticked = every state)")}</legend>
           {stateKeys.map(([key, name]) => (
             <label key={key} className="check">
               <input type="checkbox" checked={states.includes(key)} onChange={() => toggle(states, setStates, key)} />

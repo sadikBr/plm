@@ -2,6 +2,7 @@ import { Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useObjectSearch } from "../api/queries";
+import { t } from "../i18n/i18n";
 import { StateBadge, TypeIcon } from "./common";
 
 const SUGGESTIONS = 8;
@@ -10,8 +11,8 @@ const SUGGESTIONS = 8;
 function useDebounced<T>(value: T, ms: number): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), ms);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebounced(value), ms);
+    return () => clearTimeout(timer);
   }, [value, ms]);
   return debounced;
 }
@@ -74,10 +75,10 @@ export function GlobalSearch() {
         ref={input}
         type="search"
         role="combobox"
-        aria-label="Search"
+        aria-label={t("Search")}
         aria-expanded={open && !!query}
         aria-controls="search-results"
-        placeholder="Search parts and documents by number or name"
+        placeholder={t("Search parts and documents by number or name")}
         value={text}
         onChange={(e) => {
           setText(e.target.value);
@@ -90,8 +91,8 @@ export function GlobalSearch() {
       />
       {!text && <kbd aria-hidden>/</kbd>}
       {open && query && (
-        <div className="search-results" id="search-results" role="listbox" aria-label="Search results">
-          {results.length === 0 && <div className="search-footer">{isFetching ? "Searching…" : "No matches."}</div>}
+        <div className="search-results" id="search-results" role="listbox" aria-label={t("Search results")}>
+          {results.length === 0 && <div className="search-footer">{isFetching ? t("Searching…") : t("No matches.")}</div>}
           {results.map((o, i) => (
             <div
               key={o.id}
@@ -121,7 +122,7 @@ export function GlobalSearch() {
                 go(`/search?q=${encodeURIComponent(text.trim())}`);
               }}
             >
-              See all results for “{text.trim()}”
+              {t("See all results for “{text}”", { text: text.trim() })}
             </div>
           )}
         </div>

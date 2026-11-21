@@ -4,6 +4,7 @@ import { api, unwrap } from "../api/client";
 import { pickLabel } from "../components/AttributeForm";
 import { ErrorBanner, Loading, Panel } from "../components/common";
 import { useLifecycles } from "../api/queries";
+import { t } from "../i18n/i18n";
 
 type Who = "OWNER" | "MANAGERS";
 
@@ -29,37 +30,37 @@ function DeleteRulesForm({ initialStates, initialWho }: { initialStates: string[
 
   return (
     <Panel
-      title="Delete rules"
-      note="Site administrators may always delete. Nothing is deleted while checked out; extension rules can refuse too"
+      title={t("Delete rules")}
+      note={t("Site administrators may always delete. Nothing is deleted while checked out; extension rules can refuse too")}
     >
       <div style={{ display: "grid", gap: 14, maxWidth: 760 }}>
         <ErrorBanner error={save.error} />
         <fieldset className="check-list">
-          <legend>Objects may be deleted in these states</legend>
+          <legend>{t("Objects may be deleted in these states")}</legend>
           {[...allStates.entries()].map(([key, label]) => (
             <label key={key} className="check">
               <input type="checkbox" checked={states.includes(key)} onChange={() => toggle(states, setStates, key)} />
               {label}
             </label>
           ))}
-          <span className="hint check-list-title">None ticked: in any state.</span>
+          <span className="hint check-list-title">{t("None ticked: in any state.")}</span>
         </fieldset>
         <fieldset className="check-list">
-          <legend>By</legend>
+          <legend>{t("By")}</legend>
           <label className="check">
             <input type="checkbox" checked={who.includes("OWNER")} onChange={() => toggle(who, setWho, "OWNER")} />
-            The object's owner
+            {t("The object's owner")}
           </label>
           <label className="check">
             <input type="checkbox" checked={who.includes("MANAGERS")} onChange={() => toggle(who, setWho, "MANAGERS")} />
-            Managers of its context
+            {t("Managers of its context")}
           </label>
         </fieldset>
         <div className="row" style={{ gap: 8 }}>
           <button className="btn primary" disabled={save.isPending} onClick={() => save.mutate()}>
-            Save rules
+            {t("Save rules")}
           </button>
-          {save.isSuccess && <span className="muted">Saved.</span>}
+          {save.isSuccess && <span className="muted">{t("Saved.")}</span>}
         </div>
       </div>
     </Panel>

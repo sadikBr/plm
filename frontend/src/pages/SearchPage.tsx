@@ -18,6 +18,7 @@ import {
   typeLabel,
 } from "../components/common";
 import { PageHeader } from "../components/Layout";
+import { t } from "../i18n/i18n";
 
 type Query = Schemas["SearchQuery"];
 type SavedSearch = Schemas["SavedSearch"];
@@ -102,28 +103,28 @@ export function SearchPage() {
     <>
       <PageHeader
         icon={<Search size={18} className="icon-muted" aria-hidden />}
-        title={<span className="nm">Search</span>}
-        meta={<span className="sub">Numbers, names, values, file names and what's in the files, in every context you can read</span>}
+        title={<span className="nm">{t("Search")}</span>}
+        meta={<span className="sub">{t("Numbers, names, values, file names and what's in the files, in every context you can read")}</span>}
       />
       <div className="content search-layout">
         <aside className="search-side">
           <SavedSearches onOpen={(q) => setParams(toParams(q))} />
           <Facet
-            title="Type"
+            title={t("Type")}
             values={data?.facets.type}
             active={query.typeIds ?? []}
-            label={(k) => typeLabel(types?.find((t) => t.id === k))}
+            label={(k) => typeLabel(types?.find((x) => x.id === k))}
             onToggle={(k) => toggle("typeIds", k)}
           />
           <Facet
-            title="State"
+            title={t("State")}
             values={data?.facets.state}
             active={query.states ?? []}
             label={stateName}
             onToggle={(k) => toggle("states", k)}
           />
           <Facet
-            title="Context"
+            title={t("Context")}
             values={data?.facets.context}
             active={query.contextIds ?? []}
             label={(k) => <ContextLabel id={k} />}
@@ -139,34 +140,34 @@ export function SearchPage() {
           <form className="search-box" onSubmit={submit} role="search">
             <Search size={16} className="icon-muted" aria-hidden />
             <input
-              aria-label="Search for"
+              aria-label={t("Search for")}
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder='Words, numbers, "exact phrase", -excluded'
+              placeholder={t("Words, numbers, {q}exact phrase{q}, -excluded", { q: '"' })}
               autoFocus
             />
             <button className="btn primary" type="submit">
-              Search
+              {t("Search")}
             </button>
             <select
               className="filter"
-              aria-label="Sort"
+              aria-label={t("Sort")}
               value={query.sort ?? ""}
               onChange={(e) => set({ sort: e.target.value || undefined })}
             >
-              <option value="">Best match</option>
-              <option value="MODIFIED">Newest first</option>
-              <option value="NUMBER">By number</option>
+              <option value="">{t("Best match")}</option>
+              <option value="MODIFIED">{t("Newest first")}</option>
+              <option value="NUMBER">{t("By number")}</option>
             </select>
             <button className="btn" type="button" onClick={() => setSaving(true)} disabled={!query.text && filters === 0}>
-              <Bookmark size={14} aria-hidden /> Save
+              <Bookmark size={14} aria-hidden /> {t("Save")}
             </button>
           </form>
           {filters > 0 && (
             <div className="row wrap" style={{ gap: 6 }}>
-              {query.typeIds?.map((t) => (
-                <Chip key={t} onRemove={() => toggle("typeIds", t)}>
-                  {typeLabel(types?.find((x) => x.id === t))}
+              {query.typeIds?.map((id) => (
+                <Chip key={id} onRemove={() => toggle("typeIds", id)}>
+                  {typeLabel(types?.find((x) => x.id === id))}
                 </Chip>
               ))}
               {query.states?.map((s) => (
@@ -188,7 +189,7 @@ export function SearchPage() {
                     set({ attributes: next });
                   }}
                 >
-                  {k} contains “{v}”
+                  {t("{name} contains “{value}”", { name: k, value: v })}
                 </Chip>
               ))}
               <button
@@ -197,22 +198,26 @@ export function SearchPage() {
                   setParams(toParams({ text: query.text, typeIds: [], states: [], contextIds: [], attributes: {}, offset: 0, limit: PAGE }))
                 }
               >
-                Clear filters
+                {t("Clear filters")}
               </button>
             </div>
           )}
           <Panel
-            title="Results"
-            note={data ? `${data.total}${data.capped ? "+" : ""} found${isFetching ? " · updating" : ""}` : undefined}
+            title={t("Results")}
+            note={
+              data
+                ? `${t("{count} found", { count: `${data.total}${data.capped ? "+" : ""}` })}${isFetching ? ` · ${t("updating")}` : ""}`
+                : undefined
+            }
             flush
           >
             <ErrorBanner error={error} />
             {!data ? (
               <Loading />
             ) : data.hits.length === 0 ? (
-              <p className="empty">Nothing found. Try fewer words, or fewer filters.</p>
+              <p className="empty">{t("Nothing found. Try fewer words, or fewer filters.")}</p>
             ) : (
-              <ul className="find-results" aria-label="Search results">
+              <ul className="find-results" aria-label={t("Search results")}>
                 {data.hits.map((h) => (
                   <li key={h.id}>
                     <TypeIcon typeId={h.typeId} />
@@ -229,7 +234,7 @@ export function SearchPage() {
                       </div>
                       {h.snippet && <Snippet text={h.snippet} />}
                       <div className="muted small">
-                        {typeLabel(types?.find((t) => t.id === h.typeId))} · <ContextLabel id={h.contextId} /> · {formatDate(h.modifiedAt)}
+                        {typeLabel(types?.find((x) => x.id === h.typeId))} · <ContextLabel id={h.contextId} /> · {formatDate(h.modifiedAt)}
                       </div>
                     </div>
                   </li>
@@ -243,17 +248,21 @@ export function SearchPage() {
                   disabled={!query.offset}
                   onClick={() => set({ offset: Math.max(0, (query.offset ?? 0) - PAGE) })}
                 >
-                  Previous
+                  {t("Previous")}
                 </button>
                 <span className="muted small">
-                  {(query.offset ?? 0) + 1}–{Math.min(data.total, (query.offset ?? 0) + PAGE)} of {data.total}
+                  {t("{from}–{to} of {total}", {
+                    from: (query.offset ?? 0) + 1,
+                    to: Math.min(data.total, (query.offset ?? 0) + PAGE),
+                    total: data.total,
+                  })}
                 </span>
                 <button
                   className="btn small"
                   disabled={(query.offset ?? 0) + PAGE >= data.total}
                   onClick={() => set({ offset: (query.offset ?? 0) + PAGE })}
                 >
-                  Next
+                  {t("Next")}
                 </button>
               </div>
             )}
@@ -269,7 +278,7 @@ function Chip({ children, onRemove }: { children: ReactNode; onRemove: () => voi
   return (
     <span className="tag chip">
       {children}
-      <button className="tag-remove" aria-label="Remove filter" onClick={onRemove}>
+      <button className="tag-remove" aria-label={t("Remove filter")} onClick={onRemove}>
         <X size={11} />
       </button>
     </span>
@@ -335,10 +344,10 @@ function AttributeFilters({
     pickLabel(a.labels, a.name).localeCompare(pickLabel(b.labels, b.name)),
   );
   return (
-    <section className="facet" aria-label="Attribute">
-      <h3>Attribute value</h3>
-      <select aria-label="Attribute name" value={name} onChange={(e) => setName(e.target.value)}>
-        <option value="">Choose an attribute…</option>
+    <section className="facet" aria-label={t("Attribute")}>
+      <h3>{t("Attribute value")}</h3>
+      <select aria-label={t("Attribute name")} value={name} onChange={(e) => setName(e.target.value)}>
+        <option value="">{t("Choose an attribute…")}</option>
         {attributes.map((a) => (
           <option key={a.name} value={a.name}>
             {pickLabel(a.labels, a.name)}
@@ -346,7 +355,7 @@ function AttributeFilters({
         ))}
       </select>
       <div className="row" style={{ gap: 4 }}>
-        <input aria-label="Attribute value" value={text} onChange={(e) => setText(e.target.value)} placeholder="contains…" />
+        <input aria-label={t("Attribute value")} value={text} onChange={(e) => setText(e.target.value)} placeholder={t("contains…")} />
         <button
           className="btn small"
           disabled={!name || !text.trim()}
@@ -355,7 +364,7 @@ function AttributeFilters({
             setText("");
           }}
         >
-          Add
+          {t("Add")}
         </button>
       </div>
     </section>
@@ -376,9 +385,9 @@ function SavedSearches({ onOpen }: { onOpen: (q: Query) => void }) {
       <button className="link-btn" onClick={() => onOpen(s.query)}>
         {s.name}
       </button>
-      {s.shared && <Share2 size={11} className="icon-muted" aria-label="Shared" />}
+      {s.shared && <Share2 size={11} className="icon-muted" aria-label={t("Shared")} />}
       {s.owner === me?.user.id ? (
-        <button className="icon-btn" aria-label={`Delete ${s.name}`} onClick={() => remove.mutate(s.id)}>
+        <button className="icon-btn" aria-label={t("Delete {name}", { name: s.name })} onClick={() => remove.mutate(s.id)}>
           <Trash2 size={12} />
         </button>
       ) : (
@@ -391,12 +400,12 @@ function SavedSearches({ onOpen }: { onOpen: (q: Query) => void }) {
   const mine = saved.filter((s) => s.owner === me?.user.id);
   const others = saved.filter((s) => s.owner !== me?.user.id);
   return (
-    <section className="facet" aria-label="Saved searches">
-      <h3>Saved searches</h3>
+    <section className="facet" aria-label={t("Saved searches")}>
+      <h3>{t("Saved searches")}</h3>
       {mine.map(row)}
       {others.length > 0 && (
         <div className="muted small" style={{ marginTop: 6 }}>
-          Shared with you
+          {t("Shared with you")}
         </div>
       )}
       {others.map(row)}
@@ -418,15 +427,15 @@ function SaveSearchDialog({ query, onClose }: { query: Query; onClose: () => voi
   return (
     <Dialog
       open
-      title="Save this search"
+      title={t("Save this search")}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button className="btn primary" disabled={save.isPending || !name.trim()} onClick={() => save.mutate()}>
-            Save
+            {t("Save")}
           </button>
         </>
       }
@@ -434,12 +443,12 @@ function SaveSearchDialog({ query, onClose }: { query: Query; onClose: () => voi
       <div className="attr-form">
         <ErrorBanner error={save.error} />
         <div className="field wide">
-          <label htmlFor="saved-name">Name</label>
+          <label htmlFor="saved-name">{t("Name")}</label>
           <input id="saved-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         </div>
         <label className="check wide">
           <input type="checkbox" checked={shared} onChange={(e) => setShared(e.target.checked)} />
-          Share it with everyone (each person still finds only what they may read)
+          {t("Share it with everyone (each person still finds only what they may read)")}
         </label>
       </div>
     </Dialog>

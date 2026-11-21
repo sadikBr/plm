@@ -1,6 +1,7 @@
 import { Box, FileText, Pencil, Plus, X } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
+import { t } from "../i18n/i18n";
 import { useLifecycles, useTypes, type AttributeDefinition } from "../api/queries";
 import { pickLabel } from "../components/AttributeForm";
 import { Dialog, ErrorBanner, Loading, Panel, TYPE_ICONS, TypeIcon } from "../components/common";
@@ -58,18 +59,18 @@ export function TypesAdmin() {
   return (
     <div className="admin-split">
       <Panel
-        title="Types"
+        title={t("Types")}
         flush
         actions={
           selected && (
             <button className="btn small" onClick={() => setCreating(true)}>
               <Plus size={13} aria-hidden />
-              New subtype
+              {t("New subtype")}
             </button>
           )
         }
       >
-        <ul className="type-tree" aria-label="Types">
+        <ul className="type-tree" aria-label={t("Types")}>
           {tree.rows.map(({ type, depth }) => (
             <li key={type.id}>
               <button
@@ -79,7 +80,10 @@ export function TypesAdmin() {
                 onClick={() => go({ type: type.id })}
               >
                 <TypeIcon typeId={type.id} size={14} />
-                <span className={type.instantiable ? undefined : "abstract"} title={type.instantiable ? undefined : "Abstract: groups subtypes, can't be created"}>
+                <span
+                  className={type.instantiable ? undefined : "abstract"}
+                  title={type.instantiable ? undefined : t("Abstract: groups subtypes, can't be created")}
+                >
                   {type.displayName}
                 </span>
               </button>
@@ -92,20 +96,28 @@ export function TypesAdmin() {
           <div className="admin-head">
             <h2>{selected.displayName}</h2>
             <span className="muted">
-              <code>{selected.name}</code> · {selected.parentId ? `subtype of ${tree.byId.get(selected.parentId)?.displayName}` : "out-of-the-box base type"}
+              <code>{selected.name}</code> ·{" "}
+              {selected.parentId
+                ? t("subtype of {type}", { type: tree.byId.get(selected.parentId)?.displayName ?? "" })
+                : t("out-of-the-box base type")}
             </span>
           </div>
-          <nav className="subtabs" aria-label="Type settings">
+          <nav className="subtabs" aria-label={t("Type settings")}>
             {(
               [
-                ["properties", "Properties"],
-                ["attributes", "Attributes"],
-                ["layouts", "Layouts"],
-                ["validation", "Validation"],
-                ["rules", "Numbering and lifecycle"],
+                ["properties", t("Properties")],
+                ["attributes", t("Attributes")],
+                ["layouts", t("Layouts")],
+                ["validation", t("Validation")],
+                ["rules", t("Numbering and lifecycle")],
               ] as [View, string][]
             ).map(([key, label]) => (
-              <button key={key} className={view === key ? "active" : undefined} aria-pressed={view === key} onClick={() => go({ view: key })}>
+              <button
+                key={key}
+                className={view === key ? "active" : undefined}
+                aria-pressed={view === key}
+                onClick={() => go({ view: key })}
+              >
                 {label}
               </button>
             ))}
@@ -117,7 +129,7 @@ export function TypesAdmin() {
           {view === "rules" && <RulesPanel type={selected} typeName={(id) => tree.byId.get(id)?.displayName ?? "…"} />}
         </div>
       ) : (
-        <p className="empty">Select a type.</p>
+        <p className="empty">{t("Select a type.")}</p>
       )}
       {selected && (
         <NewSubtypeDialog
@@ -150,7 +162,13 @@ function NewSubtypeDialog({
   const [name, setName] = useState("");
   // The internal name follows the display name until the admin edits it.
   const [nameEdited, setNameEdited] = useState(false);
-  const derived = displayName.replace(/[^A-Za-z0-9]+/g, " ").trim().split(" ").filter(Boolean).map((w) => w[0]!.toUpperCase() + w.slice(1)).join("");
+  const derived = displayName
+    .replace(/[^A-Za-z0-9]+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w[0]!.toUpperCase() + w.slice(1))
+    .join("");
   const effectiveName = nameEdited ? name : derived;
 
   const submit = (e: FormEvent) => {
@@ -158,11 +176,11 @@ function NewSubtypeDialog({
     create.mutate(
       { parentId: parent.id, name: effectiveName, displayName: displayName.trim() },
       {
-        onSuccess: (t) => {
+        onSuccess: (created) => {
           setDisplayName("");
           setName("");
           setNameEdited(false);
-          onCreated(t.id);
+          onCreated(created.id);
         },
       },
     );
@@ -171,15 +189,20 @@ function NewSubtypeDialog({
   return (
     <Dialog
       open={open}
-      title={`New subtype of ${parent.displayName}`}
+      title={t("New subtype of {type}", { type: parent.displayName })}
       onClose={onClose}
       footer={
         <>
           <button className="btn" type="button" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
-          <button className="btn primary" type="submit" form="new-type-form" disabled={create.isPending || !displayName.trim() || !effectiveName}>
-            Create
+          <button
+            className="btn primary"
+            type="submit"
+            form="new-type-form"
+            disabled={create.isPending || !displayName.trim() || !effectiveName}
+          >
+            {t("Create")}
           </button>
         </>
       }
@@ -187,14 +210,16 @@ function NewSubtypeDialog({
       <form id="new-type-form" onSubmit={submit} noValidate style={{ display: "grid", gap: 12 }}>
         <ErrorBanner error={create.error} />
         <p className="muted" style={{ margin: 0 }}>
-          It inherits every attribute, layout, rule and lifecycle of {parent.displayName}; you can then add and override.
+          {t("It inherits every attribute, layout, rule and lifecycle of {type}; you can then add and override.", {
+            type: parent.displayName,
+          })}
         </p>
         <div className="field">
-          <label htmlFor="type-display">Display name</label>
+          <label htmlFor="type-display">{t("Display name")}</label>
           <input id="type-display" value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoFocus required />
         </div>
         <div className="field">
-          <label htmlFor="type-name">Internal name</label>
+          <label htmlFor="type-name">{t("Internal name")}</label>
           <input
             id="type-name"
             value={effectiveName}
@@ -203,7 +228,7 @@ function NewSubtypeDialog({
               setName(e.target.value);
             }}
           />
-          <span className="hint">Used by integrations and the API. Can't be changed later.</span>
+          <span className="hint">{t("Used by integrations and the API. Can't be changed later.")}</span>
         </div>
       </form>
     </Dialog>
@@ -224,7 +249,7 @@ function PropertiesPanel({ type }: { type: TypeDefinition }) {
   return (
     <form
       className="panel"
-      aria-label="Type properties"
+      aria-label={t("Type properties")}
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
@@ -238,9 +263,10 @@ function PropertiesPanel({ type }: { type: TypeDefinition }) {
       }}
     >
       <div className="panel-head">
-        <h2>Properties</h2>
+        <h2>{t("Properties")}</h2>
         <span className="note">
-          Internal name <code>{type.name}</code> and base class {type.baseClass.toLowerCase()} are fixed
+          {t("Internal name")} <code>{type.name}</code>{" "}
+          {t("and base class {baseClass} are fixed", { baseClass: type.baseClass.toLowerCase() })}
         </span>
       </div>
       <div className="panel-body" style={{ display: "grid", gap: 12 }}>
@@ -253,21 +279,21 @@ function PropertiesPanel({ type }: { type: TypeDefinition }) {
         )}
         <div className="attr-form cols-2">
           <div className="field">
-            <label htmlFor="type-prop-name">Display name</label>
+            <label htmlFor="type-prop-name">{t("Display name")}</label>
             <input id="type-prop-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
           </div>
           <div className="field">
-            <label htmlFor="type-prop-desc">Description</label>
+            <label htmlFor="type-prop-desc">{t("Description")}</label>
             <input id="type-prop-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
         </div>
         <fieldset className="attr-group">
-          <legend className="section-label">Icon</legend>
-          <div className="icon-picker" role="radiogroup" aria-label="Icon">
-            <label className={icon === "" ? "on" : undefined} title="The base class's icon">
+          <legend className="section-label">{t("Icon")}</legend>
+          <div className="icon-picker" role="radiogroup" aria-label={t("Icon")}>
+            <label className={icon === "" ? "on" : undefined} title={t("The base class's icon")}>
               <input type="radio" name="type-icon" checked={icon === ""} onChange={() => setIcon("")} />
               {type.baseClass === "DOCUMENT" ? <FileText size={16} aria-hidden /> : <Box size={16} aria-hidden />}
-              <span className="sr-only">Default</span>
+              <span className="sr-only">{t("Default")}</span>
             </label>
             {Object.entries(TYPE_ICONS).map(([key, Icon]) => (
               <label key={key} className={icon === key ? "on" : undefined} title={key}>
@@ -279,12 +305,28 @@ function PropertiesPanel({ type }: { type: TypeDefinition }) {
           </div>
         </fieldset>
         <fieldset className="attr-group">
-          <legend className="section-label">Translations of the name</legend>
+          <legend className="section-label">{t("Translations of the name")}</legend>
           {labels.map(([lang, label], i) => (
             <div className="row" key={i}>
-              <input aria-label={`Language ${i + 1}`} placeholder="fr" value={lang} style={{ width: 90, flex: "none" }} onChange={(e) => setLabels(labels.map((x, j) => (j === i ? [e.target.value, x[1]] : x)))} />
-              <input aria-label={`Translation ${i + 1}`} placeholder="Pièce" value={label} onChange={(e) => setLabels(labels.map((x, j) => (j === i ? [x[0], e.target.value] : x)))} />
-              <button type="button" className="btn small ghost icon" aria-label={`Remove translation ${i + 1}`} onClick={() => setLabels(labels.filter((_, j) => j !== i))}>
+              <input
+                aria-label={t("Language {n}", { n: i + 1 })}
+                placeholder="fr"
+                value={lang}
+                style={{ width: 90, flex: "none" }}
+                onChange={(e) => setLabels(labels.map((x, j) => (j === i ? [e.target.value, x[1]] : x)))}
+              />
+              <input
+                aria-label={t("Translation {n}", { n: i + 1 })}
+                placeholder="Pièce"
+                value={label}
+                onChange={(e) => setLabels(labels.map((x, j) => (j === i ? [x[0], e.target.value] : x)))}
+              />
+              <button
+                type="button"
+                className="btn small ghost icon"
+                aria-label={t("Remove translation {n}", { n: i + 1 })}
+                onClick={() => setLabels(labels.filter((_, j) => j !== i))}
+              >
                 <X size={13} aria-hidden />
               </button>
             </div>
@@ -292,20 +334,20 @@ function PropertiesPanel({ type }: { type: TypeDefinition }) {
           <div>
             <button type="button" className="btn small" onClick={() => setLabels([...labels, ["", ""]])}>
               <Plus size={13} aria-hidden />
-              Add a translation
+              {t("Add a translation")}
             </button>
           </div>
         </fieldset>
         <label className="check">
           <input type="checkbox" checked={!instantiable} onChange={(e) => setInstantiable(!e.target.checked)} />
-          Abstract: only groups subtypes; users can't create objects of this type itself
+          {t("Abstract: only groups subtypes; users can't create objects of this type itself")}
         </label>
       </div>
       <div className="panel-foot">
         <button className="btn primary" type="submit" disabled={update.isPending || !displayName.trim()}>
-          Save
+          {t("Save")}
         </button>
-        {update.isSuccess && <span className="muted">Saved.</span>}
+        {update.isSuccess && <span className="muted">{t("Saved.")}</span>}
       </div>
     </form>
   );
@@ -323,19 +365,19 @@ function AttributesPanel({ type, typeName }: { type: TypeDefinition; typeName: (
 
   return (
     <Panel
-      title="Attributes"
-      note="Inherited attributes come first; edit them on the type that defines them to change every subtype"
+      title={t("Attributes")}
+      note={t("Inherited attributes come first; edit them on the type that defines them to change every subtype")}
       flush
       actions={
         <>
           {addable.length > 0 && (
             <select
-              aria-label="Use a global attribute"
+              aria-label={t("Use a global attribute")}
               value=""
               style={{ width: 200 }}
               onChange={(e) => e.target.value && use.mutate({ typeId: type.id, attributeId: e.target.value, use: true })}
             >
-              <option value="">Use a global attribute…</option>
+              <option value="">{t("Use a global attribute…")}</option>
               {addable.map((g) => (
                 <option key={g.attribute.id} value={g.attribute.id}>
                   {pickLabel(g.attribute.labels, g.attribute.name)}
@@ -345,7 +387,7 @@ function AttributesPanel({ type, typeName }: { type: TypeDefinition; typeName: (
           )}
           <button className="btn small primary" onClick={() => setEditing("new")}>
             <Plus size={13} aria-hidden />
-            Add attribute
+            {t("Add attribute")}
           </button>
         </>
       }
@@ -355,16 +397,16 @@ function AttributesPanel({ type, typeName }: { type: TypeDefinition; typeName: (
         <Loading />
       ) : (
         <div className="grid-wrap">
-          <table className="grid" aria-label="Attributes">
+          <table className="grid" aria-label={t("Attributes")}>
             <thead>
               <tr>
-                <th>Label</th>
-                <th>Name</th>
-                <th>Data type</th>
-                <th>Constraints</th>
-                <th>Defined on</th>
-                <th>Status</th>
-                <th aria-label="Actions" />
+                <th>{t("Label")}</th>
+                <th>{t("Name")}</th>
+                <th>{t("Data type")}</th>
+                <th>{t("Constraints")}</th>
+                <th>{t("Defined on")}</th>
+                <th>{t("Status")}</th>
+                <th aria-label={t("Actions")} />
               </tr>
             </thead>
             <tbody>
@@ -377,23 +419,32 @@ function AttributesPanel({ type, typeName }: { type: TypeDefinition; typeName: (
                   <td className="nowrap">{dataTypeLabel(a)}</td>
                   <td className="muted">{constraintSummary(a) || "—"}</td>
                   <td className="nowrap">
-                    {a.inherited ? typeName(a.typeId) : <span className="tag accent">This type</span>}
+                    {a.inherited ? typeName(a.typeId) : <span className="tag accent">{t("This type")}</span>}
                     {a.global && (
-                      <span className="tag" title="A global attribute: defined once, shared by several types" style={{ marginLeft: 4 }}>
-                        Global
+                      <span
+                        className="tag"
+                        title={t("A global attribute: defined once, shared by several types")}
+                        style={{ marginLeft: 4 }}
+                      >
+                        {t("Global")}
                       </span>
                     )}
                   </td>
-                  <td className="nowrap">{a.active ? "Active" : <span className="muted">Inactive</span>}</td>
+                  <td className="nowrap">{a.active ? t("Active") : <span className="muted">{t("Inactive")}</span>}</td>
                   <td className="nowrap" style={{ width: 70 }}>
-                    <button className="btn small ghost icon" aria-label={`Edit ${pickLabel(a.labels, a.name)}`} title="Edit" onClick={() => setEditing(a)}>
+                    <button
+                      className="btn small ghost icon"
+                      aria-label={t("Edit {name}", { name: pickLabel(a.labels, a.name) })}
+                      title={t("Edit")}
+                      onClick={() => setEditing(a)}
+                    >
                       <Pencil size={13} aria-hidden />
                     </button>
                     {a.global && !a.inherited && (
                       <button
                         className="btn small ghost icon"
-                        aria-label={`Stop using ${pickLabel(a.labels, a.name)}`}
-                        title="Stop using this global attribute here (stored values are kept)"
+                        aria-label={t("Stop using {name}", { name: pickLabel(a.labels, a.name) })}
+                        title={t("Stop using this global attribute here (stored values are kept)")}
                         onClick={() => use.mutate({ typeId: type.id, attributeId: a.id, use: false })}
                       >
                         <X size={13} aria-hidden />
@@ -420,11 +471,11 @@ function AttributesPanel({ type, typeName }: { type: TypeDefinition; typeName: (
 
 // ---------- Rules ----------
 
-const REVISION_SCHEMES: { key: RevisionScheme; label: string }[] = [
-  { key: "ALPHABETIC_ASME", label: "Letters, ASME (A, B … Y, AA; no I, O, Q, S, X, Z)" },
-  { key: "ALPHABETIC", label: "Letters (A, B … Z, AA)" },
-  { key: "NUMERIC_FROM_1", label: "Numbers from 1" },
-  { key: "NUMERIC_FROM_0", label: "Numbers from 0" },
+const REVISION_SCHEMES = (): { key: RevisionScheme; label: string }[] => [
+  { key: "ALPHABETIC_ASME", label: t("Letters, ASME (A, B … Y, AA; no I, O, Q, S, X, Z)") },
+  { key: "ALPHABETIC", label: t("Letters (A, B … Z, AA)") },
+  { key: "NUMERIC_FROM_1", label: t("Numbers from 1") },
+  { key: "NUMERIC_FROM_0", label: t("Numbers from 0") },
 ];
 
 function RulesPanel({ type, typeName }: { type: TypeDefinition; typeName: (id: string) => string }) {
@@ -440,8 +491,8 @@ function RulesPanel({ type, typeName }: { type: TypeDefinition; typeName: (id: s
   const own = (key: string) => rules.inheritedFrom[key] === type.id;
   const origin = (key: string) => {
     const from = rules.inheritedFrom[key];
-    if (!from) return "System default";
-    return from === type.id ? "Set on this type" : `Inherited from ${typeName(from)}`;
+    if (!from) return t("System default");
+    return from === type.id ? t("Set on this type") : t("Inherited from {type}", { type: typeName(from) });
   };
   const current = {
     numberingSchemeId: own("numberingScheme") ? rules.numberingSchemeId : null,
@@ -450,38 +501,42 @@ function RulesPanel({ type, typeName }: { type: TypeDefinition; typeName: (id: s
   };
   const save = (patch: Partial<typeof current>) => update.mutate({ ...current, ...patch });
   const schemeName = (id: string | null | undefined) =>
-    id ? (schemes?.find((s) => s.id === id)?.name ?? "…") : "System sequence (10 digits)";
+    id ? (schemes?.find((s) => s.id === id)?.name ?? "…") : t("System sequence (10 digits)");
 
   return (
     <div className="cols-even">
-      <Panel title="Numbering and revisions" note="Apply to objects created from now on">
+      <Panel title={t("Numbering and revisions")} note={t("Apply to objects created from now on")}>
         <ErrorBanner error={update.error} />
         <div className="rule-grid">
-          <label htmlFor="rule-numbering">Numbering</label>
+          <label htmlFor="rule-numbering">{t("Numbering")}</label>
           <div>
             <select
               id="rule-numbering"
               value={own("numberingScheme") ? (rules.numberingSchemeId ?? "") : "inherit"}
               onChange={(e) => save({ numberingSchemeId: e.target.value === "inherit" ? null : e.target.value })}
             >
-              <option value="inherit">Inherit ({schemeName(own("numberingScheme") ? null : rules.numberingSchemeId)})</option>
+              <option value="inherit">
+                {t("Inherit ({value})", { value: schemeName(own("numberingScheme") ? null : rules.numberingSchemeId) })}
+              </option>
               {schemes?.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} — next {s.example}
+                  {t("{name} — next {example}", { name: s.name, example: s.example })}
                 </option>
               ))}
             </select>
             <span className="hint">{origin("numberingScheme")}</span>
           </div>
-          <label htmlFor="rule-revision">Revision scheme</label>
+          <label htmlFor="rule-revision">{t("Revision scheme")}</label>
           <div>
             <select
               id="rule-revision"
               value={current.revisionScheme ?? "inherit"}
               onChange={(e) => save({ revisionScheme: e.target.value === "inherit" ? null : (e.target.value as RevisionScheme) })}
             >
-              <option value="inherit">Inherit ({REVISION_SCHEMES.find((r) => r.key === rules.revisionScheme)?.label})</option>
-              {REVISION_SCHEMES.map((r) => (
+              <option value="inherit">
+                {t("Inherit ({value})", { value: REVISION_SCHEMES().find((r) => r.key === rules.revisionScheme)?.label ?? "" })}
+              </option>
+              {REVISION_SCHEMES().map((r) => (
                 <option key={r.key} value={r.key}>
                   {r.label}
                 </option>
@@ -489,25 +544,27 @@ function RulesPanel({ type, typeName }: { type: TypeDefinition; typeName: (id: s
             </select>
             <span className="hint">{origin("revisionScheme")}</span>
           </div>
-          <label htmlFor="rule-manual">Manual numbers</label>
+          <label htmlFor="rule-manual">{t("Manual numbers")}</label>
           <div>
             <select
               id="rule-manual"
               value={current.allowManualNumber == null ? "inherit" : String(current.allowManualNumber)}
               onChange={(e) => save({ allowManualNumber: e.target.value === "inherit" ? null : e.target.value === "true" })}
             >
-              <option value="inherit">Inherit ({rules.allowManualNumber ? "allowed" : "not allowed"})</option>
-              <option value="true">Allowed: users may type their own number</option>
-              <option value="false">Not allowed: always the next generated number</option>
+              <option value="inherit">
+                {t("Inherit ({value})", { value: rules.allowManualNumber ? t("allowed") : t("not allowed") })}
+              </option>
+              <option value="true">{t("Allowed: users may type their own number")}</option>
+              <option value="false">{t("Not allowed: always the next generated number")}</option>
             </select>
             <span className="hint">{origin("allowManualNumber")}</span>
           </div>
         </div>
       </Panel>
-      <Panel title="Lifecycle" note="Objects keep the lifecycle they were created with">
+      <Panel title={t("Lifecycle")} note={t("Objects keep the lifecycle they were created with")}>
         <ErrorBanner error={assign.error} />
         <div className="rule-grid">
-          <label htmlFor="rule-lifecycle">Lifecycle</label>
+          <label htmlFor="rule-lifecycle">{t("Lifecycle")}</label>
           <div>
             <select id="rule-lifecycle" value={lifecycle?.id ?? ""} onChange={(e) => assign.mutate(e.target.value)}>
               {lifecycles?.map((l) => (
@@ -516,12 +573,12 @@ function RulesPanel({ type, typeName }: { type: TypeDefinition; typeName: (id: s
                 </option>
               ))}
             </select>
-            <span className="hint">Subtypes without their own assignment use this one.</span>
+            <span className="hint">{t("Subtypes without their own assignment use this one.")}</span>
           </div>
         </div>
         {lifecycle && (
           <p className="muted" style={{ margin: "10px 0 0" }}>
-            States: {lifecycle.states.map((s) => pickLabel(s.labels, s.key)).join(" → ")}
+            {t("States: {states}", { states: lifecycle.states.map((s) => pickLabel(s.labels, s.key)).join(" → ") })}
           </p>
         )}
       </Panel>

@@ -3,6 +3,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { useTeamRoles, type TeamRoleDefinition } from "../api/queries";
 import { pickLabel } from "../components/AttributeForm";
 import { ErrorBanner, Loading, Panel } from "../components/common";
+import { t } from "../i18n/i18n";
 import {
   useCreateEnumeration,
   useCreateNumberingScheme,
@@ -51,19 +52,22 @@ export function ValueListsAdmin() {
   return (
     <div className="admin-split">
       <Panel
-        title="Value lists"
+        title={t("Value lists")}
         flush
         actions={
           <button className="btn small" onClick={() => setSelected("new")}>
             <Plus size={13} aria-hidden />
-            New list
+            {t("New list")}
           </button>
         }
       >
-        <ul className="type-tree" aria-label="Value lists">
+        <ul className="type-tree" aria-label={t("Value lists")}>
           {lists?.map((l) => (
             <li key={l.id}>
-              <button className={selected !== "new" && current?.id === l.id ? "type-row active" : "type-row"} onClick={() => setSelected(l.id)}>
+              <button
+                className={selected !== "new" && current?.id === l.id ? "type-row active" : "type-row"}
+                onClick={() => setSelected(l.id)}
+              >
                 {pickLabel(l.labels, l.name)}
                 <span className="muted" style={{ marginLeft: "auto" }}>
                   {l.values.filter((v) => v.active !== false).length}
@@ -73,11 +77,7 @@ export function ValueListsAdmin() {
           ))}
         </ul>
       </Panel>
-      <ValueListEditor
-        key={selected === "new" ? "new" : current?.id}
-        list={current}
-        onCreated={(id) => setSelected(id)}
-      />
+      <ValueListEditor key={selected === "new" ? "new" : current?.id} list={current} onCreated={(id) => setSelected(id)} />
     </div>
   );
 }
@@ -86,7 +86,13 @@ function ValueListEditor({
   list,
   onCreated,
 }: {
-  list?: { id: string; name: string; labels: Record<string, string>; system: boolean; values: { key: string; labels: Record<string, string>; active?: boolean | null }[] };
+  list?: {
+    id: string;
+    name: string;
+    labels: Record<string, string>;
+    system: boolean;
+    values: { key: string; labels: Record<string, string>; active?: boolean | null }[];
+  };
   onCreated: (id: string) => void;
 }) {
   const create = useCreateEnumeration();
@@ -123,55 +129,93 @@ function ValueListEditor({
   };
 
   return (
-    <form className="panel" aria-label={list ? `Value list ${label}` : "New value list"} onSubmit={submit} noValidate>
+    <form className="panel" aria-label={list ? t("Value list {name}", { name: label }) : t("New value list")} onSubmit={submit} noValidate>
       <div className="panel-head">
-        <h2>{list ? pickLabel(list.labels, list.name) : "New value list"}</h2>
-        {list?.system && <span className="note">Out of the box: values can be added, relabelled and deactivated, never removed</span>}
+        <h2>{list ? pickLabel(list.labels, list.name) : t("New value list")}</h2>
+        {list?.system && (
+          <span className="note">{t("Out of the box: values can be added, relabelled and deactivated, never removed")}</span>
+        )}
       </div>
       <div className="panel-body" style={{ display: "grid", gap: 12 }}>
         <Problems error={mutation.error} />
         <div className="attr-form cols-2">
           <div className="field">
-            <label htmlFor="list-label">Label</label>
+            <label htmlFor="list-label">{t("Label")}</label>
             <input id="list-label" value={label} onChange={(e) => (setLabel(e.target.value), setDirty(true))} required />
           </div>
           <div className="field">
-            <label htmlFor="list-name">Name</label>
-            <input id="list-name" value={name} disabled={!!list} onChange={(e) => setName(e.target.value)} placeholder="e.g. threadStandard" />
+            <label htmlFor="list-name">{t("Name")}</label>
+            <input
+              id="list-name"
+              value={name}
+              disabled={!!list}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t("e.g. {example}", { example: "threadStandard" })}
+            />
           </div>
         </div>
-        <table className="grid" aria-label="Values">
+        <table className="grid" aria-label={t("Values")}>
           <thead>
             <tr>
-              <th>Key</th>
-              <th>Label</th>
-              <th>Active</th>
-              <th aria-label="Order" />
+              <th>{t("Key")}</th>
+              <th>{t("Label")}</th>
+              <th>{t("Active")}</th>
+              <th aria-label={t("Order")} />
             </tr>
           </thead>
           <tbody>
             {rows.map((r, i) => (
               <tr key={i} className={r.active ? undefined : "inactive"}>
                 <td style={{ width: "32%" }}>
-                  {r.saved ? <code>{r.key}</code> : <input aria-label={`Key of value ${i + 1}`} value={r.key} onChange={(e) => set(i, { key: e.target.value })} />}
+                  {r.saved ? (
+                    <code>{r.key}</code>
+                  ) : (
+                    <input
+                      aria-label={t("Key of value {n}", { n: i + 1 })}
+                      value={r.key}
+                      onChange={(e) => set(i, { key: e.target.value })}
+                    />
+                  )}
                 </td>
                 <td>
-                  <input aria-label={`Label of value ${i + 1}`} value={r.label} onChange={(e) => set(i, { label: e.target.value })} />
+                  <input
+                    aria-label={t("Label of value {n}", { n: i + 1 })}
+                    value={r.label}
+                    onChange={(e) => set(i, { label: e.target.value })}
+                  />
                 </td>
                 <td style={{ width: 70 }}>
                   {r.saved ? (
-                    <input type="checkbox" aria-label={`${r.label} is active`} checked={r.active} onChange={(e) => set(i, { active: e.target.checked })} style={{ width: "auto" }} />
+                    <input
+                      type="checkbox"
+                      aria-label={t("{value} is active", { value: r.label })}
+                      checked={r.active}
+                      onChange={(e) => set(i, { active: e.target.checked })}
+                      style={{ width: "auto" }}
+                    />
                   ) : (
                     <button type="button" className="btn small ghost" onClick={() => edit(rows.filter((_, j) => j !== i))}>
-                      Remove
+                      {t("Remove")}
                     </button>
                   )}
                 </td>
                 <td className="nowrap" style={{ width: 70 }}>
-                  <button type="button" className="btn small ghost icon" aria-label={`Move ${r.label || "value"} up`} disabled={i === 0} onClick={() => move(i, -1)}>
+                  <button
+                    type="button"
+                    className="btn small ghost icon"
+                    aria-label={t("Move {value} up", { value: r.label || t("value") })}
+                    disabled={i === 0}
+                    onClick={() => move(i, -1)}
+                  >
                     <ArrowUp size={12} aria-hidden />
                   </button>
-                  <button type="button" className="btn small ghost icon" aria-label={`Move ${r.label || "value"} down`} disabled={i === rows.length - 1} onClick={() => move(i, 1)}>
+                  <button
+                    type="button"
+                    className="btn small ghost icon"
+                    aria-label={t("Move {value} down", { value: r.label || t("value") })}
+                    disabled={i === rows.length - 1}
+                    onClick={() => move(i, 1)}
+                  >
                     <ArrowDown size={12} aria-hidden />
                   </button>
                 </td>
@@ -182,17 +226,17 @@ function ValueListEditor({
         <div>
           <button type="button" className="btn small" onClick={() => edit([...rows, { key: "", label: "", active: true, saved: false }])}>
             <Plus size={13} aria-hidden />
-            Add value
+            {t("Add value")}
           </button>
           <span className="hint" style={{ marginLeft: 8 }}>
-            Saved values can't be removed, only deactivated, so existing data stays valid.
+            {t("Saved values can't be removed, only deactivated, so existing data stays valid.")}
           </span>
         </div>
       </div>
       <div className="panel-foot">
         <button className="btn primary" type="submit" disabled={mutation.isPending || !label.trim() || (!!list && !dirty)}>
           <Save size={14} aria-hidden />
-          {list ? "Save list" : "Create list"}
+          {list ? t("Save list") : t("Create list")}
         </button>
       </div>
     </form>
@@ -211,40 +255,46 @@ export function UnitsAdmin() {
   if (isLoading) return <Loading />;
   return (
     <div className="cols">
-    <Panel title="Units of measure" note="Values are stored with their unit and compared in the base unit (factor 1)" flush>
-      <div className="grid-wrap">
-        <table className="grid" aria-label="Units">
-          <thead>
-            <tr>
-              <th>Measures</th>
-              <th>Unit</th>
-              <th>Name</th>
-              <th>In base unit</th>
-            </tr>
-          </thead>
-          <tbody>
-            {groups.flatMap(([dimension, list]) =>
-              list.map((u, i) => (
-                <tr key={u.code}>
-                  <td className="nowrap">{i === 0 ? dimension.charAt(0) + dimension.slice(1).toLowerCase().replace(/_/g, " ") : ""}</td>
-                  <td className="nowrap">
-                    <code>{u.code}</code>
-                  </td>
-                  <td>{pickLabel(u.labels, u.code)}</td>
-                  <td className="nowrap muted">
-                    {Number(u.factor) === 1 && Number(u.offset) === 0
-                      ? "Base unit"
-                      : `× ${Number(u.factor)}${Number(u.offset) ? ` + ${Number(u.offset)}` : ""}`}
-                    {!u.system && <span className="tag" style={{ marginLeft: 6 }}>Added</span>}
-                  </td>
-                </tr>
-              )),
-            )}
-          </tbody>
-        </table>
-      </div>
-    </Panel>
-    <NewUnitPanel dimensions={groups.map(([d, list]) => [d, list.find((u) => Number(u.factor) === 1 && Number(u.offset) === 0)?.code ?? ""])} />
+      <Panel title={t("Units of measure")} note={t("Values are stored with their unit and compared in the base unit (factor 1)")} flush>
+        <div className="grid-wrap">
+          <table className="grid" aria-label={t("Units")}>
+            <thead>
+              <tr>
+                <th>{t("Measures")}</th>
+                <th>{t("Unit")}</th>
+                <th>{t("Name")}</th>
+                <th>{t("In base unit")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groups.flatMap(([dimension, list]) =>
+                list.map((u, i) => (
+                  <tr key={u.code}>
+                    <td className="nowrap">{i === 0 ? dimension.charAt(0) + dimension.slice(1).toLowerCase().replace(/_/g, " ") : ""}</td>
+                    <td className="nowrap">
+                      <code>{u.code}</code>
+                    </td>
+                    <td>{pickLabel(u.labels, u.code)}</td>
+                    <td className="nowrap muted">
+                      {Number(u.factor) === 1 && Number(u.offset) === 0
+                        ? t("Base unit")
+                        : `× ${Number(u.factor)}${Number(u.offset) ? ` + ${Number(u.offset)}` : ""}`}
+                      {!u.system && (
+                        <span className="tag" style={{ marginLeft: 6 }}>
+                          {t("Added")}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                )),
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+      <NewUnitPanel
+        dimensions={groups.map(([d, list]) => [d, list.find((u) => Number(u.factor) === 1 && Number(u.offset) === 0)?.code ?? ""])}
+      />
     </div>
   );
 }
@@ -282,57 +332,66 @@ function NewUnitPanel({ dimensions }: { dimensions: [string, string][] }) {
   return (
     <form className="panel" aria-labelledby="new-unit-title" onSubmit={submit} noValidate>
       <div className="panel-head">
-        <h2 id="new-unit-title">Add a unit</h2>
+        <h2 id="new-unit-title">{t("Add a unit")}</h2>
       </div>
       <div className="panel-body" style={{ display: "grid", gap: 10 }}>
         <Problems error={create.error} />
         <div className="attr-form cols-2">
           <div className="field">
-            <label htmlFor="unit-code">Symbol</label>
-            <input id="unit-code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. kN·m" />
+            <label htmlFor="unit-code">{t("Symbol")}</label>
+            <input
+              id="unit-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder={t("e.g. {example}", { example: "kN·m" })}
+            />
           </div>
           <div className="field">
-            <label htmlFor="unit-label">Name</label>
-            <input id="unit-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="kilonewton metre" />
+            <label htmlFor="unit-label">{t("Name")}</label>
+            <input id="unit-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder={t("kilonewton metre")} />
           </div>
         </div>
         <div className="field">
-          <label htmlFor="unit-dimension">Measures</label>
+          <label htmlFor="unit-dimension">{t("Measures")}</label>
           <select id="unit-dimension" value={dimension} onChange={(e) => setDimension(e.target.value)}>
             {dimensions.map(([d]) => (
               <option key={d} value={d}>
                 {d.charAt(0) + d.slice(1).toLowerCase().replace(/_/g, " ")}
               </option>
             ))}
-            <option value="__new">A new dimension…</option>
+            <option value="__new">{t("A new dimension…")}</option>
           </select>
         </div>
         {isNew ? (
           <div className="field">
-            <label htmlFor="unit-new-dimension">New dimension</label>
+            <label htmlFor="unit-new-dimension">{t("New dimension")}</label>
             <input id="unit-new-dimension" value={newDimension} onChange={(e) => setNewDimension(e.target.value)} placeholder="TORQUE" />
-            <span className="hint">This unit becomes its base unit; add others relative to it.</span>
+            <span className="hint">{t("This unit becomes its base unit; add others relative to it.")}</span>
           </div>
         ) : (
           <div className="attr-form cols-2">
             <div className="field">
-              <label htmlFor="unit-factor">1 {code || "unit"} = … {base}</label>
+              <label htmlFor="unit-factor">{t("1 {unit} = … {base}", { unit: code || t("unit"), base: base ?? "" })}</label>
               <input id="unit-factor" inputMode="decimal" value={factor} onChange={(e) => setFactor(e.target.value)} />
             </div>
             <div className="field">
-              <label htmlFor="unit-offset">Plus (offset)</label>
+              <label htmlFor="unit-offset">{t("Plus (offset)")}</label>
               <input id="unit-offset" inputMode="decimal" value={offset} onChange={(e) => setOffset(e.target.value)} />
             </div>
           </div>
         )}
         <p className="muted" style={{ margin: 0 }}>
-          Units can't be changed or removed later: stored values may use them.
+          {t("Units can't be changed or removed later: stored values may use them.")}
         </p>
       </div>
       <div className="panel-foot">
-        <button className="btn primary" type="submit" disabled={create.isPending || !code.trim() || !label.trim() || (isNew && !newDimension.trim())}>
+        <button
+          className="btn primary"
+          type="submit"
+          disabled={create.isPending || !code.trim() || !label.trim() || (isNew && !newDimension.trim())}
+        >
           <Plus size={14} aria-hidden />
-          Add unit
+          {t("Add unit")}
         </button>
       </div>
     </form>
@@ -358,18 +417,18 @@ export function NumberingAdmin() {
 
   return (
     <div className="cols">
-      <Panel title="Numbering schemes" note="Assign them to types under Types and attributes → Rules" flush>
+      <Panel title={t("Numbering schemes")} note={t("Assign them to types under Types and attributes → Rules")} flush>
         {isLoading ? (
           <Loading />
         ) : !schemes?.length ? (
-          <p className="empty">No schemes yet. Types use the system's 10-digit sequence.</p>
+          <p className="empty">{t("No schemes yet. Types use the system's 10-digit sequence.")}</p>
         ) : (
-          <table className="grid" aria-label="Numbering schemes">
+          <table className="grid" aria-label={t("Numbering schemes")}>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Format</th>
-                <th>Next number</th>
+                <th>{t("Name")}</th>
+                <th>{t("Format")}</th>
+                <th>{t("Next number")}</th>
               </tr>
             </thead>
             <tbody>
@@ -394,40 +453,53 @@ export function NumberingAdmin() {
       </Panel>
       <form className="panel" aria-labelledby="new-scheme-title" onSubmit={submit} noValidate>
         <div className="panel-head">
-          <h2 id="new-scheme-title">New numbering scheme</h2>
+          <h2 id="new-scheme-title">{t("New numbering scheme")}</h2>
         </div>
         <div className="panel-body" style={{ display: "grid", gap: 10 }}>
           <Problems error={create.error} />
           <div className="field">
-            <label htmlFor="scheme-name">Name</label>
-            <input id="scheme-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Fasteners" required />
+            <label htmlFor="scheme-name">{t("Name")}</label>
+            <input id="scheme-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("e.g. Fasteners")} required />
           </div>
           <div className="attr-form cols-2">
             <div className="field">
-              <label htmlFor="scheme-prefix">Prefix</label>
+              <label htmlFor="scheme-prefix">{t("Prefix")}</label>
               <input id="scheme-prefix" value={prefix} onChange={(e) => setPrefix(e.target.value)} placeholder="FST-" />
             </div>
             <div className="field">
-              <label htmlFor="scheme-suffix">Suffix</label>
+              <label htmlFor="scheme-suffix">{t("Suffix")}</label>
               <input id="scheme-suffix" value={suffix} onChange={(e) => setSuffix(e.target.value)} />
             </div>
             <div className="field">
-              <label htmlFor="scheme-padding">Digits</label>
-              <input id="scheme-padding" type="number" min={1} max={18} value={padding} onChange={(e) => setPadding(Math.max(1, Math.min(18, Number(e.target.value) || 1)))} />
+              <label htmlFor="scheme-padding">{t("Digits")}</label>
+              <input
+                id="scheme-padding"
+                type="number"
+                min={1}
+                max={18}
+                value={padding}
+                onChange={(e) => setPadding(Math.max(1, Math.min(18, Number(e.target.value) || 1)))}
+              />
             </div>
             <div className="field">
-              <label htmlFor="scheme-start">First number</label>
-              <input id="scheme-start" type="number" min={0} value={start} onChange={(e) => setStart(Math.max(0, Number(e.target.value) || 0))} />
+              <label htmlFor="scheme-start">{t("First number")}</label>
+              <input
+                id="scheme-start"
+                type="number"
+                min={0}
+                value={start}
+                onChange={(e) => setStart(Math.max(0, Number(e.target.value) || 0))}
+              />
             </div>
           </div>
           <p className="muted" style={{ margin: 0 }}>
-            First number: <code>{example}</code>
+            {t("First number:")} <code>{example}</code>
           </p>
         </div>
         <div className="panel-foot">
           <button className="btn primary" type="submit" disabled={create.isPending || !name.trim()}>
             <Plus size={14} aria-hidden />
-            Create scheme
+            {t("Create scheme")}
           </button>
         </div>
       </form>
@@ -443,18 +515,18 @@ export function RolesAdmin() {
 
   return (
     <div className="cols">
-      <Panel title="Team roles" note="Give roles permissions with access rules on each context's Access tab" flush>
+      <Panel title={t("Team roles")} note={t("Give roles permissions with access rules on each context's Access tab")} flush>
         {isLoading ? (
           <Loading />
         ) : (
-          <table className="grid" aria-label="Team roles">
+          <table className="grid" aria-label={t("Team roles")}>
             <thead>
               <tr>
-                <th>Role</th>
-                <th>Key</th>
-                <th>Description</th>
-                <th>Status</th>
-                <th aria-label="Actions" />
+                <th>{t("Role")}</th>
+                <th>{t("Key")}</th>
+                <th>{t("Description")}</th>
+                <th>{t("Status")}</th>
+                <th aria-label={t("Actions")} />
               </tr>
             </thead>
             <tbody>
@@ -468,9 +540,13 @@ export function RolesAdmin() {
                       <code>{r.key}</code>
                     </td>
                     <td className="muted">{r.description}</td>
-                    <td className="nowrap">{r.active ? (r.system ? "Out of the box" : "Active") : "Inactive"}</td>
+                    <td className="nowrap">{r.active ? (r.system ? t("Out of the box") : t("Active")) : t("Inactive")}</td>
                     <td style={{ width: 40 }}>
-                      <button className="btn small ghost icon" aria-label={`Edit ${pickLabel(r.labels, r.key)}`} onClick={() => setEditing(r.key)}>
+                      <button
+                        className="btn small ghost icon"
+                        aria-label={t("Edit {name}", { name: pickLabel(r.labels, r.key) })}
+                        onClick={() => setEditing(r.key)}
+                      >
                         <Pencil size={13} aria-hidden />
                       </button>
                     </td>
@@ -494,19 +570,19 @@ function RoleEditRow({ role, onDone }: { role: TeamRoleDefinition; onDone: () =>
   return (
     <tr>
       <td>
-        <input aria-label="Role label" value={label} onChange={(e) => setLabel(e.target.value)} />
+        <input aria-label={t("Role label")} value={label} onChange={(e) => setLabel(e.target.value)} />
       </td>
       <td className="nowrap">
         <code>{role.key}</code>
       </td>
       <td>
-        <input aria-label="Role description" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <input aria-label={t("Role description")} value={description} onChange={(e) => setDescription(e.target.value)} />
         <Problems error={update.error} />
       </td>
       <td className="nowrap">
-        <label className="check" title={role.system ? "Out-of-the-box roles stay active" : undefined}>
+        <label className="check" title={role.system ? t("Out-of-the-box roles stay active") : undefined}>
           <input type="checkbox" checked={active} disabled={role.system} onChange={(e) => setActive(e.target.checked)} />
-          Active
+          {t("Active")}
         </label>
       </td>
       <td className="nowrap">
@@ -515,15 +591,23 @@ function RoleEditRow({ role, onDone }: { role: TeamRoleDefinition; onDone: () =>
           disabled={update.isPending || !label.trim()}
           onClick={() =>
             update.mutate(
-              { key: role.key, body: { labels: { ...role.labels, en: label.trim() }, description: description.trim() || null, active, sortOrder: role.sortOrder } },
+              {
+                key: role.key,
+                body: {
+                  labels: { ...role.labels, en: label.trim() },
+                  description: description.trim() || null,
+                  active,
+                  sortOrder: role.sortOrder,
+                },
+              },
               { onSuccess: onDone },
             )
           }
         >
-          Save
+          {t("Save")}
         </button>{" "}
         <button className="btn small ghost" onClick={onDone}>
-          Cancel
+          {t("Cancel")}
         </button>
       </td>
     </tr>
@@ -539,7 +623,11 @@ function NewRolePanel() {
   const [key, setKey] = useState("");
   const [keyEdited, setKeyEdited] = useState(false);
   const [description, setDescription] = useState("");
-  const derived = label.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  const derived = label
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
   const effectiveKey = keyEdited ? key : derived;
 
   const submit = (e: FormEvent) => {
@@ -560,16 +648,22 @@ function NewRolePanel() {
   return (
     <form className="panel" aria-labelledby="new-role-title" onSubmit={submit} noValidate>
       <div className="panel-head">
-        <h2 id="new-role-title">New role</h2>
+        <h2 id="new-role-title">{t("New role")}</h2>
       </div>
       <div className="panel-body" style={{ display: "grid", gap: 10 }}>
         <Problems error={create.error} />
         <div className="field">
-          <label htmlFor="role-label">Label</label>
-          <input id="role-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Design reviewer" required />
+          <label htmlFor="role-label">{t("Label")}</label>
+          <input
+            id="role-label"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder={t("e.g. Design reviewer")}
+            required
+          />
         </div>
         <div className="field">
-          <label htmlFor="role-key">Key</label>
+          <label htmlFor="role-key">{t("Key")}</label>
           <input
             id="role-key"
             value={effectiveKey}
@@ -578,20 +672,20 @@ function NewRolePanel() {
               setKey(e.target.value.toUpperCase());
             }}
           />
-          <span className="hint">UPPER_SNAKE_CASE, used by the API. Can't be changed later.</span>
+          <span className="hint">{t("UPPER_SNAKE_CASE, used by the API. Can't be changed later.")}</span>
         </div>
         <div className="field">
-          <label htmlFor="role-description">Description</label>
+          <label htmlFor="role-description">{t("Description")}</label>
           <input id="role-description" value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
         <p className="muted" style={{ margin: 0 }}>
-          A new role can do nothing until an access rule grants it permissions.
+          {t("A new role can do nothing until an access rule grants it permissions.")}
         </p>
       </div>
       <div className="panel-foot">
         <button className="btn primary" type="submit" disabled={create.isPending || !label.trim() || !effectiveKey}>
           <Plus size={14} aria-hidden />
-          Create role
+          {t("Create role")}
         </button>
       </div>
     </form>

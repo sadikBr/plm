@@ -11,6 +11,7 @@ import {
   type Profile,
   type ProfileMember,
 } from "./adminQueries";
+import { t, tn } from "../i18n/i18n";
 
 /**
  * Profiles (roadmap 2.8): which actions and parts of the interface a group of people sees. They
@@ -23,36 +24,36 @@ export function ProfilesAdmin() {
   const remove = useDeleteProfile();
   const [editing, setEditing] = useState<Profile | "new" | null>(null);
   const areaLabel = new Map((areas ?? []).map((a) => [a.key, a.label]));
-  const teamName = new Map((teams ?? []).map((t) => [t.id, t.name]));
+  const teamName = new Map((teams ?? []).map((team) => [team.id, team.name]));
 
   if (isLoading) return <Loading />;
   return (
     <>
       <Panel
-        title="Profiles"
-        note="People in no profile see everything; in several, they see what any of them shows. Access rules still apply"
+        title={t("Profiles")}
+        note={t("People in no profile see everything; in several, they see what any of them shows. Access rules still apply")}
         flush
         actions={
           <button className="btn small primary" onClick={() => setEditing("new")}>
             <Plus size={13} aria-hidden />
-            New profile
+            {t("New profile")}
           </button>
         }
       >
         <ErrorBanner error={error ?? remove.error} />
         {!profiles?.length ? (
           <p className="empty">
-            No profiles yet. A profile hides actions and screens a group of people doesn't need, such as reviewers or suppliers.
+            {t("No profiles yet. A profile hides actions and screens a group of people doesn't need, such as reviewers or suppliers.")}
           </p>
         ) : (
-          <table className="grid" aria-label="Profiles">
+          <table className="grid" aria-label={t("Profiles")}>
             <thead>
               <tr>
-                <th>Profile</th>
-                <th>Members</th>
-                <th>Hides</th>
-                <th>Updated</th>
-                <th aria-label="Actions" />
+                <th>{t("Profile")}</th>
+                <th>{t("Members")}</th>
+                <th>{t("Hides")}</th>
+                <th>{t("Updated")}</th>
+                <th aria-label={t("Actions")} />
               </tr>
             </thead>
             <tbody>
@@ -64,12 +65,12 @@ export function ProfilesAdmin() {
                   </td>
                   <td>
                     <div className="row wrap" style={{ gap: 4 }}>
-                      {p.members.length === 0 && <span className="muted">Nobody yet</span>}
+                      {p.members.length === 0 && <span className="muted">{t("Nobody yet")}</span>}
                       {p.members.map((m) => (
                         <span key={`${m.kind}:${m.id}`} className="tag">
                           {m.kind === "SHARED_TEAM" ? (
                             <>
-                              <Users size={11} aria-hidden /> {teamName.get(m.id) ?? "Shared team"}
+                              <Users size={11} aria-hidden /> {teamName.get(m.id) ?? t("Shared team")}
                             </>
                           ) : (
                             <PrincipalName id={m.id} />
@@ -87,7 +88,7 @@ export function ProfilesAdmin() {
                       ))}
                       {p.hiddenActions.length > 0 && (
                         <span className="tag" title={p.hiddenActions.join(", ")}>
-                          {p.hiddenActions.length} action{p.hiddenActions.length === 1 ? "" : "s"}
+                          {tn("{n} action", "{n} actions", p.hiddenActions.length)}
                         </span>
                       )}
                     </div>
@@ -96,15 +97,16 @@ export function ProfilesAdmin() {
                     {formatDate(p.updatedAt)} · <PrincipalName id={p.updatedBy} />
                   </td>
                   <td className="nowrap">
-                    <button className="icon-btn" aria-label={`Edit ${p.name}`} onClick={() => setEditing(p)}>
+                    <button className="icon-btn" aria-label={t("Edit {name}", { name: p.name })} onClick={() => setEditing(p)}>
                       <Pencil size={13} />
                     </button>
                     <button
                       className="icon-btn"
-                      aria-label={`Delete ${p.name}`}
+                      aria-label={t("Delete {name}", { name: p.name })}
                       disabled={remove.isPending}
                       onClick={() =>
-                        window.confirm(`Delete the profile “${p.name}”? Its members see everything again.`) && remove.mutate(p.id)
+                        window.confirm(t("Delete the profile “{name}”? Its members see everything again.", { name: p.name })) &&
+                        remove.mutate(p.id)
                       }
                     >
                       <Trash2 size={13} />
@@ -153,7 +155,7 @@ function ProfileDialog({ profile, onClose }: { profile: Profile | null; onClose:
   // Actions by where they come from: built in, or an extension.
   const groups = new Map<string, { id: string; label: string }[]>();
   for (const a of registry ?? []) {
-    const source = a.source === "platform" || !a.source ? "Built in" : `Extension ${a.source}`;
+    const source = a.source === "platform" || !a.source ? t("Built in") : t("Extension {id}", { id: a.source });
     groups.set(source, [...(groups.get(source) ?? []), { id: a.id, label: a.effective.label }]);
   }
 
@@ -167,15 +169,15 @@ function ProfileDialog({ profile, onClose }: { profile: Profile | null; onClose:
     <Dialog
       open
       wide
-      title={profile ? `Edit ${profile.name}` : "New profile"}
+      title={profile ? t("Edit {name}", { name: profile.name }) : t("New profile")}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button className="btn primary" disabled={saving || !name.trim()} onClick={save}>
-            Save
+            {t("Save")}
           </button>
         </>
       }
@@ -183,22 +185,22 @@ function ProfileDialog({ profile, onClose }: { profile: Profile | null; onClose:
       <div className="attr-form">
         <ErrorBanner error={create.error ?? update.error ?? lookupError} />
         <div className="field">
-          <label htmlFor="prof-name">Name</label>
-          <input id="prof-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Reviewers" autoFocus />
+          <label htmlFor="prof-name">{t("Name")}</label>
+          <input id="prof-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("Reviewers")} autoFocus />
         </div>
         <div className="field">
-          <label htmlFor="prof-desc">Description</label>
-          <input id="prof-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Who it's for" />
+          <label htmlFor="prof-desc">{t("Description")}</label>
+          <input id="prof-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("Who it's for")} />
         </div>
         <fieldset className="members-box wide">
-          <legend>Members</legend>
+          <legend>{t("Members")}</legend>
           <div className="row wrap" style={{ gap: 4 }}>
-            {members.length === 0 && <span className="muted small">Add people or shared teams.</span>}
+            {members.length === 0 && <span className="muted small">{t("Add people or shared teams.")}</span>}
             {members.map((m) => (
               <span key={`${m.kind}:${m.id}`} className="tag">
                 {m.kind === "SHARED_TEAM" ? (
                   <>
-                    <Users size={11} aria-hidden /> {teams?.find((t) => t.id === m.id)?.name ?? "Shared team"}
+                    <Users size={11} aria-hidden /> {teams?.find((team) => team.id === m.id)?.name ?? t("Shared team")}
                   </>
                 ) : (
                   <PrincipalName id={m.id} />
@@ -206,7 +208,7 @@ function ProfileDialog({ profile, onClose }: { profile: Profile | null; onClose:
                 <button
                   type="button"
                   className="tag-remove"
-                  aria-label="Remove member"
+                  aria-label={t("Remove member")}
                   onClick={() => setMembers(members.filter((x) => x !== m))}
                 >
                   <X size={11} />
@@ -216,8 +218,8 @@ function ProfileDialog({ profile, onClose }: { profile: Profile | null; onClose:
           </div>
           <div className="member-add">
             <input
-              aria-label="Username"
-              placeholder="Username"
+              aria-label={t("Username")}
+              placeholder={t("Username")}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               onKeyDown={(e) => {
@@ -228,24 +230,24 @@ function ProfileDialog({ profile, onClose }: { profile: Profile | null; onClose:
               }}
             />
             <button type="button" className="btn small" disabled={!username.trim()} onClick={() => void addUser()}>
-              Add user
+              {t("Add user")}
             </button>
             <select
-              aria-label="Add a shared team"
+              aria-label={t("Add a shared team")}
               value=""
               onChange={(e) => e.target.value && addMember({ kind: "SHARED_TEAM", id: e.target.value })}
             >
-              <option value="">Add a shared team…</option>
-              {teams?.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
+              <option value="">{t("Add a shared team…")}</option>
+              {teams?.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
                 </option>
               ))}
             </select>
           </div>
         </fieldset>
         <fieldset className="check-list wide">
-          <legend>Hide these parts of the interface</legend>
+          <legend>{t("Hide these parts of the interface")}</legend>
           {areas?.map((a) => (
             <label key={a.key} className="check">
               <input type="checkbox" checked={hiddenAreas.includes(a.key)} onChange={() => toggle(hiddenAreas, setHiddenAreas, a.key)} />
@@ -254,7 +256,7 @@ function ProfileDialog({ profile, onClose }: { profile: Profile | null; onClose:
           ))}
         </fieldset>
         <fieldset className="check-list tall wide">
-          <legend>Hide these actions</legend>
+          <legend>{t("Hide these actions")}</legend>
           {[...groups.entries()].map(([source, actions]) => (
             <Fragment key={source}>
               <div className="check-list-title">{source}</div>
@@ -272,7 +274,7 @@ function ProfileDialog({ profile, onClose }: { profile: Profile | null; onClose:
             </Fragment>
           ))}
           <span className="hint check-list-title">
-            Hidden actions aren't offered in toolbars and menus. Profiles don't change what people may do through the API.
+            {t("Hidden actions aren't offered in toolbars and menus. Profiles don't change what people may do through the API.")}
           </span>
         </fieldset>
       </div>

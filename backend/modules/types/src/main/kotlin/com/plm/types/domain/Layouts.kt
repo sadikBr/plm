@@ -43,7 +43,18 @@ internal object Layouts {
                 group.copy(attributes = group.attributes.filter { remaining.remove(it) })
             }
         val more = visible.filter { it in remaining }
-        val all = groups + LayoutGroup(MORE_GROUP, mapOf("en" to "More attributes"), 2, more)
+        val all =
+            groups +
+                LayoutGroup(
+                    MORE_GROUP,
+                    mapOf(
+                        "en" to "More attributes",
+                        "fr" to "Autres attributs",
+                        "de" to "Weitere Attribute",
+                    ),
+                    2,
+                    more,
+                )
         return ResolvedLayout(
             typeId,
             screen,

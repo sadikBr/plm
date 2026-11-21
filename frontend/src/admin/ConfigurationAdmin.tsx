@@ -3,30 +3,31 @@ import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap, type Schemas } from "../api/client";
 import { ErrorBanner, Panel } from "../components/common";
+import { t, tn } from "../i18n/i18n";
 
 type Bundle = Schemas["ConfigBundle"];
 type Plan = Schemas["ImportPlanResponse"];
 type Action = Plan["changes"][number]["action"];
 
-const ACTION_LABEL: Record<Action, string> = {
-  CREATE: "Create",
-  UPDATE: "Update",
-  UNCHANGED: "Unchanged",
-  CONFLICT: "Conflict",
-};
+const ACTION_LABEL = (): Record<Action, string> => ({
+  CREATE: t("Create"),
+  UPDATE: t("Update"),
+  UNCHANGED: t("Unchanged"),
+  CONFLICT: t("Conflict"),
+});
 
-const KIND_LABEL: Record<string, string> = {
-  teamRole: "Team role",
-  enumeration: "Value list",
-  numberingScheme: "Numbering scheme",
-  lifecycle: "Lifecycle",
-  type: "Type",
-  attribute: "Attribute",
-  typeRules: "Type rules",
-  typeLifecycle: "Type lifecycle",
-  layout: "Layout",
-  contextTemplate: "Context template",
-};
+const KIND_LABEL = (): Record<string, string> => ({
+  teamRole: t("Team role"),
+  enumeration: t("Value list"),
+  numberingScheme: t("Numbering scheme"),
+  lifecycle: t("Lifecycle"),
+  type: t("Type"),
+  attribute: t("Attribute"),
+  typeRules: t("Type rules"),
+  typeLifecycle: t("Type lifecycle"),
+  layout: t("Layout"),
+  contextTemplate: t("Context template"),
+});
 
 /** Export the configuration as a file; import one, review what it would change, then apply. */
 export function ConfigurationAdmin() {
@@ -67,7 +68,7 @@ export function ConfigurationAdmin() {
       runImport.mutate({ content, dryRun: true });
     } catch {
       setBundle(undefined);
-      setReadError(`${file.name} is not a JSON configuration file.`);
+      setReadError(t("{file} is not a JSON configuration file.", { file: file.name }));
     }
   };
 
@@ -78,27 +79,29 @@ export function ConfigurationAdmin() {
   return (
     <div className="stack">
       <div className="cols-even">
-        <Panel title="Export" note="Everything set up on this page, as one file">
+        <Panel title={t("Export")} note={t("Everything set up on this page, as one file")}>
           <p style={{ marginTop: 0 }}>
-            Types, attributes, layouts, value lists, numbering schemes, rules, lifecycles and team roles. Items refer to each
-            other by name, so the file applies to any environment. Commit it to Git to version your configuration.
+            {t(
+              "Types, attributes, layouts, value lists, numbering schemes, rules, lifecycles and team roles. Items refer to each other by name, so the file applies to any environment. Commit it to Git to version your configuration.",
+            )}
           </p>
           <ErrorBanner error={exportConfig.error} />
           <button className="btn primary" onClick={() => exportConfig.mutate()} disabled={exportConfig.isPending}>
             <Download size={14} aria-hidden />
-            Download plm-config.json
+            {t("Download {file}", { file: "plm-config.json" })}
           </button>
         </Panel>
-        <Panel title="Import" note="Adds and updates; never deletes">
+        <Panel title={t("Import")} note={t("Adds and updates; never deletes")}>
           <p style={{ marginTop: 0 }}>
-            Choose a configuration file to see what it would change here. Nothing changes until you apply, and then everything
-            is applied together or not at all.
+            {t(
+              "Choose a configuration file to see what it would change here. Nothing changes until you apply, and then everything is applied together or not at all.",
+            )}
           </p>
           <input
             ref={fileInput}
             type="file"
             accept="application/json,.json"
-            aria-label="Configuration file"
+            aria-label={t("Configuration file")}
             hidden
             onChange={(e) => {
               void choose(e.target.files?.[0]);
@@ -108,9 +111,13 @@ export function ConfigurationAdmin() {
           />
           <button className="btn" onClick={() => fileInput.current?.click()}>
             <FileUp size={14} aria-hidden />
-            Choose file…
+            {t("Choose file…")}
           </button>
-          {bundle && <span className="muted" style={{ marginLeft: 8 }}>{bundle.name}</span>}
+          {bundle && (
+            <span className="muted" style={{ marginLeft: 8 }}>
+              {bundle.name}
+            </span>
+          )}
           {readError && (
             <div className="banner error" role="alert" style={{ marginTop: 10 }}>
               {readError}
@@ -121,15 +128,20 @@ export function ConfigurationAdmin() {
 
       {(runImport.error || plan) && (
         <Panel
-          title={plan?.applied ? "Applied" : "What this import would do"}
+          title={plan?.applied ? t("Applied") : t("What this import would do")}
           note={
             plan &&
-            `${plan.creates} to create · ${plan.updates} to update · ${plan.unchanged} unchanged · ${plan.conflicts} conflict${plan.conflicts === 1 ? "" : "s"}`
+            [
+              t("{n} to create", { n: plan.creates }),
+              t("{n} to update", { n: plan.updates }),
+              t("{n} unchanged", { n: plan.unchanged }),
+              tn("{n} conflict", "{n} conflicts", plan.conflicts),
+            ].join(" · ")
           }
           actions={
             <label className="check">
               <input type="checkbox" checked={showUnchanged} onChange={(e) => setShowUnchanged(e.target.checked)} />
-              Show unchanged
+              {t("Show unchanged")}
             </label>
           }
           flush
@@ -143,14 +155,14 @@ export function ConfigurationAdmin() {
                   onClick={() => bundle && runImport.mutate({ content: bundle.content, dryRun: false })}
                 >
                   <Upload size={14} aria-hidden />
-                  Apply {pending} change{pending === 1 ? "" : "s"}
+                  {tn("Apply {n} change", "Apply {n} changes", pending)}
                 </button>
                 <span className="muted">
                   {plan.conflicts > 0
-                    ? "Resolve the conflicts first: nothing is applied while there are any."
+                    ? t("Resolve the conflicts first: nothing is applied while there are any.")
                     : pending === 0
-                      ? "This environment already matches the file."
-                      : "Applied in one transaction, and recorded in the audit trail."}
+                      ? t("This environment already matches the file.")
+                      : t("Applied in one transaction, and recorded in the audit trail.")}
                 </span>
               </>
             )
@@ -159,29 +171,29 @@ export function ConfigurationAdmin() {
           <ErrorBanner error={runImport.error} />
           {plan && (
             <div className="grid-wrap">
-              <table className="grid" aria-label="Import plan">
+              <table className="grid" aria-label={t("Import plan")}>
                 <thead>
                   <tr>
-                    <th>Change</th>
-                    <th>What</th>
-                    <th>Name</th>
-                    <th>Details</th>
+                    <th>{t("Change")}</th>
+                    <th>{t("What")}</th>
+                    <th>{t("Name")}</th>
+                    <th>{t("Details")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {changes.length === 0 && (
                     <tr>
                       <td colSpan={4} className="muted">
-                        Nothing to change.
+                        {t("Nothing to change.")}
                       </td>
                     </tr>
                   )}
                   {changes.map((c) => (
                     <tr key={`${c.kind} ${c.key}`}>
                       <td className="nowrap">
-                        <span className={`tag change-${c.action.toLowerCase()}`}>{ACTION_LABEL[c.action]}</span>
+                        <span className={`tag change-${c.action.toLowerCase()}`}>{ACTION_LABEL()[c.action]}</span>
                       </td>
-                      <td className="nowrap">{KIND_LABEL[c.kind] ?? c.kind}</td>
+                      <td className="nowrap">{KIND_LABEL()[c.kind] ?? c.kind}</td>
                       <td className="nowrap">
                         <code>{c.key}</code>
                       </td>

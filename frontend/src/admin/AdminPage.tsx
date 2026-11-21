@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router";
 import { useMe } from "../api/queries";
 import { Loading } from "../components/common";
 import { PageHeader, Tabs } from "../components/Layout";
+import { t } from "../i18n/i18n";
 import { ActionsAdmin } from "./ActionsAdmin";
 import { DeleteRulesAdmin } from "./DeleteRulesAdmin";
 import { DocumentTemplatesAdmin } from "./DocumentTemplatesAdmin";
@@ -40,26 +41,26 @@ type Section =
   | "extensions"
   | "configuration";
 
-const SECTIONS: [Section, string][] = [
-  ["types", "Types and attributes"],
-  ["globals", "Global attributes"],
-  ["lists", "Value lists"],
-  ["units", "Units"],
-  ["numbering", "Numbering"],
-  ["lifecycles", "Lifecycles"],
-  ["delete-rules", "Delete rules"],
-  ["roles", "Team roles"],
-  ["teams", "Shared teams"],
-  ["templates", "Context templates"],
-  ["document-templates", "Document templates"],
-  ["actions", "Actions"],
-  ["rules", "Rules"],
-  ["webhooks", "Webhooks"],
-  ["service-accounts", "Service accounts"],
-  ["profiles", "Profiles"],
-  ["jobs", "Jobs"],
-  ["extensions", "Extensions"],
-  ["configuration", "Export / import"],
+const SECTIONS = (): [Section, string][] => [
+  ["types", t("Types and attributes")],
+  ["globals", t("Global attributes")],
+  ["lists", t("Value lists")],
+  ["units", t("Units")],
+  ["numbering", t("Numbering")],
+  ["lifecycles", t("Lifecycles")],
+  ["delete-rules", t("Delete rules")],
+  ["roles", t("Team roles")],
+  ["teams", t("Shared teams")],
+  ["templates", t("Context templates")],
+  ["document-templates", t("Document templates")],
+  ["actions", t("Actions")],
+  ["rules", t("Rules")],
+  ["webhooks", t("Webhooks")],
+  ["service-accounts", t("Service accounts")],
+  ["profiles", t("Profiles")],
+  ["jobs", t("Jobs")],
+  ["extensions", t("Extensions")],
+  ["configuration", t("Export / import")],
 ];
 
 /** Site administration: the data model and reference data, all without code. */
@@ -72,7 +73,7 @@ export function AdminPage() {
   if (!me?.siteAdmin) {
     return (
       <div className="content">
-        <p className="empty">Administration is for site administrators.</p>
+        <p className="empty">{t("Administration is for site administrators.")}</p>
       </div>
     );
   }
@@ -81,15 +82,15 @@ export function AdminPage() {
     <>
       <PageHeader
         icon={<Settings size={18} className="icon-muted" aria-hidden />}
-        title={<span className="nm">Administration</span>}
-        meta={<span className="sub">Changes apply to new forms and objects right away. Existing data stays valid.</span>}
+        title={<span className="nm">{t("Administration")}</span>}
+        meta={<span className="sub">{t("Changes apply to new forms and objects right away. Existing data stays valid.")}</span>}
         toolbar={
           <Link className="btn ghost" to="/audit">
             <ScrollText size={15} aria-hidden />
-            Audit report
+            {t("Audit report")}
           </Link>
         }
-        tabs={<Tabs tabs={SECTIONS} active={tab} onSelect={(t) => setParams({ tab: t })} />}
+        tabs={<Tabs tabs={SECTIONS()} active={tab} onSelect={(key) => setParams({ tab: key })} />}
       />
       <div className="content">
         {tab === "types" && <TypesAdmin />}
