@@ -40,10 +40,26 @@ data class ChangeLink(
     val createdBy: String,
 )
 
+/** One task of a change notice's implementation plan (roadmap 5.9). */
+data class PlanEntry(
+    val task: LinkedObject,
+    val assignee: String?,
+    val dueDate: java.time.LocalDate?,
+    val overdue: Boolean,
+)
+
+data class SetPlan(
+    /** The assignee's username; null clears it. */
+    val assignee: String? = null,
+    val dueDate: java.time.LocalDate? = null,
+)
+
 /** A change object with everything it's linked to, both ways. */
 data class ChangeView(
     val id: UUID,
     val kind: ChangeKind,
+    /** A notice's tasks, with who does them by when. */
+    val plan: List<PlanEntry> = emptyList(),
     /** Links from it (affected, resulting, end items, its requests, tasks...). */
     val links: List<ChangeLink>,
     /** Change objects linking to it (the request addressing this report, the notice of this task...). */
@@ -99,6 +115,14 @@ interface ChangeService {
         actor: Actor,
         objectId: UUID,
     ): List<ChangeLink>
+
+    /** Plans one of a notice's tasks: needs MODIFY on the notice; the assignee is told. */
+    fun plan(
+        actor: Actor,
+        noticeId: UUID,
+        taskId: UUID,
+        request: SetPlan,
+    ): PlanEntry
 
     /** The next change object in the chain, linked and carrying the affected objects and end items. */
     fun createFrom(

@@ -943,3 +943,5 @@ table.grid.compact td { padding: 6px 8px; vertical-align: top; }
 .topbar .topbar-link { padding-left: 8px; padding-right: 8px; }
 .topbar .global-search, .topbar form[role="search"] { min-width: 200px; }
 @media (max-width: 1500px) { .topbar .chip-admin { display: none; } }
+.small-input { width: 120px; }
+table.grid td input[type="date"] { width: 150px; }

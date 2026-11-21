@@ -365,8 +365,13 @@ affected objects; and the platform can be extended with scripts, UI slots and no
       reports, a notice implements requests and has tasks. "Create a change request / notice / task"
       carries the affected objects and end items along; a notice can come straight from a report
       (fast track). The Changes page lists them; parts and documents show the changes they're in.
-- [ ] 5.9 Implementation plans and change board: a notice's tasks with assignees and due dates;
+- [x] 5.9 Implementation plans and change board: a notice's tasks with assignees and due dates;
       a change board reviews requests and votes; completing a notice releases its resulting objects.
+      Done: a change notice's implementation plan gives each task an assignee (told) and a due date
+      (flagged when overdue). The built-in "Change board review" (offered on every change request:
+      submit, a signed majority vote of the product managers, approve or reject) decides requests.
+      A notice can't be resolved while a task is open; resolving it releases its resulting objects
+      and resolves the requests it implements and the problem reports they address.
 - [ ] 5.10 Change templates, association rules and variances: templates prefill changes; rules say
       which types may be affected or linked; variances (deviations, waivers) with a limited scope.
 - [ ] 5.11 Redlines and mass change: proposed structure edits inside a change task, applied when

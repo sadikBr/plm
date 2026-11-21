@@ -41,6 +41,15 @@ internal class ChangeController(
         @PathVariable linkId: UUID,
     ) = changes.unlink(actor, id, linkId)
 
+    /** Who does one of a notice's tasks, by when (roadmap 5.9). */
+    @org.springframework.web.bind.annotation.PutMapping("/api/v1/changes/{id}/plan/{taskId}")
+    fun plan(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @PathVariable taskId: UUID,
+        @RequestBody request: com.plm.change.api.SetPlan,
+    ) = changes.plan(actor, id, taskId, request)
+
     /** The next change object of the chain: a request from a report, a notice from a request, a task of a notice. */
     @PostMapping("/api/v1/changes/from")
     fun createFrom(

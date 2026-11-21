@@ -40,5 +40,16 @@
   "Create": "Anlegen",
   "addressed by": "behandelt von",
   "implemented by": "umgesetzt von",
-  "task of": "Aufgabe von"
+  "task of": "Aufgabe von",
+  "Assign to (username)": "Zuweisen an (Benutzername)",
+  "Due date": "Fälligkeitsdatum",
+  "Implementation plan": "Umsetzungsplan",
+  "Please decide on {number}": "Bitte über {number} entscheiden",
+  "Submit to the change board": "Dem Änderungsausschuss vorlegen",
+  "change…": "ändern…",
+  "overdue": "überfällig",
+  "username": "Benutzername",
+  "{done} of {all} tasks done": "{done} von {all} Aufgaben erledigt",
+  "Who": "Wer",
+  "Task": "Aufgabe"
 }

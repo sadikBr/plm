@@ -40,5 +40,16 @@
   "Create": "Créer",
   "addressed by": "traité par",
   "implemented by": "mis en œuvre par",
-  "task of": "tâche de"
+  "task of": "tâche de",
+  "Assign to (username)": "Confier à (identifiant)",
+  "Due date": "Échéance",
+  "Implementation plan": "Plan de mise en œuvre",
+  "Please decide on {number}": "Merci de statuer sur {number}",
+  "Submit to the change board": "Soumettre au comité de modification",
+  "change…": "modifier…",
+  "overdue": "en retard",
+  "username": "identifiant",
+  "{done} of {all} tasks done": "{done} tâches sur {all} faites",
+  "Who": "Qui",
+  "Task": "Tâche"
 }

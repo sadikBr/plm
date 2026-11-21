@@ -64,6 +64,10 @@ internal fun changeKind(
 @Transactional
 internal class DefaultChangeService(
     private val jdbc: JdbcClient,
+    private val directory: com.plm.identity.api.PrincipalDirectory,
+    private val personal: com.plm.notifications.api.PersonalService,
+    @param:org.springframework.beans.factory.annotation.Value("\${plm.ui-url:http://localhost:5173}") private val uiUrl:
+        String,
     private val versioning: VersioningService,
     private val types: TypeService,
     private val access: AccessService,
@@ -141,9 +145,23 @@ internal class DefaultChangeService(
         val out = rows(changeId = o.id.value)
         val incoming = rows(targetId = o.id.value).filter { it.role in CHAIN }
         val found = objects(actor, out.map { it.targetId } + incoming.map { it.changeId })
+        val tasks = out.filter { it.role == ChangeRole.TASK }
+        val plans = plans(tasks.map { it.targetId })
+        val today = java.time.LocalDate.ofInstant(clock.instant(), java.time.ZoneOffset.UTC)
         return ChangeView(
             id = o.id.value,
             kind = kind,
+            plan =
+                tasks.map { t ->
+                    val (assignee, due) = plans[t.targetId] ?: (null to null)
+                    val task = linked(t.targetId, found[t.targetId])
+                    com.plm.change.api.PlanEntry(
+                        task,
+                        assignee,
+                        due,
+                        due != null && due.isBefore(today) && task.state !in setOf("RESOLVED", "CANCELLED"),
+                    )
+                },
             links = out.map { it.view(found) },
             linkedFrom = incoming.map { it.view(found, from = true) },
         )
@@ -244,6 +262,76 @@ internal class DefaultChangeService(
         if (inserted == 0) throw ConflictException("ALREADY_LINKED", "${target.number} is already linked that way")
         events.publish(actor, ChangeLinked(o.id.value, target.id.value, request.role, true))
         return view(actor, changeId).links.first { it.id == id }
+    }
+
+    private fun plans(taskIds: List<UUID>): Map<UUID, Pair<String?, java.time.LocalDate?>> =
+        if (taskIds.isEmpty()) {
+            emptyMap()
+        } else {
+            jdbc
+                .sql("select * from change_plan where task_id in (:ids)")
+                .param("ids", taskIds)
+                .query { rs, _ ->
+                    rs.getObject("task_id", UUID::class.java) to
+                        (rs.getString("assignee") to rs.getObject("due_date", java.time.LocalDate::class.java))
+                }.list()
+                .toMap()
+        }
+
+    override fun plan(
+        actor: Actor,
+        noticeId: UUID,
+        taskId: UUID,
+        request: com.plm.change.api.SetPlan,
+    ): com.plm.change.api.PlanEntry {
+        val (notice, kind) = change(actor, noticeId)
+        if (kind !=
+            ChangeKind.CHANGE_NOTICE
+        ) {
+            throw ValidationException("INVALID_PLAN", "Only change notices have a plan")
+        }
+        access.require(
+            actor,
+            AccessTarget(notice.contextId, notice.typeId, notice.latest.state, notice.id.value),
+            Permission.MODIFY,
+        )
+        if (rows(changeId = noticeId).none { it.role == ChangeRole.TASK && it.targetId == taskId }) {
+            throw NotFoundException("CHANGE_TASK_NOT_FOUND", "That isn't one of its tasks")
+        }
+        val assignee =
+            request.assignee?.trim()?.ifEmpty { null }?.let {
+                directory.findByUsername(actor, it)?.id?.value
+                    ?: throw NotFoundException("PRINCIPAL_NOT_FOUND", "There's no user $it")
+            }
+        val before = plans(listOf(taskId))[taskId]?.first
+        jdbc
+            .sql(
+                """
+                insert into change_plan (task_id, tenant_id, assignee, due_date, updated_at, updated_by)
+                values (:task, :tenant, :assignee, :due, :at, :by)
+                on conflict (task_id) do update set assignee = excluded.assignee, due_date = excluded.due_date,
+                    updated_at = excluded.updated_at, updated_by = excluded.updated_by
+                """.trimIndent(),
+            ).param("task", taskId)
+            .param("tenant", actor.tenant.value)
+            .param("assignee", assignee)
+            .param("due", request.dueDate)
+            .param("at", Timestamp.from(clock.instant()))
+            .param("by", actor.principal.value)
+            .update()
+        if (assignee != null && assignee != before) {
+            val task = versioning.get(actor, MasterId(taskId))
+            personal.notify(
+                actor.tenant,
+                assignee,
+                "Change task for you: ${task.number} ${task.name}",
+                request.dueDate?.let { "Due $it, for ${notice.number}" } ?: "For ${notice.number}",
+                "$uiUrl/objects/$taskId?tab=change",
+                taskId,
+                actor.principal.value,
+            )
+        }
+        return view(actor, noticeId).plan.first { it.task.id == taskId }
     }
 
     override fun unlink(

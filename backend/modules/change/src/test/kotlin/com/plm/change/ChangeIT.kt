@@ -35,6 +35,7 @@ internal class ChangeIT(
     @Autowired private val versioning: VersioningService,
     @Autowired private val contexts: ContextService,
     @Autowired private val teams: TeamService,
+    @Autowired private val directory: com.plm.identity.api.PrincipalDirectory,
 ) {
     private val admin = Actor(TenantId.DEFAULT, PrincipalId("site-admin"), siteAdmin = true)
     private val alice = Actor(TenantId.DEFAULT, PrincipalId("alice"))
@@ -116,5 +117,34 @@ internal class ChangeIT(
         versioning.setState(admin, MasterId(cr), SetState("UNDER_REVIEW"))
         assertThatThrownBy { changes.link(alice, cr, AddChangeLink(rover.id.value, ChangeRole.AFFECTED)) }
             .isInstanceOf(ConflictException::class.java)
+        versioning.setState(admin, MasterId(cr), SetState("APPROVED"))
+
+        // The plan (roadmap 5.9): who does the task, by when.
+        directory.recordSignIn(
+            com.plm.identity.api
+                .SignIn(TenantId.DEFAULT, alice.principal, "alice", "Alice", null),
+        )
+        val entry =
+            changes.plan(
+                alice,
+                cn,
+                task,
+                com.plm.change.api
+                    .SetPlan("alice", java.time.LocalDate.of(2020, 1, 1)),
+            )
+        assertThat(entry.assignee).isEqualTo(alice.principal.value)
+        assertThat(entry.overdue).isTrue()
+
+        // The notice can't be resolved while its task is open; once it is, everything follows.
+        versioning.setState(admin, MasterId(cn), SetState("IMPLEMENTATION"))
+        assertThatThrownBy {
+            versioning.setState(admin, MasterId(cn), SetState("RESOLVED"))
+        }.hasMessageContaining("aren't done")
+        versioning.setState(admin, MasterId(task), SetState("IMPLEMENTATION"))
+        versioning.setState(admin, MasterId(task), SetState("RESOLVED"))
+        versioning.setState(admin, MasterId(cn), SetState("RESOLVED"))
+        assertThat(versioning.get(alice, bracket.id).latest.state).isEqualTo("RELEASED")
+        assertThat(versioning.get(alice, MasterId(cr)).latest.state).isEqualTo("RESOLVED")
+        assertThat(versioning.get(alice, pr.id).latest.state).isEqualTo("RESOLVED")
     }
 }

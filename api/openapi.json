@@ -1039,9 +1039,15 @@
               "$ref" : "#/components/schemas/ChangeLink"
             },
             "type" : "array"
+          },
+          "plan" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PlanEntry"
+            },
+            "type" : "array"
           }
         },
-        "required" : [ "id", "kind", "linkedFrom", "links" ],
+        "required" : [ "id", "kind", "linkedFrom", "links", "plan" ],
         "type" : "object"
       },
       "CheckExpressionRequest" : {
@@ -4186,6 +4192,25 @@
         "required" : [ "allowedBy", "deniedBy", "granted", "permission" ],
         "type" : "object"
       },
+      "PlanEntry" : {
+        "properties" : {
+          "assignee" : {
+            "type" : [ "string", "null" ]
+          },
+          "dueDate" : {
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "overdue" : {
+            "type" : "boolean"
+          },
+          "task" : {
+            "$ref" : "#/components/schemas/LinkedObject"
+          }
+        },
+        "required" : [ "overdue", "task" ],
+        "type" : "object"
+      },
       "PlannedChange" : {
         "properties" : {
           "action" : {
@@ -5851,6 +5876,18 @@
           }
         },
         "required" : [ "active", "createdAt", "createdBy", "displayName", "id", "siteAdmin", "username" ],
+        "type" : "object"
+      },
+      "SetPlan" : {
+        "properties" : {
+          "assignee" : {
+            "type" : [ "string", "null" ]
+          },
+          "dueDate" : {
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          }
+        },
         "type" : "object"
       },
       "SetPreferenceRequest" : {
@@ -8313,6 +8350,61 @@
         } ],
         "responses" : {
           "200" : {
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change" ]
+      }
+    },
+    "/api/v1/changes/{id}/plan/{taskId}" : {
+      "put" : {
+        "operationId" : "changePlan",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "taskId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetPlan"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlanEntry"
+                }
+              }
+            },
             "description" : "OK"
           },
           "default" : {

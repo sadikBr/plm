@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
 import { useContextsOfKind, useTypes, type AttributeDefinition, type VersionedObject } from "../api/queries";
-import { Dialog, ErrorBanner, Loading, Panel, StateBadge, TypeIcon, formatDate, typeLabel } from "../components/common";
+import { Dialog, ErrorBanner, Loading, Panel, PrincipalName, StateBadge, TypeIcon, formatDate, typeLabel } from "../components/common";
 import { PageHeader } from "../components/Layout";
 import { ReferenceInput } from "../components/References";
 import { t, tn } from "../i18n/i18n";
@@ -14,6 +14,9 @@ type Role = Schemas["ChangeLink"]["role"];
 type Link_ = Schemas["ChangeLink"];
 
 /** Change management (roadmap 5.8): problem reports, change requests, notices and their tasks. */
+
+/** The built-in change board process (roadmap 5.9). */
+const CHANGE_BOARD = "00000000-0000-7000-8000-000000000503";
 
 export const CHANGE_TYPES: Record<Kind, string> = {
   PROBLEM_REPORT: "00000000-0000-7000-8000-000000000104",
@@ -267,6 +270,18 @@ export function ChangeTab({ obj, kind }: { obj: VersionedObject; kind: Kind }) {
       ),
     onSuccess: (r) => navigate(`/objects/${r.id}?tab=change`),
   });
+  const board = useMutation({
+    mutationFn: () =>
+      unwrap(
+        api.POST("/api/v1/processes", {
+          body: { templateId: CHANGE_BOARD, subjectId: obj.id, comment: t("Please decide on {number}", { number: obj.number }) },
+        }),
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["object", obj.id] });
+      navigate(`/objects/${obj.id}?tab=processes`);
+    },
+  });
   if (isLoading) return <Loading />;
   if (error || !data) return <ErrorBanner error={error} />;
   const of = (r: Role) => data.links.filter((l) => l.role === r);
@@ -298,7 +313,12 @@ export function ChangeTab({ obj, kind }: { obj: VersionedObject; kind: Kind }) {
                 </button>
               </>
             )}
-            {kind === "CHANGE_REQUEST" && (
+            {kind === "CHANGE_REQUEST" && obj.latest.state === "OPEN" && (
+              <button className="btn small primary" onClick={() => board.mutate()} disabled={board.isPending}>
+                {t("Submit to the change board")}
+              </button>
+            )}
+            {kind === "CHANGE_REQUEST" && obj.latest.state === "APPROVED" && (
               <button className="btn small primary" onClick={() => next.mutate("CHANGE_NOTICE")} disabled={next.isPending}>
                 {t("Create a change notice")}
               </button>
@@ -311,7 +331,7 @@ export function ChangeTab({ obj, kind }: { obj: VersionedObject; kind: Kind }) {
           </>
         }
       >
-        <ErrorBanner error={next.error ?? remove.error} />
+        <ErrorBanner error={next.error ?? remove.error ?? board.error} />
         {chain.length === 0 ? (
           <div className="muted">{t("Not linked to other changes yet.")}</div>
         ) : (
@@ -328,6 +348,7 @@ export function ChangeTab({ obj, kind }: { obj: VersionedObject; kind: Kind }) {
           </ul>
         )}
       </Panel>
+      {kind === "CHANGE_NOTICE" && <PlanPanel noticeId={obj.id} plan={data.plan} onChanged={refresh} />}
       {section("AFFECTED", t("Affected objects"), t("What the change is about: the versions to change."))}
       {(kind === "CHANGE_NOTICE" || kind === "CHANGE_TASK") &&
         section("RESULTING", t("Resulting objects"), t("The new versions the change produces."))}
@@ -429,5 +450,81 @@ export function ObjectChangesTab({ obj }: { obj: VersionedObject }) {
         {tn("{n} change", "{n} changes", new Set((data ?? []).map((l) => l.changeId)).size)}
       </div>
     </Panel>
+  );
+}
+
+/** A change notice's implementation plan (roadmap 5.9): its tasks, who does them, by when. */
+function PlanPanel({ noticeId, plan, onChanged }: { noticeId: string; plan: Schemas["PlanEntry"][]; onChanged: () => void }) {
+  if (!plan.length) return null;
+  const done = plan.filter((p) => p.task.state === "RESOLVED" || p.task.state === "CANCELLED").length;
+  return (
+    <Panel title={t("Implementation plan")} note={t("{done} of {all} tasks done", { done, all: plan.length })} flush>
+      <table className="grid" aria-label={t("Implementation plan")}>
+        <thead>
+          <tr>
+            <th>{t("Task")}</th>
+            <th>{t("State")}</th>
+            <th>{t("Who")}</th>
+            <th>{t("Due")}</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {plan.map((p) => (
+            <PlanRow key={p.task.id} noticeId={noticeId} entry={p} onChanged={onChanged} />
+          ))}
+        </tbody>
+      </table>
+    </Panel>
+  );
+}
+
+function PlanRow({ noticeId, entry, onChanged }: { noticeId: string; entry: Schemas["PlanEntry"]; onChanged: () => void }) {
+  const [who, setWho] = useState("");
+  const [due, setDue] = useState(entry.dueDate ?? "");
+  const save = useMutation({
+    mutationFn: () =>
+      unwrap(
+        api.PUT("/api/v1/changes/{id}/plan/{taskId}", {
+          params: { path: { id: noticeId, taskId: entry.task.id } },
+          body: { assignee: who.trim() || null, dueDate: due || null },
+        }),
+      ),
+    onSuccess: () => {
+      setWho("");
+      onChanged();
+    },
+  });
+  return (
+    <tr>
+      <td>
+        <ObjectCell o={entry.task} />
+      </td>
+      <td>{entry.task.state && <StateBadge state={entry.task.state} />}</td>
+      <td>
+        {entry.assignee && (
+          <span style={{ marginRight: 6 }}>
+            <PrincipalName id={entry.assignee} />
+          </span>
+        )}
+        <input
+          className="small-input"
+          aria-label={t("Assign to (username)")}
+          placeholder={entry.assignee ? t("change…") : t("username")}
+          value={who}
+          onChange={(e) => setWho(e.target.value)}
+        />
+      </td>
+      <td className="nowrap">
+        <input type="date" aria-label={t("Due date")} value={due} onChange={(e) => setDue(e.target.value)} />{" "}
+        {entry.overdue && <span className="tag deny">{t("overdue")}</span>}
+      </td>
+      <td className="num">
+        <button className="btn small" onClick={() => save.mutate()} disabled={save.isPending}>
+          {t("Save")}
+        </button>
+        <ErrorBanner error={save.error} />
+      </td>
+    </tr>
   );
 }
