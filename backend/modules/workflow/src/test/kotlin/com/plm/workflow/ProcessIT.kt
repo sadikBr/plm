@@ -247,7 +247,7 @@ internal class ProcessIT(
     }
 
     @Test
-    fun `stand-ins receive tasks while someone is away, tasks are passed on, and overdue tasks escalate (roadmap 5_4)`() {
+    fun `stand-ins get tasks while someone is away, tasks are passed on, overdue tasks escalate (roadmap 5_4)`() {
         val carl = Actor(TenantId.DEFAULT, PrincipalId("carl-stand-in"))
         listOf(alice to "alice", bob to "bob", mona to "mona", carl to "carl").forEach { (a, name) ->
             directory

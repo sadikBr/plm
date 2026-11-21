@@ -114,7 +114,9 @@ internal class PublishingIT(
         assertThat(published.rule).isEqualTo("Released drawings $suffix")
         val pdf = text(publishing.download(alice, published.id).bytes)
         val number = versioning.get(alice, drawing).number
-        assertThat(pdf).contains("$number A.2 Released").containsPattern("RE\\s*LE\\s*AS\\s*ED").contains("Downloaded by")
+        assertThat(pdf).contains("$number A.2 Released").contains("Downloaded by")
+        // The diagonal stamp comes out of the text extraction broken up.
+        assertThat(pdf).containsPattern("RE\\s*LE\\s*AS\\s*ED")
 
         // A part without a file: a data sheet, with its structure.
         val child = versioning.create(alice, CreateVersionedObject(TypeId.PART, p, "Bolt")).id

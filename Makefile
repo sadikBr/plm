@@ -1,6 +1,6 @@
 COMPOSE := docker compose -f deploy/docker-compose.yml
 
-.PHONY: up up-full down reset build test run fmt events ui ui-install ui-test e2e api-contract converter-install start stop status
+.PHONY: up up-full down reset build test run fmt events ui ui-install ui-test e2e api-contract converter-install start stop status ci
 
 start:     ## Start the whole platform and wait until it's ready (same as ./plm start)
 	./plm start
@@ -36,5 +36,9 @@ ui-test:   ## Frontend lint, typecheck and unit tests
 	cd frontend && npm run lint && npm run typecheck && npm test
 e2e:       ## Browser end-to-end test (needs `make up`, `make run` and `make ui`)
 	cd frontend && npm run e2e
+ci:        ## Run exactly what CI runs (backend build with lint and tests, web UI lint, typecheck, tests, build)
+	./gradlew build --console=plain
+	cd frontend && npm run lint && npm run typecheck && npm test && npm run build
+	$(COMPOSE) --profile full config --quiet
 api-contract: ## Regenerate api/openapi.json after changing the API
 	./gradlew :backend:app:test --tests '*OpenApiContractIT' -Dplm.openapi.update=true

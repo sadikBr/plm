@@ -108,7 +108,7 @@ export function PmiPanel({
   const [adding, setAdding] = useState<{ kind: Kind; text: string } | null>(null);
   const [picking, setPicking] = useState(false);
   const file = useRef<HTMLInputElement>(null);
-  const views = data?.views ?? [];
+  const views = useMemo(() => data?.views ?? [], [data]);
   const view = views.find((v) => v.id === viewId) ?? null;
   const shown = useMemo(() => (view ? (view.annotations ?? []) : views.flatMap((v) => v.annotations ?? [])), [view, views]);
 

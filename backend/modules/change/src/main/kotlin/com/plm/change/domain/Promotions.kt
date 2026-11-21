@@ -345,7 +345,7 @@ internal class DefaultPromotionService(
                     request.templateId ?: PROMOTION_REVIEW,
                     comment = row.comment ?: name,
                     contextId = row.contextId,
-                    about = "${row.number} · ${objects.size} object${if (objects.size == 1) "" else "s"} to ${row.targetState}",
+                    about = "${row.number} · ${objectCount(objects.size)} to ${row.targetState}",
                     link = "/promotions/${row.id}",
                 ),
             )
@@ -437,3 +437,6 @@ internal class PromotionLock(
         return listOf(Refusal("change.promotion-lock", "site", "It's under review in promotion request $number"))
     }
 }
+
+/** "1 object", "3 objects". */
+private fun objectCount(n: Int) = if (n == 1) "1 object" else "$n objects"

@@ -863,6 +863,7 @@ select c.name, m.principal_id, m.role from context_member m join context c on c.
 | Command | What it does |
 |---|---|
 | `make fmt` / `./gradlew ktlintFormat` | Auto-fix code style |
+| `make ci` | Run exactly what CI runs, before pushing: backend build (ktlint, tests), web UI lint, type check, tests, build |
 | `make ui` / `make ui-test` / `make e2e` | Web UI dev server / its checks / browser end-to-end test |
 | `make api-contract` | Regenerate `api/openapi.json` after an API change |
 | `./gradlew :backend:app:test --tests '*SecurityIT'` | Run one test class |

@@ -18,6 +18,22 @@ const isShown = (o: THREE.Object3D | null): boolean => !o || (o.visible && isSho
 const isClipped = (hit: THREE.Intersection) =>
   ((hit.object as THREE.Mesh).material as THREE.Material).clippingPlanes?.some((p) => p.distanceToPoint(hit.point) < 0) ?? false;
 
+/** Looks at the model from one of the standard directions. */
+function setView(h: ViewerHandle, view: View) {
+  const c = h.controls.target;
+  const d = h.radius * 2.6;
+  const dir = {
+    iso: new THREE.Vector3(1, 0.8, 1),
+    front: new THREE.Vector3(0, 0, 1),
+    top: new THREE.Vector3(0, 1, 0.0001),
+    right: new THREE.Vector3(1, 0, 0),
+  }[view];
+  h.camera.position.copy(c).add(dir.normalize().multiplyScalar(d));
+  h.camera.lookAt(c);
+  h.controls.update();
+  h.render();
+}
+
 /** The objects a viewer page works with, shared with measuring, sections and markups (6.9, 6.10). */
 export type ViewerHandle = {
   scene: THREE.Scene;
@@ -69,7 +85,9 @@ export function Viewer3D({
   const [transparent, setTransparent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const live = useRef({ hidden, transparent });
-  live.current = { hidden, transparent };
+  useEffect(() => {
+    live.current = { hidden, transparent };
+  }, [hidden, transparent]);
   const overlay = useRef<HTMLDivElement>(null);
   const picker = useRef<((hit: THREE.Intersection) => void) | null>(null);
   const [picking, setPicking] = useState(false);
@@ -188,21 +206,6 @@ export function Viewer3D({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
-
-  const setView = useCallback((h: ViewerHandle, view: View) => {
-    const c = h.controls.target;
-    const d = h.radius * 2.6;
-    const dir = {
-      iso: new THREE.Vector3(1, 0.8, 1),
-      front: new THREE.Vector3(0, 0, 1),
-      top: new THREE.Vector3(0, 1, 0.0001),
-      right: new THREE.Vector3(1, 0, 0),
-    }[view];
-    h.camera.position.copy(c).add(dir.normalize().multiplyScalar(d));
-    h.camera.lookAt(c);
-    h.controls.update();
-    h.render();
-  }, []);
 
   const fit = useCallback(
     (objects?: THREE.Object3D[]) => {

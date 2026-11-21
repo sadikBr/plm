@@ -65,7 +65,6 @@ function Measure({ h, onClose }: { h: ViewerHandle; onClose: () => void }) {
     return () => h.setPicker(null);
   }, [h, needed]);
   useEffect(() => () => draw.dispose(), [draw]);
-  useEffect(() => setPicks([]), [mode]);
 
   // Markers, the line between them, and a label that follows the camera.
   useEffect(() => {
@@ -154,7 +153,10 @@ function Measure({ h, onClose }: { h: ViewerHandle; onClose: () => void }) {
               role="radio"
               aria-checked={mode === m}
               className={`btn small ghost ${mode === m ? "on" : ""}`}
-              onClick={() => setMode(m)}
+              onClick={() => {
+                setMode(m);
+                setPicks([]);
+              }}
             >
               {m === "point" ? t("Point") : m === "distance" ? t("Distance") : t("Angle")}
             </button>
@@ -179,6 +181,18 @@ function Measure({ h, onClose }: { h: ViewerHandle; onClose: () => void }) {
   );
 }
 
+/** The span of the model along [normal] (viewer coordinates): the slider's ends. */
+function rangeAlong(h: ViewerHandle, normal: THREE.Vector3 | null): readonly [number, number] {
+  if (!normal) return [0, 0] as const;
+  const box = new THREE.Box3().setFromObject(h.model);
+  const ds = [0, 1].flatMap((x) =>
+    [0, 1].flatMap((y) =>
+      [0, 1].map((z) => normal.dot(new THREE.Vector3(x ? box.max.x : box.min.x, y ? box.max.y : box.min.y, z ? box.max.z : box.min.z))),
+    ),
+  );
+  return [Math.min(...ds), Math.max(...ds)] as const;
+}
+
 type Axis = "X" | "Y" | "Z" | "face";
 
 /**
@@ -199,30 +213,26 @@ function Section({ h, onClose }: { h: ViewerHandle; onClose: () => void }) {
     const v = new THREE.Vector3(axis === "X" ? 1 : 0, axis === "Y" ? 1 : 0, axis === "Z" ? 1 : 0);
     return v.transformDirection(h.fromModel);
   }, [axis, face, h]);
-  const range = useMemo(() => {
-    if (!normal) return [0, 0] as const;
-    const box = new THREE.Box3().setFromObject(h.model);
-    const ds = [0, 1].flatMap((x) =>
-      [0, 1].flatMap((y) =>
-        [0, 1].map((z) => normal.dot(new THREE.Vector3(x ? box.max.x : box.min.x, y ? box.max.y : box.min.y, z ? box.max.z : box.min.z))),
-      ),
-    );
-    return [Math.min(...ds), Math.max(...ds)] as const;
-  }, [normal, h]);
-  useEffect(() => {
-    if (axis === "face" && face) setAt((face.point.dot(normal!) - range[0]) / (range[1] - range[0] || 1));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [face]);
+  const range = useMemo(() => rangeAlong(h, normal), [normal, h]);
 
   // Picking a face, when sectioning along one.
   useEffect(() => {
     if (axis !== "face") return;
-    h.setPicker((hit) => setFace(pickOf(hit)));
+    h.setPicker((hit) => {
+      const picked = pickOf(hit);
+      // The plane starts at the face picked.
+      const n = picked.normal.clone().negate();
+      const [lo, hi] = rangeAlong(h, n);
+      setFace(picked);
+      setAt((picked.point.dot(n) - lo) / (hi - lo || 1));
+    });
     return () => h.setPicker(null);
   }, [h, axis]);
 
   // The clipping on every body, the stencil helpers and the cap.
-  const parts = useMemo(() => {
+  // The clipping helpers live as long as the panel: made in an effect, kept in a ref.
+  const partsRef = useRef<{ bodies: THREE.Mesh[]; stencils: THREE.Mesh[]; capMesh: THREE.Mesh } | null>(null);
+  useEffect(() => {
     const bodies: THREE.Mesh[] = [];
     h.model.traverse((o) => o instanceof THREE.Mesh && !o.userData.helper && bodies.push(o));
     const stencils: THREE.Mesh[] = [];
@@ -271,19 +281,19 @@ function Section({ h, onClose }: { h: ViewerHandle; onClose: () => void }) {
     capMesh.raycast = () => {};
     capMesh.onAfterRender = (r) => r.clearStencil();
     h.scene.add(capMesh);
-    return { bodies, stencils, capMesh };
-  }, [h, plane]);
-  useEffect(
-    () => () => {
-      parts.bodies.forEach((b) => ((b.material as THREE.Material).clippingPlanes = null));
-      parts.stencils.forEach((s) => s.parent?.remove(s));
-      h.scene.remove(parts.capMesh);
+    partsRef.current = { bodies, stencils, capMesh };
+    return () => {
+      bodies.forEach((b) => ((b.material as THREE.Material).clippingPlanes = null));
+      stencils.forEach((st) => st.parent?.remove(st));
+      h.scene.remove(capMesh);
+      partsRef.current = null;
       h.render();
-    },
-    [parts, h],
-  );
+    };
+  }, [h, plane]);
 
   useEffect(() => {
+    const parts = partsRef.current;
+    if (!parts) return;
     const on = !!normal;
     if (normal) {
       const n = flip ? normal.clone().negate() : normal;
@@ -301,7 +311,7 @@ function Section({ h, onClose }: { h: ViewerHandle; onClose: () => void }) {
     parts.stencils.forEach((s) => (s.visible = on && cap));
     parts.capMesh.visible = on && cap;
     h.render();
-  }, [normal, range, at, flip, cap, plane, parts, h]);
+  }, [normal, range, at, flip, cap, plane, h]);
 
   // Where the plane is, in the model's coordinates: along its axis, or from the picked face.
   const position = () => {
