@@ -52,6 +52,7 @@ internal val THUMBNAILABLE = setOf("image/png", "image/jpeg", "image/gif", "imag
 internal class DefaultContentService(
     private val content: ContentRepository,
     private val store: BlobStore,
+    private val jdbc: org.springframework.jdbc.core.simple.JdbcClient,
     private val signer: Signer,
     private val versioning: VersioningService,
     private val types: TypeService,
@@ -295,6 +296,80 @@ internal class DefaultContentService(
     }
 
     /** A signed link to a stored file, valid for a few minutes. */
+    private val derivedMapper =
+        org.springframework.jdbc.core.RowMapper { rs, _ ->
+            com.plm.content.api.DerivedFile(
+                rs.getString("kind"),
+                rs.getString("content_type"),
+                rs.getLong("size"),
+                rs.getTimestamp("created_at").toInstant(),
+            ) to rs.getString("derived_key")
+        }
+
+    private fun derivedRow(
+        blobKey: String,
+        kind: String,
+    ) = jdbc
+        .sql("select * from vault_derived where blob_key = :b and kind = :k")
+        .param("b", blobKey)
+        .param("k", kind)
+        .query(derivedMapper)
+        .optional()
+        .orElse(null)
+
+    @Transactional(readOnly = true)
+    override fun derived(
+        actor: Actor,
+        contentId: UUID,
+        kind: String,
+    ): com.plm.content.api.DerivedFile? = derivedRow(readable(actor, contentId).blobKey, kind)?.first
+
+    @Transactional(readOnly = true)
+    override fun derivedLink(
+        actor: Actor,
+        contentId: UUID,
+        kind: String,
+        fileName: String,
+        inline: Boolean,
+    ): FileLink {
+        val s = readable(actor, contentId)
+        val (d, key) =
+            derivedRow(s.blobKey, kind)
+                ?: throw NotFoundException("CONTENT_NOT_FOUND", "There's no $kind of ${s.item.fileName}")
+        return link(key, fileName, d.contentType, inline)
+    }
+
+    override fun putDerived(
+        contentId: UUID,
+        kind: String,
+        contentType: String,
+        file: java.nio.file.Path,
+    ): com.plm.content.api.DerivedFile {
+        val s = content.item(contentId) ?: throw NotFoundException("CONTENT_NOT_FOUND", "There's no such file")
+        require(Regex("^[a-z0-9.-]{1,40}$").matches(kind)) { "Bad kind" }
+        val key = "derived/${s.blobKey}/$kind"
+        store.put(key, file, contentType)
+        jdbc
+            .sql(
+                """
+                insert into vault_derived (blob_key, kind, derived_key, content_type, size, created_at)
+                values (:b, :k, :d, :t, :size, :at)
+                on conflict (blob_key, kind) do update set derived_key = excluded.derived_key, content_type = excluded.content_type,
+                    size = excluded.size, created_at = excluded.created_at
+                """.trimIndent(),
+            ).param("b", s.blobKey)
+            .param("k", kind)
+            .param("d", key)
+            .param("t", contentType)
+            .param(
+                "size",
+                java.nio.file.Files
+                    .size(file),
+            ).param("at", java.sql.Timestamp.from(clock.instant()))
+            .update()
+        return derivedRow(s.blobKey, kind)!!.first
+    }
+
     private fun link(
         key: String,
         fileName: String,

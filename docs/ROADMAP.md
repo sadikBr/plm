@@ -479,8 +479,13 @@ seat.
       importing makes a CAD part or assembly per product with its components placed, keeps the
       file on the top model, and optionally makes a part per model, owned by it, with assembly
       parts built. Checked with the CAx-IF AS1 assembly (9 models, 27 lines).
-- [ ] 6.6 Conversion worker: STEP to glTF as background jobs on check-in, stored as the
+- [x] 6.6 Conversion worker: STEP to glTF as background jobs on check-in, stored as the
       iteration's viewable; conversion status, errors and retries visible on the object.
+      Done: checking in a CAD document with a STEP file queues a background job that runs the
+      converter (workers/cad-converter: OpenCASCADE through occt-import-js) and keeps the .glb
+      with the file, so later versions with the same file have it at once; a family instance shows
+      its generic's. The CAD tab shows waiting, converting, ready (bodies, triangles, download) or
+      the failure, with Convert again.
 - [ ] 6.7 Publishing rules, watermarks and PDF: which types publish what, when (check-in,
       release); PDFs stamped with number, version, state and viewer on download; a PDF data sheet
       of any object.

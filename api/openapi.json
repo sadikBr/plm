@@ -8655,6 +8655,48 @@
         "required" : [ "kind" ],
         "type" : "object"
       },
+      "Viewable" : {
+        "properties" : {
+          "error" : {
+            "type" : [ "string", "null" ]
+          },
+          "fileName" : {
+            "type" : [ "string", "null" ]
+          },
+          "jobId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "meshes" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "modelId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "NONE", "QUEUED", "RUNNING", "READY", "FAILED" ],
+            "type" : "string"
+          },
+          "triangles" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "url" : {
+            "type" : [ "string", "null" ]
+          },
+          "version" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "modelId", "status" ],
+        "type" : "object"
+      },
       "WebhookDelivery" : {
         "properties" : {
           "aggregateId" : {
@@ -16978,6 +17020,80 @@
         "tags" : [ "Cad" ]
       }
     },
+    "/api/v1/objects/{id}/cad/viewable" : {
+      "get" : {
+        "operationId" : "viewableViewable",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Viewable"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Viewable" ]
+      }
+    },
+    "/api/v1/objects/{id}/cad/viewable/convert" : {
+      "post" : {
+        "operationId" : "viewableConvert",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Viewable"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Viewable" ]
+      }
+    },
     "/api/v1/objects/{id}/cad/where-used" : {
       "get" : {
         "operationId" : "cadWhereUsed",
@@ -24438,6 +24554,8 @@
     "name" : "Validation rule"
   }, {
     "name" : "Versioned object"
+  }, {
+    "name" : "Viewable"
   }, {
     "name" : "Webhook"
   }, {

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Layers, Trash2 } from "lucide-react";
 import { CollectorDialog } from "./Collector";
 import { FamilyPanel } from "./Family";
+import { ViewablePanel } from "./Viewable";
 import { ModelPartsPanel } from "./Associations";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
@@ -68,6 +69,7 @@ export function CadTab({ obj, kind, mine }: { obj: VersionedObject; kind: Kind; 
         <span className="muted small">{t("Check out, check in, revise or change state together with what goes with it.")}</span>
       </div>
       {collecting && <CollectorDialog objectId={obj.id} onClose={() => setCollecting(false)} />}
+      <ViewablePanel objectId={obj.id} />
       {kind !== "PART" && <CadStructure obj={obj} kind={kind} mine={mine} />}
       {kind !== "DRAWING" && <ModelPartsPanel obj={obj} />}
       {kind !== "DRAWING" && <FamilyPanel obj={obj} mine={mine} />}

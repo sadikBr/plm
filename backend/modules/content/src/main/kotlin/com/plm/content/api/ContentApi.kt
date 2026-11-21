@@ -64,6 +64,14 @@ data class PreviewPage(
     val pages: Int,
 )
 
+/** A file made from a stored file: a viewable, a PDF (roadmap 6.6). */
+data class DerivedFile(
+    val kind: String,
+    val contentType: String,
+    val size: Long,
+    val createdAt: Instant,
+)
+
 /**
  * Document content (roadmap 3.2): files kept per iteration, in the vault: one primary file and any
  * number of attachments, on documents only (`CONTENT_NOT_ALLOWED` elsewhere). Reading needs read access
@@ -156,6 +164,33 @@ interface ContentService {
         role: ContentRole,
         description: String? = null,
     ): ContentItem
+
+    /** The file of [kind] made from [contentId]'s file, if there is one. Needs read access. */
+    fun derived(
+        actor: Actor,
+        contentId: UUID,
+        kind: String,
+    ): DerivedFile?
+
+    /** A link to it, named [fileName]. */
+    fun derivedLink(
+        actor: Actor,
+        contentId: UUID,
+        kind: String,
+        fileName: String,
+        inline: Boolean = true,
+    ): FileLink
+
+    /**
+     * Keeps [file] as the file of [kind] made from [contentId]'s file (replacing an earlier one):
+     * for server-side producers (conversion workers). No access check.
+     */
+    fun putDerived(
+        contentId: UUID,
+        kind: String,
+        contentType: String,
+        file: java.nio.file.Path,
+    ): DerivedFile
 }
 
 data class ContentChanged(

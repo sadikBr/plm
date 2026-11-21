@@ -1,0 +1,12 @@
+{
+  "name": "plm-cad-converter",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Converts STEP models to glTF for the PLM's web viewer (roadmap 6.6).",
+  "type": "module",
+  "license": "UNLICENSED",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "occt-import-js": "0.0.23"
+  }
+}

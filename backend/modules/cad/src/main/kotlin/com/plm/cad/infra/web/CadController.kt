@@ -198,3 +198,21 @@ internal class StepImportController(
             .StepImportOptions(contextId, createParts, build),
     )
 }
+
+/** Viewables (roadmap 6.6). */
+@RestController
+internal class ViewableController(
+    private val conversions: com.plm.cad.api.ConversionService,
+) {
+    @GetMapping("/api/v1/objects/{id}/cad/viewable")
+    fun viewable(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = conversions.viewable(actor, id)
+
+    @PostMapping("/api/v1/objects/{id}/cad/viewable/convert")
+    fun convert(
+        actor: Actor,
+        @PathVariable id: UUID,
+    ) = conversions.convert(actor, id)
+}

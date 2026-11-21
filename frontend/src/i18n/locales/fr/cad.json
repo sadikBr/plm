@@ -119,5 +119,18 @@
   "Make a part for each model, owned by it": "Créer une pièce pour chaque modèle, qui en est propriétaire",
   "Build the assembly parts' structures from their models": "Construire la structure des pièces assemblées depuis leurs modèles",
   "The file goes with the top model; each model is a CAD document, numbered as usual.": "Le fichier va avec le modèle de tête ; chaque modèle est un document CAO, numéroté comme d'habitude.",
-  "Import STEP…": "Importer STEP…"
+  "Import STEP…": "Importer STEP…",
+  "Viewable": "Visualisable",
+  "From its generic,": "De son générique,",
+  "which holds the file": "qui porte le fichier",
+  "The model converted for viewing in the browser (glTF), made when it's checked in.": "Le modèle converti pour être vu dans le navigateur (glTF), produit à l'archivage.",
+  "Convert again": "Reconvertir",
+  "Waiting to be converted": "En attente de conversion",
+  "Converting…": "Conversion…",
+  "Ready to view": "Prêt à être vu",
+  "The conversion failed": "La conversion a échoué",
+  "{meshes} bodies, {triangles} triangles": "{meshes} corps, {triangles} triangles",
+  "Job": "Tâche",
+  "Convert": "Convertir",
+  "Not converted yet": "Pas encore converti"
 }

@@ -1011,3 +1011,8 @@ table.collected td input[type="checkbox"] { width: 16px; height: 16px; }
 .cad-assoc-list li { display: flex; align-items: center; gap: 6px; }
 .build-report { margin-top: 12px; display: grid; gap: 8px; }
 .step-preview { max-height: 320px; overflow: auto; border: 1px solid var(--border); border-radius: 4px; margin: 8px 0; }
+/* Viewables (roadmap 6.6). */
+.viewable-status { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.viewable-status.ready svg { color: var(--ok); }
+.viewable-status.failed svg { color: var(--danger); }
+.viewable-status .spin { animation: spin 1s linear infinite; }
