@@ -94,6 +94,11 @@ internal class BomRepository(
                     select * from object_iteration x where x.master_id = m.id and x.status = 'CHECKED_IN' and x.state = :spec_state
                     order by x.seq desc limit 1
                     """.trimIndent()
+                com.plm.bom.api.ConfigSpecType.BASELINE ->
+                    """
+                    select x.* from baseline_member bm join object_iteration x on x.id = bm.iteration_id
+                    where bm.baseline_id = :spec_baseline and bm.master_id = m.id
+                    """.trimIndent()
                 com.plm.bom.api.ConfigSpecType.AS_OF ->
                     """
                     select * from object_iteration x where x.master_id = m.id and x.status = 'CHECKED_IN' and x.checked_in_at <= :spec_as_of
@@ -114,6 +119,7 @@ internal class BomRepository(
             .param("ids", masters.toTypedArray())
             .param("spec_state", spec.state ?: "RELEASED")
             .param("spec_as_of", Timestamp.from(spec.asOf ?: Instant.now()))
+            .param("spec_baseline", spec.baselineId ?: UUID(0, 0))
             .query { rs, _ ->
                 val it = rs.getObject("iteration_id", UUID::class.java)
                 Resolved(

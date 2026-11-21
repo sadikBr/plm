@@ -8,13 +8,14 @@ import { ErrorBanner, Loading, StateBadge, TypeIcon, stateLabel } from "../compo
 import { language, locale, t, tn } from "../i18n/i18n";
 import { formatDesignators } from "./designators";
 import { CompareButton } from "./StructureCompare";
+import { CollectButton, useBaselines } from "./Baselines";
 import { ReplacementMarks, copyLines, useUnits } from "./Structure";
 
 // The multi-level structure (roadmap 4.2, 4.3): a tree table under a configuration specification.
 
 type Node = Schemas["StructureNode"];
 type SpecType = Schemas["ConfigSpec"]["type"];
-export type Spec = { type: SpecType; state?: string; asOf?: string };
+export type Spec = { type: SpecType; state?: string; asOf?: string; baselineId?: string };
 
 const ROW = 32;
 const qty = (n: number) => n.toLocaleString(locale(), { maximumFractionDigits: 6 });
@@ -25,6 +26,7 @@ function specQuery(spec: Spec, depth: number) {
     depth,
     ...(spec.type === "STATE" ? { state: spec.state ?? "RELEASED" } : {}),
     ...(spec.type === "AS_OF" && spec.asOf ? { asOf: new Date(`${spec.asOf}T23:59:59`).toISOString() } : {}),
+    ...(spec.type === "BASELINE" ? { baselineId: spec.baselineId } : {}),
   };
 }
 
@@ -39,14 +41,16 @@ export function useDefaultSpec(contextId: string): Spec {
 }
 
 /** Chooses latest, latest in a state, or as of a date. */
-export function SpecPicker({ spec, onChange }: { spec: Spec; onChange: (s: Spec) => void }) {
+export function SpecPicker({ spec, onChange, partId }: { spec: Spec; onChange: (s: Spec) => void; partId?: string }) {
+  const { data: baselines } = useBaselines(partId);
   const { data: lifecycles } = useLifecycles();
   const states = useMemo(() => {
     const keys = new Map<string, Record<string, string>>();
     for (const l of lifecycles ?? []) for (const s of l.states) if (!keys.has(s.key)) keys.set(s.key, s.labels);
     return [...keys.entries()];
   }, [lifecycles]);
-  const value = spec.type === "STATE" ? `STATE:${spec.state ?? "RELEASED"}` : spec.type;
+  const value =
+    spec.type === "STATE" ? `STATE:${spec.state ?? "RELEASED"}` : spec.type === "BASELINE" ? `BASELINE:${spec.baselineId}` : spec.type;
   return (
     <span className="spec-picker">
       <label htmlFor="spec">{t("Show")}</label>
@@ -56,6 +60,7 @@ export function SpecPicker({ spec, onChange }: { spec: Spec; onChange: (s: Spec)
         onChange={(e) => {
           const v = e.target.value;
           if (v.startsWith("STATE:")) onChange({ type: "STATE", state: v.slice(6) });
+          else if (v.startsWith("BASELINE:")) onChange({ type: "BASELINE", baselineId: v.slice(9) });
           else if (v === "AS_OF") onChange({ type: "AS_OF", asOf: spec.asOf ?? new Date().toISOString().slice(0, 10) });
           else onChange({ type: "LATEST" });
         }}
@@ -67,6 +72,11 @@ export function SpecPicker({ spec, onChange }: { spec: Spec; onChange: (s: Spec)
           </option>
         ))}
         <option value="AS_OF">{t("As of a date")}</option>
+        {baselines?.map((b) => (
+          <option key={b.id} value={`BASELINE:${b.id}`}>
+            {t("As in baseline {number} · {name}", { number: b.number, name: b.name })}
+          </option>
+        ))}
       </select>
       {spec.type === "AS_OF" && (
         <input aria-label={t("Date")} type="date" value={spec.asOf ?? ""} onChange={(e) => onChange({ ...spec, asOf: e.target.value })} />
@@ -260,6 +270,7 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
           </button>
         )}
         <CompareButton obj={obj} />
+        <CollectButton obj={obj} spec={spec} />
         <button className="btn small" onClick={expandAll} disabled={top.isFetching}>
           <ChevronsUpDown size={13} aria-hidden /> {t("Expand all")}
         </button>

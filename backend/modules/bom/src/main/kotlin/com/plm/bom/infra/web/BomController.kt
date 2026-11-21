@@ -45,9 +45,10 @@ internal class BomController(
         @RequestParam(defaultValue = "LATEST") spec: ConfigSpecType,
         @RequestParam(required = false) state: String?,
         @RequestParam(required = false) asOf: Instant?,
+        @RequestParam(required = false) baselineId: UUID?,
         @RequestParam(defaultValue = "1") depth: Int,
         @RequestParam(defaultValue = "false") workingCopy: Boolean,
-    ) = bom.structure(actor, MasterId(id), ConfigSpec(spec, state, asOf), depth, workingCopy)
+    ) = bom.structure(actor, MasterId(id), ConfigSpec(spec, state, asOf, baselineId), depth, workingCopy)
 
     /** Where the part is used (roadmap 4.6), under a configuration specification, `depth` levels up. */
     @GetMapping("/api/v1/objects/{id}/where-used")

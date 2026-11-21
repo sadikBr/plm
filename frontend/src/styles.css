@@ -843,3 +843,4 @@ td.tree-cell > * { vertical-align: middle; }
 .tag.cmp-tag-changed { background: var(--warn-soft); color: var(--warn); }
 .page-head .toolbar label input[type="checkbox"], .radio-list select { width: auto; min-height: 0; }
 .radio-list .add-line-pick, .radio-list select { margin-left: 24px; }
+.modal-footer select, dialog footer select, dialog footer input { width: auto; }

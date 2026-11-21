@@ -249,9 +249,13 @@ baseline and report on, fast at the scale of real products.
       (Done: all levels, parts matched by where they sit and summed across lines; version,
       quantity, unit, find number and designator differences highlighted; compare with an earlier
       version, the released structure or another part; Excel export.)
-- [ ] 4.10 Baselines and collections: frozen sets of exact iterations (also a configuration
+- [x] 4.10 Baselines and collections: frozen sets of exact iterations (also a configuration
       specification), managed baselines with a lifecycle, collecting a structure with its documents
       for bulk actions.
+      (Done: baselines (open, then frozen for good) of exact iterations, visible to those who can
+      read their context; "as in baseline" as a configuration specification; collecting a part
+      with its structure under any specification and its linked documents, into a baseline or
+      onto the clipboard; a Baselines page.)
 - [ ] 4.11 Roll-ups and multi-level reports: values summed up the tree (mass, cost, counts), a
       flattened BOM with total quantities, multi-level reports in the report engine (3.8).
 - [ ] 4.12 Reference and alias attributes: attributes that point to another object, or show a

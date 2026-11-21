@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Check, ClipboardPaste, Copy, Lock, Pencil, Plus, Repeat, Shuffle, Trash2, X } from "lucide-react";
 import { Fragment, useState, useSyncExternalStore, type FormEvent } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
 import { useEnumerations, useObjectSearch, useTypes, type VersionedObject } from "../api/queries";
 import { pickLabel } from "../components/AttributeForm";
@@ -70,11 +70,13 @@ export function useCopiedLines(): Copied | null {
  */
 export function StructureTab({ obj, editable }: { obj: VersionedObject; editable: boolean }) {
   const preferred = useDefaultSpec(obj.contextId);
-  const [chosen, setChosen] = useState<Spec | null>(null);
+  const [params] = useSearchParams();
+  const fromBaseline = params.get("baseline");
+  const [chosen, setChosen] = useState<Spec | null>(fromBaseline ? { type: "BASELINE", baselineId: fromBaseline } : null);
   if (editable) return <EditableStructure obj={obj} />;
   const spec = chosen ?? preferred;
   return (
-    <Panel title={t("Structure")} actions={<SpecPicker spec={spec} onChange={setChosen} />} flush>
+    <Panel title={t("Structure")} actions={<SpecPicker spec={spec} onChange={setChosen} partId={obj.id} />} flush>
       <StructureTree key={JSON.stringify(spec)} obj={obj} spec={spec} />
     </Panel>
   );

@@ -183,12 +183,16 @@ enum class ConfigSpecType {
 
     /** The latest iteration checked in on or before [ConfigSpec.asOf]. */
     AS_OF,
+
+    /** The iteration [ConfigSpec.baselineId] holds; parts not in it have none (roadmap 4.10). */
+    BASELINE,
 }
 
 data class ConfigSpec(
     val type: ConfigSpecType = ConfigSpecType.LATEST,
     val state: String? = null,
     val asOf: Instant? = null,
+    val baselineId: UUID? = null,
 ) {
     companion object {
         val LATEST = ConfigSpec()

@@ -801,6 +801,71 @@
         "required" : [ "enabled", "group", "handler", "id", "label", "options", "placement", "source" ],
         "type" : "object"
       },
+      "Baseline" : {
+        "properties" : {
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "frozenAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "frozenBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "members" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "OPEN", "FROZEN" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "contextId", "createdAt", "createdBy", "id", "members", "name", "number", "status" ],
+        "type" : "object"
+      },
+      "BaselineMembers" : {
+        "properties" : {
+          "iterationIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "masterIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "iterationIds", "masterIds" ],
+        "type" : "object"
+      },
       "BulkRequest" : {
         "properties" : {
           "attribute" : {
@@ -883,6 +948,22 @@
             "type" : [ "string", "null" ]
           }
         },
+        "type" : "object"
+      },
+      "CollectedObject" : {
+        "properties" : {
+          "item" : {
+            "$ref" : "#/components/schemas/UsedPart"
+          },
+          "level" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "relation" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "item", "level", "relation" ],
         "type" : "object"
       },
       "Comment" : {
@@ -1185,11 +1266,15 @@
             "format" : "date-time",
             "type" : [ "string", "null" ]
           },
+          "baselineId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
           "state" : {
             "type" : [ "string", "null" ]
           },
           "type" : {
-            "enum" : [ "LATEST", "STATE", "AS_OF" ],
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE" ],
             "type" : "string"
           }
         },
@@ -3341,6 +3426,22 @@
           }
         },
         "required" : [ "contextId" ],
+        "type" : "object"
+      },
+      "NewBaseline" : {
+        "properties" : {
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "contextId", "name" ],
         "type" : "object"
       },
       "NewFromTemplate" : {
@@ -6524,6 +6625,316 @@
           }
         },
         "tags" : [ "Audit" ]
+      }
+    },
+    "/api/v1/baselines" : {
+      "get" : {
+        "operationId" : "baselineList",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "containing",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Baseline"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Baseline" ]
+      },
+      "post" : {
+        "operationId" : "baselineCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NewBaseline"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Baseline"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Baseline" ]
+      }
+    },
+    "/api/v1/baselines/{id}" : {
+      "delete" : {
+        "operationId" : "baselineDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Baseline" ]
+      },
+      "get" : {
+        "operationId" : "baselineGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Baseline"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Baseline" ]
+      }
+    },
+    "/api/v1/baselines/{id}/freeze" : {
+      "post" : {
+        "operationId" : "baselineFreeze",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Baseline"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Baseline" ]
+      }
+    },
+    "/api/v1/baselines/{id}/members" : {
+      "get" : {
+        "operationId" : "baselineMembers",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/CollectedObject"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Baseline" ]
+      },
+      "post" : {
+        "operationId" : "baselineAdd",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BaselineMembers"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Baseline"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Baseline" ]
+      }
+    },
+    "/api/v1/baselines/{id}/members/remove" : {
+      "post" : {
+        "operationId" : "baselineRemove",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BaselineMembers"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Baseline"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Baseline" ]
       }
     },
     "/api/v1/bulk" : {
@@ -11761,6 +12172,87 @@
         "tags" : [ "Versioned object" ]
       }
     },
+    "/api/v1/objects/{id}/collect" : {
+      "get" : {
+        "operationId" : "baselineCollect",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "spec",
+          "required" : false,
+          "schema" : {
+            "default" : "LATEST",
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "state",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "baselineId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "depth",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "documents",
+          "required" : false,
+          "schema" : {
+            "default" : true,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/CollectedObject"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Baseline" ]
+      }
+    },
     "/api/v1/objects/{id}/comments" : {
       "get" : {
         "operationId" : "discussionComments",
@@ -12991,7 +13483,7 @@
           "required" : false,
           "schema" : {
             "default" : "LATEST",
-            "enum" : [ "LATEST", "STATE", "AS_OF" ],
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE" ],
             "type" : "string"
           }
         }, {
@@ -13007,6 +13499,14 @@
           "required" : false,
           "schema" : {
             "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "baselineId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
             "type" : "string"
           }
         }, {
@@ -13643,7 +14143,7 @@
           "required" : false,
           "schema" : {
             "default" : "LATEST",
-            "enum" : [ "LATEST", "STATE", "AS_OF" ],
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE" ],
             "type" : "string"
           }
         }, {
@@ -15261,7 +15761,7 @@
           "required" : false,
           "schema" : {
             "default" : "LATEST",
-            "enum" : [ "LATEST", "STATE", "AS_OF" ],
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE" ],
             "type" : "string"
           }
         }, {
@@ -15293,7 +15793,7 @@
           "required" : false,
           "schema" : {
             "default" : "LATEST",
-            "enum" : [ "LATEST", "STATE", "AS_OF" ],
+            "enum" : [ "LATEST", "STATE", "AS_OF", "BASELINE" ],
             "type" : "string"
           }
         }, {
@@ -16864,6 +17364,8 @@
     "name" : "Audit"
   }, {
     "name" : "Background action"
+  }, {
+    "name" : "Baseline"
   }, {
     "name" : "Bom"
   }, {

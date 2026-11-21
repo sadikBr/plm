@@ -1,7 +1,7 @@
 import { t } from "../i18n/i18n";
 import { ClipboardButton } from "./Clipboard";
 import { NotificationBell } from "../personal/Personal";
-import { BarChart3, ChevronRight, LayoutDashboard, LogOut, Settings } from "lucide-react";
+import { Archive, BarChart3, ChevronRight, LayoutDashboard, LogOut, Settings } from "lucide-react";
 import { type ReactNode } from "react";
 import { Link, NavLink, Outlet, useParams } from "react-router";
 import { useCanOpen, useContextById, useMe, useShows } from "../api/queries";
@@ -26,6 +26,9 @@ export function Layout() {
         <div className="spacer" />
         <NavLink to="/reports" className="topbar-link">
           <BarChart3 size={14} aria-hidden /> {t("Reports")}
+        </NavLink>
+        <NavLink to="/baselines" className="topbar-link">
+          <Archive size={14} aria-hidden /> {t("Baselines")}
         </NavLink>
         <NavLink to="/dashboards" className="topbar-link">
           <LayoutDashboard size={14} aria-hidden /> {t("Dashboards")}
