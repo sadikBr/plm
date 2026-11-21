@@ -436,9 +436,43 @@ approve it on the change board with their passwords (signed), makes a change not
 as its result, resolves it, and finds the part Released and the request and report resolved.
 
 ## Phase 6 — CAD data and visualization
-CAD document type, dependency structure, family tables, collector · part↔CAD association and
-build rules · STEP → glTF conversion worker · publishing rules, watermarks, PDF generation ·
-web 3D viewer (structure, measure, section, markups) · 2D/PDF viewer with markups · MBD/PMI.
+
+**Goal:** CAD models live in the PLM with their structure: assemblies and drawings keep their
+dependencies, travel together through check-out, revise and release, build the part structure,
+and are viewable in the browser (3D and 2D, with measures, sections and markups) without a CAD
+seat.
+
+- [ ] 6.1 CAD documents and their dependency structure: a CAD document type (part, assembly,
+      drawing; authoring application and format), with versioned dependencies (an assembly's
+      components with their placement, a drawing's models); a dependency tree and where-used.
+- [ ] 6.2 Collector: act on a CAD document with what it depends on and what depends on it
+      (required, optional, drawings), chosen in one dialog: check out, check in, revise, set state.
+- [ ] 6.3 Family tables: a generic model and its instances (a table of parameters per instance),
+      instances sharing the generic's file; adding, editing and using instances in assemblies.
+- [ ] 6.4 Part ↔ CAD association and build rules: a part's owning model and contributing models;
+      "build" turns the CAD assembly into the part structure (quantities, find numbers), keeping
+      lines added by hand.
+- [ ] 6.5 STEP import: a STEP file (AP203/AP214/AP242) becomes CAD documents with their assembly
+      structure, each with its file, optionally with parts associated and built.
+- [ ] 6.6 Conversion worker: STEP to glTF as background jobs on check-in, stored as the
+      iteration's viewable; conversion status, errors and retries visible on the object.
+- [ ] 6.7 Publishing rules, watermarks and PDF: which types publish what, when (check-in,
+      release); PDFs stamped with number, version, state and viewer on download; a PDF data sheet
+      of any object.
+- [ ] 6.8 Web 3D viewer: the model in the browser with its structure tree (show, hide, isolate,
+      select), fit, orbit, views, transparency; from the object page and the part structure.
+- [ ] 6.9 Measure and section: distances, angles and coordinates between points and faces;
+      section planes along the axes or any face, with a cap.
+- [ ] 6.10 3D markups and saved views: annotations pinned on the model, with a camera, saved per
+      version, shared and discussed.
+- [ ] 6.11 2D/PDF viewer with markups: drawings and PDFs rendered in the browser with pages and
+      zoom; markups (arrows, text, clouds, rectangles) saved per version.
+- [ ] 6.12 MBD/PMI: dimensions, tolerances, datums and notes attached to the 3D model, grouped in
+      views, shown in the viewer and kept with the version; imported with the model when present.
+
+**Exit:** a STEP assembly is imported as CAD documents associated with parts and builds their
+structure; it is converted on check-in, explored in the browser (structure, measure, section,
+markups); and on release its drawing is published as a watermarked PDF.
 
 ## Phase 7 — Configuration
 Effectivity (date, serial, lot, block; effectivity contexts; pending effectivity via change) ·
