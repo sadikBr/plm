@@ -47,6 +47,7 @@ const DEFAULTS: Record<string, Handler> = {
   "GET /api/v1/objects/:id/signatures": () => [],
   "GET /api/v1/promotion-requests": () => [],
   "GET /api/v1/objects/:id/changes": () => [],
+  "GET /api/v1/objects/:id/variances": () => [],
   "GET /api/v1/objects/:id/structure": () => ({ rootId: "", spec: { type: "LATEST" }, nodes: [], truncated: false, elapsedMs: 0 }),
   "GET /api/v1/preferences/effective": () => [],
 };

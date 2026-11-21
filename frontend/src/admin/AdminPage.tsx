@@ -6,6 +6,7 @@ import { Loading } from "../components/common";
 import { PageHeader, Tabs } from "../components/Layout";
 import { t } from "../i18n/i18n";
 import { ActionsAdmin } from "./ActionsAdmin";
+import { ChangesAdmin } from "./ChangesAdmin";
 import { DeleteRulesAdmin } from "./DeleteRulesAdmin";
 import { DocumentTemplatesAdmin } from "./DocumentTemplatesAdmin";
 import { ExtensionsAdmin } from "./ExtensionsAdmin";
@@ -30,6 +31,7 @@ type Section =
   | "numbering"
   | "lifecycles"
   | "processes"
+  | "changes"
   | "delete-rules"
   | "document-links"
   | "roles"
@@ -53,6 +55,7 @@ const SECTIONS = (): [Section, string][] => [
   ["numbering", t("Numbering")],
   ["lifecycles", t("Lifecycles")],
   ["processes", t("Processes")],
+  ["changes", t("Changes")],
   ["delete-rules", t("Delete rules")],
   ["document-links", t("Part–document links")],
   ["roles", t("Team roles")],
@@ -106,6 +109,7 @@ export function AdminPage() {
         {tab === "numbering" && <NumberingAdmin />}
         {tab === "lifecycles" && <LifecyclesAdmin />}
         {tab === "processes" && <ProcessTemplatesAdmin />}
+        {tab === "changes" && <ChangesAdmin />}
         {tab === "delete-rules" && <DeleteRulesAdmin />}
         {tab === "document-links" && <DocumentLinkRulesAdmin />}
         {tab === "roles" && <RolesAdmin />}

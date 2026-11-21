@@ -11,6 +11,7 @@ dependencies {
     implementation(project(":backend:modules:identity"))
     implementation(project(":backend:modules:notifications"))
     implementation(libs.slf4j.api)
+    implementation(libs.jackson.databind)
 
     testImplementation(project(":backend:modules:identity"))
 }

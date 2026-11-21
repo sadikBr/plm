@@ -414,5 +414,20 @@
   "Matching objects": "Objets correspondants",
   "Every organization": "Toutes les organisations",
   "{name} only": "{name} uniquement",
-  "Offered when creating": "Proposé à la création"
+  "Offered when creating": "Proposé à la création",
+  "Changes": "Modifications",
+  "Change templates": "Modèles de modification",
+  "Prefilled changes: a type, a title, a description and the tasks created with it.": "Modifications préremplies : un type, un titre, une description et les tâches créées avec.",
+  "+ Template": "+ Modèle",
+  "Tasks": "Tâches",
+  "No change templates yet.": "Aucun modèle de modification.",
+  "Default title": "Titre par défaut",
+  "Tasks (one per line)": "Tâches (une par ligne)",
+  "Offered when creating changes": "Proposé à la création des modifications",
+  "Association rules": "Règles d'association",
+  "Which types each change type may link, per role. A change type and role with no rule allow any type.": "Les types que chaque type de modification peut lier, par rôle. Sans règle, tout type est admis.",
+  "Change type": "Type de modification",
+  "May link": "Peut lier",
+  "No rules: changes may link any type.": "Aucune règle : les modifications peuvent lier tout type.",
+  "Add the rule": "Ajouter la règle"
 }

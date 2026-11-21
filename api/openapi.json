@@ -240,6 +240,25 @@
         "required" : [ "level", "ok", "refresh" ],
         "type" : "object"
       },
+      "ActiveVariance" : {
+        "properties" : {
+          "changeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "scope" : {
+            "$ref" : "#/components/schemas/VarianceScope"
+          }
+        },
+        "required" : [ "changeId", "name", "number", "scope" ],
+        "type" : "object"
+      },
       "AddAlternate" : {
         "properties" : {
           "alternateId" : {
@@ -417,6 +436,28 @@
           }
         },
         "required" : [ "lifecycleId" ],
+        "type" : "object"
+      },
+      "AssociationRule" : {
+        "properties" : {
+          "changeTypeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "role" : {
+            "enum" : [ "AFFECTED", "RESULTING", "END_ITEM", "ADDRESSES", "IMPLEMENTS", "TASK" ],
+            "type" : "string"
+          },
+          "targetTypeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "changeTypeId", "id", "role", "targetTypeId" ],
         "type" : "object"
       },
       "AttachContent" : {
@@ -950,7 +991,7 @@
             "type" : "string"
           },
           "kind" : {
-            "enum" : [ "PROBLEM_REPORT", "CHANGE_REQUEST", "CHANGE_NOTICE", "CHANGE_TASK" ],
+            "enum" : [ "PROBLEM_REPORT", "CHANGE_REQUEST", "CHANGE_NOTICE", "CHANGE_TASK", "VARIANCE" ],
             "type" : "string"
           },
           "name" : {
@@ -1018,6 +1059,38 @@
         "required" : [ "changeId", "createdAt", "createdBy", "id", "role", "target" ],
         "type" : "object"
       },
+      "ChangeTemplate" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "tasks" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "title" : {
+            "type" : [ "string", "null" ]
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "id", "name", "tasks", "typeId" ],
+        "type" : "object"
+      },
       "ChangeView" : {
         "properties" : {
           "id" : {
@@ -1025,7 +1098,7 @@
             "type" : "string"
           },
           "kind" : {
-            "enum" : [ "PROBLEM_REPORT", "CHANGE_REQUEST", "CHANGE_NOTICE", "CHANGE_TASK" ],
+            "enum" : [ "PROBLEM_REPORT", "CHANGE_REQUEST", "CHANGE_NOTICE", "CHANGE_TASK", "VARIANCE" ],
             "type" : "string"
           },
           "linkedFrom" : {
@@ -5525,6 +5598,52 @@
         "required" : [ "name", "withFiles" ],
         "type" : "object"
       },
+      "SaveAssociationRule" : {
+        "properties" : {
+          "changeTypeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "role" : {
+            "enum" : [ "AFFECTED", "RESULTING", "END_ITEM", "ADDRESSES", "IMPLEMENTS", "TASK" ],
+            "type" : "string"
+          },
+          "targetTypeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "changeTypeId", "role", "targetTypeId" ],
+        "type" : "object"
+      },
+      "SaveChangeTemplate" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "tasks" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "title" : {
+            "type" : [ "string", "null" ]
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "name", "tasks", "typeId" ],
+        "type" : "object"
+      },
       "SaveContextTemplateRequest" : {
         "properties" : {
           "content" : {
@@ -7037,6 +7156,19 @@
         "required" : [ "alternates", "child", "createdAt", "createdBy", "designators", "id", "lineNumber", "parentIterationId", "quantity", "substitutes", "unit" ],
         "type" : "object"
       },
+      "UseChangeTemplate" : {
+        "properties" : {
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "contextId" ],
+        "type" : "object"
+      },
       "UsedPart" : {
         "properties" : {
           "hasChildren" : {
@@ -7186,6 +7318,27 @@
           }
         },
         "required" : [ "active", "condition", "id", "inherited", "message", "name", "order", "typeId", "updatedAt", "updatedBy" ],
+        "type" : "object"
+      },
+      "VarianceScope" : {
+        "properties" : {
+          "kind" : {
+            "enum" : [ "DEVIATION", "WAIVER" ],
+            "type" : "string"
+          },
+          "quantity" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "reason" : {
+            "type" : [ "string", "null" ]
+          },
+          "validUntil" : {
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "kind" ],
         "type" : "object"
       },
       "WebhookDelivery" : {
@@ -8206,6 +8359,292 @@
         "tags" : [ "Bulk" ]
       }
     },
+    "/api/v1/change-association-rules" : {
+      "get" : {
+        "operationId" : "changeSetupRules",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/AssociationRule"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change setup" ]
+      },
+      "post" : {
+        "operationId" : "changeSetupAddRule",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveAssociationRule"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssociationRule"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change setup" ]
+      }
+    },
+    "/api/v1/change-association-rules/{id}" : {
+      "delete" : {
+        "operationId" : "changeSetupDeleteRule",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change setup" ]
+      }
+    },
+    "/api/v1/change-templates" : {
+      "get" : {
+        "operationId" : "changeSetupTemplates",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ChangeTemplate"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change setup" ]
+      },
+      "post" : {
+        "operationId" : "changeSetupCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveChangeTemplate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChangeTemplate"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change setup" ]
+      }
+    },
+    "/api/v1/change-templates/{id}" : {
+      "delete" : {
+        "operationId" : "changeSetupDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change setup" ]
+      },
+      "put" : {
+        "operationId" : "changeSetupUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveChangeTemplate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChangeTemplate"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change setup" ]
+      }
+    },
+    "/api/v1/change-templates/{id}/use" : {
+      "post" : {
+        "operationId" : "changeSetupUse",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UseChangeTemplate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Created"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change setup" ]
+      }
+    },
     "/api/v1/changes/from" : {
       "post" : {
         "operationId" : "changeCreateFrom",
@@ -8419,6 +8858,88 @@
           }
         },
         "tags" : [ "Change" ]
+      }
+    },
+    "/api/v1/changes/{id}/variance" : {
+      "get" : {
+        "operationId" : "changeSetupVariance",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VarianceScope"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change setup" ]
+      },
+      "put" : {
+        "operationId" : "changeSetupSetVariance",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/VarianceScope"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VarianceScope"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change setup" ]
       }
     },
     "/api/v1/comments/{commentId}" : {
@@ -16169,6 +16690,46 @@
         "tags" : [ "Replacement" ]
       }
     },
+    "/api/v1/objects/{id}/variances" : {
+      "get" : {
+        "operationId" : "changeSetupActive",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ActiveVariance"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Change setup" ]
+      }
+    },
     "/api/v1/objects/{id}/where-used" : {
       "get" : {
         "operationId" : "bomWhereUsed",
@@ -20528,6 +21089,8 @@
     "name" : "Bulk"
   }, {
     "name" : "Change"
+  }, {
+    "name" : "Change setup"
   }, {
     "name" : "Configuration"
   }, {

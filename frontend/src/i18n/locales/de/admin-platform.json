@@ -414,5 +414,20 @@
   "Matching objects": "Passende Objekte",
   "Every organization": "Alle Organisationen",
   "{name} only": "Nur {name}",
-  "Offered when creating": "Beim Erstellen angeboten"
+  "Offered when creating": "Beim Erstellen angeboten",
+  "Changes": "Änderungen",
+  "Change templates": "Änderungsvorlagen",
+  "Prefilled changes: a type, a title, a description and the tasks created with it.": "Vorausgefüllte Änderungen: Typ, Titel, Beschreibung und die mit angelegten Aufgaben.",
+  "+ Template": "+ Vorlage",
+  "Tasks": "Aufgaben",
+  "No change templates yet.": "Noch keine Änderungsvorlagen.",
+  "Default title": "Standardtitel",
+  "Tasks (one per line)": "Aufgaben (eine pro Zeile)",
+  "Offered when creating changes": "Beim Anlegen von Änderungen angeboten",
+  "Association rules": "Zuordnungsregeln",
+  "Which types each change type may link, per role. A change type and role with no rule allow any type.": "Welche Typen jeder Änderungstyp je Rolle verknüpfen darf. Ohne Regel ist jeder Typ erlaubt.",
+  "Change type": "Änderungstyp",
+  "May link": "Darf verknüpfen",
+  "No rules: changes may link any type.": "Keine Regeln: Änderungen dürfen jeden Typ verknüpfen.",
+  "Add the rule": "Regel hinzufügen"
 }

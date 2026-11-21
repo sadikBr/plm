@@ -6,7 +6,7 @@ import java.time.Instant
 import java.util.UUID
 
 /** The kinds of change object (roadmap 5.8), each a type (and its subtypes). */
-enum class ChangeKind { PROBLEM_REPORT, CHANGE_REQUEST, CHANGE_NOTICE, CHANGE_TASK }
+enum class ChangeKind { PROBLEM_REPORT, CHANGE_REQUEST, CHANGE_NOTICE, CHANGE_TASK, VARIANCE }
 
 /**
  * How a change object relates to something. AFFECTED, RESULTING and END_ITEM point to parts and
@@ -140,4 +140,124 @@ data class ChangeLinked(
     override val eventType = "change.ChangeLinked.v1"
     override val aggregateType get() = "change"
     override val aggregateId get() = changeId
+}
+
+// ---------- Change templates, association rules and variances (roadmap 5.10) ----------
+
+data class ChangeTemplate(
+    val id: UUID,
+    val name: String,
+    /** The change type it creates. */
+    val typeId: UUID,
+    /** The new change's name, unless one is given. */
+    val title: String?,
+    val description: String?,
+    /** For a change notice: the change tasks it starts with. */
+    val tasks: List<String>,
+    val active: Boolean,
+)
+
+data class SaveChangeTemplate(
+    val name: String,
+    val typeId: UUID,
+    val title: String? = null,
+    val description: String? = null,
+    val tasks: List<String> = emptyList(),
+    val active: Boolean = true,
+)
+
+data class UseChangeTemplate(
+    val contextId: UUID,
+    val name: String? = null,
+)
+
+/** Only these target types (and their subtypes) may be linked to [changeTypeId] changes as [role]. */
+data class AssociationRule(
+    val id: UUID,
+    val changeTypeId: UUID,
+    val role: ChangeRole,
+    val targetTypeId: UUID,
+)
+
+data class SaveAssociationRule(
+    val changeTypeId: UUID,
+    val role: ChangeRole,
+    val targetTypeId: UUID,
+)
+
+enum class VarianceKind {
+    /** Before making: permission to build differently. */
+    DEVIATION,
+
+    /** After making: acceptance of what was built differently. */
+    WAIVER,
+}
+
+/** A variance's scope: until a date, for a quantity, or both. */
+data class VarianceScope(
+    val kind: VarianceKind,
+    val validUntil: java.time.LocalDate? = null,
+    val quantity: Int? = null,
+    val reason: String? = null,
+)
+
+/** A variance in force on an object: approved, within its date. */
+data class ActiveVariance(
+    val changeId: UUID,
+    val number: String,
+    val name: String,
+    val scope: VarianceScope,
+)
+
+/** Change templates and association rules (site administrators), and variances' scope. */
+interface ChangeSetupService {
+    fun templates(actor: Actor): List<ChangeTemplate>
+
+    fun saveTemplate(
+        actor: Actor,
+        id: UUID?,
+        request: SaveChangeTemplate,
+    ): ChangeTemplate
+
+    fun deleteTemplate(
+        actor: Actor,
+        id: UUID,
+    )
+
+    /** Creates a change from a template (with its tasks, for a notice); returns its id. */
+    fun useTemplate(
+        actor: Actor,
+        id: UUID,
+        request: UseChangeTemplate,
+    ): UUID
+
+    fun rules(actor: Actor): List<AssociationRule>
+
+    fun addRule(
+        actor: Actor,
+        request: SaveAssociationRule,
+    ): AssociationRule
+
+    fun deleteRule(
+        actor: Actor,
+        id: UUID,
+    )
+
+    fun variance(
+        actor: Actor,
+        changeId: UUID,
+    ): VarianceScope?
+
+    /** Needs MODIFY on the variance, in an editable state. */
+    fun setVariance(
+        actor: Actor,
+        changeId: UUID,
+        scope: VarianceScope,
+    ): VarianceScope
+
+    /** Variances in force on [objectId]: approved, affecting it, not past their date. */
+    fun activeVariances(
+        actor: Actor,
+        objectId: UUID,
+    ): List<ActiveVariance>
 }

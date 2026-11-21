@@ -20,6 +20,7 @@ value class TypeId(
         val CHANGE_REQUEST = TypeId(UUID.fromString("00000000-0000-7000-8000-000000000105"))
         val CHANGE_NOTICE = TypeId(UUID.fromString("00000000-0000-7000-8000-000000000106"))
         val CHANGE_TASK = TypeId(UUID.fromString("00000000-0000-7000-8000-000000000107"))
+        val VARIANCE = TypeId(UUID.fromString("00000000-0000-7000-8000-000000000108"))
 
         /** Stands for "no type" on a global attribute's own definition (it is used by types, not defined on one). */
         val GLOBAL = TypeId(UUID(0, 0))

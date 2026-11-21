@@ -23,6 +23,7 @@ export const CHANGE_TYPES: Record<Kind, string> = {
   CHANGE_REQUEST: "00000000-0000-7000-8000-000000000105",
   CHANGE_NOTICE: "00000000-0000-7000-8000-000000000106",
   CHANGE_TASK: "00000000-0000-7000-8000-000000000107",
+  VARIANCE: "00000000-0000-7000-8000-000000000108",
 };
 
 export function kindLabel(k: Kind): string {
@@ -35,6 +36,8 @@ export function kindLabel(k: Kind): string {
       return t("Change notice");
     case "CHANGE_TASK":
       return t("Change task");
+    case "VARIANCE":
+      return t("Variance");
   }
   return k;
 }
@@ -99,6 +102,7 @@ export function useChanges() {
 export function ChangesPage() {
   const { data, isLoading, error } = useChanges();
   const [creating, setCreating] = useState<Kind | null>(null);
+  const [fromTemplate, setFromTemplate] = useState(false);
   const [kind, setKind] = useState<Kind | "">("");
   const rows = (data?.hits ?? []).filter((h) => !kind || h.typeId === CHANGE_TYPES[kind]);
   return (
@@ -122,7 +126,10 @@ export function ChangesPage() {
                   </option>
                 ))}
               </select>
-              {(["PROBLEM_REPORT", "CHANGE_REQUEST", "CHANGE_NOTICE"] as Kind[]).map((k) => (
+              <button className="btn small" onClick={() => setFromTemplate(true)}>
+                {t("From a template…")}
+              </button>
+              {(["PROBLEM_REPORT", "CHANGE_REQUEST", "CHANGE_NOTICE", "VARIANCE"] as Kind[]).map((k) => (
                 <button key={k} className="btn small" onClick={() => setCreating(k)}>
                   <Plus size={13} aria-hidden /> {kindLabel(k)}
                 </button>
@@ -168,6 +175,7 @@ export function ChangesPage() {
         </Panel>
       </div>
       {creating && <NewChangeDialog kind={creating} onClose={() => setCreating(null)} />}
+      {fromTemplate && <FromTemplateDialog onClose={() => setFromTemplate(false)} />}
     </>
   );
 }
@@ -352,7 +360,8 @@ export function ChangeTab({ obj, kind }: { obj: VersionedObject; kind: Kind }) {
       {section("AFFECTED", t("Affected objects"), t("What the change is about: the versions to change."))}
       {(kind === "CHANGE_NOTICE" || kind === "CHANGE_TASK") &&
         section("RESULTING", t("Resulting objects"), t("The new versions the change produces."))}
-      {kind !== "CHANGE_TASK" && section("END_ITEM", t("End items"), t("The products concerned."))}
+      {kind === "VARIANCE" && <VarianceScopePanel changeId={obj.id} />}
+      {kind !== "CHANGE_TASK" && kind !== "VARIANCE" && section("END_ITEM", t("End items"), t("The products concerned."))}
     </div>
   );
 }
@@ -526,5 +535,166 @@ function PlanRow({ noticeId, entry, onChanged }: { noticeId: string; entry: Sche
         <ErrorBanner error={save.error} />
       </td>
     </tr>
+  );
+}
+
+function FromTemplateDialog({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
+  const { data: templates } = useQuery({ queryKey: ["changeTemplates"], queryFn: () => unwrap(api.GET("/api/v1/change-templates")) });
+  const { data: products } = useContextsOfKind("PRODUCT");
+  const active = (templates ?? []).filter((x) => x.active);
+  const [templateId, setTemplateId] = useState("");
+  const [contextId, setContextId] = useState("");
+  const [name, setName] = useState("");
+  const chosen = templateId || active[0]?.id || "";
+  const use = useMutation({
+    mutationFn: () =>
+      unwrap(
+        api.POST("/api/v1/change-templates/{id}/use", {
+          params: { path: { id: chosen } },
+          body: { contextId: contextId || products![0]!.id, name: name.trim() || null },
+        }),
+      ),
+    onSuccess: (r) => navigate(`/objects/${r.id}?tab=change`),
+  });
+  const template = active.find((x) => x.id === chosen);
+  return (
+    <Dialog
+      open
+      title={t("New change from a template")}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn" onClick={onClose}>
+            {t("Cancel")}
+          </button>
+          <button className="btn primary" disabled={!chosen || use.isPending} onClick={() => use.mutate()}>
+            {t("Create")}
+          </button>
+        </>
+      }
+    >
+      <div className="attr-form">
+        <div className="field">
+          <label htmlFor="tpl-id">{t("Template")}</label>
+          <select id="tpl-id" value={chosen} onChange={(e) => setTemplateId(e.target.value)}>
+            {active.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.name}
+              </option>
+            ))}
+          </select>
+          {template?.description && <span className="hint">{template.description}</span>}
+          {!!template?.tasks.length && <span className="hint">{t("With tasks: {tasks}", { tasks: template.tasks.join(", ") })}</span>}
+        </div>
+        <div className="field">
+          <label htmlFor="tpl-name">{t("Name")}</label>
+          <input
+            id="tpl-name"
+            value={name}
+            placeholder={template?.title ?? template?.name ?? ""}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="tpl-context">{t("In")}</label>
+          <select id="tpl-context" value={contextId} onChange={(e) => setContextId(e.target.value)}>
+            {(products ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <ErrorBanner error={use.error} />
+      </div>
+    </Dialog>
+  );
+}
+
+/** A variance's scope (roadmap 5.10): deviation or waiver, until when, for how many. */
+function VarianceScopePanel({ changeId }: { changeId: string }) {
+  const qc = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["variance", changeId],
+    queryFn: () => unwrap(api.GET("/api/v1/changes/{id}/variance", { params: { path: { id: changeId } } })),
+  });
+  return data === undefined ? null : (
+    <VarianceForm
+      key={JSON.stringify(data)}
+      changeId={changeId}
+      scope={data}
+      onSaved={() => void qc.invalidateQueries({ queryKey: ["variance", changeId] })}
+    />
+  );
+}
+
+function VarianceForm({ changeId, scope, onSaved }: { changeId: string; scope: Schemas["VarianceScope"] | null; onSaved: () => void }) {
+  const [kind, setKind] = useState<Schemas["VarianceScope"]["kind"]>(scope?.kind ?? "DEVIATION");
+  const [until, setUntil] = useState(scope?.validUntil ?? "");
+  const [quantity, setQuantity] = useState(scope?.quantity ? String(scope.quantity) : "");
+  const [reason, setReason] = useState(scope?.reason ?? "");
+  const save = useMutation({
+    mutationFn: () =>
+      unwrap(
+        api.PUT("/api/v1/changes/{id}/variance", {
+          params: { path: { id: changeId } },
+          body: { kind, validUntil: until || null, quantity: quantity ? Number(quantity) : null, reason: reason.trim() || null },
+        }),
+      ),
+    onSuccess: onSaved,
+  });
+  return (
+    <Panel title={t("Scope")} note={t("A variance is in force once approved, on its affected objects, within its scope.")}>
+      <div className="attr-form cols-3">
+        <div className="field">
+          <label htmlFor="var-kind">{t("Kind")}</label>
+          <select id="var-kind" value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
+            <option value="DEVIATION">{t("Deviation (before making)")}</option>
+            <option value="WAIVER">{t("Waiver (after making)")}</option>
+          </select>
+        </div>
+        <div className="field">
+          <label htmlFor="var-until">{t("Valid until")}</label>
+          <input id="var-until" type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
+        </div>
+        <div className="field">
+          <label htmlFor="var-qty">{t("For a quantity of")}</label>
+          <input id="var-qty" inputMode="numeric" value={quantity} onChange={(e) => setQuantity(e.target.value.replace(/\D/g, ""))} />
+        </div>
+        <div className="field wide">
+          <label htmlFor="var-reason">{t("Why")}</label>
+          <input id="var-reason" value={reason} onChange={(e) => setReason(e.target.value)} />
+        </div>
+        <div className="field">
+          <button className="btn primary small" onClick={() => save.mutate()} disabled={save.isPending}>
+            {t("Save the scope")}
+          </button>
+        </div>
+      </div>
+      <ErrorBanner error={save.error} />
+    </Panel>
+  );
+}
+
+/** On a part or document: the variances in force on it (roadmap 5.10). */
+export function VariancesBanner({ objectId }: { objectId: string }) {
+  const { data } = useQuery({
+    queryKey: ["variances", objectId],
+    queryFn: () => unwrap(api.GET("/api/v1/objects/{id}/variances", { params: { path: { id: objectId } } })),
+  });
+  if (!data?.length) return null;
+  return (
+    <div className="banner warn variance-banner" role="note">
+      {data.map((v) => (
+        <div key={v.changeId}>
+          <strong>{v.scope.kind === "WAIVER" ? t("Waiver") : t("Deviation")}</strong>{" "}
+          <Link to={`/objects/${v.changeId}?tab=change`}>{v.number}</Link> {v.name}
+          {v.scope.validUntil && <> · {t("until {date}", { date: v.scope.validUntil })}</>}
+          {v.scope.quantity && <> · {tn("for {n} piece", "for {n} pieces", v.scope.quantity)}</>}
+          {v.scope.reason && <span className="muted"> — {v.scope.reason}</span>}
+        </div>
+      ))}
+    </div>
   );
 }

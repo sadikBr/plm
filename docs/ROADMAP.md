@@ -372,8 +372,12 @@ affected objects; and the platform can be extended with scripts, UI slots and no
       submit, a signed majority vote of the product managers, approve or reject) decides requests.
       A notice can't be resolved while a task is open; resolving it releases its resulting objects
       and resolves the requests it implements and the problem reports they address.
-- [ ] 5.10 Change templates, association rules and variances: templates prefill changes; rules say
+- [x] 5.10 Change templates, association rules and variances: templates prefill changes; rules say
       which types may be affected or linked; variances (deviations, waivers) with a limited scope.
+      Done: administrators keep change templates (type, title, description, tasks created with the
+      change) and association rules (per change type and role, the types it may link; none means any)
+      under Administration › Changes. A variance is a deviation or waiver with an end date, a quantity
+      and a reason; once approved it shows as a banner on each affected part or document.
 - [ ] 5.11 Redlines and mass change: proposed structure edits inside a change task, applied when
       it is implemented; mass changes (replace, set value) across a change's affected objects.
 - [ ] 5.12 Change dashboards: open changes by state and age, my changes, cycle time; widgets for

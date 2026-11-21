@@ -56,6 +56,7 @@ internal fun changeKind(
         TypeId.CHANGE_REQUEST in lineage -> ChangeKind.CHANGE_REQUEST
         TypeId.CHANGE_NOTICE in lineage -> ChangeKind.CHANGE_NOTICE
         TypeId.CHANGE_TASK in lineage -> ChangeKind.CHANGE_TASK
+        TypeId.VARIANCE in lineage -> ChangeKind.VARIANCE
         else -> null
     }
 }
@@ -239,6 +240,24 @@ internal class DefaultChangeService(
                 }
         }
         if (request.role == ChangeRole.END_ITEM && base != BaseClass.PART) bad("End items are parts")
+        // Association rules (roadmap 5.10): when some apply, the target must be one of their types.
+        val changeLineage = types.lineage(actor, o.typeId).map { it.value }
+        val allowed =
+            jdbc
+                .sql(
+                    """
+                    select target_type_id from change_association_rule
+                    where tenant_id = :tenant and role = :role and change_type_id in (:types)
+                    """.trimIndent(),
+                ).param("tenant", actor.tenant.value)
+                .param("role", request.role.name)
+                .param("types", changeLineage)
+                .query { rs, _ -> rs.getObject(1, UUID::class.java) }
+                .list()
+        if (allowed.isNotEmpty() && types.lineage(actor, target.typeId).none { it.value in allowed }) {
+            val names = allowed.mapNotNull { runCatching { types.get(actor, TypeId(it)).displayName }.getOrNull() }
+            bad("Only ${names.joinToString(", ")} can be ${request.role.name.lowercase().replace('_', ' ')} here")
+        }
         if (target.id == o.id) bad("A change can't point to itself")
         val id = UuidV7.generate(clock)
         val inserted =
@@ -392,9 +411,9 @@ internal class DefaultChangeService(
                     }
                     TypeId.CHANGE_TASK to null
                 }
-                ChangeKind.PROBLEM_REPORT -> throw ValidationException(
+                ChangeKind.PROBLEM_REPORT, ChangeKind.VARIANCE -> throw ValidationException(
                     "INVALID_CHANGE",
-                    "Problem reports start a chain",
+                    "Problem reports and variances start on their own",
                 )
             }
         val chosenType = request.typeId?.let(::TypeId)?.takeIf { type in types.lineage(actor, it) } ?: type
