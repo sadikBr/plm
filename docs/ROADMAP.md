@@ -495,8 +495,12 @@ seat.
       Publications list them. With the watermark setting on, every PDF handed out (files,
       publications, data sheets) carries who downloaded it and when. Any object's data sheet
       (attributes, structure, files, history) is a PDF on demand.
-- [ ] 6.8 Web 3D viewer: the model in the browser with its structure tree (show, hide, isolate,
+- [x] 6.8 Web 3D viewer: the model in the browser with its structure tree (show, hide, isolate,
       select), fit, orbit, views, transparency; from the object page and the part structure.
+      Done: a 3D view tab on CAD parts and assemblies, and on parts whose geometry a model owns,
+      shows the converted glTF (three.js, loaded on demand) with the model's assembly tree: show
+      or hide each branch, select from the tree or by clicking the model, isolate, zoom to, fit,
+      iso, front, top and right views, orbit, pan and zoom, and a see-through mode.
 - [ ] 6.9 Measure and section: distances, angles and coordinates between points and faces;
       section planes along the axes or any face, with a cap.
 - [ ] 6.10 3D markups and saved views: annotations pinned on the model, with a camera, saved per

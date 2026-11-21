@@ -37,6 +37,17 @@ function changeLabel(c: string): string {
 }
 
 /** On a part (roadmap 6.4): its CAD models, and building its structure from the owning one. */
+/** The model that owns [partId]'s geometry, if any: what its 3D view shows (roadmap 6.8). */
+export function useOwnerModel(partId: string, enabled: boolean) {
+  const { data } = useQuery({
+    queryKey: ["cadAssociations", partId, false],
+    queryFn: () =>
+      unwrap(api.GET("/api/v1/objects/{id}/cad/associations", { params: { path: { id: partId }, query: { workingCopy: false } } })),
+    enabled,
+  });
+  return data?.find((a) => a.kind === "OWNER" && a.model.readable)?.model.id;
+}
+
 export function PartCadPanel({ obj, mine }: { obj: VersionedObject; mine: boolean }) {
   const qc = useQueryClient();
   const key = ["cadAssociations", obj.id, mine];

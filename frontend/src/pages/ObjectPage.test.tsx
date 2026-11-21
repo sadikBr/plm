@@ -317,3 +317,26 @@ describe("ObjectPage", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("Send to ERP: Production order SO-4711 created");
   });
 });
+
+describe("ObjectPage 3D view", () => {
+  const model = { id: "01a1f962-0000-7000-8000-0000000000c1", number: "CAD-000001", readable: true, hasDependencies: false };
+  it("offers the 3D view of a part's owning model, and says when there's nothing converted yet", async () => {
+    const obj = object();
+    apiFor(obj, ["READ"], {
+      "GET /api/v1/objects/:id/cad/associations": () => [{ id: "a1", kind: "OWNER", model, part: { id: obj.id } }],
+      "GET /api/v1/objects/:id/cad/viewable": () => ({ status: "NONE", modelId: model.id }),
+    });
+    renderAt(`/objects/${obj.id}?tab=view3d`);
+    expect(await screen.findByText(/the model has no converted STEP file/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Model" })).toHaveAttribute("href", `/objects/${model.id}?tab=cad`);
+  });
+
+  it("has no 3D view for a part without a model", async () => {
+    const obj = object();
+    apiFor(obj, ["READ"]);
+    renderAt(`/objects/${obj.id}`);
+    await screen.findByRole("link", { name: "Where used" });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByRole("link", { name: "3D view" })).not.toBeInTheDocument();
+  });
+});

@@ -3,7 +3,8 @@ import { ProcessesTab } from "../workflow/Processes";
 import { ChangeTab, ObjectChangesTab, VariancesBanner, changeKindOf, kindLabel, useReleaseGate } from "../changes/Changes";
 import { SignaturesPanel } from "../workflow/Signatures";
 import { CadTab, cadKindOf } from "../cad/CadTab";
-import { PartCadPanel } from "../cad/Associations";
+import { PartCadPanel, useOwnerModel } from "../cad/Associations";
+import { ViewTab } from "../cad/ViewTab";
 import { PublicationsPanel } from "../publishing/Publishing";
 import { ExtensionPanels, ExtensionTab, useUiSlots } from "../extensions/ExtensionFrame";
 import { ReplacementsTab } from "../structure/Replacements";
@@ -76,6 +77,7 @@ type Tab =
   | "processes"
   | "change"
   | "cad"
+  | "view3d"
   | "changes"
   | "discussion"
   | "history"
@@ -98,6 +100,8 @@ function ObjectView({ id }: { id: string }) {
   const discussionCount = comments?.filter((c) => !c.parentId && !c.resolved).length ?? 0;
   const { data: allTypes } = useTypes();
   const { data: uiSlots } = useUiSlots(id);
+  const partLike = allTypes?.find((ty) => ty.id === obj?.typeId)?.baseClass === "PART";
+  const ownerModel = useOwnerModel(id, partLike);
 
   if (isLoading) return <Loading />;
   if (isApiError(error, 404)) return <NotFoundPage what="object" />;
@@ -111,6 +115,7 @@ function ObjectView({ id }: { id: string }) {
     ...(cadKind
       ? [["cad", cadKind === "PART" ? t("Model") : cadKind === "DRAWING" ? t("Models") : t("Model structure")] as [Tab, string]]
       : []),
+    ...((cadKind && cadKind !== "DRAWING") || ownerModel ? [["view3d", t("3D view")] as [Tab, string]] : []),
     ...(isPart
       ? [
           ["structure", t("Structure")] as [Tab, string],
@@ -138,6 +143,7 @@ function ObjectView({ id }: { id: string }) {
       <div className="content">
         {tab === "details" && <DetailsTab obj={obj} myId={myId} />}
         {tab === "cad" && cadKind && <CadTab obj={obj} kind={cadKind} mine={!!myId && obj.checkedOutBy === myId} />}
+        {tab === "view3d" && <ViewTab obj={obj} modelId={cadKind ? obj.id : ownerModel!} />}
         {tab === "structure" && <PartCadPanel obj={obj} mine={!!myId && obj.checkedOutBy === myId} />}
         {tab === "structure" && <StructureTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}
         {tab === "where-used" && <WhereUsedTab obj={obj} />}
