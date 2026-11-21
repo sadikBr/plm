@@ -942,7 +942,7 @@ table.grid.compact td { padding: 6px 8px; vertical-align: top; }
 .topbar .topbar-link, .topbar .chip-admin, .topbar .who a { white-space: nowrap; }
 .topbar .topbar-link { padding-left: 8px; padding-right: 8px; }
 .topbar .global-search, .topbar form[role="search"] { min-width: 200px; }
-@media (max-width: 1500px) { .topbar .chip-admin { display: none; } }
+@media (max-width: 1500px) { .topbar .who [data-testid="current-user"] { display: none; } }
 .small-input { width: 120px; }
 table.grid td input[type="date"] { width: 150px; }
 
@@ -950,9 +950,9 @@ table.grid td input[type="date"] { width: 150px; }
 .viz-root { --series-2: #eb6834; --seq-250: #86b6ef; --seq-400: #3987e5; --seq-550: #1c5cab; --seq-700: #0d366b; }
 .viz-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--text-2); padding-bottom: 6px; }
 .viz-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 2px; }
-.stack { display: flex; gap: 2px; height: 14px; min-width: 3px; }
-.stack-seg { display: block; height: 100%; }
-.stack-seg:last-child { border-radius: 0 4px 4px 0; }
+.age-stack { display: flex; gap: 2px; height: 14px; min-width: 3px; }
+.age-stack-seg { display: block; height: 100%; }
+.age-stack-seg:last-child { border-radius: 0 4px 4px 0; }
 .flow-chart { padding: 10px 14px; }
 .flow-plot { position: relative; display: flex; align-items: flex-end; gap: 6px; height: 160px; padding-top: 14px; border-bottom: 1px solid var(--viz-grid); }
 .flow-max { position: absolute; top: 0; left: 0; font-size: 11px; color: var(--text-3, var(--text-2)); }
@@ -989,3 +989,7 @@ textarea.script-source { min-height: 220px; line-height: 1.45; tab-size: 2; }
 .step-no { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 650; }
 .run-steps { margin: 0; padding-left: 18px; font-size: 12.5px; }
 .run-steps li.failed { color: var(--danger); }
+/* A narrow top bar keeps its links' icons; their names stay for screen readers and tooltips. */
+@media (max-width: 1440px) {
+  .topbar .tl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}

@@ -89,6 +89,9 @@ test("alice sets up a product, bob works on a part, carol sees nothing", async (
     await alice.locator(".toolbar").getByRole("button", { name: "Set state" }).click();
     await alice.getByRole("menuitem", { name: to, exact: true }).click();
     await alice.getByRole("dialog").getByLabel("Comment").fill(`Moved to ${to}`);
+    // The release gate (roadmap 5.13): Released comes from a change; an administrator may override.
+    const gate = alice.getByRole("dialog").getByLabel(/Override the gate/);
+    if (to === "Released") await gate.check();
     await alice.getByRole("dialog").getByRole("button", { name: "Set state" }).click();
     await expect(alice.locator(".title-row .state")).toHaveText(to);
   };

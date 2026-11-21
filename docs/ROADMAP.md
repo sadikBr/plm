@@ -294,7 +294,7 @@ builds, compares, baselines and imports a structure.
 `e2e/structure-flow.spec.ts` builds a structure, imports one from a file, compares it with its
 earlier version and baselines it.
 
-## Phase 5 — Workflow, change management and extensibility v2
+## Phase 5 — Workflow, change management and extensibility v2 (complete)
 
 **Goal:** changes to released data are governed: people review, approve and sign in processes
 that survive restarts; problems flow into change requests and notices that revise and release the
@@ -429,6 +429,11 @@ affected objects; and the platform can be extended with scripts, UI slots and no
 **Exit:** a part can only reach Released through an approved change notice or promotion request;
 the e2e suite takes a problem report through a change request and notice to a released part, with
 a signed approval.
+**Met:** ReleaseGateIT shows parts and documents reach Released only when a change notice is
+resolved or a promotion request approved (or an administrator overrides, recorded);
+`e2e/change-flow.spec.ts` reports a problem, raises a change request, has the product's managers
+approve it on the change board with their passwords (signed), makes a change notice with the part
+as its result, resolves it, and finds the part Released and the request and report resolved.
 
 ## Phase 6 — CAD data and visualization
 CAD document type, dependency structure, family tables, collector · part↔CAD association and

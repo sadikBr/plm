@@ -26,25 +26,25 @@ export function Layout() {
         {shows("search") && <GlobalSearch />}
         <div className="spacer" />
         <InboxLink />
-        <NavLink to="/changes" className="topbar-link">
-          <ClipboardList size={14} aria-hidden /> {t("Changes")}
+        <NavLink to="/changes" className="topbar-link" title={t("Changes")}>
+          <ClipboardList size={14} aria-hidden /> <span className="tl">{t("Changes")}</span>
         </NavLink>
-        <NavLink to="/reports" className="topbar-link">
-          <BarChart3 size={14} aria-hidden /> {t("Reports")}
+        <NavLink to="/reports" className="topbar-link" title={t("Reports")}>
+          <BarChart3 size={14} aria-hidden /> <span className="tl">{t("Reports")}</span>
         </NavLink>
-        <NavLink to="/baselines" className="topbar-link">
-          <Archive size={14} aria-hidden /> {t("Baselines")}
+        <NavLink to="/baselines" className="topbar-link" title={t("Baselines")}>
+          <Archive size={14} aria-hidden /> <span className="tl">{t("Baselines")}</span>
         </NavLink>
-        <NavLink to="/dashboards" className="topbar-link">
-          <LayoutDashboard size={14} aria-hidden /> {t("Dashboards")}
+        <NavLink to="/dashboards" className="topbar-link" title={t("Dashboards")}>
+          <LayoutDashboard size={14} aria-hidden /> <span className="tl">{t("Dashboards")}</span>
         </NavLink>
         <ClipboardButton />
         <NotificationBell />
         <div className="who">
           {me?.siteAdmin && (
-            <NavLink to="/admin" className="topbar-link">
+            <NavLink to="/admin" className="topbar-link" title={t("Admin")}>
               <Settings size={14} aria-hidden />
-              {t("Admin")}
+              <span className="tl">{t("Admin")}</span>
             </NavLink>
           )}
           {me?.siteAdmin && <span className="chip-admin">{t("Site admin")}</span>}

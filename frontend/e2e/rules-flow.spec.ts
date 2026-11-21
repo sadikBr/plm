@@ -4,8 +4,11 @@ import { API, KEYCLOAK, asUser } from "./support";
 
 /** Roadmap 2.5 (and the Phase 2 exit): an extension's rule refuses check-in without a description. */
 let installed: { id: string; headers: Record<string, string> } | undefined;
+let gateOff: Record<string, string> | undefined;
 test.afterEach(async ({ request }) => {
   if (installed) await request.delete(`${API}/api/v1/extensions/${installed.id}`, { headers: installed.headers });
+  // The release gate (roadmap 5.13) is off for this test, which releases directly: back on.
+  if (gateOff) await request.put(`${API}/api/v1/release-gate`, { headers: gateOff, data: { enabled: true, states: ["RELEASED"] } });
 });
 
 test("the quality rules refuse a check-in without a description and a release without a reason", async ({ browser, request }) => {
@@ -19,6 +22,10 @@ test("the quality rules refuse a check-in without a description and a release wi
     expect(r.ok(), `${path}: ${await r.text()}`).toBeTruthy();
     return r.json();
   };
+
+  // Released through a change is roadmap 5.13's; here the rule is what's tested, so the gate is off.
+  gateOff = headers;
+  expect((await request.put(`${API}/api/v1/release-gate`, { headers, data: { enabled: false, states: ["RELEASED"] } })).ok()).toBeTruthy();
 
   // A type of its own, so the rules don't touch other tests' parts.
   const typeName = `Gear${suffix}`;

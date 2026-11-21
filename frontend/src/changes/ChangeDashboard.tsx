@@ -142,9 +142,9 @@ function AgeChart({ ages }: { ages: Schemas["ChangeAges"][] }) {
           >
             <span className="bar-label">{kindLabel(a.kind)}</span>
             <span className="bar-track">
-              <span className="stack" style={{ width: `${(total / top) * 100}%` }}>
+              <span className="age-stack" style={{ width: `${(total / top) * 100}%` }}>
                 {buckets.map(([k, , color]) =>
-                  a[k] ? <span key={k} className="stack-seg" style={{ flex: a[k], background: color }} /> : null,
+                  a[k] ? <span key={k} className="age-stack-seg" style={{ flex: a[k], background: color }} /> : null,
                 )}
               </span>
               <span className="bar-value">{total}</span>

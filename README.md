@@ -3,12 +3,14 @@
 An open Product Lifecycle Management (PLM) platform: documents, parts, multi-level BOMs,
 lifecycles, workflows and change management, built to scale to millions of objects.
 
-> Status: **Phase 4 complete**: multi-level product structures with configuration specifications,
-> occurrences and reference designators, where-used, part–document links, alternates and
-> substitutes, structure comparison, baselines, roll-ups, reference and alias attributes, BOM
-> import and export, and bulk revise and mass replace; on top of documents, search, reports and
+> Status: **Phase 5 complete**: processes on Temporal (templates drawn in the UI, tasks and an
+> inbox, votes, deadlines and escalation, stand-ins, electronic signatures), promotion requests,
+> change management (problem reports, change requests, change notices and tasks, a change board,
+> implementation plans, templates, association rules, variances, redlines and mass changes, change
+> dashboards) and a release gate; sandboxed server scripts, extension panels, tabs and endpoints,
+> and no-code automations. On top of product structures (Phase 4), documents, search, reports and
 > collaboration (Phase 3), the extensibility platform (Phase 2) and the core model (Phase 1).
-> Next: Phase 5, workflow and change management. See the [roadmap](docs/ROADMAP.md).
+> Next: Phase 6, CAD data and visualization. See the [roadmap](docs/ROADMAP.md).
 
 ![Object page: a checked-out part with its working copy](docs/images/ui-object.png) See the [roadmap](docs/ROADMAP.md).
 
