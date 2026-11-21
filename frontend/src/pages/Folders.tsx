@@ -1,3 +1,4 @@
+import { SubscribeButton } from "../personal/Personal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, ClipboardPaste, Folder as FolderIcon, FolderPlus, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -97,6 +98,9 @@ export function FolderBar({
           ))}
         </nav>
         <span className="grow" />
+        {folderId && path && (
+          <SubscribeButton kind="FOLDER" targetId={folderId} label={[contextName, ...path.map((f) => f.name)].join(" / ")} />
+        )}
         {clipboard.items.length > 0 && (
           <MenuButton label={`Paste ${clipboard.items.length} here`} icon={<ClipboardPaste size={13} aria-hidden />} className="btn small">
             {(close) => (

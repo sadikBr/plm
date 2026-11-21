@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, Clock, Pin, PinOff, Search, X } from "lucide-react";
+import { BarChart3, Box, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, Clock, Pin, PinOff, Search, Star, X } from "lucide-react";
+import { favoriteLink, useFavorites } from "../personal/Personal";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router";
 import { api, unwrap } from "../api/client";
@@ -213,6 +214,7 @@ export function Navigator() {
               ))}
             </ul>
           </NavSection>
+          <NavFavorites />
           {pinned.length > 0 && (
             <NavSection title="Pinned" icon={<Pin size={11} aria-hidden />}>
               {pinned.map((p) => (
@@ -379,6 +381,34 @@ function FilterResults({ text, currentId }: { text: string; currentId?: string }
           <FlatRow key={c.id} item={c} current={c.id === currentId} pinned={pinned.has(c.id)} />
         ))}
       </div>
+    </NavSection>
+  );
+}
+
+/** The user's favorites (roadmap 3.9), kept on the server so they follow them to any browser. */
+function NavFavorites() {
+  const { data } = useFavorites();
+  const { pathname } = useLocation();
+  if (!data?.length) return null;
+  return (
+    <NavSection title="Favorites" icon={<Star size={11} aria-hidden />}>
+      <ul className="nav-favorites" aria-label="Favorites">
+        {data.slice(0, 10).map((f) => {
+          const to = favoriteLink(f);
+          return (
+            <li key={`${f.kind}:${f.targetId}`}>
+              <div className={pathname === to ? "nav-row active" : "nav-row"}>
+                <NavLink to={to} title={f.label}>
+                  <span className="kind">
+                    {f.kind === "OBJECT" ? <Box size={14} /> : f.kind === "REPORT" ? <BarChart3 size={14} /> : <Star size={14} />}
+                  </span>
+                  <span className="nav-name">{f.label}</span>
+                </NavLink>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </NavSection>
   );
 }

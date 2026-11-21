@@ -21,6 +21,11 @@ export const problem = (status: number, code: string, detail = code) =>
 const DEFAULTS: Record<string, Handler> = {
   "GET /api/v1/objects/:id/content": () => [],
   "GET /api/v1/me/profile": () => ({ profiles: [], hiddenActions: [], hiddenAreas: [] }),
+  "POST /api/v1/me/recent/:id": () => new Reply(204, undefined),
+  "GET /api/v1/me/favorites": () => [],
+  "GET /api/v1/me/subscriptions": () => [],
+  "GET /api/v1/me/notifications": () => [],
+  "GET /api/v1/me/notifications/unread": () => ({ unread: 0 }),
 };
 
 export function fakeApi(routes: Record<string, Handler>) {

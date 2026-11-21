@@ -1,4 +1,5 @@
 import { ClipboardButton } from "./Clipboard";
+import { NotificationBell } from "../personal/Personal";
 import { BarChart3, ChevronRight, LayoutDashboard, LogOut, Settings } from "lucide-react";
 import { type ReactNode } from "react";
 import { Link, NavLink, Outlet, useParams } from "react-router";
@@ -29,6 +30,7 @@ export function Layout() {
           <LayoutDashboard size={14} aria-hidden /> Dashboards
         </NavLink>
         <ClipboardButton />
+        <NotificationBell />
         <div className="who">
           {me?.siteAdmin && (
             <NavLink to="/admin" className="topbar-link">

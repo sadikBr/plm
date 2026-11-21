@@ -163,8 +163,13 @@ platform gets the background machinery (jobs, schedules, notifications) later ph
       schedules mailed through a new `notifications` module (Mailpit in development) as alerts
       when anything, more than N or something new is found; shared dashboards of widgets; the home
       page is the dashboard each person picks.)
-- [ ] 3.9 Personal tracking: favorites, recent items, subscriptions to objects and folders,
+- [x] 3.9 Personal tracking: favorites, recent items, subscriptions to objects and folders,
       notifications and digests.
+      (Done: stars on objects, contexts and reports, listed in the navigator; recently viewed
+      objects; follow an object, folder or product to be told of check-ins, revisions, state
+      changes, moves and deletions by others, only while you may read them; job owners hear when
+      their jobs end; a bell with the unread count; mail right away, as a daily digest job, or
+      never; new home widgets for favorites, recent visits and notifications.)
 - [ ] 3.10 Collaboration and access: discussions on objects, ad hoc access (share one object with
       someone), audit reports.
 - [ ] 3.11 Long-running extension actions: a webhook action can start a background job that

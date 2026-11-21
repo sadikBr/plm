@@ -1,3 +1,4 @@
+import { FavoriteButton } from "../personal/Personal";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BarChart3, CalendarClock, Mail, Pencil, Play, Plus, Share2, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -217,6 +218,7 @@ function ReportView({ report, mine, onEdit }: { report: Report; mine: boolean; o
         note={s.description ?? undefined}
         actions={
           <>
+            <FavoriteButton kind="REPORT" targetId={report.id} label={s.name} />
             <button className="btn small" onClick={() => void refetch()} disabled={isFetching}>
               <Play size={12} aria-hidden /> Run now
             </button>

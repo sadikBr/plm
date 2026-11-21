@@ -1,3 +1,4 @@
+import { FavoriteButton, SubscribeButton, useRecordVisit } from "../personal/Personal";
 import { Bookmark, Lock, Pencil } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
@@ -58,6 +59,7 @@ export function ObjectPage() {
 
 function ObjectView({ id }: { id: string }) {
   const { data: obj, error, isLoading } = useObject(id);
+  useRecordVisit(obj?.id);
   const { data: me } = useMe();
   const shows = useShows();
   const [params, setParams] = useSearchParams();
@@ -164,6 +166,10 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
               </span>
             )}
             <span className="sub">{typeName}</span>
+            <span className="track-btns">
+              <FavoriteButton kind="OBJECT" targetId={obj.id} label={`${obj.number} ${obj.name}`} />
+              <SubscribeButton kind="OBJECT" targetId={obj.id} label={`${obj.number} ${obj.name}`} />
+            </span>
           </>
         }
         toolbar={

@@ -1,3 +1,4 @@
+import { FavoriteButton, SubscribeButton } from "../personal/Personal";
 import { FilePlus, LayoutTemplate, Plus } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
@@ -139,6 +140,12 @@ function ContextView({ id }: { id: string }) {
             <span className="sub">
               Created {formatDate(context.createdAt)} by <PrincipalName id={context.createdBy} />
             </span>
+            {context.kind !== "SITE" && (
+              <span className="track-btns">
+                <FavoriteButton kind="CONTEXT" targetId={context.id} label={context.name} />
+                {holdsObjects && <SubscribeButton kind="CONTEXT" targetId={context.id} label={context.name} />}
+              </span>
+            )}
           </>
         }
         toolbar={

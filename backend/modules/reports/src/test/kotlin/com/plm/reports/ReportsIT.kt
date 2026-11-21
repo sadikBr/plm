@@ -181,7 +181,7 @@ internal class ReportsIT(
     fun `dashboards hold widgets, and anyone can make a visible one their home page`() {
         assertThat(
             dashboards.home(bob).widgets.map { it.kind },
-        ).containsExactly(WidgetKind.CHECKED_OUT, WidgetKind.RECENT)
+        ).containsExactly(WidgetKind.CHECKED_OUT, WidgetKind.RECENT, WidgetKind.RECENT_VISITS, WidgetKind.FAVORITES)
         val report = reports.create(alice, ReportSettings("By state $word", shared = true))
         val d =
             dashboards.create(

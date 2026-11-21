@@ -28,6 +28,8 @@ internal val DEFAULT_HOME =
             listOf(
                 Widget("checked-out", WidgetKind.CHECKED_OUT, "Checked out by me", width = 1),
                 Widget("recent", WidgetKind.RECENT, "Recently changed", width = 1),
+                Widget("visited", WidgetKind.RECENT_VISITS, "Recently viewed", width = 1),
+                Widget("favorites", WidgetKind.FAVORITES, "Favorites", width = 1),
             ),
         updatedAt = java.time.Instant.EPOCH,
     )

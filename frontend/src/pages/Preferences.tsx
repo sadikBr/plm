@@ -208,7 +208,12 @@ export function MyPreferencesPage() {
       <PageHeader
         icon={<SlidersHorizontal size={18} className="icon-muted" aria-hidden />}
         title={<span className="nm">My preferences</span>}
-        meta={<span className="sub">Apply wherever an administrator hasn't locked a value.</span>}
+        meta={
+          <span className="sub">
+            Apply wherever an administrator hasn't locked a value. Mail about notifications is set under{" "}
+            <Link to="/notifications">Notifications</Link>.
+          </span>
+        }
       />
       <div className="content">
         <ErrorBanner error={error} />

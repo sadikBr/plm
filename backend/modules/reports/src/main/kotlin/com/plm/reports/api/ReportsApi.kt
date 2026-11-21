@@ -151,6 +151,15 @@ enum class WidgetKind {
 
     /** What changed lately, where you can read. */
     RECENT,
+
+    /** Your favorites (roadmap 3.9). */
+    FAVORITES,
+
+    /** What you opened lately (roadmap 3.9). */
+    RECENT_VISITS,
+
+    /** Your latest notifications (roadmap 3.9). */
+    NOTIFICATIONS,
 }
 
 data class Widget(

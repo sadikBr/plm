@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Home, LayoutDashboard, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Home, LayoutDashboard, Pencil, Plus, Star, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
@@ -8,6 +8,7 @@ import { Dialog, ErrorBanner, Loading, MenuButton, Panel, StateBadge, TypeIcon, 
 import { PageHeader } from "../components/Layout";
 import { BarChart } from "./BarChart";
 import { useBars, useReportRun } from "./ReportsPage";
+import { favoriteLink, useFavorites, useNotifications, useRecentVisits } from "../personal/Personal";
 
 type Dashboard = Schemas["Dashboard"];
 type Widget = Schemas["Widget"];
@@ -19,6 +20,9 @@ const KINDS: [WidgetKind, string, boolean][] = [
   ["REPORT_TABLE", "A report's first rows", true],
   ["CHECKED_OUT", "What I have checked out", false],
   ["RECENT", "Recently changed", false],
+  ["RECENT_VISITS", "What I viewed lately", false],
+  ["FAVORITES", "My favorites", false],
+  ["NOTIFICATIONS", "My notifications", false],
 ];
 const DEFAULT_HOME_ID = "00000000-0000-0000-0000-000000000000";
 
@@ -38,6 +42,9 @@ function WidgetBody({ widget }: { widget: Widget }) {
     queryFn: () => unwrap(api.GET("/api/v1/home/recent", { params: { query: { limit: widget.limit } } })),
     enabled: widget.kind === "RECENT",
   });
+  if (widget.kind === "RECENT_VISITS") return <VisitsWidget limit={widget.limit} />;
+  if (widget.kind === "FAVORITES") return <FavoritesWidget limit={widget.limit} />;
+  if (widget.kind === "NOTIFICATIONS") return <NoticesWidget limit={widget.limit} />;
   if (widget.kind.startsWith("REPORT")) {
     if (report.error) return <ErrorBanner error={report.error} />;
     if (!report.data) return <Loading />;
@@ -58,6 +65,54 @@ function WidgetBody({ widget }: { widget: Widget }) {
   if (!items) return <Loading />;
   if (!items.length) return <p className="empty">{widget.kind === "CHECKED_OUT" ? "Nothing checked out." : "Nothing changed lately."}</p>;
   return <MiniList items={items as Item[]} />;
+}
+
+function VisitsWidget({ limit }: { limit: number }) {
+  const { data } = useRecentVisits(limit);
+  if (!data) return <Loading />;
+  if (!data.length) return <p className="empty">Nothing viewed yet.</p>;
+  return <MiniList items={data.map((v) => ({ ...v, id: v.objectId }))} />;
+}
+
+function FavoritesWidget({ limit }: { limit: number }) {
+  const { data } = useFavorites();
+  if (!data) return <Loading />;
+  if (!data.length) return <p className="empty">No favorites yet: use the star on an object, product or report.</p>;
+  return (
+    <ul className="mini-list">
+      {data.slice(0, limit).map((f) => (
+        <li key={`${f.kind}:${f.targetId}`}>
+          <Star size={14} className="icon-muted" aria-hidden />
+          <Link to={favoriteLink(f)} className="grow ellipsis">
+            {f.label}
+          </Link>
+          <span className="muted small">{f.kind === "OBJECT" ? "Object" : f.kind === "REPORT" ? "Report" : "Context"}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function NoticesWidget({ limit }: { limit: number }) {
+  const { data } = useNotifications(false, limit);
+  if (!data) return <Loading />;
+  if (!data.length) return <p className="empty">No notifications.</p>;
+  return (
+    <ul className="mini-list">
+      {data.map((n) => (
+        <li key={n.id} className={n.readAt ? undefined : "unread"}>
+          {n.link ? (
+            <Link to={n.link} className="grow ellipsis">
+              {n.title}
+            </Link>
+          ) : (
+            <span className="grow ellipsis">{n.title}</span>
+          )}
+          <span className="muted small nowrap">{formatDate(n.createdAt)}</span>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 type Item = { id: string; number: string; name: string; typeId: string; version: string; state: string; modifiedAt?: string };

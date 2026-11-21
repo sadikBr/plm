@@ -1987,6 +1987,27 @@
         "required" : [ "count", "key" ],
         "type" : "object"
       },
+      "Favorite" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "OBJECT", "CONTEXT", "FOLDER", "REPORT" ],
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "targetId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "kind", "label", "targetId" ],
+        "type" : "object"
+      },
       "FileDifference" : {
         "properties" : {
           "change" : {
@@ -2828,6 +2849,19 @@
         "required" : [ "deliver", "events", "id" ],
         "type" : "object"
       },
+      "MarkReadRequest" : {
+        "properties" : {
+          "ids" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "ids" ],
+        "type" : "object"
+      },
       "MeResponse" : {
         "properties" : {
           "siteAdmin" : {
@@ -2903,6 +2937,50 @@
           }
         },
         "required" : [ "attributes", "contextId", "name", "templateId" ],
+        "type" : "object"
+      },
+      "Notification" : {
+        "properties" : {
+          "actor" : {
+            "type" : [ "string", "null" ]
+          },
+          "body" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "link" : {
+            "type" : [ "string", "null" ]
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "readAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "title" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "id", "title" ],
+        "type" : "object"
+      },
+      "NotificationSettings" : {
+        "properties" : {
+          "mail" : {
+            "enum" : [ "NONE", "IMMEDIATE", "DAILY" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "mail" ],
         "type" : "object"
       },
       "NumberingSchemeConfig" : {
@@ -3562,6 +3640,36 @@
           }
         },
         "required" : [ "role" ],
+        "type" : "object"
+      },
+      "RecentItem" : {
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          },
+          "visitedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "name", "number", "objectId", "state", "typeId", "version", "visitedAt" ],
         "type" : "object"
       },
       "RegisteredActionResponse" : {
@@ -4333,6 +4441,27 @@
         "required" : [ "payload", "type" ],
         "type" : "object"
       },
+      "Subscription" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "OBJECT", "FOLDER", "CONTEXT" ],
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "targetId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "kind", "label", "targetId" ],
+        "type" : "object"
+      },
       "SubscriptionDelivery" : {
         "properties" : {
           "webhook" : {
@@ -4430,6 +4559,15 @@
           }
         },
         "required" : [ "attributes", "columns", "sortDescending", "states", "typeIds" ],
+        "type" : "object"
+      },
+      "TargetRequest" : {
+        "properties" : {
+          "label" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "label" ],
         "type" : "object"
       },
       "TeamRoleConfig" : {
@@ -4859,6 +4997,16 @@
         "required" : [ "code", "dimension", "factor", "labels", "offset", "system" ],
         "type" : "object"
       },
+      "UnreadCount" : {
+        "properties" : {
+          "unread" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "unread" ],
+        "type" : "object"
+      },
       "UpdatePolicyRequest" : {
         "properties" : {
           "permissions" : {
@@ -5147,7 +5295,7 @@
             "type" : "string"
           },
           "kind" : {
-            "enum" : [ "REPORT_CHART", "REPORT_TABLE", "REPORT_COUNT", "CHECKED_OUT", "RECENT" ],
+            "enum" : [ "REPORT_CHART", "REPORT_TABLE", "REPORT_COUNT", "CHECKED_OUT", "RECENT", "FAVORITES", "RECENT_VISITS", "NOTIFICATIONS" ],
             "type" : "string"
           },
           "limit" : {
@@ -9090,6 +9238,300 @@
         "tags" : [ "Principal" ]
       }
     },
+    "/api/v1/me/favorites" : {
+      "get" : {
+        "operationId" : "personalFavorites",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Favorite"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Personal" ]
+      }
+    },
+    "/api/v1/me/favorites/{kind}/{targetId}" : {
+      "delete" : {
+        "operationId" : "personalRemoveFavorite",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "kind",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "OBJECT", "CONTEXT", "FOLDER", "REPORT" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "targetId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Personal" ]
+      },
+      "put" : {
+        "operationId" : "personalAddFavorite",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "kind",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "OBJECT", "CONTEXT", "FOLDER", "REPORT" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "targetId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TargetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Favorite"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Personal" ]
+      }
+    },
+    "/api/v1/me/notification-settings" : {
+      "get" : {
+        "operationId" : "personalSettings",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NotificationSettings"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Personal" ]
+      },
+      "put" : {
+        "operationId" : "personalSaveSettings",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NotificationSettings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NotificationSettings"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Personal" ]
+      }
+    },
+    "/api/v1/me/notifications" : {
+      "get" : {
+        "operationId" : "personalNotifications",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "unread",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 30,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Notification"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Personal" ]
+      }
+    },
+    "/api/v1/me/notifications/read" : {
+      "post" : {
+        "operationId" : "personalMarkRead",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MarkReadRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Personal" ]
+      }
+    },
+    "/api/v1/me/notifications/unread" : {
+      "get" : {
+        "operationId" : "personalUnread",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UnreadCount"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Personal" ]
+      }
+    },
     "/api/v1/me/preferences" : {
       "get" : {
         "operationId" : "preferenceForUser",
@@ -9220,6 +9662,199 @@
           }
         },
         "tags" : [ "Profile" ]
+      }
+    },
+    "/api/v1/me/recent" : {
+      "get" : {
+        "operationId" : "personalRecent",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 15,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/RecentItem"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Personal" ]
+      }
+    },
+    "/api/v1/me/recent/{objectId}" : {
+      "post" : {
+        "operationId" : "personalVisited",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "objectId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Personal" ]
+      }
+    },
+    "/api/v1/me/subscriptions" : {
+      "get" : {
+        "operationId" : "personalSubscriptions",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Subscription"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Personal" ]
+      }
+    },
+    "/api/v1/me/subscriptions/{kind}/{targetId}" : {
+      "delete" : {
+        "operationId" : "personalUnsubscribe",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "kind",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "OBJECT", "FOLDER", "CONTEXT" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "targetId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Personal" ]
+      },
+      "put" : {
+        "operationId" : "personalSubscribe",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "kind",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "OBJECT", "FOLDER", "CONTEXT" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "targetId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TargetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Subscription"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Personal" ]
       }
     },
     "/api/v1/numbering-schemes" : {
@@ -13653,6 +14288,8 @@
     "name" : "Operation rule"
   }, {
     "name" : "Organizing"
+  }, {
+    "name" : "Personal"
   }, {
     "name" : "Policy"
   }, {
