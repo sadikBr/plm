@@ -1,7 +1,13 @@
 COMPOSE := docker compose -f deploy/docker-compose.yml
 
-.PHONY: up up-full down reset build test run fmt events ui ui-install ui-test e2e api-contract converter-install
+.PHONY: up up-full down reset build test run fmt events ui ui-install ui-test e2e api-contract converter-install start stop status
 
+start:     ## Start the whole platform and wait until it's ready (same as ./plm start)
+	./plm start
+stop:      ## Stop the whole platform, keep the data (same as ./plm stop)
+	./plm stop
+status:    ## What's running (same as ./plm status)
+	./plm status
 up:        ## Start core services (postgres, s3, keycloak, redpanda)
 	$(COMPOSE) up -d
 up-full:   ## Start every service (adds opensearch, temporal)

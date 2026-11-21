@@ -16,23 +16,135 @@ lifecycles, workflows and change management, built to scale to millions of objec
 
 ## Run it on your computer
 
-Every step below is a command to copy. The whole stack runs locally in Docker; nothing needs a
-cloud account. A more detailed guide (environment variables, the curl walkthrough, troubleshooting)
-is in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+The whole platform runs locally: its services in Docker, the backend and the web UI as two local
+processes, all started and stopped by one command, `plm`. Nothing needs a cloud account. More
+detail (environment variables, the curl walkthrough, troubleshooting) is in
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ### 1. Install the prerequisites (once)
 
-| Tool | Version | Check it with |
-|---|---|---|
-| JDK | 21 (Temurin recommended) | `java -version` |
-| Docker | Docker Desktop, OrbStack or Docker Engine with Compose v2; give it 8 GB of memory | `docker compose version` |
-| Node.js | 22 LTS | `node --version` |
-| Git | any | `git --version` |
-| make | optional: each target is a one-line command shown in the [Makefile](Makefile) | `make --version` |
+You need **Git**, **Docker** (with Compose v2), **JDK 21** and **Node.js 22 or newer**. Install
+them with your system's package manager, or from the official sites linked below. You don't need
+Gradle: the repository brings its own (`./gradlew`).
 
-You don't need Gradle: the repository's `./gradlew` downloads it (`gradlew.bat` on Windows).
+**Windows 10/11** (in PowerShell or Command Prompt; Docker Desktop needs WSL 2):
 
-### 2. Get the code and install the dependencies (once)
+```powershell
+winget install Git.Git
+```
+
+```powershell
+wsl --install
+```
+
+```powershell
+winget install Docker.DockerDesktop
+```
+
+```powershell
+winget install EclipseAdoptium.Temurin.21.JDK
+```
+
+```powershell
+winget install OpenJS.NodeJS.LTS
+```
+
+Then restart, start Docker Desktop once and let it finish setting up, and open a new terminal.
+
+**macOS** (with [Homebrew](https://brew.sh)):
+
+```bash
+brew install git node
+```
+
+```bash
+brew install --cask temurin@21 docker
+```
+
+Then start Docker from Applications once. ([OrbStack](https://orbstack.dev), `brew install --cask orbstack`, works
+too, instead of Docker Desktop.)
+
+**Ubuntu / Debian:**
+
+```bash
+sudo apt update && sudo apt install -y git curl openjdk-21-jdk
+```
+
+```bash
+curl -fsSL https://get.docker.com | sudo sh
+```
+
+```bash
+sudo usermod -aG docker "$USER"
+```
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt install -y nodejs
+```
+
+Then log out and back in (so your user may use Docker). On Debian 12, `openjdk-21-jdk` comes from
+bookworm-backports, or install [Temurin 21](https://adoptium.net/installation/linux/).
+
+**Fedora:**
+
+```bash
+sudo dnf install -y git curl java-21-openjdk-devel nodejs22 dnf-plugins-core
+```
+
+```bash
+sudo dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo
+```
+
+```bash
+sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+```
+
+```bash
+sudo systemctl enable --now docker && sudo usermod -aG docker "$USER"
+```
+
+Then log out and back in.
+
+**Arch Linux / Manjaro:**
+
+```bash
+sudo pacman -S --needed git curl jdk21-openjdk nodejs npm docker docker-compose
+```
+
+```bash
+sudo systemctl enable --now docker && sudo usermod -aG docker "$USER"
+```
+
+Then log out and back in.
+
+Official downloads, for any system: [Git](https://git-scm.com/downloads) ·
+[Docker Desktop](https://docs.docker.com/get-started/get-docker/) (or
+[Docker Engine on Linux](https://docs.docker.com/engine/install/)) ·
+[JDK 21 (Temurin)](https://adoptium.net/temurin/releases/?version=21) ·
+[Node.js](https://nodejs.org/en/download).
+
+Check them (each should answer with a version: Java 21 or newer, Node 22 or newer):
+
+```bash
+git --version
+```
+
+```bash
+docker compose version
+```
+
+```bash
+java -version
+```
+
+```bash
+node --version
+```
+
+Give Docker at least **8 GB of memory** (Docker Desktop: Settings › Resources); `--lite` below
+needs about 5 GB.
+
+### 2. Get the code (once)
 
 ```bash
 git clone https://github.com/sadikBr/plm.git
@@ -42,50 +154,26 @@ git clone https://github.com/sadikBr/plm.git
 cd plm
 ```
 
-```bash
-make ui-install            # the web UI's packages (cd frontend && npm ci)
-```
+### 3. Start the platform
+
+On macOS, Linux or WSL:
 
 ```bash
-make converter-install     # the CAD converter, STEP to glTF (cd workers/cad-converter && npm ci)
+./plm start
 ```
 
-### 3. Start the services
+On Windows (Command Prompt; in PowerShell, type `.\plm start`):
 
-```bash
-make up-full               # Postgres, S3 storage, Keycloak, Redpanda, OpenSearch, Temporal, Mailpit
+```powershell
+plm start
 ```
 
-Wait about a minute, then check that everything is up (every line should say `running` or
-`healthy`):
+It checks the prerequisites, installs what the web UI and the CAD converter need, builds the
+backend, starts the services, the backend and the web UI, waits until each answers, and says
+where to go. The first start downloads a few GB (Docker images, libraries) and takes 5 to 15
+minutes; later ones take about a minute.
 
-```bash
-docker compose -f deploy/docker-compose.yml --profile full ps
-```
-
-`make up` starts a lighter set (no OpenSearch, no Temporal): search then uses Postgres and
-workflows run in the backend's own process. Both work; `make up-full` is closest to production.
-
-### 4. Start the backend (keep this terminal open)
-
-```bash
-PLM_SEARCH_ENGINE=opensearch PLM_TEMPORAL_TARGET=localhost:7233 make run
-```
-
-With `make up` instead of `make up-full`, start it with just `make run`. The first start compiles
-the code and takes a few minutes; it's ready when this prints `"status":"UP"`:
-
-```bash
-curl localhost:8080/actuator/health
-```
-
-### 5. Start the web UI (in a second terminal, keep it open)
-
-```bash
-make ui                    # cd frontend && npm run dev
-```
-
-Open http://localhost:5173 and sign in. Dev users (password = user name):
+Then open **http://localhost:5173** and sign in. Dev users (password = user name):
 
 | User | Role |
 |---|---|
@@ -93,8 +181,30 @@ Open http://localhost:5173 and sign in. Dev users (password = user name):
 | `bob` | ordinary user: sees what he's on the team of |
 | `carol` | ordinary user, on no team: sees nothing until added |
 
-Other local addresses: mail the platform sends at http://localhost:8025 (Mailpit), workflows at
-http://localhost:8233 (Temporal UI), the API explorer at http://localhost:8080/swagger-ui.html.
+Other local addresses: the API explorer at http://localhost:8080/swagger-ui.html, the mail the
+platform sends at http://localhost:8025, workflows at http://localhost:8233.
+
+### 4. Everyday commands
+
+| Command (Windows: `plm …`) | What it does |
+|---|---|
+| `./plm start` | Starts everything and waits until it's ready (does nothing to what's already running) |
+| `./plm start --lite` | The same with fewer services (no OpenSearch, no Temporal): less memory |
+| `./plm status` | What's running, and where |
+| `./plm stop` | Stops the web UI, the backend and the services; your data is kept |
+| `./plm restart` | Stop, then start (after pulling new code, say) |
+| `./plm logs backend` | Follows the backend's log (`ui` and `services` too); Ctrl-C to stop following |
+| `./plm setup` | Only checks the prerequisites, installs and builds |
+| `./plm reset` | Stops everything and deletes all local data (asks first) |
+
+Logs are kept in `.plm/`. If something goes wrong, `./plm status` and `./plm logs backend` say
+where; see also [Troubleshooting](docs/DEVELOPMENT.md#troubleshooting).
+
+### 5. Running the pieces yourself (for development)
+
+`plm` runs a built backend and the web UI's dev server. While changing code, you can run each part
+in its own terminal instead: `make up-full` (services), `make run` (backend, rebuilt on each start),
+`make ui` (web UI, reloads as you edit). [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) explains each.
 
 ### 6. Try it
 
@@ -132,36 +242,28 @@ in [frontend/e2e](frontend/e2e) is a scripted version of a whole scenario.
 
 ### 7. Run the tests
 
+Backend: compile, lint and every test (Docker must be running; on Windows, `gradlew.bat build`):
+
 ```bash
-./gradlew build            # backend: compile, lint, every test (Docker must be running)
+./gradlew build
+```
+
+Web UI: lint, type check and unit tests:
+
+```bash
+cd frontend && npm run lint && npm run typecheck && npm test
+```
+
+The browser end-to-end tests drive the running platform (`./plm start` first). Install their
+browser once, then run every scenario headless:
+
+```bash
+cd frontend && npx playwright install chromium
 ```
 
 ```bash
-make ui-test               # web UI: lint, type check, unit tests
+cd frontend && npm run e2e
 ```
-
-The browser end-to-end tests need steps 3 to 5 running, and Playwright's browser once:
-
-```bash
-cd frontend && npx playwright install chromium && cd ..
-```
-
-```bash
-make e2e                   # every scenario, in a headless browser
-```
-
-### 8. Stop, or start over
-
-```bash
-make down                  # stop the services, keep the data
-```
-
-```bash
-make reset                 # stop the services and delete all local data
-```
-
-Stop the backend and the UI with Ctrl-C in their terminals. If something goes wrong, see
-[Troubleshooting](docs/DEVELOPMENT.md#troubleshooting).
 
 ## Documentation
 

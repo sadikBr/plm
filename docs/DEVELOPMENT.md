@@ -34,6 +34,10 @@ Test reports: `backend/<project>/build/reports/tests/test/index.html`.
 
 ## 2. Start the dev stack
 
+> **Just want to use it?** `./plm start` (Windows: `plm start`) does sections 2 to 4 in one go,
+> waits until everything answers, and `./plm stop` stops it all; see the README. The sections
+> below run each piece yourself, which is handier while changing code.
+
 ```bash
 make up          # postgres, s3, keycloak, redpanda
 make up-full     # + opensearch, temporal (≈3 GB RAM more)
@@ -868,6 +872,13 @@ select c.name, m.principal_id, m.role from context_member m join context c on c.
 | `make reset` | Stop services and **delete** all local data |
 
 ## Troubleshooting
+
+- **`plm` says Docker isn't running**: start Docker Desktop (Windows, macOS) or the service
+  (`sudo systemctl start docker`), wait until it's ready, and run `./plm start` again.
+- **`plm` says a port is in use** (8080 or 5173): something else listens there, often a backend or
+  UI started by hand (`make run`, `make ui`). Stop it, or use that one instead of `plm`.
+- **`plm start` stops at a service**: `./plm logs services` shows why; on a machine short of
+  memory, `./plm start --lite` leaves out OpenSearch and Temporal.
 
 - **`Could not find a valid Docker environment`**: Docker isn't running. Start Docker Desktop.
 - **Docker Hub `429 Too Many Requests`**: pull through a mirror:

@@ -1,0 +1,250 @@
+#!/usr/bin/env bash
+# plm: start, stop and look after the whole platform on this computer.
+#
+#   ./plm setup            check the prerequisites, install the dependencies, build the backend
+#   ./plm start [--lite]   start the services, the backend and the web UI, and wait until they're ready
+#   ./plm stop             stop the web UI, the backend and the services (data is kept)
+#   ./plm restart [--lite] stop, then start
+#   ./plm status           what's running, and where
+#   ./plm logs [backend|ui|services]   follow a log (Ctrl-C to stop following)
+#   ./plm reset            stop everything and delete all local data (asks first)
+#
+# --lite starts fewer services (no OpenSearch, no Temporal): search uses Postgres, workflows run
+# inside the backend. It needs about 3 GB less memory. On Windows, use plm.cmd (same commands).
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STATE="$ROOT/.plm"
+mkdir -p "$STATE"
+COMPOSE=(docker compose -f "$ROOT/deploy/docker-compose.yml")
+UI_URL="http://localhost:5173"
+API_URL="http://localhost:8080"
+
+bold() { printf '\033[1m%s\033[0m\n' "$*"; }
+ok() { printf '  \033[32m✓\033[0m %s\n' "$*"; }
+warn() { printf '  \033[33m!\033[0m %s\n' "$*"; }
+fail() {
+  printf '  \033[31m✗\033[0m %s\n' "$*" >&2
+  exit 1
+}
+
+# ---- processes we started: a pid file each ----
+pid_of() { cat "$STATE/$1.pid" 2>/dev/null || true; }
+running() {
+  local pid
+  pid="$(pid_of "$1")"
+  [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null
+}
+stop_process() {
+  local name="$1" pid
+  pid="$(pid_of "$name")"
+  if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+    kill "$pid" 2>/dev/null || true
+    for _ in $(seq 1 30); do
+      kill -0 "$pid" 2>/dev/null || break
+      sleep 1
+    done
+    kill -9 "$pid" 2>/dev/null || true
+    ok "$name stopped"
+  fi
+  rm -f "$STATE/$name.pid"
+}
+
+# Waits up to $2 seconds for $1 (a command) to succeed.
+wait_for() {
+  local check="$1" seconds="$2" what="$3"
+  for _ in $(seq 1 "$seconds"); do
+    if eval "$check" >/dev/null 2>&1; then
+      ok "$what"
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+port_open() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
+http_ok() { curl -fsS -o /dev/null --max-time 3 "$1"; }
+
+# ---- prerequisites ----
+check_prerequisites() {
+  bold "Checking prerequisites"
+  command -v docker >/dev/null || fail "Docker isn't installed: see 'Install the prerequisites' in README.md"
+  docker info >/dev/null 2>&1 || fail "Docker isn't running: start Docker Desktop (or the docker service) and try again"
+  docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is missing: see README.md"
+  ok "Docker $(docker version --format '{{.Server.Version}}' 2>/dev/null)"
+  command -v java >/dev/null || fail "Java isn't installed: install JDK 21 (see README.md)"
+  local jv
+  jv="$(java -version 2>&1 | awk -F'"' '/version/ {print $2}' | cut -d. -f1)"
+  [[ "${jv:-0}" -ge 21 ]] || fail "Java $jv found; JDK 21 or newer is needed (see README.md)"
+  ok "Java $jv"
+  command -v node >/dev/null || fail "Node.js isn't installed: install Node.js 22 (see README.md)"
+  local nv
+  nv="$(node -p 'process.versions.node.split(".")[0]')"
+  [[ "$nv" -ge 22 ]] || fail "Node.js $nv found; 22 or newer is needed (see README.md)"
+  ok "Node.js $(node --version)"
+  command -v curl >/dev/null || fail "curl isn't installed (see README.md)"
+}
+
+install_dependencies() {
+  bold "Installing dependencies"
+  if [[ ! -d "$ROOT/frontend/node_modules" || "$ROOT/frontend/package-lock.json" -nt "$ROOT/frontend/node_modules" ]]; then
+    (cd "$ROOT/frontend" && npm ci --no-audit --no-fund) || fail "Installing the web UI's packages failed"
+  fi
+  ok "Web UI packages"
+  if [[ ! -d "$ROOT/workers/cad-converter/node_modules" || "$ROOT/workers/cad-converter/package-lock.json" -nt "$ROOT/workers/cad-converter/node_modules" ]]; then
+    (cd "$ROOT/workers/cad-converter" && npm ci --no-audit --no-fund) || warn "The CAD converter didn't install: 3D views won't be made"
+  fi
+  ok "CAD converter"
+}
+
+build_backend() {
+  bold "Building the backend"
+  echo "  (the first build downloads dependencies and takes a few minutes)"
+  (cd "$ROOT" && ./gradlew -q :backend:app:bootJar) >"$STATE/build.log" 2>&1 || {
+    tail -n 30 "$STATE/build.log" >&2
+    fail "The backend didn't build: see .plm/build.log"
+  }
+  ok "backend/app/build/libs/app.jar"
+}
+
+# ---- start ----
+start_services() {
+  local lite="$1"
+  bold "Starting the services"
+  if [[ "$lite" == 1 ]]; then
+    "${COMPOSE[@]}" up -d >/dev/null 2>&1 || "${COMPOSE[@]}" up -d
+  else
+    "${COMPOSE[@]}" --profile full up -d >/dev/null 2>&1 || "${COMPOSE[@]}" --profile full up -d
+  fi
+  wait_for "port_open 5432" 120 "PostgreSQL on :5432" || fail "PostgreSQL didn't start: ./plm logs services"
+  wait_for "http_ok http://localhost:8180/realms/plm/.well-known/openid-configuration" 180 "Keycloak on :8180" ||
+    fail "Keycloak didn't start: ./plm logs services"
+  wait_for "port_open 8333" 60 "S3 storage on :8333" || warn "S3 storage isn't answering yet"
+  wait_for "port_open 19092" 60 "Redpanda on :19092" || warn "Redpanda isn't answering yet (events wait in the outbox)"
+  if [[ "$lite" != 1 ]]; then
+    wait_for "http_ok http://localhost:9200" 180 "OpenSearch on :9200" || fail "OpenSearch didn't start: try ./plm start --lite"
+    wait_for "port_open 7233" 120 "Temporal on :7233" || fail "Temporal didn't start: try ./plm start --lite"
+  fi
+}
+
+start_backend() {
+  local lite="$1"
+  bold "Starting the backend"
+  if running backend; then
+    ok "already running (pid $(pid_of backend))"
+    return
+  fi
+  port_open 8080 && fail "Something else is using port 8080: stop it first"
+  local env=()
+  if [[ "$lite" != 1 ]]; then env=(PLM_SEARCH_ENGINE=opensearch PLM_TEMPORAL_TARGET=localhost:7233); fi
+  echo "$lite" >"$STATE/mode"
+  # Only the command is put in the background, so $! is its own pid (env and nohup exec into java).
+  (
+    cd "$ROOT" || exit 1
+    env ${env[@]+"${env[@]}"} nohup java -jar backend/app/build/libs/app.jar >"$STATE/backend.log" 2>&1 </dev/null &
+    echo $! >"$STATE/backend.pid"
+  )
+  wait_for "http_ok $API_URL/actuator/health" 240 "Backend on :8080" || {
+    tail -n 30 "$STATE/backend.log" >&2
+    fail "The backend didn't come up: see .plm/backend.log"
+  }
+}
+
+start_ui() {
+  bold "Starting the web UI"
+  if running ui; then
+    ok "already running (pid $(pid_of ui))"
+    return
+  fi
+  port_open 5173 && fail "Something else is using port 5173: stop it first"
+  (
+    cd "$ROOT/frontend" || exit 1
+    nohup node node_modules/vite/bin/vite.js --port 5173 --strictPort >"$STATE/ui.log" 2>&1 </dev/null &
+    echo $! >"$STATE/ui.pid"
+  )
+  wait_for "http_ok $UI_URL" 60 "Web UI on :5173" || {
+    tail -n 20 "$STATE/ui.log" >&2
+    fail "The web UI didn't come up: see .plm/ui.log"
+  }
+}
+
+cmd_start() {
+  local lite=0
+  [[ "${1:-}" == "--lite" ]] && lite=1
+  check_prerequisites
+  install_dependencies
+  build_backend
+  start_services "$lite"
+  start_backend "$lite"
+  start_ui
+  echo
+  bold "The platform is ready: $UI_URL"
+  echo "  Sign in as alice (administrator), bob or carol; the password is the user name."
+  echo "  API $API_URL/swagger-ui.html · mail http://localhost:8025$([[ $lite == 1 ]] || echo ' · workflows http://localhost:8233')"
+  echo "  ./plm status · ./plm logs backend · ./plm stop"
+}
+
+cmd_stop() {
+  bold "Stopping"
+  stop_process ui
+  stop_process backend
+  "${COMPOSE[@]}" --profile full stop >/dev/null 2>&1 && ok "services stopped (data kept)" || warn "No services to stop"
+}
+
+cmd_status() {
+  bold "Platform status"
+  if running ui; then ok "Web UI      $UI_URL (pid $(pid_of ui))"; else warn "Web UI      not running"; fi
+  if running backend && http_ok "$API_URL/actuator/health"; then
+    ok "Backend     $API_URL (pid $(pid_of backend))"
+  elif running backend; then
+    warn "Backend     starting (pid $(pid_of backend))"
+  else
+    warn "Backend     not running"
+  fi
+  local name port
+  for pair in PostgreSQL:5432 Keycloak:8180 S3:8333 Redpanda:19092 Mailpit:8025 OpenSearch:9200 Temporal:7233; do
+    name="${pair%%:*}"
+    port="${pair##*:}"
+    if port_open "$port"; then ok "$(printf '%-11s :%s' "$name" "$port")"; else warn "$(printf '%-11s not running' "$name")"; fi
+  done
+}
+
+cmd_logs() {
+  case "${1:-backend}" in
+    backend) tail -n 100 -f "$STATE/backend.log" ;;
+    ui) tail -n 100 -f "$STATE/ui.log" ;;
+    services) "${COMPOSE[@]}" --profile full logs -f --tail 100 ;;
+    *) fail "Which log: backend, ui or services" ;;
+  esac
+}
+
+cmd_reset() {
+  read -r -p "This deletes all local data (database, files, search index). Type 'reset' to go on: " answer
+  [[ "$answer" == "reset" ]] || fail "Nothing deleted"
+  stop_process ui
+  stop_process backend
+  "${COMPOSE[@]}" --profile full down -v
+  ok "Everything stopped, all local data deleted. ./plm start begins afresh."
+}
+
+case "${1:-}" in
+  setup)
+    check_prerequisites
+    install_dependencies
+    build_backend
+    bold "Ready: ./plm start"
+    ;;
+  start) cmd_start "${2:-}" ;;
+  stop) cmd_stop ;;
+  restart)
+    cmd_stop
+    cmd_start "${2:-}"
+    ;;
+  status) cmd_status ;;
+  logs) cmd_logs "${2:-backend}" ;;
+  reset) cmd_reset ;;
+  *)
+    sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
+    exit 1
+    ;;
+esac

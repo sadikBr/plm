@@ -1,3 +1,6 @@
 * text=auto eol=lf
 *.bat text eol=crlf
 *.jar binary
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+plm text eol=lf

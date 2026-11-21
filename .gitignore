@@ -10,3 +10,4 @@ dist/
 .kotlin/
 *.hprof
 hs_err_pid*.log
+.plm/
