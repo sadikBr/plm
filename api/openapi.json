@@ -497,6 +497,20 @@
         "required" : [ "lifecycleId" ],
         "type" : "object"
       },
+      "Associate" : {
+        "properties" : {
+          "cadId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "OWNER", "CONTRIBUTING" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "cadId", "kind" ],
+        "type" : "object"
+      },
       "AssociationRule" : {
         "properties" : {
           "changeTypeId" : {
@@ -1185,6 +1199,57 @@
         "required" : [ "iterationIds", "masterIds" ],
         "type" : "object"
       },
+      "BuildRequest" : {
+        "properties" : {
+          "createParts" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "createParts" ],
+        "type" : "object"
+      },
+      "BuildResult" : {
+        "properties" : {
+          "created" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PartRef"
+            },
+            "type" : "array"
+          },
+          "lines" : {
+            "items" : {
+              "$ref" : "#/components/schemas/BuiltLine"
+            },
+            "type" : "array"
+          },
+          "missing" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CadModel"
+            },
+            "type" : "array"
+          },
+          "model" : {
+            "$ref" : "#/components/schemas/CadModel"
+          }
+        },
+        "required" : [ "created", "lines", "missing", "model" ],
+        "type" : "object"
+      },
+      "BuiltLine" : {
+        "properties" : {
+          "change" : {
+            "type" : "string"
+          },
+          "part" : {
+            "$ref" : "#/components/schemas/PartRef"
+          },
+          "quantity" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "change", "part", "quantity" ],
+        "type" : "object"
+      },
       "BulkRequest" : {
         "properties" : {
           "attribute" : {
@@ -1218,6 +1283,26 @@
           "value" : { }
         },
         "required" : [ "objectIds", "operation" ],
+        "type" : "object"
+      },
+      "CadAssociation" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "OWNER", "CONTRIBUTING" ],
+            "type" : "string"
+          },
+          "model" : {
+            "$ref" : "#/components/schemas/CadModel"
+          },
+          "part" : {
+            "$ref" : "#/components/schemas/PartRef"
+          }
+        },
+        "required" : [ "id", "kind", "model", "part" ],
         "type" : "object"
       },
       "CadDependency" : {
@@ -5046,6 +5131,31 @@
           }
         },
         "required" : [ "owner" ],
+        "type" : "object"
+      },
+      "PartRef" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "number" : {
+            "type" : [ "string", "null" ]
+          },
+          "readable" : {
+            "type" : "boolean"
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          },
+          "version" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "readable" ],
         "type" : "object"
       },
       "PermissionExplanationResponse" : {
@@ -15924,6 +16034,184 @@
         "tags" : [ "Replacement" ]
       }
     },
+    "/api/v1/objects/{id}/cad/associations" : {
+      "get" : {
+        "operationId" : "associationList",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "workingCopy",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/CadAssociation"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Association" ]
+      },
+      "post" : {
+        "operationId" : "associationAssociate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Associate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CadAssociation"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Association" ]
+      }
+    },
+    "/api/v1/objects/{id}/cad/associations/{associationId}" : {
+      "delete" : {
+        "operationId" : "associationDissociate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "associationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Association" ]
+      }
+    },
+    "/api/v1/objects/{id}/cad/build" : {
+      "post" : {
+        "operationId" : "associationBuild",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BuildRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BuildResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Association" ]
+      }
+    },
     "/api/v1/objects/{id}/cad/collect" : {
       "post" : {
         "operationId" : "collectorCollect",
@@ -23829,6 +24117,8 @@
   } ],
   "tags" : [ {
     "name" : "Action"
+  }, {
+    "name" : "Association"
   }, {
     "name" : "Attribute"
   }, {

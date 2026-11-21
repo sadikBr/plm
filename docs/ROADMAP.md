@@ -464,9 +464,14 @@ seat.
       one value per column. The table belongs to the generic's version (edited on its working copy,
       kept in new versions); instances show the table they belong to and are used in assemblies
       like any model.
-- [ ] 6.4 Part ↔ CAD association and build rules: a part's owning model and contributing models;
+- [x] 6.4 Part ↔ CAD association and build rules: a part's owning model and contributing models;
       "build" turns the CAD assembly into the part structure (quantities, find numbers), keeping
       lines added by hand.
+      Done: a part's version names its owning CAD model (one; a model owns one part) and
+      contributing ones. Build from CAD reads the owning assembly's components and makes the
+      part's structure match: a line per component's part, as many as it occurs; lines of parts
+      that came from CAD and left the model are removed; lines of parts without a model are kept.
+      Components without a part are listed, or get one made on request.
 - [ ] 6.5 STEP import: a STEP file (AP203/AP214/AP242) becomes CAD documents with their assembly
       structure, each with its file, optionally with parts associated and built.
 - [ ] 6.6 Conversion worker: STEP to glTF as background jobs on check-in, stored as the

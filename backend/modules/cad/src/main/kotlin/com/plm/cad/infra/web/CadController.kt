@@ -133,3 +133,39 @@ internal class FamilyController(
         @PathVariable instanceId: UUID,
     ) = families.removeInstance(actor, id, instanceId)
 }
+
+/** Part ↔ CAD association and build (roadmap 6.4). */
+@RestController
+internal class AssociationController(
+    private val associations: com.plm.cad.api.AssociationService,
+) {
+    @GetMapping("/api/v1/objects/{id}/cad/associations")
+    fun list(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestParam(defaultValue = "false") workingCopy: Boolean,
+    ) = associations.associations(actor, id, workingCopy)
+
+    @PostMapping("/api/v1/objects/{id}/cad/associations")
+    @ResponseStatus(HttpStatus.CREATED)
+    fun associate(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: com.plm.cad.api.Associate,
+    ) = associations.associate(actor, id, request)
+
+    @DeleteMapping("/api/v1/objects/{id}/cad/associations/{associationId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun dissociate(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @PathVariable associationId: UUID,
+    ) = associations.dissociate(actor, id, associationId)
+
+    @PostMapping("/api/v1/objects/{id}/cad/build")
+    fun build(
+        actor: Actor,
+        @PathVariable id: UUID,
+        @RequestBody request: com.plm.cad.api.BuildRequest,
+    ) = associations.build(actor, id, request)
+}

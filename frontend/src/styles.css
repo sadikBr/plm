@@ -1006,3 +1006,7 @@ table.collected td input[type="checkbox"] { width: 16px; height: 16px; }
 .family-columns { display: grid; gap: 6px; margin-bottom: 12px; max-width: 640px; }
 .family-grid td input { width: 100%; min-width: 70px; }
 .family-grid tr.new-row td { background: var(--row-hover); }
+/* Part ↔ CAD (roadmap 6.4). */
+.cad-assoc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.cad-assoc-list li { display: flex; align-items: center; gap: 6px; }
+.build-report { margin-top: 12px; display: grid; gap: 8px; }

@@ -3,6 +3,7 @@ import { ProcessesTab } from "../workflow/Processes";
 import { ChangeTab, ObjectChangesTab, VariancesBanner, changeKindOf, kindLabel, useReleaseGate } from "../changes/Changes";
 import { SignaturesPanel } from "../workflow/Signatures";
 import { CadTab, cadKindOf } from "../cad/CadTab";
+import { PartCadPanel } from "../cad/Associations";
 import { ExtensionPanels, ExtensionTab, useUiSlots } from "../extensions/ExtensionFrame";
 import { ReplacementsTab } from "../structure/Replacements";
 import { DocumentLinksTab, LinkingPartsTab } from "../structure/DocumentLinks";
@@ -136,6 +137,7 @@ function ObjectView({ id }: { id: string }) {
       <div className="content">
         {tab === "details" && <DetailsTab obj={obj} myId={myId} />}
         {tab === "cad" && cadKind && <CadTab obj={obj} kind={cadKind} mine={!!myId && obj.checkedOutBy === myId} />}
+        {tab === "structure" && <PartCadPanel obj={obj} mine={!!myId && obj.checkedOutBy === myId} />}
         {tab === "structure" && <StructureTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}
         {tab === "where-used" && <WhereUsedTab obj={obj} />}
         {tab === "documents" && <DocumentLinksTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}

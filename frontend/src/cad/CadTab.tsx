@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Layers, Trash2 } from "lucide-react";
 import { CollectorDialog } from "./Collector";
 import { FamilyPanel } from "./Family";
+import { ModelPartsPanel } from "./Associations";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
@@ -9,17 +10,13 @@ import type { AttributeDefinition, VersionedObject } from "../api/queries";
 import { ErrorBanner, Loading, Panel, StateBadge, TypeIcon } from "../components/common";
 import { ReferenceInput } from "../components/References";
 import { t } from "../i18n/i18n";
+import { CAD_TYPES } from "./types";
 
 type Kind = Schemas["CadModel"]["kind"];
 type Node = Schemas["CadTreeNode"];
 type DepKind = Schemas["CadDependency"]["kind"];
 
-export const CAD_TYPES = {
-  ROOT: "00000000-0000-7000-8000-000000000109",
-  PART: "00000000-0000-7000-8000-00000000010a",
-  ASSEMBLY: "00000000-0000-7000-8000-00000000010b",
-  DRAWING: "00000000-0000-7000-8000-00000000010c",
-};
+export { CAD_TYPES };
 
 /** Which kind of CAD document a type is, by its lineage. */
 export function cadKindOf(types: { id: string; parentId?: string | null }[] | undefined, typeId: string): Kind | undefined {
@@ -72,6 +69,7 @@ export function CadTab({ obj, kind, mine }: { obj: VersionedObject; kind: Kind; 
       </div>
       {collecting && <CollectorDialog objectId={obj.id} onClose={() => setCollecting(false)} />}
       {kind !== "PART" && <CadStructure obj={obj} kind={kind} mine={mine} />}
+      {kind !== "DRAWING" && <ModelPartsPanel obj={obj} />}
       {kind !== "DRAWING" && <FamilyPanel obj={obj} mine={mine} />}
       <CadWhereUsed obj={obj} />
     </div>

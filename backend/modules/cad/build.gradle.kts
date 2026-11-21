@@ -6,6 +6,7 @@ dependencies {
     implementation(project(":backend:modules:access"))
     implementation(project(":backend:modules:types"))
     implementation(project(":backend:modules:versioning"))
+    implementation(project(":backend:modules:bom"))
     implementation(libs.slf4j.api)
     implementation(libs.jackson.kotlin)
 

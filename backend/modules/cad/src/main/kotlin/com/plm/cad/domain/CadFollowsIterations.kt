@@ -43,7 +43,17 @@ internal class CadFollowsIterations(
                 .param("id", iteration)
                 .query(Int::class.java)
                 .single()
-        // Family tables (roadmap 6.3) follow too.
+        // Part associations (roadmap 6.4) and family tables (6.3) follow too.
+        jdbc
+            .sql(
+                """
+                insert into cad_association (id, tenant_id, part_iteration_id, cad_master_id, kind)
+                select gen_random_uuid(), tenant_id, :it, cad_master_id, kind from cad_association where part_iteration_id = :s
+                on conflict do nothing
+                """.trimIndent(),
+            ).param("it", iteration)
+            .param("s", source)
+            .update()
         jdbc
             .sql(
                 """
