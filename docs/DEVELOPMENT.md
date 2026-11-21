@@ -79,6 +79,16 @@ Expected output: `{"groups":["liveness","readiness"],"status":"UP"}`
 Override settings with environment variables: `PLM_DB_URL`, `PLM_DB_USER`, `PLM_DB_PASSWORD`,
 `PLM_PORT`, `PLM_OIDC_ISSUER`, `PLM_OIDC_AUDIENCE`, `PLM_KAFKA_BOOTSTRAP`, `PLM_EVENTS_RELAY_ENABLED`.
 
+Files and search:
+
+- The file vault uses the S3 store from `make up` (`PLM_VAULT_STORE=s3`, `PLM_VAULT_S3_*`), or a
+  local folder with `PLM_VAULT_STORE=file` (`PLM_VAULT_DIR`). Set `PLM_VAULT_SIGNING_KEY` outside
+  development.
+- Search uses Postgres full-text search unless OpenSearch is running (`make up-full`) and
+  `PLM_SEARCH_ENGINE=opensearch` is set (`PLM_SEARCH_OPENSEARCH_URL`, default
+  `http://localhost:9200`). After switching engines, rebuild the index:
+  `curl -X POST -H "Authorization: Bearer $TOKEN" localhost:8080/api/v1/search/reindex`.
+
 ## 4. Run the web UI
 
 ```bash

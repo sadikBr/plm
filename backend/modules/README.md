@@ -34,7 +34,7 @@ Three layers enforce this:
 | bom | Usage links, config specs, where-used | parts |
 | workflow | Temporal workflows, tasks | lifecycle, identity |
 | change | PR / CR / CN / change tasks | versioning, lifecycle, workflow |
-| search | OpenSearch indexing (event consumer) | access |
+| search | Search: indexing from events (OpenSearch or Postgres), queries with facets, saved searches | access, types, versioning, content, jobs |
 | configuration | Export/import of the whole configuration as one bundle (config as code) | types, lifecycle, access |
 | preferences | Typed preferences set per site / organization / context / user, with locking; profiles | access, types |
 | extensions | Extensibility platform: action registry, extension packages, rules, webhooks | types, access, lifecycle, versioning, configuration, identity, preferences |

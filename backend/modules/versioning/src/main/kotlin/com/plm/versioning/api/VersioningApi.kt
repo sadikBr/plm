@@ -81,6 +81,8 @@ data class ObjectQuery(
     val folderId: java.util.UUID? = null,
     /** Only objects at the top of their context (in no folder). */
     val topLevelOnly: Boolean = false,
+    /** Only these objects (those of them the actor can read): for search hits (roadmap 3.6). */
+    val ids: List<MasterId>? = null,
 )
 
 data class SetState(

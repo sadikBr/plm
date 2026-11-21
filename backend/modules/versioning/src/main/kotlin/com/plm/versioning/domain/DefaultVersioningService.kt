@@ -235,6 +235,7 @@ internal class DefaultVersioningService(
                 query.after,
                 query.folderId,
                 query.topLevelOnly,
+                query.ids?.map { it.value },
             ).map { (master, latest) -> master.toObject(latest) }
     }
 

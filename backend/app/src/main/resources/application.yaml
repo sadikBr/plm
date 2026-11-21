@@ -42,6 +42,11 @@ management:
         enabled: true
 
 plm:
+  search:
+    # postgres (built in) or opensearch (make up-full).
+    engine: ${PLM_SEARCH_ENGINE:postgres}
+    opensearch:
+      url: ${PLM_SEARCH_OPENSEARCH_URL:http://localhost:9200}
   vault:
     # file (a local folder) or s3 (deploy/docker-compose.yml runs an S3-compatible store).
     store: ${PLM_VAULT_STORE:s3}

@@ -1927,6 +1927,19 @@
         "required" : [ "auditId", "config", "enabled", "id", "installedAt", "installedBy", "manifest", "name", "permissions", "platform", "secretsSet", "source", "status", "updatedAt", "updatedBy", "version" ],
         "type" : "object"
       },
+      "FacetValue" : {
+        "properties" : {
+          "count" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "key" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "count", "key" ],
+        "type" : "object"
+      },
       "FileDifference" : {
         "properties" : {
           "change" : {
@@ -3678,6 +3691,47 @@
         "required" : [ "groups" ],
         "type" : "object"
       },
+      "SaveSearch" : {
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "query" : {
+            "$ref" : "#/components/schemas/SearchQuery"
+          },
+          "shared" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "name", "query", "shared" ],
+        "type" : "object"
+      },
+      "SavedSearch" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "owner" : {
+            "type" : "string"
+          },
+          "query" : {
+            "$ref" : "#/components/schemas/SearchQuery"
+          },
+          "shared" : {
+            "type" : "boolean"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name", "owner", "query", "shared", "updatedAt" ],
+        "type" : "object"
+      },
       "ScheduleSettings" : {
         "properties" : {
           "cron" : {
@@ -3701,6 +3755,124 @@
           }
         },
         "required" : [ "cron", "enabled", "name", "payload", "timeZone", "type" ],
+        "type" : "object"
+      },
+      "SearchHit" : {
+        "properties" : {
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "modifiedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "score" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "snippet" : {
+            "type" : [ "string", "null" ]
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "contextId", "id", "modifiedAt", "name", "number", "score", "state", "typeId", "version" ],
+        "type" : "object"
+      },
+      "SearchQuery" : {
+        "properties" : {
+          "attributes" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "contextIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "limit" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "offset" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sort" : {
+            "type" : [ "string", "null" ]
+          },
+          "states" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "text" : {
+            "type" : [ "string", "null" ]
+          },
+          "typeIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "attributes", "contextIds", "limit", "offset", "states", "typeIds" ],
+        "type" : "object"
+      },
+      "SearchResults" : {
+        "properties" : {
+          "capped" : {
+            "type" : "boolean"
+          },
+          "engine" : {
+            "type" : "string"
+          },
+          "facets" : {
+            "additionalProperties" : {
+              "items" : {
+                "$ref" : "#/components/schemas/FacetValue"
+              },
+              "type" : "array"
+            },
+            "type" : "object"
+          },
+          "hits" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SearchHit"
+            },
+            "type" : "array"
+          },
+          "total" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "capped", "engine", "facets", "hits", "total" ],
         "type" : "object"
       },
       "ServiceAccountResponse" : {
@@ -10244,6 +10416,218 @@
         "tags" : [ "Profile" ]
       }
     },
+    "/api/v1/saved-searches" : {
+      "get" : {
+        "operationId" : "searchList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/SavedSearch"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Search" ]
+      },
+      "post" : {
+        "operationId" : "searchSave",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveSearch"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SavedSearch"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Search" ]
+      }
+    },
+    "/api/v1/saved-searches/{id}" : {
+      "delete" : {
+        "operationId" : "searchDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Search" ]
+      },
+      "put" : {
+        "operationId" : "searchUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveSearch"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SavedSearch"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Search" ]
+      }
+    },
+    "/api/v1/search" : {
+      "post" : {
+        "operationId" : "searchSearch",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SearchQuery"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SearchResults"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Search" ]
+      }
+    },
+    "/api/v1/search/reindex" : {
+      "post" : {
+        "operationId" : "searchReindex",
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "additionalProperties" : {
+                    "format" : "int32",
+                    "type" : "integer"
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Accepted"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Search" ]
+      }
+    },
     "/api/v1/service-accounts" : {
       "get" : {
         "operationId" : "serviceAccountList",
@@ -12080,6 +12464,8 @@
     "name" : "Profile"
   }, {
     "name" : "Reference data"
+  }, {
+    "name" : "Search"
   }, {
     "name" : "Service account"
   }, {

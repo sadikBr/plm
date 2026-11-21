@@ -149,8 +149,11 @@ platform gets the background machinery (jobs, schedules, notifications) later ph
       attribute in one background job, with a per-object result.
       (Done: `bulk` module, up to 1000 objects per job, run as the person who started it; table
       selection, a bulk toolbar and live results.)
-- [ ] 3.6 Search: OpenSearch indexing fed by events, full-text and attribute search with facets
+- [x] 3.6 Search: OpenSearch indexing fed by events, full-text and attribute search with facets
       and access filtering, saved and shared searches.
+      (Done: `search` module with OpenSearch or built-in Postgres full-text engines; values, file
+      names and the text of text files and PDFs are indexed; results and facet counts only cover
+      what the person may read.)
 - [ ] 3.7 Table views: choose columns, filter and sort, save and share views, export to Excel.
 - [ ] 3.8 Reports and home page: report definitions (a query and columns), scheduled reports and
       alerts by email, dashboards, a home page each user arranges.

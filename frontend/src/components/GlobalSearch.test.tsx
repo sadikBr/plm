@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { fakeApi, problem } from "../test/fakeApi";
@@ -17,6 +17,26 @@ function api() {
     "GET /api/v1/principals/:id": (_, { id }) => principal(id!),
     "GET /api/v1/objects": (req) => (new URL(req.url).searchParams.get("q") === "brack" ? [bracket, cover] : []),
     "GET /api/v1/objects/:id": (_, { id }) => (id === "o2" ? cover : bracket),
+    "POST /api/v1/search": () => ({
+      total: 2,
+      capped: false,
+      engine: "postgres",
+      facets: { type: [], state: [], context: [] },
+      hits: [bracket, cover].map((o) => ({
+        id: o.id,
+        number: o.number,
+        name: o.name,
+        typeId: o.typeId,
+        contextId: o.contextId,
+        state: o.latest.state,
+        version: o.version,
+        modifiedAt: "2026-11-20T10:00:00Z",
+        snippet: null,
+        score: 1,
+      })),
+    }),
+    "GET /api/v1/saved-searches": () => [],
+    "GET /api/v1/lifecycles": () => [],
     ...attributeRoutes,
   });
 }
@@ -45,8 +65,8 @@ describe("GlobalSearch", () => {
     await screen.findByRole("option", { name: /PN-100/ });
     await userEvent.keyboard("{ArrowDown}{ArrowDown}{Enter}");
 
-    await waitFor(() => expect(screen.getByRole("table", { name: "Search results" })).toBeInTheDocument());
-    expect(screen.getAllByRole("row")).toHaveLength(3); // header + 2 results
+    await waitFor(() => expect(screen.getByRole("list", { name: "Search results" })).toBeInTheDocument());
+    expect(within(screen.getByRole("list", { name: "Search results" })).getAllByRole("listitem")).toHaveLength(2);
   });
 
   it("focuses with the / shortcut", async () => {
