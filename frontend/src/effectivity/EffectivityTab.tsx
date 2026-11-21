@@ -164,6 +164,80 @@ function RangeTable({
   );
 }
 
+const DAY = 86_400_000;
+/** A range's ends as numbers: serials and blocks as they are, dates as days. Lots have none. */
+const ends = (e: Effectivity): [number, number | null] | null => {
+  if (e.kind === "LOT") return null;
+  const n = (v: string) => (e.kind === "DATE" ? Date.parse(`${v}T00:00:00Z`) / DAY : Number(v));
+  return [n(e.from), e.to ? n(e.to) : null];
+};
+
+/**
+ * When each revision applies, per end item and kind (roadmap 7.4): a track of ranges, one colour
+ * per revision in a fixed order, open ends running off the right edge. Lots have no order to draw.
+ */
+export function EffectivityTimeline({ rows }: { rows: Effectivity[] }) {
+  const tracks = useMemo(() => {
+    const groups = new Map<string, Effectivity[]>();
+    for (const r of rows) {
+      if (r.target !== "VERSION" || r.kind === "LOT") continue;
+      const k = `${r.context?.id ?? "-"}|${r.kind}`;
+      groups.set(k, [...(groups.get(k) ?? []), r]);
+    }
+    return [...groups.values()];
+  }, [rows]);
+  const revisions = [...new Set(rows.filter((r) => r.revision).map((r) => r.revision!))].sort();
+  if (!tracks.length) return null;
+  return (
+    <div className="eff-timeline">
+      {tracks.map((track) => {
+        const spans = track.map((r) => [r, ends(r)!] as const);
+        const lo = Math.min(...spans.map(([, e]) => e[0]));
+        const closedHi = Math.max(...spans.map(([, e]) => e[1] ?? e[0]));
+        // Room after the last start for open ranges to show they go on.
+        const hi = closedHi + Math.max(1, (closedHi - lo) * 0.25);
+        const pos = (v: number) => ((v - lo) / (hi - lo + 1)) * 100;
+        const first = track[0]!;
+        return (
+          <div key={`${first.context?.id}|${first.kind}`} className="eff-track">
+            <div className="eff-track-head">
+              <strong>{effectivityKindLabel(first.kind)}</strong>{" "}
+              <span className="muted">
+                {first.context
+                  ? t("of {item}", { item: `${first.context.endItem.number ?? ""} ${first.context.endItem.name ?? ""}`.trim() })
+                  : t("any end item")}
+              </span>
+            </div>
+            <div className="eff-bars" role="list">
+              {spans.map(([r, [from, to]]) => {
+                const left = pos(from);
+                const width = Math.max(1.5, (to == null ? 100 : pos(to + 1)) - left);
+                const slot = (revisions.indexOf(r.revision!) % 7) + 1;
+                return (
+                  <div
+                    key={r.id}
+                    role="listitem"
+                    title={`${r.revision}: ${rangeText(r)}${r.status === "PENDING" ? ` (${t("Pending")})` : ""}`}
+                  >
+                    <span className="eff-label" style={{ left: `${left}%` }}>
+                      <strong>{r.revision}</strong> {rangeText(r)}
+                      {r.status === "PENDING" && <span className="muted"> · {t("Pending")}</span>}
+                    </span>
+                    <div
+                      className={`eff-seg s${slot} ${r.status === "PENDING" ? "pending" : ""} ${to == null ? "open" : ""}`}
+                      style={{ left: `${left}%`, width: `${width}%` }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /**
  * Effectivity of a part (roadmap 7.1, 7.4): whether it's an end item, when each of its revisions
  * applies, and when the lines of its structure do (edited on the working copy).
@@ -232,6 +306,7 @@ export function EffectivityTab({ obj, mine }: { obj: VersionedObject; mine: bool
         </p>
       </Panel>
       <Panel title={t("Versions")} note={t("When each revision of {number} is the one to build.", { number: obj.number })} flush>
+        <EffectivityTimeline rows={versionRows} />
         <RangeTable rows={versionRows} label={t("Version effectivity")} canEdit onDelete={(id) => remove.mutate(id)} />
         <RangeForm
           busy={add.isPending}

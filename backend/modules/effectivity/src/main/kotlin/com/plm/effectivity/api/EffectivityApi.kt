@@ -118,6 +118,12 @@ interface EffectivityService {
         effectivityId: UUID,
     )
 
+    /** The effectivity of these structure lines (of parts the actor can read), for showing beside them. */
+    fun forLines(
+        actor: Actor,
+        lineIds: List<UUID>,
+    ): List<Effectivity>
+
     /** What change notice [changeId] sets (pending), or set (in effect since it was resolved). */
     fun forChange(
         actor: Actor,

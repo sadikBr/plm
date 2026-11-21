@@ -471,6 +471,18 @@ internal class DefaultEffectivityService(
         if (!result) bad("The part isn't one of ${notice.number}'s results")
     }
 
+    @Transactional(readOnly = true)
+    override fun forLines(
+        actor: Actor,
+        lineIds: List<UUID>,
+    ): List<Effectivity> {
+        if (lineIds.isEmpty()) return emptyList()
+        if (lineIds.size > 5000) bad("At most 5,000 lines at once")
+        val rows = rows("line_id = any(cast(:ids as uuid[]))", mapOf("ids" to lineIds.distinct().toTypedArray()))
+        val visible = readable(actor, rows.map { it.masterId })
+        return view(actor, rows.filter { it.masterId in visible })
+    }
+
     /** Effectivity a change sets or set (roadmap 7.3). */
     @Transactional(readOnly = true)
     override fun forChange(

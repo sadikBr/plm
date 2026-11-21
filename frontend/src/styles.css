@@ -1095,3 +1095,22 @@ table.collected td input[type="checkbox"] { width: 16px; height: 16px; }
 .eff-form .field { flex: 0 1 170px; }
 .num-text { font-variant-numeric: tabular-nums; }
 .tag.ok { background: var(--ok-soft); color: var(--ok); }
+.tag.eff-mark { margin-left: 6px; background: var(--accent-soft); color: var(--accent); font-size: 11px; }
+/* Effectivity timeline (roadmap 7.4): categorical slots in fixed order. */
+.eff-timeline {
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6;
+  display: grid; gap: 14px; padding: 14px 16px 6px; border-bottom: 1px solid var(--border);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .eff-timeline { --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; }
+}
+:root[data-theme="dark"] .eff-timeline { --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; }
+.eff-track-head { font-size: 12.5px; margin-bottom: 4px; }
+.eff-bars { position: relative; height: 42px; }
+.eff-seg { position: absolute; bottom: 0; height: 14px; border-radius: 4px; box-shadow: 0 0 0 2px var(--panel); }
+.eff-seg.open { border-top-right-radius: 0; border-bottom-right-radius: 0; mask-image: linear-gradient(to right, #000 80%, transparent); }
+.eff-seg.pending { background-image: repeating-linear-gradient(135deg, rgb(255 255 255 / 0.55) 0 3px, transparent 3px 7px); }
+.eff-seg.s1 { background-color: var(--s1); } .eff-seg.s2 { background-color: var(--s2); } .eff-seg.s3 { background-color: var(--s3); }
+.eff-seg.s4 { background-color: var(--s4); } .eff-seg.s5 { background-color: var(--s5); } .eff-seg.s6 { background-color: var(--s6); }
+.eff-seg.s7 { background-color: var(--s7); }
+.eff-label { position: absolute; bottom: 18px; white-space: nowrap; font-size: 12px; color: var(--text); font-variant-numeric: tabular-nums; }

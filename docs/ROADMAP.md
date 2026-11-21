@@ -575,8 +575,12 @@ main line, and classification makes existing parts easy to find and reuse.
       inside just before it (the day, unit or block before). A range that would replace another
       revision's whole range, split it, or close a lot range keeps the notice from being resolved,
       saying why.
-- [ ] 7.4 Effectivity in the UI: an effectivity panel on parts and lines, an "effective at" picker on
+- [x] 7.4 Effectivity in the UI: an effectivity panel on parts and lines, an "effective at" picker on
       structure views, the history of a part's ranges per end item.
+      Done: the Effectivity tab draws each end item's (and the dates') ranges as a timeline, one
+      colour per revision, pending ranges hatched and open ones running on; the structure tree
+      tags lines that have effectivity with their ranges; "As effective…" picks the date, serial,
+      lot or block in structure and where-used views; change notices show what they set.
 - [ ] 7.5 Options and choices: option sets in libraries (an option with its choices, e.g. Motor:
       standard, high torque), assigned to configurable products; choices can be retired.
 - [ ] 7.6 Option rules: includes, excludes and requires between choices, and a check of any

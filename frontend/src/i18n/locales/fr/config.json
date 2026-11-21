@@ -44,5 +44,8 @@
   "In effect since this notice was resolved.": "En vigueur depuis la résolution de cet avis.",
   "Part": "Article",
   "No effectivity set yet.": "Aucune effectivité définie pour l'instant.",
-  "Add resulting parts first.": "Ajoutez d'abord les articles résultants."
+  "Add resulting parts first.": "Ajoutez d'abord les articles résultants.",
+  "any end item": "tout article final",
+  "Effective: {ranges}": "En vigueur : {ranges}",
+  "{n} ranges": "{n} plages"
 }

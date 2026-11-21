@@ -44,5 +44,8 @@
   "In effect since this notice was resolved.": "In Kraft, seit diese Mitteilung erledigt ist.",
   "Part": "Teil",
   "No effectivity set yet.": "Noch keine Gültigkeit festgelegt.",
-  "Add resulting parts first.": "Fügen Sie zuerst die resultierenden Teile hinzu."
+  "Add resulting parts first.": "Fügen Sie zuerst die resultierenden Teile hinzu.",
+  "any end item": "jedes Endprodukt",
+  "Effective: {ranges}": "Gültig: {ranges}",
+  "{n} ranges": "{n} Bereiche"
 }

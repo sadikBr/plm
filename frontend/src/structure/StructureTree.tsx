@@ -144,6 +144,22 @@ function EffectivityFields({
   );
 }
 
+/** A line's effectivity, as a tag beside it: "serial 120 –" (roadmap 7.4). */
+function LineEffectivityMark({ items }: { items?: Schemas["Effectivity"][] }) {
+  if (!items?.length) return null;
+  const text = items
+    .map(
+      (e) =>
+        `${effectivityKindLabel(e.kind).toLowerCase()} ${e.to ? `${e.from} – ${e.to}` : `${e.from} –`}${e.context ? ` (${e.context.endItem.number})` : ""}`,
+    )
+    .join("; ");
+  return (
+    <span className="tag eff-mark" title={t("Effective: {ranges}", { ranges: text })}>
+      {items.length === 1 ? text : t("{n} ranges", { n: items.length })}
+    </span>
+  );
+}
+
 /** Chooses latest, latest in a state, as of a date, as in a baseline, or as effective (7.2). */
 export function SpecPicker({ spec, onChange, partId }: { spec: Spec; onChange: (s: Spec) => void; partId?: string }) {
   const { data: baselines } = useBaselines(partId);
@@ -261,6 +277,19 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
     walk(null);
     return out;
   }, [children, open, closed, all, matching]);
+  // Lines' effectivity (roadmap 7.4), for the lines in view.
+  const lineIds = useMemo(() => rows.map((n) => n.line.id).sort(), [rows]);
+  const { data: lineEff } = useQuery({
+    queryKey: ["lineEffectivity", lineIds],
+    queryFn: () => unwrap(api.POST("/api/v1/line-effectivity", { body: lineIds })),
+    enabled: lineIds.length > 0,
+    staleTime: 30_000,
+  });
+  const effOf = useMemo(() => {
+    const m = new Map<string, Schemas["Effectivity"][]>();
+    for (const e of lineEff ?? []) if (e.lineId) m.set(e.lineId, [...(m.get(e.lineId) ?? []), e]);
+    return m;
+  }, [lineEff]);
   const hit = (n: Node) =>
     !!needle && ((n.line.child.number ?? "").toLowerCase().includes(needle) || (n.line.child.name ?? "").toLowerCase().includes(needle));
 
@@ -495,6 +524,7 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
                   <td className="ellipsis">
                     {c.name}
                     <ReplacementMarks line={n.line} />
+                    <LineEffectivityMark items={effOf.get(n.line.id)} />
                   </td>
                   <td className="version">{c.version ?? (c.readable ? <span className="muted">{t("none")}</span> : null)}</td>
                   <td>{c.state && <StateBadge state={c.state} />}</td>

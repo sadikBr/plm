@@ -63,6 +63,7 @@ const DEFAULTS: Record<string, Handler> = {
   "GET /api/v1/effectivity-contexts": () => [],
   "GET /api/v1/objects/:id/effectivity": () => [],
   "GET /api/v1/changes/:id/effectivity": () => [],
+  "POST /api/v1/line-effectivity": () => [],
   "GET /api/v1/publish-settings": () => ({ watermarkDownloads: false }),
   "GET /api/v1/objects/:id/publications": () => [],
   "GET /api/v1/publish-rules": () => [],

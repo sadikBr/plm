@@ -50,6 +50,13 @@ internal class EffectivityController(
         @RequestParam(defaultValue = "false") workingCopy: Boolean,
     ) = effectivity.forPart(actor, id, workingCopy)
 
+    /** The effectivity of structure lines (roadmap 7.4), e.g. those a structure view shows. */
+    @PostMapping("/api/v1/line-effectivity")
+    fun forLines(
+        actor: Actor,
+        @RequestBody lineIds: List<UUID>,
+    ) = effectivity.forLines(actor, lineIds)
+
     /** The effectivity a change notice sets on its results (roadmap 7.3). */
     @GetMapping("/api/v1/changes/{id}/effectivity")
     fun forChange(
