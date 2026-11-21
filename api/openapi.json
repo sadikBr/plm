@@ -292,6 +292,38 @@
         "required" : [ "role", "targetId" ],
         "type" : "object"
       },
+      "AddRedline" : {
+        "properties" : {
+          "attribute" : {
+            "type" : [ "string", "null" ]
+          },
+          "childId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "newChildId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "note" : {
+            "type" : [ "string", "null" ]
+          },
+          "op" : {
+            "enum" : [ "ADD", "REMOVE", "QUANTITY", "REPLACE", "SET_ATTRIBUTE" ],
+            "type" : "string"
+          },
+          "quantity" : {
+            "type" : [ "number", "null" ]
+          },
+          "targetId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "value" : { }
+        },
+        "required" : [ "op", "targetId" ],
+        "type" : "object"
+      },
       "AddSubstitute" : {
         "properties" : {
           "notes" : {
@@ -3831,6 +3863,68 @@
         "required" : [ "ids" ],
         "type" : "object"
       },
+      "MassChange" : {
+        "properties" : {
+          "attribute" : {
+            "type" : [ "string", "null" ]
+          },
+          "childId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "newChildId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "note" : {
+            "type" : [ "string", "null" ]
+          },
+          "op" : {
+            "enum" : [ "ADD", "REMOVE", "QUANTITY", "REPLACE", "SET_ATTRIBUTE" ],
+            "type" : "string"
+          },
+          "quantity" : {
+            "type" : [ "number", "null" ]
+          },
+          "value" : { }
+        },
+        "required" : [ "op" ],
+        "type" : "object"
+      },
+      "MassChangeResult" : {
+        "properties" : {
+          "created" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Redline"
+            },
+            "type" : "array"
+          },
+          "skipped" : {
+            "items" : {
+              "$ref" : "#/components/schemas/MassChangeSkip"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "created", "skipped" ],
+        "type" : "object"
+      },
+      "MassChangeSkip" : {
+        "properties" : {
+          "number" : {
+            "type" : [ "string", "null" ]
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "objectId", "reason" ],
+        "type" : "object"
+      },
       "MassReplace" : {
         "properties" : {
           "comment" : {
@@ -5147,6 +5241,65 @@
           }
         },
         "required" : [ "name", "number", "objectId", "state", "typeId", "version", "visitedAt" ],
+        "type" : "object"
+      },
+      "Redline" : {
+        "properties" : {
+          "appliedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "appliedVersion" : {
+            "type" : [ "string", "null" ]
+          },
+          "attribute" : {
+            "type" : [ "string", "null" ]
+          },
+          "changeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "child" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/LinkedObject"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "newChild" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/LinkedObject"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "note" : {
+            "type" : [ "string", "null" ]
+          },
+          "op" : {
+            "enum" : [ "ADD", "REMOVE", "QUANTITY", "REPLACE", "SET_ATTRIBUTE" ],
+            "type" : "string"
+          },
+          "quantity" : {
+            "type" : [ "number", "null" ]
+          },
+          "target" : {
+            "$ref" : "#/components/schemas/LinkedObject"
+          },
+          "value" : { }
+        },
+        "required" : [ "changeId", "createdAt", "createdBy", "id", "op", "target" ],
         "type" : "object"
       },
       "Referrer" : {
@@ -8805,6 +8958,53 @@
         "tags" : [ "Change" ]
       }
     },
+    "/api/v1/changes/{id}/mass-change" : {
+      "post" : {
+        "operationId" : "redlineMass",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MassChange"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MassChangeResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Redline" ]
+      }
+    },
     "/api/v1/changes/{id}/plan/{taskId}" : {
       "put" : {
         "operationId" : "changePlan",
@@ -8858,6 +9058,129 @@
           }
         },
         "tags" : [ "Change" ]
+      }
+    },
+    "/api/v1/changes/{id}/redlines" : {
+      "get" : {
+        "operationId" : "redlineList",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Redline"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Redline" ]
+      },
+      "post" : {
+        "operationId" : "redlineAdd",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddRedline"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Redline"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Redline" ]
+      }
+    },
+    "/api/v1/changes/{id}/redlines/{redlineId}" : {
+      "delete" : {
+        "operationId" : "redlineRemove",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "redlineId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Redline" ]
       }
     },
     "/api/v1/changes/{id}/variance" : {
@@ -21139,6 +21462,8 @@
     "name" : "Profile"
   }, {
     "name" : "Promotion"
+  }, {
+    "name" : "Redline"
   }, {
     "name" : "Reference data"
   }, {

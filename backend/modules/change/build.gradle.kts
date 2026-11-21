@@ -10,6 +10,7 @@ dependencies {
     implementation(project(":backend:modules:workflow"))
     implementation(project(":backend:modules:identity"))
     implementation(project(":backend:modules:notifications"))
+    implementation(project(":backend:modules:bom"))
     implementation(libs.slf4j.api)
     implementation(libs.jackson.databind)
 

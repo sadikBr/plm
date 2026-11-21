@@ -64,6 +64,7 @@ internal class NoticeCompletion(
     private val types: TypeService,
     private val versioning: VersioningService,
 ) {
+    @org.springframework.core.annotation.Order(10)
     @EventListener(EventEnvelope::class)
     fun on(envelope: EventEnvelope) {
         if (envelope.eventType != "versioning.ObjectStateChanged.v1" || envelope.payload["to"] != "RESOLVED") return

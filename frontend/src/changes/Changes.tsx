@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardList, Plus, Trash2 } from "lucide-react";
+import { ClipboardList, PencilRuler, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
@@ -7,6 +7,7 @@ import { useContextsOfKind, useTypes, type AttributeDefinition, type VersionedOb
 import { Dialog, ErrorBanner, Loading, Panel, PrincipalName, StateBadge, TypeIcon, formatDate, typeLabel } from "../components/common";
 import { PageHeader } from "../components/Layout";
 import { ReferenceInput } from "../components/References";
+import { useAttributeDefinitions } from "../components/ObjectTable";
 import { t, tn } from "../i18n/i18n";
 
 type Kind = Schemas["ChangeView"]["kind"];
@@ -358,6 +359,9 @@ export function ChangeTab({ obj, kind }: { obj: VersionedObject; kind: Kind }) {
       </Panel>
       {kind === "CHANGE_NOTICE" && <PlanPanel noticeId={obj.id} plan={data.plan} onChanged={refresh} />}
       {section("AFFECTED", t("Affected objects"), t("What the change is about: the versions to change."))}
+      {(kind === "CHANGE_NOTICE" || kind === "CHANGE_TASK") && (
+        <RedlinesPanel change={obj} affected={of("AFFECTED").map((l) => l.target)} onApplied={refresh} />
+      )}
       {(kind === "CHANGE_NOTICE" || kind === "CHANGE_TASK") &&
         section("RESULTING", t("Resulting objects"), t("The new versions the change produces."))}
       {kind === "VARIANCE" && <VarianceScopePanel changeId={obj.id} />}
@@ -696,5 +700,420 @@ export function VariancesBanner({ objectId }: { objectId: string }) {
         </div>
       ))}
     </div>
+  );
+}
+
+type Redline = Schemas["Redline"];
+type RedlineOp = Redline["op"];
+const PART_REF = {
+  name: "part",
+  dataType: "REFERENCE",
+  referenceTypeId: "00000000-0000-7000-8000-000000000102",
+  labels: { en: "Part" },
+} as unknown as AttributeDefinition;
+const FINISHED = ["RESOLVED", "CANCELLED", "REJECTED"];
+
+function opLabel(op: RedlineOp): string {
+  switch (op) {
+    case "ADD":
+      return t("Add a part");
+    case "REMOVE":
+      return t("Remove a part");
+    case "QUANTITY":
+      return t("Change a quantity");
+    case "REPLACE":
+      return t("Replace a part");
+    case "SET_ATTRIBUTE":
+      return t("Set an attribute");
+  }
+}
+
+function shown(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  return typeof v === "object" ? JSON.stringify(v) : String(v);
+}
+
+/** What a redline does, in words, with its parts linked. */
+function RedlineEdit({ r }: { r: Redline }) {
+  const child = r.child && <ObjectCell o={r.child} />;
+  switch (r.op) {
+    case "ADD":
+      return (
+        <>
+          {t("Add")} <strong>{r.quantity ?? 1} ×</strong> {child}
+        </>
+      );
+    case "REMOVE":
+      return (
+        <>
+          {t("Remove")} {child}
+        </>
+      );
+    case "QUANTITY":
+      return (
+        <>
+          {child} → <strong>{t("quantity {q}", { q: r.quantity ?? "" })}</strong>
+        </>
+      );
+    case "REPLACE":
+      return (
+        <>
+          {t("Replace")} {child} {t("with")} {r.newChild && <ObjectCell o={r.newChild} />}
+        </>
+      );
+    case "SET_ATTRIBUTE":
+      return (
+        <>
+          <code>{r.attribute}</code> → <strong>{shown(r.value)}</strong>
+        </>
+      );
+  }
+}
+
+/** Proposed edits (roadmap 5.11): structure and attribute changes applied when the change is resolved. */
+function RedlinesPanel({
+  change,
+  affected,
+  onApplied,
+}: {
+  change: VersionedObject;
+  affected: Schemas["LinkedObject"][];
+  onApplied: () => void;
+}) {
+  const qc = useQueryClient();
+  const key = ["redlines", change.id];
+  const { data } = useQuery({
+    queryKey: key,
+    queryFn: () => unwrap(api.GET("/api/v1/changes/{id}/redlines", { params: { path: { id: change.id } } })),
+  });
+  const [adding, setAdding] = useState(false);
+  const [mass, setMass] = useState(false);
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: key });
+    onApplied();
+  };
+  const remove = useMutation({
+    mutationFn: (redlineId: string) =>
+      unwrap(api.DELETE("/api/v1/changes/{id}/redlines/{redlineId}", { params: { path: { id: change.id, redlineId } } })),
+    onSuccess: refresh,
+  });
+  const open = !FINISHED.includes(change.latest.state);
+  const pending = (data ?? []).filter((r) => !r.appliedAt).length;
+  return (
+    <Panel
+      title={t("Proposed edits")}
+      note={
+        open
+          ? t("Structure and attribute edits, applied to their objects when this change is resolved.")
+          : t("Applied when the change was resolved.")
+      }
+      flush
+      actions={
+        open && (
+          <>
+            <button
+              className="btn small"
+              onClick={() => setMass(true)}
+              disabled={!affected.length}
+              title={t("The same edit on every affected object")}
+            >
+              {t("Mass change…")}
+            </button>
+            <button className="btn small" onClick={() => setAdding((x) => !x)}>
+              <PencilRuler size={14} aria-hidden /> {t("Propose an edit")}
+            </button>
+          </>
+        )
+      }
+    >
+      <ErrorBanner error={remove.error} />
+      {adding && (
+        <RedlineForm
+          changeId={change.id}
+          affected={affected}
+          onDone={() => {
+            setAdding(false);
+            refresh();
+          }}
+        />
+      )}
+      {!data?.length ? (
+        <div className="empty small">{t("No edits proposed.")}</div>
+      ) : (
+        <table className="grid" aria-label={t("Proposed edits")}>
+          <thead>
+            <tr>
+              <th>{t("Object")}</th>
+              <th>{t("Edit")}</th>
+              <th>{t("Note")}</th>
+              <th>{t("Status")}</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((r) => (
+              <tr key={r.id}>
+                <td>
+                  <ObjectCell o={r.target} />
+                </td>
+                <td>
+                  <RedlineEdit r={r} />
+                </td>
+                <td>{r.note ?? ""}</td>
+                <td>
+                  {r.appliedAt ? (
+                    <span className="tag allow">{t("Applied in {version}", { version: r.appliedVersion ?? "" })}</span>
+                  ) : (
+                    <span className="tag">{t("Proposed")}</span>
+                  )}
+                </td>
+                <td className="row-actions">
+                  {open && !r.appliedAt && (
+                    <button
+                      className="btn ghost small"
+                      aria-label={t("Withdraw")}
+                      title={t("Withdraw")}
+                      onClick={() => remove.mutate(r.id)}
+                    >
+                      <Trash2 size={14} aria-hidden />
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {open && pending > 0 && (
+        <div className="hint" style={{ padding: "8px 16px" }}>
+          {tn(
+            "{n} edit will be applied when {number} is resolved: its objects are revised if released, edited and checked in.",
+            "{n} edits will be applied when {number} is resolved: their objects are revised if released, edited and checked in.",
+            pending,
+            { number: change.number },
+          )}
+        </div>
+      )}
+      {mass && (
+        <MassChangeDialog
+          changeId={change.id}
+          count={affected.length}
+          onClose={() => {
+            setMass(false);
+            refresh();
+          }}
+        />
+      )}
+    </Panel>
+  );
+}
+
+type EditFields = { op: RedlineOp; childId: string; newChildId: string; quantity: string; attribute: string; value: string };
+const NO_FIELDS: EditFields = { op: "REPLACE", childId: "", newChildId: "", quantity: "", attribute: "", value: "" };
+
+function body(f: EditFields, defs: Map<string, AttributeDefinition>) {
+  const def = defs.get(f.attribute);
+  const numeric = def && ["INTEGER", "REAL", "QUANTITY"].includes(String(def.dataType));
+  const value = f.value === "" ? null : numeric ? Number(f.value) : def?.dataType === "BOOLEAN" ? f.value === "true" : f.value;
+  return {
+    op: f.op,
+    childId: f.childId || null,
+    newChildId: f.newChildId || null,
+    quantity: f.quantity ? Number(f.quantity) : null,
+    attribute: f.attribute || null,
+    value,
+  };
+}
+
+/** The fields an edit needs, by kind. */
+function EditFieldset({ f, set, ops, typeIds }: { f: EditFields; set: (f: EditFields) => void; ops: RedlineOp[]; typeIds: string[] }) {
+  const defs = useAttributeDefinitions(typeIds);
+  const part = (field: "childId" | "newChildId", label: string) => (
+    <div className="field">
+      <label htmlFor={`rl-${field}`}>{label}</label>
+      <ReferenceInput
+        id={`rl-${field}`}
+        def={PART_REF}
+        value={f[field] || undefined}
+        onChange={(v) => set({ ...f, [field]: v ? String(v) : "" })}
+      />
+    </div>
+  );
+  return (
+    <>
+      <div className="field">
+        <label htmlFor="rl-op">{t("Edit")}</label>
+        <select id="rl-op" value={f.op} onChange={(e) => set({ ...NO_FIELDS, op: e.target.value as RedlineOp })}>
+          {ops.map((o) => (
+            <option key={o} value={o}>
+              {opLabel(o)}
+            </option>
+          ))}
+        </select>
+      </div>
+      {f.op === "SET_ATTRIBUTE" ? (
+        <>
+          <div className="field">
+            <label htmlFor="rl-attr">{t("Attribute")}</label>
+            <select id="rl-attr" value={f.attribute} onChange={(e) => set({ ...f, attribute: e.target.value })}>
+              <option value="">{t("Choose…")}</option>
+              {[...defs.values()].map((d) => (
+                <option key={d.name} value={d.name}>
+                  {d.labels?.en ?? d.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="rl-value">{t("New value")}</label>
+            <input id="rl-value" value={f.value} onChange={(e) => set({ ...f, value: e.target.value })} />
+          </div>
+        </>
+      ) : (
+        <>
+          {part("childId", f.op === "ADD" ? t("Part to add") : f.op === "REPLACE" ? t("Part to replace") : t("Part"))}
+          {f.op === "REPLACE" && part("newChildId", t("Replace with"))}
+          {(f.op === "ADD" || f.op === "QUANTITY") && (
+            <div className="field">
+              <label htmlFor="rl-qty">{t("Quantity")}</label>
+              <input id="rl-qty" inputMode="decimal" value={f.quantity} onChange={(e) => set({ ...f, quantity: e.target.value })} />
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+function RedlineForm({ changeId, affected, onDone }: { changeId: string; affected: Schemas["LinkedObject"][]; onDone: () => void }) {
+  const readable = affected.filter((a) => a.readable);
+  const [targetId, setTargetId] = useState(readable[0]?.id ?? "");
+  const [f, setF] = useState<EditFields>(NO_FIELDS);
+  const [note, setNote] = useState("");
+  const target = readable.find((a) => a.id === targetId);
+  const defs = useAttributeDefinitions(target?.typeId ? [target.typeId] : []);
+  const add = useMutation({
+    mutationFn: () =>
+      unwrap(
+        api.POST("/api/v1/changes/{id}/redlines", {
+          params: { path: { id: changeId } },
+          body: { ...body(f, defs), targetId, note: note.trim() || null },
+        }),
+      ),
+    onSuccess: onDone,
+  });
+  if (!readable.length) return <div className="empty small">{t("Add affected objects first: edits are proposed on them.")}</div>;
+  return (
+    <div className="inline-form">
+      <div className="attr-form cols-3">
+        <div className="field">
+          <label htmlFor="rl-target">{t("On")}</label>
+          <select id="rl-target" value={targetId} onChange={(e) => setTargetId(e.target.value)}>
+            {readable.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.number} {a.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <EditFieldset
+          f={f}
+          set={setF}
+          ops={["ADD", "REMOVE", "QUANTITY", "REPLACE", "SET_ATTRIBUTE"]}
+          typeIds={target?.typeId ? [target.typeId] : []}
+        />
+        <div className="field wide">
+          <label htmlFor="rl-note">{t("Note")}</label>
+          <input id="rl-note" value={note} onChange={(e) => setNote(e.target.value)} />
+        </div>
+      </div>
+      <ErrorBanner error={add.error} />
+      <div className="row" style={{ gap: 8 }}>
+        <button className="btn primary small" disabled={add.isPending} onClick={() => add.mutate()}>
+          {t("Propose")}
+        </button>
+        <button className="btn small" onClick={onDone}>
+          {t("Cancel")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MassChangeDialog({ changeId, count, onClose }: { changeId: string; count: number; onClose: () => void }) {
+  const [f, setF] = useState<EditFields>(NO_FIELDS);
+  const { data: change } = useQuery({
+    queryKey: ["change", changeId],
+    queryFn: () => unwrap(api.GET("/api/v1/changes/{id}", { params: { path: { id: changeId } } })),
+  });
+  const typeIds = [...new Set((change?.links ?? []).filter((l) => l.role === "AFFECTED" && l.target.typeId).map((l) => l.target.typeId!))];
+  const defs = useAttributeDefinitions(typeIds);
+  const run = useMutation({
+    mutationFn: () => unwrap(api.POST("/api/v1/changes/{id}/mass-change", { params: { path: { id: changeId } }, body: body(f, defs) })),
+  });
+  const result = run.data;
+  return (
+    <Dialog
+      open
+      title={t("Mass change")}
+      onClose={onClose}
+      footer={
+        result ? (
+          <button className="btn primary" onClick={onClose}>
+            {t("Done")}
+          </button>
+        ) : (
+          <>
+            <button className="btn" onClick={onClose}>
+              {t("Cancel")}
+            </button>
+            <button className="btn primary" disabled={run.isPending} onClick={() => run.mutate()}>
+              {t("Propose on the affected objects")}
+            </button>
+          </>
+        )
+      }
+    >
+      {result ? (
+        <div className="mass-result">
+          <p>
+            <strong>{tn("{n} edit proposed.", "{n} edits proposed.", result.created.length)}</strong>
+          </p>
+          {result.created.map((r) => (
+            <div key={r.id}>
+              <ObjectCell o={r.target} />
+            </div>
+          ))}
+          {result.skipped.length > 0 && (
+            <>
+              <p className="muted" style={{ marginTop: 12 }}>
+                {tn("{n} object skipped:", "{n} objects skipped:", result.skipped.length)}
+              </p>
+              <ul>
+                {result.skipped.map((s) => (
+                  <li key={s.objectId}>
+                    <strong>{s.number ?? t("(no access)")}</strong> — {s.reason}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      ) : (
+        <>
+          <p className="muted">
+            {tn(
+              "The edit is proposed on each of the {n} affected object it applies to.",
+              "The edit is proposed on each of the {n} affected objects it applies to.",
+              count,
+            )}
+          </p>
+          <div className="attr-form">
+            <EditFieldset f={f} set={setF} ops={["REPLACE", "REMOVE", "QUANTITY", "SET_ATTRIBUTE"]} typeIds={typeIds} />
+          </div>
+          <ErrorBanner error={run.error} />
+        </>
+      )}
+    </Dialog>
   );
 }

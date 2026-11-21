@@ -378,8 +378,14 @@ affected objects; and the platform can be extended with scripts, UI slots and no
       change) and association rules (per change type and role, the types it may link; none means any)
       under Administration › Changes. A variance is a deviation or waiver with an end date, a quantity
       and a reason; once approved it shows as a banner on each affected part or document.
-- [ ] 5.11 Redlines and mass change: proposed structure edits inside a change task, applied when
+- [x] 5.11 Redlines and mass change: proposed structure edits inside a change task, applied when
       it is implemented; mass changes (replace, set value) across a change's affected objects.
+      Done: a change notice or task proposes edits (add, remove, replace a part, change a quantity,
+      set an attribute) without checking anything out. Resolving it applies them: each object is
+      revised if released, checked out, edited, checked in, and becomes a resulting object of the
+      task and its notice; an edit that can't apply (object checked out, part no longer used)
+      refuses the resolution. A mass change proposes one edit on every affected object it fits and
+      says why it skipped the others.
 - [ ] 5.12 Change dashboards: open changes by state and age, my changes, cycle time; widgets for
       the home dashboards.
 - [ ] 5.13 Release gate: parts and documents reach Released only through an approved change notice
