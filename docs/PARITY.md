@@ -66,7 +66,7 @@ search summaries; those are marked *(to confirm)*. The list is about **what** us
 | Layouts: attribute groups and order per type, for create / edit / info / table / search | 🟡 | Create, edit, info ✅ (inherited, hidden attributes, 1–2 columns) · admin editor with live preview ✅ · table/search columns [3] |
 | Initialization rules per type: numbering, revision scheme, defaults, lifecycle, folder, team | 🟡 | Numbering, revision, lifecycle, defaults ✅ · folder [3] · team via context templates ✅ |
 | Numbering per context or per subtype; pluggable numbering strategies | 🟡 | Per type ✅ · per context ✅ (preference) · scripted [5] |
-| Classification (class hierarchy with class-specific attributes) | ⬜ [7] | |
+| Classification (class hierarchy with class-specific attributes) | ✅ | |
 | Admin UI for all of the above, with live form preview | ✅ | Administration page for site admins |
 | Move configuration between environments (dev → test → prod) | ✅ | One JSON bundle; plan with diffs, then all-or-nothing apply |
 
@@ -90,8 +90,8 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | **Managed collection** (a named, versionable set of objects) | ⬜ [4] | |
 | **Package / Delivery** (controlled data set sent to a supplier or partner) | ⬜ [9] | |
 | **Manufacturer part / Vendor part** | ⬜ [13] | manufacturer, vendor, sourcing status |
-| **Option set, Option, Choice, Variant specification** | ⬜ [7] | |
-| **Classification node** | ⬜ [7] | |
+| **Option set, Option, Choice, Variant specification** | ✅ | |
+| **Classification node** | ✅ | |
 | **Representation / visualization data** | ⬜ [6] | |
 | **Discussion topic / post, Meeting, Action item** | ⬜ [3] | |
 | **Process plan, Operation, Resource (plant, workcenter, tooling, skill)** | ⬜ [10] | |
@@ -116,7 +116,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | Delete: working iteration, latest iteration, revision, whole object (reference checks) | ⬜ [3] | |
 | Reassign lifecycle, reset team, change type (admin) | 🟡 | Change lifecycle (with state mapping) ✅ · reset team, change type [5] |
 | New view version (design → manufacturing / service) | ⬜ [10] | |
-| One-off version (a variant of a released revision for one order) | ⬜ [7] | *(to confirm)* |
+| One-off version (a variant of a released revision for one order) | ✅ | |
 | Ownership and reservation for long edits | ⬜ [3] | |
 | Compare iterations / revisions / any two objects (attributes, content, structure) | ⬜ [3] | Structure compare [4] |
 | Where-used and related objects (any link type) | ⬜ [4] | |
@@ -169,7 +169,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 |---|---|---|
 | Part usage links to child **masters**: quantity, unit, find number, line number | ⬜ [4] | ADR 0003 |
 | Reference designators / occurrences, occurrence-level attributes | ⬜ [4] | |
-| Configuration specs: latest, released (by state), baseline, effectivity, promotion request | ⬜ [4] | Effectivity [7] |
+| Configuration specs: latest, released (by state), baseline, effectivity, promotion request | 🟡 | Latest, state, as-of, baseline, effectivity ✅ · promotion request [later] |
 | Multi-level BOM tree table, expand all, 50k lines < 2 s | ⬜ [4] | |
 | Structure editing: insert existing/new, replace, remove, paste, reorder, bulk edit | ⬜ [4] | |
 | Find in structure, filter structure by attribute | ⬜ [4] | |
@@ -185,12 +185,12 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 
 | Capability | Status | Notes |
 |---|---|---|
-| Effectivity: date, serial/unit, lot, block, on usage links and on versions | ⬜ [7] | |
-| Effectivity contexts (effectivity relative to an end item) | ⬜ [7] | |
-| Pending effectivity set through a change notice | ⬜ [7] | |
-| Options and choices, option sets, rules (includes / excludes / requires) | ⬜ [7] | |
-| Configurable (150%) structures with choice-based conditions on usages | ⬜ [7] | |
-| Variant specifications: pick choices, filter the structure, generate variant parts, reuse existing variants | ⬜ [7] | |
+| Effectivity: date, serial/unit, lot, block, on usage links and on versions | ✅ | |
+| Effectivity contexts (effectivity relative to an end item) | ✅ | |
+| Pending effectivity set through a change notice | ✅ | |
+| Options and choices, option sets, rules (includes / excludes / requires) | ✅ | |
+| Configurable (150%) structures with choice-based conditions on usages | ✅ | |
+| Variant specifications: pick choices, filter the structure, generate variant parts, reuse existing variants | ✅ | |
 
 ## 10. Change management
 
@@ -244,7 +244,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | Global search by number/name, permission-filtered | ✅ | Trigram index |
 | Full-text search in attributes and file content, facets | ⬜ [3] | OpenSearch via events |
 | Advanced search by type and attribute criteria; saved and shared searches | ⬜ [3] | |
-| Classification search, find similar parts | ⬜ [7] | |
+| Classification search, find similar parts | ✅ | |
 | Report definitions (query, columns, grouping) without code; reports in any table | ⬜ [3] | Always access-filtered |
 | Scheduled reports and threshold alerts ("tell me when …") | ⬜ [3] | |
 | Charts and dashboards | ⬜ [3] | |

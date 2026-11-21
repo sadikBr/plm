@@ -3,14 +3,14 @@
 An open Product Lifecycle Management (PLM) platform: documents, parts, multi-level BOMs,
 lifecycles, workflows and change management, built to scale to millions of objects.
 
-> Status: **Phase 6 complete**: CAD models in the PLM: CAD parts, assemblies and drawings with
-> their dependency structure, collected for check-out, family tables, part associations that build
-> the part structure, and STEP import; conversion to glTF on check-in and publishing (stamped PDFs,
-> data sheets, watermarked downloads); in the browser, a 3D viewer (structure, measure, section,
-> saved views and markups, PMI) and a 2D viewer for drawings and PDFs with markups. On top of
-> workflow and change management (Phase 5), product structures (Phase 4), documents, search,
-> reports and collaboration (Phase 3), the extensibility platform (Phase 2) and the core model
-> (Phase 1). Next: Phase 7, configuration. See the [roadmap](docs/ROADMAP.md).
+> Status: **Phase 7 complete**: configuration: effectivity by date, serial, lot or block on
+> versions and structure lines (end items, pending effectivity set through change notices, "as
+> effective" structures), option sets with rules, 150% structures with choice conditions, variant
+> specifications and variant generation with reuse, one-off versions for single orders, and
+> classification with inherited class attributes, class search and find similar. On top of CAD data
+> and visualization (Phase 6), workflow and change management (Phase 5), product structures
+> (Phase 4), documents, search, reports and collaboration (Phase 3), the extensibility platform
+> (Phase 2) and the core model (Phase 1). Next: Phase 8. See the [roadmap](docs/ROADMAP.md).
 
 ![Object page: a checked-out part with its working copy](docs/images/ui-object.png) See the [roadmap](docs/ROADMAP.md).
 
@@ -114,8 +114,18 @@ The database starts empty. As **alice**:
    assembly opens; after a few seconds its **3D view** tab shows the model: hide parts, **Measure**,
    **Section**, save **Markups**, show **PMI**. A document or CAD drawing with a PDF has a
    **2D view** tab with markups.
-6. **Administration** (the **Admin** link, a gear icon, in the top bar): types and attributes, lifecycles, numbering, workflows,
-   publishing rules, automations, extensions.
+6. **Configuration.** On a product's **Options** tab create an option set (options and choices,
+   rules such as "MOTOR=HT requires BATTERY=L"). On a part's **Options** tab make it configurable,
+   check it out and give its structure lines conditions (`MOTOR=HT and not COLOR=RED`); pick
+   choices to see what applies, save them as a variant specification and **Generate** the
+   variant parts. A part's **Effectivity** tab makes it an end item and gives revisions ranges of
+   dates or serial numbers (or set them on a change notice, pending until it's resolved); the
+   structure's **Show** list has **As effective…**. A released part's **History** tab makes a
+   one-off version for an order. **Administration › Classification** holds the class tree; parts
+   are classified on their **Classification** tab, and the **Classes** page (top bar) searches
+   them; each part lists similar ones.
+7. **Administration** (the **Admin** link, a gear icon, in the top bar): types and attributes, lifecycles, numbering, workflows,
+   publishing rules, classification, automations, extensions.
 
 The [UI tour](docs/DEVELOPMENT.md#4-run-the-web-ui) goes further, and each phase's end-to-end test
 in [frontend/e2e](frontend/e2e) is a scripted version of a whole scenario.

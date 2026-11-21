@@ -543,7 +543,7 @@ it with its PDF is released by resolving a change notice, the "released drawings
 it, and the published PDF reads the drawing's number, Released and who downloaded it; the drawing
 opens in the 2D view.
 
-## Phase 7 — Configuration
+## Phase 7 — Configuration (complete)
 
 **Goal:** one product definition answers "what do we build for this unit, on this date, with these
 options": effectivity decides which revisions and lines apply, options and rules turn a 150%
@@ -651,6 +651,13 @@ structure is generated as parts, reusing a variant generated earlier for a sub-a
 notice makes a new revision effective from a serial number, and the structure for serials below
 and above it differs as planned; a one-off version for one order stays out of the main line; and a
 part is found by class attributes and its similar parts.
+**Met:** `e2e/config-flow.spec.ts` builds a configurable rover (an option set with a rule, a 150%
+structure and a configurable power unit), picks a selection that breaks the rule and fixes it with
+one click, saves and generates "Expedition" (2 parts made), then "Rally" (1 made, the power unit
+variant reused); resolves a change notice whose pending effectivity makes the motor's revision B
+effective from unit 100, and finds unit 50 built with A.1 and unit 150 with B.1; makes a one-off of
+the motor for an order, which the main line and its structure don't see; and finds motors by a
+power range on the Classes page and by likeness from one of them.
 
 ## Phase 8 — Desktop and native CAD
 Office/desktop integration · personal workspaces · native connectors (SolidWorks, Creo, NX,
