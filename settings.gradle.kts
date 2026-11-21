@@ -22,6 +22,6 @@ val modules =
     listOf(
         "identity", "access", "types", "content", "versioning", "audit",
         "documents", "parts", "bom", "lifecycle", "workflow", "change",
-        "search", "integration", "events", "configuration", "preferences", "extensions", "jobs", "bulk", "notifications", "reports",
+        "search", "integration", "events", "configuration", "preferences", "extensions", "jobs", "bulk", "notifications", "reports", "collaboration",
     )
 modules.forEach { include(":backend:modules:$it") }

@@ -1,5 +1,5 @@
 import { FavoriteButton, SubscribeButton } from "../personal/Personal";
-import { FilePlus, LayoutTemplate, Plus } from "lucide-react";
+import { FilePlus, LayoutTemplate, Plus, ScrollText } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -149,11 +149,21 @@ function ContextView({ id }: { id: string }) {
           </>
         }
         toolbar={
-          canSaveTemplate ? (
-            <button className="btn ghost" onClick={() => setDialog("template")}>
-              <LayoutTemplate size={15} aria-hidden />
-              Save as template
-            </button>
+          canSaveTemplate || canManage ? (
+            <>
+              {canSaveTemplate && (
+                <button className="btn ghost" onClick={() => setDialog("template")}>
+                  <LayoutTemplate size={15} aria-hidden />
+                  Save as template
+                </button>
+              )}
+              {(canManage || !!me?.siteAdmin) && context.kind !== "SITE" && (
+                <Link className="btn ghost" to={`/audit?contextId=${context.id}`}>
+                  <ScrollText size={15} aria-hidden />
+                  Audit report
+                </Link>
+              )}
+            </>
           ) : undefined
         }
         tabs={<Tabs tabs={tabs} active={tab} onSelect={select} />}

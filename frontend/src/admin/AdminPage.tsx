@@ -1,5 +1,5 @@
-import { Settings } from "lucide-react";
-import { useSearchParams } from "react-router";
+import { ScrollText, Settings } from "lucide-react";
+import { Link, useSearchParams } from "react-router";
 import { useMe } from "../api/queries";
 import { Loading } from "../components/common";
 import { PageHeader, Tabs } from "../components/Layout";
@@ -83,6 +83,12 @@ export function AdminPage() {
         icon={<Settings size={18} className="icon-muted" aria-hidden />}
         title={<span className="nm">Administration</span>}
         meta={<span className="sub">Changes apply to new forms and objects right away. Existing data stays valid.</span>}
+        toolbar={
+          <Link className="btn ghost" to="/audit">
+            <ScrollText size={15} aria-hidden />
+            Audit report
+          </Link>
+        }
         tabs={<Tabs tabs={SECTIONS} active={tab} onSelect={(t) => setParams({ tab: t })} />}
       />
       <div className="content">

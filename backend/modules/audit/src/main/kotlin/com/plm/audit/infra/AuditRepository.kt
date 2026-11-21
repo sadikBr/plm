@@ -1,6 +1,9 @@
 package com.plm.audit.infra
 
+import com.plm.audit.api.AuditCount
 import com.plm.audit.api.AuditEntry
+import com.plm.audit.api.AuditQuery
+import com.plm.audit.api.AuditReport
 import com.plm.platform.events.EventEnvelope
 import com.plm.platform.id.TenantId
 import org.springframework.jdbc.core.simple.JdbcClient
@@ -34,6 +37,77 @@ internal class AuditRepository(
             .param("details", json.writeValueAsString(event.payload))
             .update()
     }
+
+    private fun where(q: AuditQuery) =
+        """
+        where tenant_id = :tenant
+          and (cast(:from as timestamptz) is null or occurred_at >= :from)
+          and (cast(:to as timestamptz) is null or occurred_at < :to)
+          and (cast(:who as text) is null or actor = :who)
+          and (cast(:action as text) is null or action like :action || '%')
+          and (cast(:aggregate as uuid) is null or aggregate_id = :aggregate)
+          and (cast(:context as uuid) is null or aggregate_id = :context or details ->> 'contextId' in (
+                select cast(descendant_id as text) from context_closure where ancestor_id = :context))
+        """
+
+    private fun JdbcClient.StatementSpec.bind(
+        tenant: TenantId,
+        q: AuditQuery,
+    ) = param("tenant", tenant.value)
+        .param("from", q.from?.let { java.sql.Timestamp.from(it) })
+        .param("to", q.to?.let { java.sql.Timestamp.from(it) })
+        .param("who", q.actor)
+        .param("action", q.action)
+        .param("aggregate", q.aggregateId)
+        .param("context", q.contextId)
+
+    fun report(
+        tenant: TenantId,
+        q: AuditQuery,
+    ): AuditReport {
+        val entries =
+            jdbc
+                .sql(
+                    "select * from audit_log ${where(
+                        q,
+                    )} and (cast(:before as bigint) is null or seq < :before) order by seq desc limit :limit",
+                ).bind(tenant, q)
+                .param("before", q.before)
+                .param("limit", q.limit)
+                .query { rs, _ -> entry(rs) }
+                .list()
+
+        fun counts(column: String) =
+            jdbc
+                .sql(
+                    "select $column as k, count(*) as n from audit_log ${where(
+                        q,
+                    )} group by $column order by n desc, k limit 12",
+                ).bind(tenant, q)
+                .query { rs, _ -> AuditCount(rs.getString("k"), rs.getLong("n")) }
+                .list()
+        val byAction = counts("action")
+        val total =
+            jdbc
+                .sql(
+                    "select count(*) from audit_log ${where(q)}",
+                ).bind(tenant, q)
+                .query(Long::class.java)
+                .single()
+        return AuditReport(entries, total, byAction, counts("actor"))
+    }
+
+    private fun entry(rs: java.sql.ResultSet) =
+        AuditEntry(
+            seq = rs.getLong("seq"),
+            eventId = rs.getObject("event_id", UUID::class.java),
+            occurredAt = rs.getTimestamp("occurred_at").toInstant(),
+            actor = rs.getString("actor"),
+            action = rs.getString("action"),
+            aggregateType = rs.getString("aggregate_type"),
+            aggregateId = rs.getObject("aggregate_id", UUID::class.java),
+            details = json.readValue(rs.getString("details"), mapType),
+        )
 
     fun find(
         tenant: TenantId,

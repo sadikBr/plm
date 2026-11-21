@@ -33,6 +33,7 @@ internal class SubscriptionNotices(
         try {
             when {
                 event.eventType == "jobs.JobFinished.v1" -> jobFinished(event)
+                event.eventType == "versioning.ObjectShared.v1" -> shared(event)
                 event.eventType.startsWith("versioning.") -> objectChanged(event)
             }
         } catch (e: Exception) {
@@ -53,6 +54,26 @@ internal class SubscriptionNotices(
                 else -> "Failed: $title"
             }
         personal.notify(TenantId(event.tenantId), who, text, p["error"]?.toString(), null, actor = "system")
+    }
+
+    private fun shared(event: EventEnvelope) {
+        val p = event.payload
+        val who = p["principalId"]?.toString() ?: return
+        val tenant = TenantId(event.tenantId)
+        val objectId = UUID.fromString(p["objectId"]?.toString() ?: return)
+        val system = Actor(tenant, PrincipalId("system"), siteAdmin = true)
+        val obj =
+            versioning.list(system, ObjectQuery(ids = listOf(MasterId(objectId)), limit = 1)).firstOrNull() ?: return
+        val modify = (p["permissions"] as? List<*>)?.contains("MODIFY") == true
+        personal.notify(
+            tenant,
+            who,
+            "${personal.nameOf(tenant, event.actor)} shared ${obj.number} ${obj.name} with you",
+            if (modify) "You can view and edit it" else "You can view it",
+            "/objects/$objectId",
+            objectId,
+            event.actor,
+        )
     }
 
     private fun objectChanged(event: EventEnvelope) {

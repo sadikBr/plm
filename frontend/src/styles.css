@@ -756,3 +756,26 @@ table.folders td { padding-top: 7px; padding-bottom: 7px; }
 .radio-list label { align-items: center; }
 .notice-list.wide, .follow-list { width: 100%; }
 .follow-list .icon-btn { margin-left: auto; }
+
+/* ---------- Discussions, sharing, audit report (roadmap 3.10) ---------- */
+.discussion { display: grid; gap: 12px; max-width: 900px; }
+.topic { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; display: grid; gap: 8px; }
+.topic.resolved { opacity: .75; }
+.comment { display: grid; gap: 4px; }
+.comment-head { display: flex; align-items: center; gap: 8px; }
+.comment-body { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+.mention { color: var(--accent); background: var(--accent-soft); border-radius: 3px; padding: 0 3px; font-weight: 500; }
+.replies { display: grid; gap: 10px; margin-left: 14px; padding-left: 12px; border-left: 2px solid var(--border); }
+.reply-btn { display: inline-flex; align-items: center; gap: 4px; justify-self: start; font-size: 12px; }
+.composer { display: grid; gap: 6px; }
+.composer textarea { width: 100%; resize: vertical; min-height: 56px; }
+.share-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: end; margin-bottom: 14px; }
+.share-form > label input { width: auto; min-height: 0; }
+.share-form .btn { justify-self: end; }
+.section-title { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-2); margin: 6px 0 8px; }
+.audit-report { display: grid; gap: 12px; }
+.audit-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.audit-filters .field { min-width: 160px; }
+.audit-charts { display: grid; grid-template-columns: 220px minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (max-width: 1000px) { .audit-charts { grid-template-columns: 1fr; } }
+.discussion input[type="checkbox"], .share-form input[type="checkbox"] { width: auto; min-height: 0; margin: 0; }

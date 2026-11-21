@@ -23,6 +23,7 @@ internal data class ObjectFacts(
     val attributes: Map<String, Any?>,
     val owner: String? = null,
     val reservedBy: String? = null,
+    val objectId: java.util.UUID? = null,
 )
 
 /**
@@ -46,7 +47,11 @@ internal class ObjectModels(
         // Every attribute of the type is there, null when unset, so `object.attributes.x == null` works.
         val values = attributes.effective(actor, facts.typeId).associate { it.name to null } + facts.attributes
         val context = contexts.get(actor, facts.contextId)
-        val permissions = access.permissions(actor, AccessTarget(facts.contextId, facts.typeId, facts.state))
+        val permissions =
+            access.permissions(
+                actor,
+                AccessTarget(facts.contextId, facts.typeId, facts.state, facts.objectId),
+            )
         return mapOf(
             "object" to
                 mapOf(

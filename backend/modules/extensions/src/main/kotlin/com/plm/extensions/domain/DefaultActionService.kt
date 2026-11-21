@@ -93,7 +93,7 @@ internal class DefaultActionService(
                 actor,
                 obj,
                 versioning.lifecycle(actor, objectId),
-                access.permissions(actor, AccessTarget(obj.contextId, obj.typeId, obj.latest.state)),
+                access.permissions(actor, AccessTarget(obj.contextId, obj.typeId, obj.latest.state, obj.id.value)),
             )
         // Built only if some action has a condition.
         val model by lazy { versioning.expressionModel(actor, objectId) }

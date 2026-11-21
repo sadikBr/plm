@@ -1,3 +1,5 @@
+import { auditAction } from "../audit/AuditReport";
+import { DiscussionTab, ShareButton, useComments } from "../collaboration/Collaboration";
 import { FavoriteButton, SubscribeButton, useRecordVisit } from "../personal/Personal";
 import { Bookmark, Lock, Pencil } from "lucide-react";
 import { useState } from "react";
@@ -10,6 +12,7 @@ import {
   useHistory,
   useLifecycle,
   useMe,
+  usePermissions,
   useObject,
   useObjectActions,
   useRenameObject,
@@ -49,7 +52,7 @@ import { NotFoundPage } from "./NotFoundPage";
 import { useActionRunner } from "./ActionRunner";
 import { ObjectActionBar, type ActionHandlers } from "./ObjectActions";
 
-type Tab = "details" | "history" | "audit";
+type Tab = "details" | "discussion" | "history" | "audit";
 
 /** Remounts per object, so page state never leaks between objects. */
 export function ObjectPage() {
@@ -63,6 +66,8 @@ function ObjectView({ id }: { id: string }) {
   const { data: me } = useMe();
   const shows = useShows();
   const [params, setParams] = useSearchParams();
+  const { data: comments } = useComments(id);
+  const discussionCount = comments?.filter((c) => !c.parentId && !c.resolved).length ?? 0;
 
   if (isLoading) return <Loading />;
   if (isApiError(error, 404)) return <NotFoundPage what="object" />;
@@ -70,6 +75,7 @@ function ObjectView({ id }: { id: string }) {
 
   const tabs: [Tab, string][] = [
     ["details", "Details"],
+    ["discussion", discussionCount ? `Discussion (${discussionCount})` : "Discussion"],
     ...(shows("object.history") ? [["history", "History"] as [Tab, string]] : []),
     ...(me?.siteAdmin && shows("object.audit") ? [["audit", "Audit"] as [Tab, string]] : []),
   ];
@@ -82,6 +88,7 @@ function ObjectView({ id }: { id: string }) {
       <ObjectHeader obj={obj} myId={myId} tabs={<Tabs tabs={tabs} active={tab} onSelect={(t) => setParams({ tab: t })} />} />
       <div className="content">
         {tab === "details" && <DetailsTab obj={obj} myId={myId} />}
+        {tab === "discussion" && <DiscussionTab obj={obj} />}
         {tab === "history" && <HistoryTab id={obj.id} />}
         {tab === "audit" && me?.siteAdmin && <AuditTab id={obj.id} />}
       </div>
@@ -103,6 +110,9 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
   const [docDialog, setDocDialog] = useState<"save-as" | "compare" | "move" | "delete" | "owner" | null>(null);
   const clipboard = useClipboard();
   const reservation = useReservation(obj);
+  const { data: me } = useMe();
+  const { data: contextPermissions } = usePermissions(obj.contextId);
+  const canShare = !!me?.siteAdmin || obj.owner === myId || !!contextPermissions?.has("MANAGE");
   const { data: prefs } = useEffectivePreferences(obj.contextId);
   const commentRequired = prefs?.get("versioning.checkInCommentRequired") === true;
 
@@ -169,6 +179,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
             <span className="track-btns">
               <FavoriteButton kind="OBJECT" targetId={obj.id} label={`${obj.number} ${obj.name}`} />
               <SubscribeButton kind="OBJECT" targetId={obj.id} label={`${obj.number} ${obj.name}`} />
+              {canShare && <ShareButton obj={obj} />}
             </span>
           </>
         }
@@ -716,11 +727,3 @@ function AuditTab({ id }: { id: string }) {
 }
 
 /** `versioning.ObjectCheckedIn.v1` → `Checked in`. */
-function auditAction(action: string): string {
-  const name = action
-    .replace(/^\w+\./, "")
-    .replace(/\.v\d+$/, "")
-    .replace(/^Object/, "");
-  const words = name.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();
-  return words.charAt(0).toUpperCase() + words.slice(1);
-}

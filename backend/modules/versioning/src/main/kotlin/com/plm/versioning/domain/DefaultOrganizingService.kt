@@ -172,7 +172,11 @@ internal class DefaultOrganizingService(
         ) {
             throw ConflictException("CHECKED_OUT", "${obj.number} is checked out: check it in first")
         }
-        access.require(actor, AccessTarget(obj.contextId, obj.typeId, obj.latest.state), Permission.MODIFY)
+        access.require(
+            actor,
+            AccessTarget(obj.contextId, obj.typeId, obj.latest.state, obj.id.value),
+            Permission.MODIFY,
+        )
         val target = contexts.get(actor, ContextId(to.contextId))
         if (to.folderId != null) folder(actor, to.folderId, to.contextId)
         if (target.id !=
@@ -269,9 +273,7 @@ internal class DefaultOrganizingService(
             )
         }
         val principal =
-            runCatching { directory.get(actor, PrincipalId(owner)) }.getOrNull()
-                ?: directory.findByUsername(actor, owner)
-                ?: throw NotFoundException("PRINCIPAL_NOT_FOUND", "There's no user $owner")
+            directory.findByUsername(actor, owner) ?: directory.get(actor, PrincipalId(owner))
         repository.setOwner(objectId.value, principal.id.value)
         events.publish(actor, ownership(obj, "OWNER_CHANGED", principal.id.value, obj.reservedBy))
         return versioning.get(actor, objectId)
@@ -282,7 +284,11 @@ internal class DefaultOrganizingService(
         objectId: MasterId,
     ): VersionedObject {
         val obj = versioning.get(actor, objectId)
-        access.require(actor, AccessTarget(obj.contextId, obj.typeId, obj.latest.state), Permission.MODIFY)
+        access.require(
+            actor,
+            AccessTarget(obj.contextId, obj.typeId, obj.latest.state, obj.id.value),
+            Permission.MODIFY,
+        )
         if (obj.reservedBy != null && obj.reservedBy != actor.principal.value) {
             throw ConflictException(
                 "RESERVED_BY_ANOTHER_USER",

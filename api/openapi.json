@@ -561,6 +561,19 @@
         "required" : [ "labels" ],
         "type" : "object"
       },
+      "AuditCount" : {
+        "properties" : {
+          "count" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "key" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "count", "key" ],
+        "type" : "object"
+      },
       "AuditEntry" : {
         "properties" : {
           "action" : {
@@ -594,6 +607,34 @@
           }
         },
         "required" : [ "action", "actor", "aggregateId", "aggregateType", "details", "eventId", "occurredAt", "seq" ],
+        "type" : "object"
+      },
+      "AuditReport" : {
+        "properties" : {
+          "byAction" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AuditCount"
+            },
+            "type" : "array"
+          },
+          "byActor" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AuditCount"
+            },
+            "type" : "array"
+          },
+          "entries" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AuditEntry"
+            },
+            "type" : "array"
+          },
+          "total" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "byAction", "byActor", "entries", "total" ],
         "type" : "object"
       },
       "AvailableActionResponse" : {
@@ -729,6 +770,50 @@
             "type" : [ "string", "null" ]
           }
         },
+        "type" : "object"
+      },
+      "Comment" : {
+        "properties" : {
+          "author" : {
+            "type" : "string"
+          },
+          "body" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "deleted" : {
+            "type" : "boolean"
+          },
+          "editedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "mentions" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "parentId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "resolved" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "author", "body", "createdAt", "deleted", "id", "mentions", "objectId", "resolved" ],
         "type" : "object"
       },
       "ComparedVersion" : {
@@ -1509,6 +1594,15 @@
           }
         },
         "required" : [ "active", "id", "name", "number", "objectId", "typeId", "updatedAt", "updatedBy", "version" ],
+        "type" : "object"
+      },
+      "EditComment" : {
+        "properties" : {
+          "body" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "body" ],
         "type" : "object"
       },
       "EffectiveProfile" : {
@@ -3335,6 +3429,19 @@
         "required" : [ "contextId", "createdAt", "createdBy", "effect", "id", "inherited", "permissions", "role" ],
         "type" : "object"
       },
+      "PostComment" : {
+        "properties" : {
+          "body" : {
+            "type" : "string"
+          },
+          "parentId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "body" ],
+        "type" : "object"
+      },
       "PreferenceDefinitionResponse" : {
         "properties" : {
           "category" : {
@@ -3950,6 +4057,15 @@
         "required" : [ "fileName" ],
         "type" : "object"
       },
+      "ResolveComment" : {
+        "properties" : {
+          "resolved" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "resolved" ],
+        "type" : "object"
+      },
       "ResolvedLayoutResponse" : {
         "properties" : {
           "groups" : {
@@ -4316,6 +4432,58 @@
         "required" : [ "state" ],
         "type" : "object"
       },
+      "Share" : {
+        "properties" : {
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "grantedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "grantedBy" : {
+            "type" : "string"
+          },
+          "note" : {
+            "type" : [ "string", "null" ]
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "permissions" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "principalId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "grantedAt", "grantedBy", "objectId", "permissions", "principalId" ],
+        "type" : "object"
+      },
+      "ShareRequest" : {
+        "properties" : {
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "modify" : {
+            "type" : "boolean"
+          },
+          "note" : {
+            "type" : [ "string", "null" ]
+          },
+          "principalId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "modify", "principalId" ],
+        "type" : "object"
+      },
       "SharedTeamMemberResponse" : {
         "properties" : {
           "addedAt" : {
@@ -4360,6 +4528,31 @@
           }
         },
         "required" : [ "createdAt", "id", "members", "name" ],
+        "type" : "object"
+      },
+      "SharedWithMe" : {
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "share" : {
+            "$ref" : "#/components/schemas/Share"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "name", "number", "share", "state", "typeId", "version" ],
         "type" : "object"
       },
       "SheetExport" : {
@@ -5620,6 +5813,98 @@
         "tags" : [ "Audit" ]
       }
     },
+    "/api/v1/audit/report" : {
+      "get" : {
+        "operationId" : "auditReport",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "actor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "action",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "contextId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "aggregateId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 200,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "before",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuditReport"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Audit" ]
+      }
+    },
     "/api/v1/bulk" : {
       "post" : {
         "operationId" : "bulkStart",
@@ -5656,6 +5941,128 @@
           }
         },
         "tags" : [ "Bulk" ]
+      }
+    },
+    "/api/v1/comments/{commentId}" : {
+      "delete" : {
+        "operationId" : "discussionDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "commentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Discussion" ]
+      },
+      "put" : {
+        "operationId" : "discussionEdit",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "commentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EditComment"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Comment"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Discussion" ]
+      }
+    },
+    "/api/v1/comments/{commentId}/resolved" : {
+      "put" : {
+        "operationId" : "discussionResolve",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "commentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ResolveComment"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Comment"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Discussion" ]
       }
     },
     "/api/v1/compare" : {
@@ -9735,6 +10142,37 @@
         "tags" : [ "Personal" ]
       }
     },
+    "/api/v1/me/shared-with-me" : {
+      "get" : {
+        "operationId" : "sharingSharedWithMe",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/SharedWithMe"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Sharing" ]
+      }
+    },
     "/api/v1/me/subscriptions" : {
       "get" : {
         "operationId" : "personalSubscriptions",
@@ -10375,6 +10813,91 @@
           }
         },
         "tags" : [ "Versioned object" ]
+      }
+    },
+    "/api/v1/objects/{id}/comments" : {
+      "get" : {
+        "operationId" : "discussionComments",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Comment"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Discussion" ]
+      },
+      "post" : {
+        "operationId" : "discussionPost",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PostComment"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Comment"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Discussion" ]
       }
     },
     "/api/v1/objects/{id}/content" : {
@@ -11110,6 +11633,128 @@
           }
         },
         "tags" : [ "Document" ]
+      }
+    },
+    "/api/v1/objects/{id}/shares" : {
+      "get" : {
+        "operationId" : "sharingShares",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Share"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Sharing" ]
+      },
+      "post" : {
+        "operationId" : "sharingShare",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ShareRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Share"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Sharing" ]
+      }
+    },
+    "/api/v1/objects/{id}/shares/{principalId}" : {
+      "delete" : {
+        "operationId" : "sharingUnshare",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "principalId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Sharing" ]
       }
     },
     "/api/v1/objects/{id}/state" : {
@@ -14271,6 +14916,8 @@
   }, {
     "name" : "Context template"
   }, {
+    "name" : "Discussion"
+  }, {
     "name" : "Document"
   }, {
     "name" : "Expression"
@@ -14308,6 +14955,8 @@
     "name" : "Service account"
   }, {
     "name" : "Shared team"
+  }, {
+    "name" : "Sharing"
   }, {
     "name" : "Table view"
   }, {

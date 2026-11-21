@@ -1,3 +1,4 @@
+import { AuditReportPage } from "./audit/AuditReport";
 import { NotificationsPage } from "./personal/Personal";
 import { DashboardsPage } from "./reports/Dashboards";
 import { ReportsPage } from "./reports/ReportsPage";
@@ -50,6 +51,7 @@ export function AppRoutes() {
         <Route path="dashboards" element={<DashboardsPage />} />
         <Route path="dashboards/:id" element={<DashboardsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="audit" element={<AuditReportPage />} />
         <Route path="admin" element={<AdminPage />} />
         <Route path="preferences" element={<MyPreferencesPage />} />
         <Route path="*" element={<NotFoundPage />} />

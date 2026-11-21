@@ -10,20 +10,39 @@ import com.plm.platform.actor.Actor
 import com.plm.platform.error.ForbiddenException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
+import java.time.Clock
 
 @Service
 @Transactional(readOnly = true)
 internal class DefaultAccessService(
     private val access: AccessRepository,
+    private val clock: Clock,
 ) : AccessService {
     override fun permissions(
         actor: Actor,
         target: AccessTarget,
     ): Set<Permission> {
         if (actor.siteAdmin) return Permission.entries.toSet()
-        return Permission.fromBits(
-            access.permissionBits(actor.tenant, actor.principal, target.contextId, target.typeId, target.state),
-        )
+        val policies =
+            access.permissionBits(
+                actor.tenant,
+                actor.principal,
+                target.contextId,
+                target.typeId,
+                target.state,
+            )
+        val shared =
+            target.objectId?.let {
+                access.shareBits(
+                    actor.tenant,
+                    actor.principal,
+                    it,
+                    Timestamp.from(clock.instant()),
+                )
+            }
+                ?: 0
+        return Permission.fromBits(policies or shared)
     }
 
     override fun require(
@@ -46,14 +65,17 @@ internal class DefaultAccessService(
         columns: AccessColumns,
     ): SqlPredicate {
         if (actor.siteAdmin) return SqlPredicate("true", emptyMap())
+        val policies = access.permissionPredicate(columns.contextId, columns.typeId, columns.state)
+        val params =
+            mapOf(
+                "acl_tenant" to actor.tenant.value,
+                "acl_principal" to actor.principal.value,
+                "acl_bit" to permission.bit,
+            )
+        val objectColumn = columns.objectId ?: return SqlPredicate(policies, params)
         return SqlPredicate(
-            sql = access.permissionPredicate(columns.contextId, columns.typeId, columns.state),
-            params =
-                mapOf(
-                    "acl_tenant" to actor.tenant.value,
-                    "acl_principal" to actor.principal.value,
-                    "acl_bit" to permission.bit,
-                ),
+            "($policies or ${access.sharePredicate(objectColumn)})",
+            params + ("acl_now" to Timestamp.from(clock.instant())),
         )
     }
 }

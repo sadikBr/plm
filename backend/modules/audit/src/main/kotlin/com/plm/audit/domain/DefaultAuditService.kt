@@ -1,6 +1,12 @@
 package com.plm.audit.domain
 
+import com.plm.access.api.AccessService
+import com.plm.access.api.AccessTarget
+import com.plm.access.api.ContextId
+import com.plm.access.api.Permission
 import com.plm.audit.api.AuditEntry
+import com.plm.audit.api.AuditQuery
+import com.plm.audit.api.AuditReport
 import com.plm.audit.api.AuditService
 import com.plm.audit.infra.AuditRepository
 import com.plm.platform.actor.Actor
@@ -17,6 +23,7 @@ private const val MAX_LIMIT = 500
 @Service
 internal class DefaultAuditService(
     private val audit: AuditRepository,
+    private val access: AccessService,
 ) : AuditService {
     /**
      * Runs synchronously inside the transaction that published the event. If the audit row cannot
@@ -47,6 +54,32 @@ internal class DefaultAuditService(
     ): List<AuditEntry> {
         requireAdmin(actor)
         return audit.find(actor.tenant, null, limit.coerceIn(1, MAX_LIMIT), before)
+    }
+
+    @Transactional(readOnly = true)
+    override fun report(
+        actor: Actor,
+        query: AuditQuery,
+    ): AuditReport {
+        if (!actor.siteAdmin) {
+            val context =
+                query.contextId
+                    ?: throw ForbiddenException(
+                        "ADMIN_REQUIRED",
+                        "Only site administrators can report on everything: pick a context you manage",
+                    )
+            access.require(actor, AccessTarget(ContextId(context)), Permission.MANAGE)
+        }
+        val q =
+            query.copy(
+                limit = query.limit.coerceIn(1, MAX_LIMIT),
+                action =
+                    query.action?.trim()?.ifEmpty {
+                        null
+                    },
+                actor = query.actor?.trim()?.ifEmpty { null },
+            )
+        return audit.report(actor.tenant, q)
     }
 
     private fun requireAdmin(actor: Actor) {

@@ -26,6 +26,9 @@ const DEFAULTS: Record<string, Handler> = {
   "GET /api/v1/me/subscriptions": () => [],
   "GET /api/v1/me/notifications": () => [],
   "GET /api/v1/me/notifications/unread": () => ({ unread: 0 }),
+  "GET /api/v1/objects/:id/comments": () => [],
+  "GET /api/v1/objects/:id/shares": () => [],
+  "GET /api/v1/me/shared-with-me": () => [],
 };
 
 export function fakeApi(routes: Record<string, Handler>) {

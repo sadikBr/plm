@@ -86,6 +86,37 @@ internal class AccessRepository(
             .query(Int::class.java)
             .single()
 
+    /** Permission bits from unexpired shares of [objectId] with [principal]. */
+    fun shareBits(
+        tenant: TenantId,
+        principal: PrincipalId,
+        objectId: UUID,
+        now: Timestamp,
+    ): Int =
+        jdbc
+            .sql(
+                """
+                select coalesce(bit_or(permissions), 0) from object_share
+                where tenant_id = :tenant and object_id = :object and principal_id = :principal
+                  and (expires_at is null or expires_at > :now)
+                """,
+            ).param("tenant", tenant.value)
+            .param("principal", principal.value)
+            .param("object", objectId)
+            .param("now", now)
+            .query(Int::class.java)
+            .single()
+
+    /** OR-ed into list filters; uses `:acl_now` besides the usual `acl_` parameters. */
+    fun sharePredicate(objectColumn: String): String {
+        require(SQL_IDENTIFIER.matches(objectColumn)) { "Not a plain column reference: '$objectColumn'" }
+        return """
+            exists (select 1 from object_share acl_os where acl_os.tenant_id = :acl_tenant and acl_os.object_id = $objectColumn
+              and acl_os.principal_id = :acl_principal and (acl_os.permissions & :acl_bit) <> 0
+              and (acl_os.expires_at is null or acl_os.expires_at > :acl_now))
+            """.trimIndent()
+    }
+
     fun permissionPredicate(
         contextColumn: String,
         typeColumn: String,
@@ -124,6 +155,10 @@ internal class AccessRepository(
                       on (cc.ancestor_id = tm.context_id and cc.descendant_id = :context)
                       or (cc.descendant_id = tm.context_id and cc.ancestor_id = :context)
                     where tm.tenant_id = :tenant and tm.principal_id = :principal
+                ) or exists (
+                    -- Someone an object was shared with sees where it lives (roadmap 3.10).
+                    select 1 from object_share os
+                    where os.tenant_id = :tenant and os.principal_id = :principal and os.context_id = :context
                 )
                 """,
             ).param("tenant", tenant.value)

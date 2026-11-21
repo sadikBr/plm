@@ -170,8 +170,15 @@ platform gets the background machinery (jobs, schedules, notifications) later ph
       changes, moves and deletions by others, only while you may read them; job owners hear when
       their jobs end; a bell with the unread count; mail right away, as a daily digest job, or
       never; new home widgets for favorites, recent visits and notifications.)
-- [ ] 3.10 Collaboration and access: discussions on objects, ad hoc access (share one object with
+- [x] 3.10 Collaboration and access: discussions on objects, ad hoc access (share one object with
       someone), audit reports.
+      (Done: a `collaboration` module with discussion topics and replies on objects, @mentions
+      and reply notifications (only to people who may read the object), resolve, edit and delete;
+      an object's owner or its context's managers share it with anyone, to view or also edit,
+      optionally until a date (honoured by every access check and list filter, and the person sees
+      the object's context but nothing else in it); an audit report by period, person, kind of change
+      and context, with counts by kind and person and an Excel export, for site administrators and
+      context managers.)
 - [ ] 3.11 Long-running extension actions: a webhook action can start a background job that
       reports progress; the user is notified when it's done (e.g. a document generated from a long
       query).

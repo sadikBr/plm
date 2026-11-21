@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3, Box, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, Clock, Pin, PinOff, Search, Star, X } from "lucide-react";
 import { favoriteLink, useFavorites } from "../personal/Personal";
+import { NavSharedWithMe } from "../collaboration/Collaboration";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router";
 import { api, unwrap } from "../api/client";
@@ -215,6 +216,13 @@ export function Navigator() {
             </ul>
           </NavSection>
           <NavFavorites />
+          <NavSharedWithMe
+            section={(title, icon, children) => (
+              <NavSection title={title} icon={icon}>
+                {children}
+              </NavSection>
+            )}
+          />
           {pinned.length > 0 && (
             <NavSection title="Pinned" icon={<Pin size={11} aria-hidden />}>
               {pinned.map((p) => (

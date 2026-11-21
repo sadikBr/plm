@@ -224,7 +224,12 @@ internal class DefaultVersioningService(
         if (text != null && text.length > MAX_QUERY_LENGTH) {
             throw ValidationException("INVALID_QUERY", "Search text must be at most $MAX_QUERY_LENGTH characters")
         }
-        val filter = access.filter(actor, Permission.READ, AccessColumns("m.context_id", "m.type_id", "i.state"))
+        val filter =
+            access.filter(
+                actor,
+                Permission.READ,
+                AccessColumns("m.context_id", "m.type_id", "i.state", "m.id"),
+            )
         return repository
             .list(
                 actor.tenant,
@@ -738,6 +743,7 @@ internal class DefaultVersioningService(
         attributes = attributes,
         owner = owner ?: createdBy,
         reservedBy = reservedBy,
+        objectId = id.value,
     )
 
     @Transactional(readOnly = true)
@@ -888,7 +894,7 @@ internal class DefaultVersioningService(
         return latest
     }
 
-    private fun MasterRow.target(latest: Iteration) = AccessTarget(contextId, typeId, latest.state)
+    private fun MasterRow.target(latest: Iteration) = AccessTarget(contextId, typeId, latest.state, id.value)
 
     private fun notFound(id: MasterId): Nothing =
         throw NotFoundException("OBJECT_NOT_FOUND", "Object $id does not exist", mapOf("objectId" to id.value))

@@ -55,6 +55,8 @@ data class AccessTarget(
     val contextId: ContextId,
     val typeId: TypeId? = null,
     val state: String? = null,
+    /** The object itself, when there is one: its ad hoc shares count too (roadmap 3.10). */
+    val objectId: java.util.UUID? = null,
 )
 
 /** Column expressions of the row being filtered, e.g. `m.context_id`. Must be trusted code, never user input. */
@@ -62,6 +64,8 @@ data class AccessColumns(
     val contextId: String,
     val typeId: String,
     val state: String,
+    /** The object id column, to honour ad hoc shares (roadmap 3.10). */
+    val objectId: String? = null,
 )
 
 /** A SQL boolean expression plus the named parameters it uses. Combine with `and`. */
