@@ -145,8 +145,10 @@ platform gets the background machinery (jobs, schedules, notifications) later ph
       rules (what may be deleted, by whom, in which states), ownership and reservation, a clipboard.
       (Done: folders with paths, move and delete guarded by extension rules too, delete rules in
       Admin, owners, reservations that block others' check-out, a clipboard to paste as move or copy.)
-- [ ] 3.5 Mass operations: select many objects and set state, move, delete or change an
+- [x] 3.5 Mass operations: select many objects and set state, move, delete or change an
       attribute in one background job, with a per-object result.
+      (Done: `bulk` module, up to 1000 objects per job, run as the person who started it; table
+      selection, a bulk toolbar and live results.)
 - [ ] 3.6 Search: OpenSearch indexing fed by events, full-text and attribute search with facets
       and access filtering, saved and shared searches.
 - [ ] 3.7 Table views: choose columns, filter and sort, save and share views, export to Excel.

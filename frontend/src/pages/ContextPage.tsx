@@ -44,6 +44,7 @@ import { rememberVisit } from "../components/Navigator";
 import { ObjectTable } from "../components/ObjectTable";
 import { AccessTab, TeamTab } from "./ContextAccess";
 import { ContextTable, NewContextDialog } from "./ContextLists";
+import { BulkBar, BulkProgress } from "./Bulk";
 import { FolderBar } from "./Folders";
 import { PreferencesTab } from "./Preferences";
 import { ContextTemplatesAdmin, SharedTeamsAdmin } from "../admin/TeamsAndTemplatesAdmin";
@@ -353,6 +354,9 @@ function ObjectsTab({ context, canCreate }: { context: Context; canCreate: boole
   const { data: prefs } = useEffectivePreferences(context.id);
   const objects = useObjects(context.id, (prefs?.get("ui.tablePageSize") as number | undefined) ?? 50, folder ?? "");
   const [filter, setFilter] = useState("");
+  // Mass operations (roadmap 3.5): ticked rows, and the job running on them.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkJob, setBulkJob] = useState<string | null>(null);
   const rows = useMemo(() => objects.data?.pages.flat() ?? [], [objects.data]);
   const shown = useMemo(() => {
     const f = filter.trim().toLowerCase();
@@ -386,6 +390,20 @@ function ObjectsTab({ context, canCreate }: { context: Context; canCreate: boole
     >
       {creating && <NewObjectDialog context={context} folderId={folder} baseClass={creating} onClose={() => setCreating(null)} />}
       <FolderBar contextId={context.id} contextName={context.name} folderId={folder} onOpen={openFolder} canCreate={canCreate} />
+      {bulkJob && (
+        <div style={{ padding: 12 }}>
+          <BulkProgress jobId={bulkJob} onClose={() => setBulkJob(null)} />
+        </div>
+      )}
+      {selected.size > 0 && (
+        <BulkBar
+          objects={rows.filter((o) => selected.has(o.id))}
+          contextId={context.id}
+          folderId={folder}
+          onClear={() => setSelected(new Set())}
+          onStarted={setBulkJob}
+        />
+      )}
       <ErrorBanner error={objects.error} />
       {objects.isLoading ? (
         <Loading />
@@ -394,6 +412,8 @@ function ObjectsTab({ context, canCreate }: { context: Context; canCreate: boole
       ) : (
         <ObjectTable
           objects={shown}
+          selected={selected}
+          onSelect={setSelected}
           footer={
             <>
               <span>{shown.length === rows.length ? `${rows.length} objects` : `${shown.length} of ${rows.length} objects`}</span>

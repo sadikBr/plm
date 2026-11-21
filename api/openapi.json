@@ -647,6 +647,41 @@
         "required" : [ "enabled", "group", "handler", "id", "label", "options", "placement", "source" ],
         "type" : "object"
       },
+      "BulkRequest" : {
+        "properties" : {
+          "attribute" : {
+            "type" : [ "string", "null" ]
+          },
+          "comment" : {
+            "type" : [ "string", "null" ]
+          },
+          "contextId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "folderId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "objectIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "operation" : {
+            "enum" : [ "SET_STATE", "MOVE", "DELETE", "SET_ATTRIBUTE" ],
+            "type" : "string"
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          },
+          "value" : { }
+        },
+        "required" : [ "objectIds", "operation" ],
+        "type" : "object"
+      },
       "ChangeLifecycleRequest" : {
         "properties" : {
           "lifecycleId" : {
@@ -4869,6 +4904,44 @@
           }
         },
         "tags" : [ "Audit" ]
+      }
+    },
+    "/api/v1/bulk" : {
+      "post" : {
+        "operationId" : "bulkStart",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BulkRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Job"
+                }
+              }
+            },
+            "description" : "Accepted"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Bulk" ]
       }
     },
     "/api/v1/compare" : {
@@ -11969,6 +12042,8 @@
     "name" : "Attribute"
   }, {
     "name" : "Audit"
+  }, {
+    "name" : "Bulk"
   }, {
     "name" : "Configuration"
   }, {

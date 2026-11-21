@@ -23,12 +23,25 @@ export function ObjectTable({
   showContext = false,
   footer,
   label = "Objects",
+  selected,
+  onSelect,
 }: {
   objects: VersionedObject[];
   showContext?: boolean;
   footer?: ReactNode;
   label?: string;
+  /** With both, rows can be ticked for mass operations (roadmap 3.5). */
+  selected?: Set<string>;
+  onSelect?: (ids: Set<string>) => void;
 }) {
+  const selectable = !!selected && !!onSelect;
+  const toggle = (id: string) => {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    onSelect?.(next);
+  };
+  const allSelected = selectable && objects.length > 0 && objects.every((o) => selected.has(o.id));
   const { data: types } = useTypes();
   const [sort, setSort] = useState<{ column: Column; desc: boolean }>({ column: "number", desc: false });
   const columns: Column[] = [
@@ -84,13 +97,30 @@ export function ObjectTable({
         <table className="grid" aria-label={label}>
           <thead>
             <tr>
-              <th className="icon-cell"><span className="sr-only">Icon</span></th>
+              {selectable && (
+                <th className="check-cell">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all"
+                    checked={allSelected}
+                    onChange={() => onSelect(allSelected ? new Set() : new Set(objects.map((o) => o.id)))}
+                  />
+                </th>
+              )}
+              <th className="icon-cell">
+                <span className="sr-only">Icon</span>
+              </th>
               {columns.map(header)}
             </tr>
           </thead>
           <tbody>
             {sorted.map((o) => (
-              <tr key={o.id}>
+              <tr key={o.id} className={selectable && selected.has(o.id) ? "selected" : undefined}>
+                {selectable && (
+                  <td className="check-cell">
+                    <input type="checkbox" aria-label={`Select ${o.number}`} checked={selected.has(o.id)} onChange={() => toggle(o.id)} />
+                  </td>
+                )}
                 <td className="icon-cell">
                   <TypeIcon typeId={o.typeId} />
                 </td>

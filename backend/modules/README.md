@@ -19,6 +19,7 @@ Three layers enforce this:
 | Module | Responsibility | Depends on |
 |---|---|---|
 | identity | User directory (from OIDC sign-ins), service accounts and API tokens | jobs |
+| bulk | Mass operations on many objects, as one background job | access, versioning, jobs |
 | jobs | Background jobs: queue, workers, schedules (handlers live in the modules that own the work) | — |
 | audit | Append-only audit log, fed by every domain event | — |
 | types | Type definitions, attribute schemas | — |
