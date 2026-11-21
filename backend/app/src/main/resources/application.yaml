@@ -44,6 +44,11 @@ management:
     health:
       probes:
         enabled: true
+  health:
+    # Mail is optional and goes out in the background: a mail server that's down mustn't make the
+    # platform unhealthy (and take it out of a load balancer).
+    mail:
+      enabled: false
 
 plm:
   # Where people open the web UI: links in mail point here.
