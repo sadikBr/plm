@@ -1,3 +1,4 @@
+import { ClipboardButton } from "./Clipboard";
 import { ChevronRight, LogOut, Settings } from "lucide-react";
 import { type ReactNode } from "react";
 import { Link, NavLink, Outlet, useParams } from "react-router";
@@ -21,6 +22,7 @@ export function Layout() {
         </Link>
         {shows("search") && <GlobalSearch />}
         <div className="spacer" />
+        <ClipboardButton />
         <div className="who">
           {me?.siteAdmin && (
             <NavLink to="/admin" className="topbar-link">

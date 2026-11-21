@@ -375,9 +375,10 @@ export const useJobStats = () =>
 
 export const useJobTypes = () => useQuery({ queryKey: ["jobTypes"], queryFn: () => unwrap(api.GET("/api/v1/job-types")) });
 
-export const useJobLog = (id: string, live: boolean) =>
+/** A job's log: polled while it runs, and read again whenever its status changes. */
+export const useJobLog = (id: string, live: boolean, status?: string) =>
   useQuery({
-    queryKey: ["jobs", id, "log"],
+    queryKey: ["jobs", id, "log", status ?? ""],
     queryFn: () => unwrap(api.GET("/api/v1/jobs/{id}/log", { params: { path: { id } } })),
     refetchInterval: live ? 2000 : false,
   });

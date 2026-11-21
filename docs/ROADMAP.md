@@ -141,8 +141,10 @@ platform gets the background machinery (jobs, schedules, notifications) later ph
       (a copy with a new number), compare two versions (attributes and content).
       (Done: templates are ordinary objects registered per site or organization; Save As and
       Compare in the action registry; compare covers values, files and a line diff of text files.)
-- [ ] 3.4 Folders and organizing: folders in contexts, move between folders and contexts, delete
+- [x] 3.4 Folders and organizing: folders in contexts, move between folders and contexts, delete
       rules (what may be deleted, by whom, in which states), ownership and reservation, a clipboard.
+      (Done: folders with paths, move and delete guarded by extension rules too, delete rules in
+      Admin, owners, reservations that block others' check-out, a clipboard to paste as move or copy.)
 - [ ] 3.5 Mass operations: select many objects and set state, move, delete or change an
       attribute in one background job, with a per-object result.
 - [ ] 3.6 Search: OpenSearch indexing fed by events, full-text and attribute search with facets

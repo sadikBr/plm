@@ -349,14 +349,22 @@ export const useEnumerations = () =>
 
 export const useUnits = () => useQuery({ queryKey: keys.units, queryFn: () => unwrap(api.GET("/api/v1/units")), ...REFERENCE_DATA });
 
-export const useObjects = (contextId: string, pageSize = PAGE_SIZE) =>
+/** Objects of a context; with [folder], those in that folder ("" for the top, outside any folder). */
+export const useObjects = (contextId: string, pageSize = PAGE_SIZE, folder?: string) =>
   useInfiniteQuery({
-    queryKey: [...keys.objects(contextId), pageSize],
+    queryKey: [...keys.objects(contextId), pageSize, folder ?? "*"],
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) =>
       unwrap(
         api.GET("/api/v1/objects", {
-          params: { query: { contextId, limit: pageSize, ...(pageParam ? { after: pageParam } : {}) } },
+          params: {
+            query: {
+              contextId,
+              limit: pageSize,
+              ...(folder ? { folderId: folder } : folder === "" ? { topLevelOnly: true } : {}),
+              ...(pageParam ? { after: pageParam } : {}),
+            },
+          },
         }),
       ),
     getNextPageParam: (last) => (last.length === pageSize ? last[last.length - 1]?.id : undefined),

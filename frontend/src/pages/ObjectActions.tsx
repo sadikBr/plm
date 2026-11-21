@@ -1,7 +1,13 @@
 import {
   ArrowRightLeft,
+  Bookmark,
+  BookmarkX,
+  ClipboardPlus,
   Copy,
   CopyPlus,
+  FolderInput,
+  Trash2,
+  UserRoundCog,
   GitCompare,
   GitBranchPlus,
   Link2,
@@ -35,6 +41,12 @@ export const ACTION_ICONS: Record<string, LucideIcon> = {
   play: Play,
   "copy-plus": CopyPlus,
   "git-compare": GitCompare,
+  "clipboard-plus": ClipboardPlus,
+  bookmark: Bookmark,
+  "bookmark-x": BookmarkX,
+  "folder-input": FolderInput,
+  "user-round-cog": UserRoundCog,
+  "trash-2": Trash2,
 };
 
 function ActionIcon({ name, size }: { name?: string | null; size: number }) {

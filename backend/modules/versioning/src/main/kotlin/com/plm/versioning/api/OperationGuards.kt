@@ -14,6 +14,8 @@ enum class GuardedOperation(
     SET_STATE("object.set-state"),
     RENAME("object.rename"),
     CHANGE_LIFECYCLE("object.change-lifecycle"),
+    MOVE("object.move"),
+    DELETE("object.delete"),
     ;
 
     companion object {

@@ -1,4 +1,4 @@
-import { Lock, Pencil } from "lucide-react";
+import { Bookmark, Lock, Pencil } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { isApiError } from "../api/client";
@@ -41,6 +41,9 @@ import {
 import { Breadcrumbs, PageHeader, Tabs, useIdParam } from "../components/Layout";
 import { ObjectFiles } from "../components/ObjectFiles";
 import { CompareDialog, SaveAsDialog } from "../documents/DocumentDialogs";
+import { useClipboard } from "../components/Clipboard";
+import { FolderLocation } from "./FolderLocation";
+import { DeleteDialog, MoveDialog, OwnerDialog, useReservation } from "./OrganizeDialogs";
 import { NotFoundPage } from "./NotFoundPage";
 import { useActionRunner } from "./ActionRunner";
 import { ObjectActionBar, type ActionHandlers } from "./ObjectActions";
@@ -95,7 +98,9 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
   const [stateChange, setStateChange] = useState<{ to: string; override: boolean } | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [changingLifecycle, setChangingLifecycle] = useState(false);
-  const [docDialog, setDocDialog] = useState<"save-as" | "compare" | null>(null);
+  const [docDialog, setDocDialog] = useState<"save-as" | "compare" | "move" | "delete" | "owner" | null>(null);
+  const clipboard = useClipboard();
+  const reservation = useReservation(obj);
   const { data: prefs } = useEffectivePreferences(obj.contextId);
   const commentRequired = prefs?.get("versioning.checkInCommentRequired") === true;
 
@@ -120,6 +125,12 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
     "object.change-lifecycle": () => setChangingLifecycle(true),
     "object.save-as": () => setDocDialog("save-as"),
     "object.compare": () => setDocDialog("compare"),
+    "object.move": () => setDocDialog("move"),
+    "object.delete": () => setDocDialog("delete"),
+    "object.change-owner": () => setDocDialog("owner"),
+    "object.reserve": () => reservation.reserve.mutate(),
+    "object.release": () => reservation.release.mutate(),
+    "object.add-to-clipboard": () => clipboard.add({ id: obj.id, number: obj.number, name: obj.name, version: obj.version }),
   };
 
   return (
@@ -146,6 +157,12 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
                 Checked out by {mine ? "you" : <PrincipalName id={obj.checkedOutBy} />}
               </span>
             )}
+            {obj.reservedBy && (
+              <span className="tag" data-testid="reserved">
+                <Bookmark size={11} aria-hidden />
+                Reserved by {obj.reservedBy === myId ? "you" : <PrincipalName id={obj.reservedBy} />}
+              </span>
+            )}
             <span className="sub">{typeName}</span>
           </>
         }
@@ -156,6 +173,11 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
         }
         tabs={tabs}
       />
+      {(reservation.reserve.error ?? reservation.release.error) != null && (
+        <div style={{ padding: "12px 16px 0" }}>
+          <ErrorBanner error={reservation.reserve.error ?? reservation.release.error} />
+        </div>
+      )}
       {failed != null && (
         <div style={{ padding: "12px 16px 0" }}>
           <ErrorBanner error={failed} />
@@ -165,6 +187,9 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
       {renaming && <RenameDialog obj={obj} onClose={() => setRenaming(false)} />}
       {docDialog === "save-as" && <SaveAsDialog obj={obj} onClose={() => setDocDialog(null)} />}
       {docDialog === "compare" && <CompareDialog obj={obj} onClose={() => setDocDialog(null)} />}
+      {docDialog === "move" && <MoveDialog obj={obj} onClose={() => setDocDialog(null)} />}
+      {docDialog === "delete" && <DeleteDialog obj={obj} onClose={() => setDocDialog(null)} />}
+      {docDialog === "owner" && <OwnerDialog obj={obj} onClose={() => setDocDialog(null)} />}
       {changingLifecycle && lifecycle && (
         <ChangeLifecycleDialog obj={obj} current={lifecycle} onClose={() => setChangingLifecycle(false)} />
       )}
@@ -510,7 +535,10 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
               ["Version", <span className="version">{latest.version}</span>],
               ["State", <StateBadge state={latest.state} />],
               ["Context", context ? <Link to={`/contexts/${obj.contextId}`}>{context.name}</Link> : null],
+              ["Folder", <FolderLocation obj={obj} />],
+              ["Owner", <PrincipalName id={obj.owner} />],
               ["Checked out by", obj.checkedOutBy ? <PrincipalName id={obj.checkedOutBy} /> : null],
+              ["Reserved by", obj.reservedBy ? <PrincipalName id={obj.reservedBy} /> : null],
               [
                 "Last checked in",
                 <>

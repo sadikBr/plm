@@ -4,6 +4,7 @@ import { useMe } from "../api/queries";
 import { Loading } from "../components/common";
 import { PageHeader, Tabs } from "../components/Layout";
 import { ActionsAdmin } from "./ActionsAdmin";
+import { DeleteRulesAdmin } from "./DeleteRulesAdmin";
 import { DocumentTemplatesAdmin } from "./DocumentTemplatesAdmin";
 import { ExtensionsAdmin } from "./ExtensionsAdmin";
 import { RulesAdmin } from "./RulesAdmin";
@@ -25,6 +26,7 @@ type Section =
   | "units"
   | "numbering"
   | "lifecycles"
+  | "delete-rules"
   | "roles"
   | "teams"
   | "templates"
@@ -45,6 +47,7 @@ const SECTIONS: [Section, string][] = [
   ["units", "Units"],
   ["numbering", "Numbering"],
   ["lifecycles", "Lifecycles"],
+  ["delete-rules", "Delete rules"],
   ["roles", "Team roles"],
   ["teams", "Shared teams"],
   ["templates", "Context templates"],
@@ -89,6 +92,7 @@ export function AdminPage() {
         {tab === "units" && <UnitsAdmin />}
         {tab === "numbering" && <NumberingAdmin />}
         {tab === "lifecycles" && <LifecyclesAdmin />}
+        {tab === "delete-rules" && <DeleteRulesAdmin />}
         {tab === "roles" && <RolesAdmin />}
         {tab === "teams" && <SharedTeamsAdmin />}
         {tab === "templates" && <ContextTemplatesAdmin />}

@@ -1091,6 +1091,10 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "folderId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
           "name" : {
             "type" : "string"
           },
@@ -1323,6 +1327,38 @@
           }
         },
         "required" : [ "dataType", "labels", "name" ],
+        "type" : "object"
+      },
+      "Deletable" : {
+        "properties" : {
+          "allowed" : {
+            "type" : "boolean"
+          },
+          "reason" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "allowed" ],
+        "type" : "object"
+      },
+      "DeleteRules" : {
+        "properties" : {
+          "states" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "who" : {
+            "items" : {
+              "enum" : [ "OWNER", "MANAGERS" ],
+              "type" : "string"
+            },
+            "type" : "array",
+            "uniqueItems" : true
+          }
+        },
+        "required" : [ "states", "who" ],
         "type" : "object"
       },
       "DiffLine" : {
@@ -1899,6 +1935,55 @@
           }
         },
         "required" : [ "expiresAt", "url" ],
+        "type" : "object"
+      },
+      "Folder" : {
+        "properties" : {
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "folders" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "objects" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "parentId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "contextId", "createdAt", "createdBy", "folders", "id", "name", "objects" ],
+        "type" : "object"
+      },
+      "FolderRequest" : {
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "parentId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "name" ],
         "type" : "object"
       },
       "FormField" : {
@@ -2678,6 +2763,20 @@
         "required" : [ "addedAt", "addedBy", "contextId", "principalId", "role" ],
         "type" : "object"
       },
+      "MoveObject" : {
+        "properties" : {
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "folderId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "contextId" ],
+        "type" : "object"
+      },
       "NewFromTemplate" : {
         "properties" : {
           "attributes" : {
@@ -2814,6 +2913,10 @@
           "createdBy" : {
             "type" : "string"
           },
+          "folderId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
           "id" : {
             "format" : "uuid",
             "type" : "string"
@@ -2827,6 +2930,12 @@
           "number" : {
             "type" : "string"
           },
+          "owner" : {
+            "type" : "string"
+          },
+          "reservedBy" : {
+            "type" : [ "string", "null" ]
+          },
           "typeId" : {
             "format" : "uuid",
             "type" : "string"
@@ -2835,7 +2944,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "contextId", "createdAt", "createdBy", "id", "latest", "name", "number", "typeId", "version" ],
+        "required" : [ "contextId", "createdAt", "createdBy", "id", "latest", "name", "number", "owner", "typeId", "version" ],
         "type" : "object"
       },
       "OperationRule" : {
@@ -2926,6 +3035,15 @@
           "value" : { }
         },
         "required" : [ "locked", "setAt", "setBy" ],
+        "type" : "object"
+      },
+      "OwnerRequest" : {
+        "properties" : {
+          "owner" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "owner" ],
         "type" : "object"
       },
       "PermissionExplanationResponse" : {
@@ -5390,6 +5508,99 @@
         "tags" : [ "Policy" ]
       }
     },
+    "/api/v1/contexts/{contextId}/folders" : {
+      "get" : {
+        "operationId" : "organizingFolders",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "parentId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Folder"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Organizing" ]
+      },
+      "post" : {
+        "operationId" : "organizingCreateFolder",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FolderRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Folder"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Organizing" ]
+      }
+    },
     "/api/v1/contexts/{contextId}/members" : {
       "get" : {
         "operationId" : "teamMembers",
@@ -6137,6 +6348,70 @@
           }
         },
         "tags" : [ "Context" ]
+      }
+    },
+    "/api/v1/delete-rules" : {
+      "get" : {
+        "operationId" : "organizingDeleteRules",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeleteRules"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Organizing" ]
+      },
+      "put" : {
+        "operationId" : "organizingSetDeleteRules",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DeleteRules"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeleteRules"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Organizing" ]
       }
     },
     "/api/v1/document-templates" : {
@@ -6986,6 +7261,121 @@
           }
         },
         "tags" : [ "Action" ]
+      }
+    },
+    "/api/v1/folders/{id}" : {
+      "delete" : {
+        "operationId" : "organizingDeleteFolder",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Organizing" ]
+      },
+      "put" : {
+        "operationId" : "organizingRename",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FolderRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Folder"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Organizing" ]
+      }
+    },
+    "/api/v1/folders/{id}/path" : {
+      "get" : {
+        "operationId" : "organizingPath",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Folder"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Organizing" ]
       }
     },
     "/api/v1/job-schedules" : {
@@ -7989,6 +8379,22 @@
             "format" : "uuid",
             "type" : "string"
           }
+        }, {
+          "in" : "query",
+          "name" : "folderId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "topLevelOnly",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -8093,6 +8499,34 @@
       }
     },
     "/api/v1/objects/{id}" : {
+      "delete" : {
+        "operationId" : "organizingDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Organizing" ]
+      },
       "get" : {
         "operationId" : "versionedObjectGet",
         "parameters" : [ {
@@ -8498,6 +8932,43 @@
         "tags" : [ "Content" ]
       }
     },
+    "/api/v1/objects/{id}/deletable" : {
+      "get" : {
+        "operationId" : "organizingDeletable",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Deletable"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Organizing" ]
+      }
+    },
     "/api/v1/objects/{id}/expression-model" : {
       "get" : {
         "operationId" : "expressionModel",
@@ -8705,6 +9176,137 @@
         "tags" : [ "Versioned object" ]
       }
     },
+    "/api/v1/objects/{id}/move" : {
+      "post" : {
+        "operationId" : "organizingMove",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MoveObject"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ObjectResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Organizing" ]
+      }
+    },
+    "/api/v1/objects/{id}/owner" : {
+      "post" : {
+        "operationId" : "organizingChangeOwner",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OwnerRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ObjectResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Organizing" ]
+      }
+    },
+    "/api/v1/objects/{id}/release" : {
+      "post" : {
+        "operationId" : "organizingRelease",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ObjectResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Organizing" ]
+      }
+    },
     "/api/v1/objects/{id}/rename" : {
       "post" : {
         "operationId" : "versionedObjectRename",
@@ -8750,6 +9352,43 @@
           }
         },
         "tags" : [ "Versioned object" ]
+      }
+    },
+    "/api/v1/objects/{id}/reserve" : {
+      "post" : {
+        "operationId" : "organizingReserve",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ObjectResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Organizing" ]
       }
     },
     "/api/v1/objects/{id}/revise" : {
@@ -11354,6 +11993,8 @@
     "name" : "Lifecycle"
   }, {
     "name" : "Operation rule"
+  }, {
+    "name" : "Organizing"
   }, {
     "name" : "Policy"
   }, {

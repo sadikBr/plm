@@ -21,6 +21,8 @@ internal data class ObjectFacts(
     val iteration: Int,
     val checkedOut: Boolean,
     val attributes: Map<String, Any?>,
+    val owner: String? = null,
+    val reservedBy: String? = null,
 )
 
 /**
@@ -57,6 +59,8 @@ internal class ObjectModels(
                     "iteration" to facts.iteration,
                     "version" to "${facts.revision}.${facts.iteration}",
                     "checkedOut" to facts.checkedOut,
+                    "owner" to facts.owner,
+                    "reservedBy" to facts.reservedBy,
                     "attributes" to values,
                     "context" to mapOf("name" to context.name, "kind" to context.kind.name),
                 ),

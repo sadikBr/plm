@@ -164,7 +164,7 @@ export function JobsAdmin() {
 
 function JobDetails({ job, typeLabel }: { job: Job; typeLabel: string }) {
   const live = job.status === "QUEUED" || job.status === "RUNNING";
-  const { data: log } = useJobLog(job.id, live);
+  const { data: log } = useJobLog(job.id, live, `${job.status}:${job.attempts}`);
   return (
     <Panel title={job.title} note={`${typeLabel} · ${job.id}`}>
       <div style={{ display: "grid", gap: 10 }}>

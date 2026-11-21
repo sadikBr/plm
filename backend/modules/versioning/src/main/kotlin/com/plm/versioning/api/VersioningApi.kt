@@ -59,6 +59,12 @@ data class VersionedObject(
     val checkedOutBy: String?,
     val createdAt: Instant,
     val createdBy: String,
+    /** Its folder in its context; null at the top (roadmap 3.4). */
+    val folderId: java.util.UUID? = null,
+    /** Who answers for it: its creator unless changed. */
+    val owner: String = createdBy,
+    /** Who reserved it: nobody else may check it out meanwhile. */
+    val reservedBy: String? = null,
 )
 
 /**
@@ -71,6 +77,10 @@ data class ObjectQuery(
     val limit: Int = 50,
     /** Keyset paging: the last id of the previous page. */
     val after: MasterId? = null,
+    /** Only objects in this folder. */
+    val folderId: java.util.UUID? = null,
+    /** Only objects at the top of their context (in no folder). */
+    val topLevelOnly: Boolean = false,
 )
 
 data class SetState(
@@ -115,6 +125,8 @@ data class CreateVersionedObject(
     /** Leave null to auto-assign the next number. */
     val number: String? = null,
     val attributes: Map<String, Any?> = emptyMap(),
+    /** A folder of [contextId] to put it in (roadmap 3.4). */
+    val folderId: java.util.UUID? = null,
 )
 
 /**

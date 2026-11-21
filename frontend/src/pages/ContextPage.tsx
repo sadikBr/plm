@@ -44,6 +44,7 @@ import { rememberVisit } from "../components/Navigator";
 import { ObjectTable } from "../components/ObjectTable";
 import { AccessTab, TeamTab } from "./ContextAccess";
 import { ContextTable, NewContextDialog } from "./ContextLists";
+import { FolderBar } from "./Folders";
 import { PreferencesTab } from "./Preferences";
 import { ContextTemplatesAdmin, SharedTeamsAdmin } from "../admin/TeamsAndTemplatesAdmin";
 import { NotFoundPage } from "./NotFoundPage";
@@ -340,13 +341,17 @@ const BASE_CLASS_LABELS: Record<string, string> = {
 
 function ObjectsTab({ context, canCreate }: { context: Context; canCreate: boolean }) {
   const { data: types } = useTypes();
+  // Folders (roadmap 3.4): the folder being looked at is in the address, so it survives reloads.
+  const [params, setParams] = useSearchParams();
+  const folder = params.get("folder") ?? undefined;
+  const openFolder = (id?: string) => setParams(id ? { tab: "contents", folder: id } : { tab: "contents" });
   const [creating, setCreating] = useState<string | null>(null);
   // One New button per kind of thing there are types for: New part, New document.
   const baseClasses = [...new Set(types?.filter((t) => t.instantiable).map((t) => t.baseClass))].sort(
     (a, b) => Object.keys(BASE_CLASS_LABELS).indexOf(a) - Object.keys(BASE_CLASS_LABELS).indexOf(b),
   );
   const { data: prefs } = useEffectivePreferences(context.id);
-  const objects = useObjects(context.id, (prefs?.get("ui.tablePageSize") as number | undefined) ?? 50);
+  const objects = useObjects(context.id, (prefs?.get("ui.tablePageSize") as number | undefined) ?? 50, folder ?? "");
   const [filter, setFilter] = useState("");
   const rows = useMemo(() => objects.data?.pages.flat() ?? [], [objects.data]);
   const shown = useMemo(() => {
@@ -379,12 +384,13 @@ function ObjectsTab({ context, canCreate }: { context: Context; canCreate: boole
         </>
       }
     >
-      {creating && <NewObjectDialog context={context} baseClass={creating} onClose={() => setCreating(null)} />}
+      {creating && <NewObjectDialog context={context} folderId={folder} baseClass={creating} onClose={() => setCreating(null)} />}
+      <FolderBar contextId={context.id} contextName={context.name} folderId={folder} onOpen={openFolder} canCreate={canCreate} />
       <ErrorBanner error={objects.error} />
       {objects.isLoading ? (
         <Loading />
       ) : rows.length === 0 ? (
-        <p className="empty">No objects yet.</p>
+        <p className="empty">{folder ? "No objects in this folder." : "No objects here yet."}</p>
       ) : (
         <ObjectTable
           objects={shown}
@@ -404,7 +410,17 @@ function ObjectsTab({ context, canCreate }: { context: Context; canCreate: boole
   );
 }
 
-function NewObjectDialog({ context, baseClass, onClose }: { context: Context; baseClass: string; onClose: () => void }) {
+function NewObjectDialog({
+  context,
+  folderId,
+  baseClass,
+  onClose,
+}: {
+  context: Context;
+  folderId?: string;
+  baseClass: string;
+  onClose: () => void;
+}) {
   const { data: allTypes } = useTypes();
   // Abstract types only group subtypes: they can't be created.
   const types = allTypes?.filter((t) => t.instantiable && t.baseClass === baseClass);
@@ -426,7 +442,11 @@ function NewObjectDialog({ context, baseClass, onClose }: { context: Context; ba
           body: { templateId, contextId: context.id, name, number: number.trim() || null, attributes: {} },
         }),
       ),
-    onSuccess: (obj) => {
+    onSuccess: async (obj) => {
+      if (folderId)
+        await unwrap(
+          api.POST("/api/v1/objects/{id}/move", { params: { path: { id: obj.id } }, body: { contextId: context.id, folderId } }),
+        );
       onClose();
       navigate(`/objects/${obj.id}`);
     },
@@ -458,6 +478,7 @@ function NewObjectDialog({ context, baseClass, onClose }: { context: Context; ba
         name,
         number: number.trim() || null,
         attributes: values,
+        folderId: folderId ?? null,
       },
       {
         onSuccess: (obj) => {

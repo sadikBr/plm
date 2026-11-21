@@ -50,6 +50,7 @@ internal class VersionedObjectController(
                 name = request.name,
                 number = request.number,
                 attributes = request.attributes ?: emptyMap(),
+                folderId = request.folderId,
             ),
         ),
     )
@@ -65,8 +66,10 @@ internal class VersionedObjectController(
         @RequestParam(required = false) q: String?,
         @RequestParam(defaultValue = "50") limit: Int,
         @RequestParam(required = false) after: UUID?,
+        @RequestParam(required = false) folderId: UUID?,
+        @RequestParam(defaultValue = "false") topLevelOnly: Boolean,
     ) = versioning
-        .list(actor, ObjectQuery(contextId?.let(::ContextId), q, limit, after?.let(::MasterId)))
+        .list(actor, ObjectQuery(contextId?.let(::ContextId), q, limit, after?.let(::MasterId), folderId, topLevelOnly))
         .map(::ObjectResponse)
 
     @GetMapping("/{id}")
@@ -173,6 +176,7 @@ internal data class CreateObjectRequest(
     val name: String,
     val number: String? = null,
     val attributes: Map<String, Any?>? = null,
+    val folderId: UUID? = null,
 )
 
 internal data class UpdateWorkingCopyRequest(
@@ -194,6 +198,9 @@ internal data class ObjectResponse(
     val latest: IterationResponse,
     val createdAt: Instant,
     val createdBy: String,
+    val folderId: UUID?,
+    val owner: String,
+    val reservedBy: String?,
 ) {
     constructor(o: VersionedObject) : this(
         id = o.id.value,
@@ -206,6 +213,9 @@ internal data class ObjectResponse(
         latest = IterationResponse(o.latest),
         createdAt = o.createdAt,
         createdBy = o.createdBy,
+        folderId = o.folderId,
+        owner = o.owner,
+        reservedBy = o.reservedBy,
     )
 }
 

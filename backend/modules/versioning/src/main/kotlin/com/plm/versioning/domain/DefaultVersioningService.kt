@@ -83,6 +83,7 @@ internal class DefaultVersioningService(
     private val validationRules: ValidationRuleService,
     private val calculations: Calculations,
     private val guards: ObjectProvider<OperationGuard>,
+    private val folders: com.plm.versioning.infra.OrganizingRepository,
     private val clock: Clock,
 ) : VersioningService {
     override fun create(
@@ -175,9 +176,17 @@ internal class DefaultVersioningService(
                 createdAt = now,
                 createdBy = actor.principal.value,
                 checkedOutBy = null,
+                folderId = command.folderId,
             )
         repository.insertMaster(actor.tenant, master)
         repository.insertIteration(actor.tenant, first)
+        command.folderId?.let { folder ->
+            val f = folders.folder(actor.tenant, folder)
+            if (f == null || f.contextId != context.id.value) {
+                throw ValidationException("INVALID_FOLDER", "The folder isn't in ${context.name}")
+            }
+            folders.move(master.id.value, context.id.value, folder)
+        }
         events.publish(
             actor,
             ObjectCreated(
@@ -217,8 +226,16 @@ internal class DefaultVersioningService(
         }
         val filter = access.filter(actor, Permission.READ, AccessColumns("m.context_id", "m.type_id", "i.state"))
         return repository
-            .list(actor.tenant, context, text, filter, query.limit.coerceIn(1, MAX_PAGE_SIZE), query.after)
-            .map { (master, latest) -> master.toObject(latest) }
+            .list(
+                actor.tenant,
+                context,
+                text,
+                filter,
+                query.limit.coerceIn(1, MAX_PAGE_SIZE),
+                query.after,
+                query.folderId,
+                query.topLevelOnly,
+            ).map { (master, latest) -> master.toObject(latest) }
     }
 
     @Transactional(readOnly = true)
@@ -257,6 +274,13 @@ internal class DefaultVersioningService(
             )
         }
         guard(actor, GuardedOperation.CHECK_OUT, master.facts(latest))
+        if (master.reservedBy != null && master.reservedBy != actor.principal.value) {
+            throw ConflictException(
+                "RESERVED_BY_ANOTHER_USER",
+                "${master.number} is reserved by ${nameOf(actor, master.reservedBy)}",
+                mapOf("reservedBy" to master.reservedBy),
+            )
+        }
         repository.workingCopy(master.id)?.let { existing ->
             throw ConflictException(
                 "ALREADY_CHECKED_OUT",
@@ -710,6 +734,8 @@ internal class DefaultVersioningService(
         iteration = iteration.iteration,
         checkedOut = checkedOutBy != null,
         attributes = attributes,
+        owner = owner ?: createdBy,
+        reservedBy = reservedBy,
     )
 
     @Transactional(readOnly = true)
@@ -925,5 +951,8 @@ internal class DefaultVersioningService(
             checkedOutBy = checkedOutBy,
             createdAt = createdAt,
             createdBy = createdBy,
+            folderId = folderId,
+            owner = owner ?: createdBy,
+            reservedBy = reservedBy,
         )
 }

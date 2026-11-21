@@ -35,6 +35,9 @@ internal data class MasterRow(
     val createdBy: String,
     /** Derived: owner of the working copy, if any. */
     val checkedOutBy: String?,
+    val folderId: UUID? = null,
+    val owner: String? = null,
+    val reservedBy: String? = null,
 )
 
 @Repository
@@ -58,6 +61,9 @@ internal class VersioningRepository(
                 createdAt = rs.instant("created_at")!!,
                 createdBy = rs.getString("created_by"),
                 checkedOutBy = rs.getString("checked_out_by"),
+                folderId = rs.getObject("folder_id", UUID::class.java),
+                owner = rs.getString("owner"),
+                reservedBy = rs.getString("reserved_by"),
             )
         }
 
@@ -112,6 +118,8 @@ internal class VersioningRepository(
         filter: SqlPredicate,
         limit: Int,
         after: MasterId?,
+        folder: UUID? = null,
+        topLevelOnly: Boolean = false,
     ): List<Pair<MasterRow, Iteration>> {
         val masters =
             jdbc
@@ -125,6 +133,8 @@ internal class VersioningRepository(
                       and (cast(:context as uuid) is null or m.context_id = :context)
                       and (cast(:pattern as text) is null or m.number ilike :pattern or m.name ilike :pattern)
                       and (cast(:after as uuid) is null or m.id > :after)
+                      and (cast(:folder as uuid) is null or m.folder_id = :folder)
+                      and (not :topOnly or m.folder_id is null)
                       and ${filter.sql}
                     order by m.id
                     limit :limit
@@ -139,6 +149,8 @@ internal class VersioningRepository(
                             "%"
                     },
                 ).param("after", after?.value)
+                .param("folder", folder)
+                .param("topOnly", topLevelOnly)
                 .param("limit", limit)
                 .query(masterMapper)
                 .list()
