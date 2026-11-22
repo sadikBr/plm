@@ -108,7 +108,7 @@ describe("ObjectPage", () => {
     await waitFor(() => expect(screen.getByTestId("checked-out")).toHaveTextContent("Checked out by Alice Admin"));
     expect(screen.getByRole("button", { name: "Check out" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Revise" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Check in" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Check in" })).not.toBeInTheDocument();
   });
 
   it("lets the owner edit the working copy with typed fields and check in", async () => {

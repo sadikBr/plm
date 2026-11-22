@@ -125,7 +125,12 @@ export function ObjectActionBar({
   /** Runs server-side actions (extension webhooks). */
   onInvoke?: (action: AvailableAction) => void;
 }) {
-  const toolbar = actions.filter((a) => a.placement === "OBJECT_TOOLBAR");
+  // Of check out, check in and undo, show the ones that apply now; with none, check out with its reason.
+  const CHECKOUT = ["object.check-out", "object.check-in", "object.undo-check-out"];
+  const anyCheckout = actions.some((a) => CHECKOUT.includes(a.id) && a.enabled);
+  const toolbar = actions.filter(
+    (a) => a.placement === "OBJECT_TOOLBAR" && (!CHECKOUT.includes(a.id) || a.enabled || (!anyCheckout && a.id === "object.check-out")),
+  );
   const more = actions.filter((a) => a.placement === "OBJECT_MORE");
   // Extension actions that open a web address need no page code; the others are handled here.
   const handlerOf = (a: AvailableAction) =>
