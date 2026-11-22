@@ -41,6 +41,7 @@ const BLANK: Settings = {
   recipients: [],
   alert: "ALWAYS",
   threshold: null,
+  answers: {},
 };
 
 /** A report row in the object table's shape, so the same columns, sorting and export apply. */

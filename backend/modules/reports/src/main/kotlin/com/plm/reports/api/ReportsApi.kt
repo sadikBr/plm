@@ -1,6 +1,8 @@
 package com.plm.reports.api
 
 import com.plm.platform.actor.Actor
+import com.plm.query.api.QueryDefinition
+import com.plm.query.api.QueryResult
 import com.plm.search.api.SearchQuery
 import java.time.Instant
 import java.util.UUID
@@ -35,6 +37,13 @@ data class ReportSettings(
     val recipients: List<String> = emptyList(),
     val alert: AlertWhen = AlertWhen.ALWAYS,
     val threshold: Int? = null,
+    /**
+     * A report builder query (objects, links, conditions, columns, totals): when set, the report
+     * runs it instead of [query] and [columns]; [groupBy] is then `col:<index>` for its chart.
+     */
+    val definition: QueryDefinition? = null,
+    /** Answers to the query's questions on scheduled runs (and the default when run by hand). */
+    val answers: Map<String, Any?> = emptyMap(),
 )
 
 data class Report(
@@ -76,7 +85,20 @@ data class ReportResult(
     val rows: List<ReportRow>,
     val groups: List<ReportGroup>,
     val ranAt: Instant,
-)
+    /** A report builder query's result (then [rows] is empty). */
+    val table: QueryResult? = null,
+) {
+    /** The objects found: for a query, those it starts from. */
+    val ids: List<UUID>
+        get() =
+            table?.let { t ->
+                val from =
+                    report.settings.definition
+                        ?.from
+                        ?.alias
+                t.rows.mapNotNull { it.objects[from] }.distinct()
+            } ?: rows.map { it.id }
+}
 
 data class ReportRun(
     val id: UUID,
@@ -118,16 +140,18 @@ interface ReportService {
         id: UUID,
     )
 
-    /** Runs it now, with the actor's own access. */
+    /** Runs it now, with the actor's own access; [answers] to its questions override the saved ones. */
     fun run(
         actor: Actor,
         id: UUID,
+        answers: Map<String, Any?> = emptyMap(),
     ): ReportResult
 
     /** An unsaved report, to try settings out. */
     fun preview(
         actor: Actor,
         settings: ReportSettings,
+        answers: Map<String, Any?> = emptyMap(),
     ): ReportResult
 
     fun runs(

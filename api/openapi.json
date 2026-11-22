@@ -2307,6 +2307,37 @@
         "required" : [ "outcome" ],
         "type" : "object"
       },
+      "Condition" : {
+        "properties" : {
+          "conditions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Condition"
+            },
+            "type" : "array"
+          },
+          "field" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/FieldRef"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "group" : {
+            "enum" : [ "AND", "OR", "NOT" ],
+            "type" : [ "string", "null" ]
+          },
+          "operator" : {
+            "enum" : [ "EQ", "NE", "LT", "LE", "GT", "GE", "BETWEEN", "CONTAINS", "STARTS_WITH", "IN", "EMPTY", "NOT_EMPTY", "LAST_DAYS", "IS_TRUE", "IS_FALSE" ],
+            "type" : [ "string", "null" ]
+          },
+          "parameter" : {
+            "type" : [ "string", "null" ]
+          },
+          "value" : { }
+        },
+        "required" : [ "conditions" ],
+        "type" : "object"
+      },
       "ConfigBundle" : {
         "properties" : {
           "contextTemplates" : {
@@ -4013,6 +4044,55 @@
           }
         },
         "required" : [ "createdAt", "kind", "label", "targetId" ],
+        "type" : "object"
+      },
+      "FieldInfo" : {
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "type" : {
+            "enum" : [ "TEXT", "NUMBER", "DATE", "BOOLEAN", "ENUM", "TYPE", "CONTEXT", "PRINCIPAL", "STATE" ],
+            "type" : "string"
+          },
+          "unit" : {
+            "type" : [ "string", "null" ]
+          },
+          "values" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FieldValue"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "key", "label", "type", "values" ],
+        "type" : "object"
+      },
+      "FieldRef" : {
+        "properties" : {
+          "alias" : {
+            "type" : "string"
+          },
+          "field" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "alias", "field" ],
+        "type" : "object"
+      },
+      "FieldValue" : {
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "key", "label" ],
         "type" : "object"
       },
       "FileDifference" : {
@@ -7070,6 +7150,154 @@
         "required" : [ "views" ],
         "type" : "object"
       },
+      "QueryColumn" : {
+        "properties" : {
+          "aggregate" : {
+            "enum" : [ "COUNT", "COUNT_DISTINCT", "SUM", "AVG", "MIN", "MAX" ],
+            "type" : [ "string", "null" ]
+          },
+          "field" : {
+            "$ref" : "#/components/schemas/FieldRef"
+          },
+          "label" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "field" ],
+        "type" : "object"
+      },
+      "QueryDefinition" : {
+        "properties" : {
+          "columns" : {
+            "items" : {
+              "$ref" : "#/components/schemas/QueryColumn"
+            },
+            "type" : "array"
+          },
+          "from" : {
+            "$ref" : "#/components/schemas/QuerySource"
+          },
+          "links" : {
+            "items" : {
+              "$ref" : "#/components/schemas/QueryLink"
+            },
+            "type" : "array"
+          },
+          "parameters" : {
+            "items" : {
+              "$ref" : "#/components/schemas/QueryParameter"
+            },
+            "type" : "array"
+          },
+          "sort" : {
+            "items" : {
+              "$ref" : "#/components/schemas/QuerySort"
+            },
+            "type" : "array"
+          },
+          "versions" : {
+            "$ref" : "#/components/schemas/VersionRule"
+          },
+          "where" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/Condition"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "columns", "from", "links", "parameters", "sort", "versions" ],
+        "type" : "object"
+      },
+      "QueryLink" : {
+        "properties" : {
+          "alias" : {
+            "type" : "string"
+          },
+          "from" : {
+            "type" : "string"
+          },
+          "optional" : {
+            "type" : "boolean"
+          },
+          "relation" : {
+            "type" : "string"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "alias", "from", "optional", "relation" ],
+        "type" : "object"
+      },
+      "QueryParameter" : {
+        "properties" : {
+          "defaultValue" : { },
+          "label" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "type" : {
+            "enum" : [ "TEXT", "NUMBER", "DATE", "BOOLEAN", "ENUM", "TYPE", "CONTEXT", "PRINCIPAL", "STATE" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "label", "name", "required", "type" ],
+        "type" : "object"
+      },
+      "QueryResult" : {
+        "properties" : {
+          "capped" : {
+            "type" : "boolean"
+          },
+          "columns" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ResultColumn"
+            },
+            "type" : "array"
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ResultRow"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "capped", "columns", "rows" ],
+        "type" : "object"
+      },
+      "QuerySort" : {
+        "properties" : {
+          "column" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "descending" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "column", "descending" ],
+        "type" : "object"
+      },
+      "QuerySource" : {
+        "properties" : {
+          "alias" : {
+            "type" : "string"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "alias" ],
+        "type" : "object"
+      },
       "ReassignTask" : {
         "properties" : {
           "comment" : {
@@ -7235,6 +7463,38 @@
         "required" : [ "declared", "effective", "hidden", "id", "source" ],
         "type" : "object"
       },
+      "RelationInfo" : {
+        "properties" : {
+          "fields" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FieldInfo"
+            },
+            "type" : "array"
+          },
+          "from" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array",
+            "uniqueItems" : true
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "to" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array",
+            "uniqueItems" : true
+          }
+        },
+        "required" : [ "fields", "from", "key", "label", "to" ],
+        "type" : "object"
+      },
       "ReleaseGate" : {
         "properties" : {
           "enabled" : {
@@ -7349,6 +7609,13 @@
             },
             "type" : "array"
           },
+          "ids" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "ranAt" : {
             "format" : "date-time",
             "type" : "string"
@@ -7362,12 +7629,19 @@
             },
             "type" : "array"
           },
+          "table" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/QueryResult"
+            }, {
+              "type" : "null"
+            } ]
+          },
           "total" : {
             "format" : "int32",
             "type" : "integer"
           }
         },
-        "required" : [ "capped", "groups", "ranAt", "report", "rows", "total" ],
+        "required" : [ "capped", "groups", "ids", "ranAt", "report", "rows", "total" ],
         "type" : "object"
       },
       "ReportRow" : {
@@ -7453,6 +7727,10 @@
             "enum" : [ "ALWAYS", "ANY", "MORE_THAN", "NEW" ],
             "type" : "string"
           },
+          "answers" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          },
           "columns" : {
             "items" : {
               "type" : "string"
@@ -7461,6 +7739,13 @@
           },
           "cron" : {
             "type" : [ "string", "null" ]
+          },
+          "definition" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/QueryDefinition"
+            }, {
+              "type" : "null"
+            } ]
           },
           "description" : {
             "type" : [ "string", "null" ]
@@ -7491,7 +7776,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "alert", "columns", "name", "query", "recipients", "shared", "timeZone" ],
+        "required" : [ "alert", "answers", "columns", "name", "query", "recipients", "shared", "timeZone" ],
         "type" : "object"
       },
       "RequestUpload" : {
@@ -7544,6 +7829,49 @@
           }
         },
         "required" : [ "groups", "screen", "typeId" ],
+        "type" : "object"
+      },
+      "ResultColumn" : {
+        "properties" : {
+          "aggregate" : {
+            "enum" : [ "COUNT", "COUNT_DISTINCT", "SUM", "AVG", "MIN", "MAX" ],
+            "type" : [ "string", "null" ]
+          },
+          "alias" : {
+            "type" : "string"
+          },
+          "field" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "type" : {
+            "enum" : [ "TEXT", "NUMBER", "DATE", "BOOLEAN", "ENUM", "TYPE", "CONTEXT", "PRINCIPAL", "STATE" ],
+            "type" : "string"
+          },
+          "unit" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "alias", "field", "label", "type" ],
+        "type" : "object"
+      },
+      "ResultRow" : {
+        "properties" : {
+          "objects" : {
+            "additionalProperties" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "values" : {
+            "items" : { },
+            "type" : "array"
+          }
+        },
+        "required" : [ "objects", "values" ],
         "type" : "object"
       },
       "RollupAttribute" : {
@@ -7621,6 +7949,33 @@
           }
         },
         "required" : [ "attribute", "missing", "nodes", "total" ],
+        "type" : "object"
+      },
+      "RunQuery" : {
+        "properties" : {
+          "definition" : {
+            "$ref" : "#/components/schemas/QueryDefinition"
+          },
+          "limit" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "parameters" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          }
+        },
+        "required" : [ "definition", "limit", "parameters" ],
+        "type" : "object"
+      },
+      "RunReport" : {
+        "properties" : {
+          "answers" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          }
+        },
+        "required" : [ "answers" ],
         "type" : "object"
       },
       "SaveAs" : {
@@ -10117,6 +10472,23 @@
           }
         },
         "required" : [ "check", "createdAt", "createdBy", "id", "name", "productId", "selection", "spec", "updatedAt", "updatedBy" ],
+        "type" : "object"
+      },
+      "VersionRule" : {
+        "properties" : {
+          "asOf" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "mode" : {
+            "enum" : [ "LATEST", "STATE", "AS_OF" ],
+            "type" : "string"
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "mode" ],
         "type" : "object"
       },
       "Viewable" : {
@@ -25303,6 +25675,115 @@
         "tags" : [ "Publishing" ]
       }
     },
+    "/api/v1/query/fields" : {
+      "get" : {
+        "operationId" : "queryFields",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "typeId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/FieldInfo"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Query" ]
+      }
+    },
+    "/api/v1/query/relations" : {
+      "get" : {
+        "operationId" : "queryRelations",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/RelationInfo"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Query" ]
+      }
+    },
+    "/api/v1/query/run" : {
+      "post" : {
+        "operationId" : "queryRun",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RunQuery"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QueryResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Query" ]
+      }
+    },
     "/api/v1/release-gate" : {
       "get" : {
         "operationId" : "releaseGateGet",
@@ -25594,6 +26075,15 @@
             "type" : "string"
           }
         } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RunReport"
+              }
+            }
+          }
+        },
         "responses" : {
           "200" : {
             "content" : {
@@ -28855,6 +29345,8 @@
     "name" : "Promotion"
   }, {
     "name" : "Publishing"
+  }, {
+    "name" : "Query"
   }, {
     "name" : "Redline"
   }, {

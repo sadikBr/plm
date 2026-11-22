@@ -7,6 +7,7 @@ dependencies {
     implementation(project(":backend:modules:types"))
     implementation(project(":backend:modules:versioning"))
     implementation(project(":backend:modules:search"))
+    implementation(project(":backend:modules:query"))
     implementation(project(":backend:modules:jobs"))
     implementation(project(":backend:modules:notifications"))
     implementation(libs.slf4j.api)

@@ -6,6 +6,8 @@ import com.plm.platform.error.ForbiddenException
 import com.plm.platform.error.NotFoundException
 import com.plm.platform.error.ValidationException
 import com.plm.platform.id.UuidV7
+import com.plm.query.api.QueryDefinition
+import com.plm.query.api.QueryService
 import com.plm.reports.api.AlertWhen
 import com.plm.reports.api.Report
 import com.plm.reports.api.ReportGroup
@@ -66,6 +68,7 @@ internal fun nextRun(
 internal class DefaultReportService(
     private val jdbc: JdbcClient,
     private val search: SearchService,
+    private val queries: QueryService,
     private val versioning: VersioningService,
     private val clock: Clock,
 ) : ReportService {
@@ -86,6 +89,17 @@ internal class DefaultReportService(
                     recipients = reportJson.readValue(rs.getString("recipients"), Array<String>::class.java).toList(),
                     alert = AlertWhen.valueOf(rs.getString("alert")),
                     threshold = rs.getObject("threshold") as Int?,
+                    definition =
+                        rs
+                            .getString(
+                                "definition",
+                            )?.let { reportJson.readValue(it, QueryDefinition::class.java) },
+                    answers =
+                        reportJson
+                            .readValue(
+                                rs.getString("answers"),
+                                Map::class.java,
+                            ).mapKeys { it.key.toString() },
                 ),
             nextRunAt = rs.getTimestamp("next_run_at")?.toInstant(),
             lastRunAt = rs.getTimestamp("last_run_at")?.toInstant(),
@@ -154,9 +168,8 @@ internal class DefaultReportService(
     ): Report {
         val name = s.name.trim()
         if (name.isEmpty() || name.length > 100) throw ValidationException("INVALID_REPORT", "Give the report a name")
-        if (s.columns.isEmpty() ||
-            s.columns.size > 60
-        ) {
+        if (s.definition != null) queries.validate(actor, s.definition)
+        if (s.definition == null && (s.columns.isEmpty() || s.columns.size > 60)) {
             throw ValidationException("INVALID_REPORT", "A report shows 1 to 60 columns")
         }
         if (s.alert == AlertWhen.MORE_THAN &&
@@ -179,14 +192,16 @@ internal class DefaultReportService(
                 .sql(
                     """
                     insert into report (id, tenant_id, owner, owner_admin, name, description, query, columns, group_by, shared, cron,
-                                        time_zone, next_run_at, recipients, alert, threshold, created_at, updated_at)
+                                        time_zone, next_run_at, recipients, alert, threshold, definition, answers, created_at, updated_at)
                     values (:id, :tenant, :owner, :admin, :name, :description, cast(:query as jsonb), cast(:columns as jsonb), :groupBy,
-                            :shared, :cron, :tz, :next, cast(:recipients as jsonb), :alert, :threshold, :now, :now)
+                            :shared, :cron, :tz, :next, cast(:recipients as jsonb), :alert, :threshold,
+                            cast(:definition as jsonb), cast(:answers as jsonb), :now, :now)
                     on conflict (id) do update set owner_admin = excluded.owner_admin, name = excluded.name,
                         description = excluded.description, query = excluded.query, columns = excluded.columns,
                         group_by = excluded.group_by, shared = excluded.shared, cron = excluded.cron, time_zone = excluded.time_zone,
                         next_run_at = excluded.next_run_at, recipients = excluded.recipients, alert = excluded.alert,
-                        threshold = excluded.threshold, updated_at = excluded.updated_at
+                        threshold = excluded.threshold, definition = excluded.definition, answers = excluded.answers,
+                        updated_at = excluded.updated_at
                     """.trimIndent(),
                 ).param("id", newId)
                 .param("tenant", actor.tenant.value)
@@ -212,6 +227,8 @@ internal class DefaultReportService(
                     ),
                 ).param("alert", s.alert.name)
                 .param("threshold", s.threshold)
+                .param("definition", s.definition?.let { reportJson.writeValueAsString(it) })
+                .param("answers", reportJson.writeValueAsString(s.answers))
                 .param("now", now)
                 .update()
         } catch (e: DuplicateKeyException) {
@@ -223,22 +240,38 @@ internal class DefaultReportService(
     override fun run(
         actor: Actor,
         id: UUID,
-    ): ReportResult = execute(actor, get(actor, id))
+        answers: Map<String, Any?>,
+    ): ReportResult = execute(actor, get(actor, id), answers)
 
     override fun preview(
         actor: Actor,
         settings: ReportSettings,
+        answers: Map<String, Any?>,
     ): ReportResult =
         execute(
             actor,
             Report(UUID(0, 0), actor.principal.value, settings, null, null, null, clock.instant()),
+            answers,
         )
 
-    /** Runs [report] with [actor]'s access: its search, then its rows and counts. */
+    /** Runs [report] with [actor]'s access: its query, or its search then its rows and counts. */
     fun execute(
         actor: Actor,
         report: Report,
+        answers: Map<String, Any?> = emptyMap(),
     ): ReportResult {
+        report.settings.definition?.let { definition ->
+            val table = queries.run(actor, definition, report.settings.answers + answers, 1000)
+            return ReportResult(
+                report,
+                table.rows.size,
+                table.capped,
+                emptyList(),
+                chart(report.settings, table),
+                clock.instant(),
+                table,
+            )
+        }
         val matches = search.matching(actor, report.settings.query.copy(offset = 0))
         val objects =
             matches.ids
@@ -258,6 +291,31 @@ internal class DefaultReportService(
                     .sortedByDescending { it.count }
             }
         return ReportResult(report, rows.size, matches.capped, rows, groups, clock.instant())
+    }
+
+    /**
+     * A query's chart: by the column `col:<k>` names (default the first). With totals, each row is a
+     * bar and its first total the height; without, rows are counted by that column.
+     */
+    private fun chart(
+        s: ReportSettings,
+        t: com.plm.query.api.QueryResult,
+    ): List<ReportGroup> {
+        val by = s.groupBy ?: return emptyList()
+        val k = by.removePrefix("col:").toIntOrNull()?.takeIf { it in t.columns.indices } ?: 0
+
+        fun show(v: Any?) = v?.toString() ?: ""
+        val total = t.columns.indexOfFirst { it.aggregate != null }
+        return if (total >= 0) {
+            t.rows.map { ReportGroup(show(it.values[k]), (it.values[total] as? Number)?.toInt() ?: 0) }
+        } else {
+            t.rows
+                .groupingBy {
+                    show(it.values[k])
+                }.eachCount()
+                .map { ReportGroup(it.key, it.value) }
+                .sortedByDescending { it.count }
+        }
     }
 
     private fun key(

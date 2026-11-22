@@ -124,7 +124,7 @@ internal class ReportJob(
                 .optional()
                 .orElse(null)
                 ?.let { reportJson.readValue(it, Array<String>::class.java).toSet() }
-        val ids = result.rows.map { it.id.toString() }
+        val ids = result.ids.map { it.toString() }
         val fresh = if (previous == null) ids else ids.filter { it !in previous }
         val s = report.settings
         val send =
@@ -181,29 +181,51 @@ internal class ReportJob(
                 .ofPattern(
                     "yyyy-MM-dd HH:mm z",
                 ).format(r.ranAt.atZone(java.time.ZoneId.of(s.timeZone)))
-        val lines = r.rows.take(50).joinToString("\n") { "${it.number}  ${it.name}  ${it.version}  ${state(it.state)}" }
+        // What the table shows: a query's own columns, or the object columns of a simple report.
+        val table = r.table
+        val header: List<String>
+        val cells: List<Pair<UUID?, List<String>>>
+        if (table != null) {
+            val from = s.definition?.from?.alias
+            header = table.columns.map { it.label }
+            cells =
+                table.rows.take(50).map { row ->
+                    row.objects[from] to
+                        row.values.mapIndexed { k, v ->
+                            if (table.columns[k].type.name ==
+                                "STATE"
+                            ) {
+                                state(v.toString())
+                            } else {
+                                show(v)
+                            }
+                        }
+                }
+        } else {
+            header = listOf("Number", "Name", "Version", "State")
+            cells = r.rows.take(50).map { it.id to listOf(it.number, it.name, it.version, state(it.state)) }
+        }
+        val lines = cells.joinToString("\n") { it.second.joinToString("  ") }
         val html =
             buildString {
                 append("<div style=\"font-family:Arial,sans-serif;font-size:14px\">")
                 append("<h2 style=\"margin:0 0 4px\">${esc(s.name)}</h2>")
                 append("<p style=\"color:#555;margin:0 0 12px\">$headline · run $ranAt</p>")
                 append("<table style=\"border-collapse:collapse\"><tr>")
-                listOf("Number", "Name", "Version", "State").forEach {
-                    append("<th style=\"text-align:left;border-bottom:1px solid #ccc;padding:4px 10px\">$it</th>")
+                header.forEach {
+                    append(
+                        "<th style=\"text-align:left;border-bottom:1px solid #ccc;padding:4px 10px\">${esc(it)}</th>",
+                    )
                 }
                 append("</tr>")
-                for (row in r.rows.take(50)) {
-                    append(
-                        "<tr><td style=\"padding:3px 10px\"><a href=\"$base/objects/${row.id}\">${esc(
-                            row.number,
-                        )}</a></td>",
-                    )
-                    append(
-                        "<td style=\"padding:3px 10px\">${esc(
-                            row.name,
-                        )}</td><td style=\"padding:3px 10px\">${esc(row.version)}</td>",
-                    )
-                    append("<td style=\"padding:3px 10px\">${esc(state(row.state))}</td></tr>")
+                for ((id, values) in cells) {
+                    append("<tr>")
+                    values.forEachIndexed { k, v ->
+                        val text = esc(v)
+                        val cell = if (k == 0 && id != null) "<a href=\"$base/objects/$id\">$text</a>" else text
+                        append("<td style=\"padding:3px 10px\">$cell</td>")
+                    }
+                    append("</tr>")
                 }
                 append("</table>")
                 if (r.total > 50) append("<p>… and ${r.total - 50} more.</p>")
@@ -221,6 +243,14 @@ internal class ReportJob(
     /** IN_WORK → In Work */
     private fun state(key: String) =
         key.lowercase().split('_').joinToString(" ") { w -> w.replaceFirstChar(Char::uppercase) }
+
+    private fun show(v: Any?): String =
+        when (v) {
+            null -> ""
+            is java.math.BigDecimal -> v.stripTrailingZeros().toPlainString()
+            is java.time.Instant -> v.toString().take(10)
+            else -> v.toString()
+        }
 
     private fun esc(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 

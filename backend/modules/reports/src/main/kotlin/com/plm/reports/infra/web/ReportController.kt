@@ -58,11 +58,13 @@ internal class ReportController(
         @PathVariable id: UUID,
     ) = reports.delete(actor, id)
 
+    /** Runs it; the body may answer its questions: `{"answers": {"product": "…"}}`. */
     @PostMapping("/api/v1/reports/{id}/run")
     fun run(
         actor: Actor,
         @PathVariable id: UUID,
-    ) = reports.run(actor, id)
+        @RequestBody(required = false) body: RunReport?,
+    ) = reports.run(actor, id, body?.answers.orEmpty())
 
     @PostMapping("/api/v1/reports/preview")
     fun preview(
@@ -139,6 +141,10 @@ internal class ReportController(
         @RequestParam(defaultValue = "10") limit: Int,
     ) = search.search(actor, SearchQuery(sort = "MODIFIED", limit = limit.coerceIn(1, 50))).hits
 }
+
+internal data class RunReport(
+    val answers: Map<String, Any?> = emptyMap(),
+)
 
 internal data class HomeRequest(
     val dashboardId: UUID? = null,
