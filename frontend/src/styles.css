@@ -1667,7 +1667,7 @@ tr.inherited .perm {
   gap: 12px;
   align-items: start;
 }
-@container (max-width: 628px) {
+@container (max-width: 900px) {
   .admin-split {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -6378,4 +6378,8 @@ textarea {
   .skeleton-line {
     animation: none;
   }
+}
+.search-page {
+  color: var(--accent);
+  font-weight: 550;
 }
