@@ -162,16 +162,19 @@ package_manager() {
 JAVA=""
 java_major() { "$1" -version 2>&1 | awk -F'"' '/version/ {print $2; exit}' | sed 's/^1\./1/' | cut -d. -f1; }
 find_java() {
-  local c v
+  local c v real
   for c in "$(command -v java 2>/dev/null || true)" ${JAVA_HOME:+"$JAVA_HOME/bin/java"} \
     /usr/lib/jvm/*/bin/java /Library/Java/JavaVirtualMachines/*/Contents/Home/bin/java \
     /opt/homebrew/opt/openjdk@21/bin/java /usr/local/opt/openjdk@21/bin/java; do
     [[ -n "$c" && -x "$c" ]] || continue
+    # A JDK, not just a runtime: Fedora's java-NN-openjdk has no compiler (that's in -devel).
+    real="$(readlink -f "$c" 2>/dev/null || echo "$c")"
+    [[ -x "$(dirname "$real")/javac" ]] || continue
     v="$(java_major "$c")"
     if [[ "${v:-0}" =~ ^[0-9]+$ && "$v" -ge 21 ]]; then
       JAVA="$c"
       if [[ "$c" != "$(command -v java 2>/dev/null || true)" ]]; then
-        JAVA_HOME="$(cd "$(dirname "$c")/.." && pwd)"
+        JAVA_HOME="$(cd "$(dirname "$real")/.." && pwd)"
         export JAVA_HOME
       fi
       return 0
@@ -272,7 +275,9 @@ install_one() {
     apt:docker | dnf:docker) run_installer https://get.docker.com ;;
 
     dnf:git | dnf:curl) as_root dnf install -y "$what" ;;
-    dnf:java) as_root dnf install -y java-21-openjdk-devel ;;
+    # The -devel package is the JDK (with javac); the plain one is only the runtime.
+    dnf:java) as_root dnf install -y java-21-openjdk-devel || as_root dnf install -y java-25-openjdk-devel ||
+      as_root dnf install -y java-latest-openjdk-devel ;;
 
     pacman:git | pacman:curl) as_root pacman -S --needed --noconfirm "$what" ;;
     pacman:java) as_root pacman -S --needed --noconfirm jdk21-openjdk ;;
