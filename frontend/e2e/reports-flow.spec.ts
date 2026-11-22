@@ -6,7 +6,7 @@ test("a report made in the editor shows its count, chart and rows", async ({ bro
   const name = `Released parts ${Date.now().toString(36)}`;
   const admin = await asUser(browser, ADMIN);
   await admin.goto("/reports");
-  await admin.getByRole("button", { name: "New report" }).click();
+  await admin.getByRole("button", { name: "Simple report" }).click();
   const dialog = admin.getByRole("dialog");
   await dialog.getByRole("textbox", { name: "Name" }).fill(name);
   await dialog.getByRole("checkbox", { name: "Part", exact: true }).check();

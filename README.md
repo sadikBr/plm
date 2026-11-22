@@ -10,7 +10,9 @@ lifecycles, workflows and change management, built to scale to millions of objec
 > classification with inherited class attributes, class search and find similar. On top of CAD data
 > and visualization (Phase 6), workflow and change management (Phase 5), product structures
 > (Phase 4), documents, search, reports and collaboration (Phase 3), the extensibility platform
-> (Phase 2) and the core model (Phase 1). Next: Phase 8. See the [roadmap](docs/ROADMAP.md).
+> (Phase 2) and the core model (Phase 1). Then the **report builder**: reports built without code
+> from objects, the links between them, conditions and totals. Next: Phase 8. See the
+> [roadmap](docs/ROADMAP.md).
 
 ![Object page: a checked-out part with its working copy](docs/images/ui-object.png) See the [roadmap](docs/ROADMAP.md).
 
@@ -156,6 +158,9 @@ It takes about a minute and loads, through the API like any client would:
 - **Changes**: three problem reports with discussions; one through a change request and a
   resolved change notice (a door seal's revision B, effective from vehicle 5000).
 - **A frozen baseline** of the Aurora at start of production.
+- **Five shared reports** made with the report builder: cells per battery pack, where a part is used
+  (it asks which part), released parts without documents, open problem reports by product, and
+  battery cells by chemistry and capacity.
 
 A second set, **BYD**, has the same shape with BYD's real names: the **Seal** (in production),
 **Dolphin** and **Seal U DM-i** on **e-Platform 3.0**, with Blade Battery packs, the 8-in-1 electric
@@ -329,7 +334,13 @@ The database starts empty. As **plmadmin**:
    one-off version for an order. **Administration › Classification** holds the class tree; parts
    are classified on their **Classification** tab, and the **Classes** page (top bar) searches
    them; each part lists similar ones.
-7. **Administration** (the **Admin** link, a gear icon, in the top bar): types and attributes, lifecycles, numbering, workflows,
+7. **Reports** (top bar): **New report** opens the report builder. *Find* a type of object and
+   follow links from it (its structure, where it's used, its documents, CAD models, changes);
+   *Where* sets conditions, in groups of "all", "any" or "none of these", or asks a question when
+   the report runs; *Show* picks the columns, totals (count, total, average, lowest, highest),
+   sorting and a chart. The preview updates as you go. Save it, share it, mail it on a schedule.
+   The demo data brings five ready-made ones to open and change.
+8. **Administration** (the **Admin** link, a gear icon, in the top bar): types and attributes, lifecycles, numbering, workflows,
    publishing rules, classification, automations, extensions.
 
 The [UI tour](docs/DEVELOPMENT.md#4-run-the-web-ui) goes further, and each phase's end-to-end test

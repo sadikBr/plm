@@ -659,6 +659,29 @@ effective from unit 100, and finds unit 50 built with A.1 and unit 150 with B.1;
 the motor for an order, which the main line and its structure don't see; and finds motors by a
 power range on the Classes page and by likeness from one of them.
 
+## Report builder (between Phases 7 and 8, complete)
+
+Reports become queries built without code, over objects and the links between them.
+
+- [x] Q1 Query engine: a `query` module compiles a query (objects of a type, links followed from
+      them, conditions in all/any/none groups, columns with totals per group, sorting, which
+      versions, questions asked at run time) into one SQL statement, every object's read access
+      checked inside it; rows and time are capped. It knows no module's tables: versioning, bom,
+      change, cad and classification contribute their objects, links (structure both ways,
+      documents, changes, CAD models) and fields (built-in, attributes, class attributes).
+- [x] Q2 Reports run queries: saved with answers for scheduled runs; charts by a column; mail with
+      the query's columns; alerts on new rows (by the objects a query starts from).
+- [x] Q3 The builder: find, where, show, with value pickers that fit each field, "ask when run",
+      totals and headings, a live preview; reports show their questions, a table that opens the
+      objects, a chart and an Excel export; dashboards show their rows. Simple reports remain and
+      open in the builder in one click.
+- [x] Q4 Demo data brings five shared reports per company; docs; end-to-end test.
+
+**Met:** `report-builder-flow` builds a report in the browser over a structure (parts → uses →
+children), asks for the assembly when it runs, keeps children heavier than 10 kg with their
+quantity, and opens them from the table; `QueryApiIT` covers links, totals, all/any/none,
+optional links, where used, questions, refused queries and access inside the SQL.
+
 ## Phase 8 — Desktop and native CAD
 Office/desktop integration · personal workspaces · native connectors (SolidWorks, Creo, NX,
 Inventor, CATIA, electrical CAD), each its own project.

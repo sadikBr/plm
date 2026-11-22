@@ -1121,6 +1121,7 @@ export const TOUR = [
   "Changes (top bar): the door-seal problem through to a resolved change notice",
   "Plant 2 – Line 3 Launch: work instructions, PFMEA, control plan, in folders by shop",
   "Classes (top bar): find cells, motors and fasteners by their attributes",
+  "Reports (top bar): cells per pack, where a part is used, parts without documents, open problems",
 ];
 
 // ---- CAD models (STEP files in ./cad, made by cad/generate.py), each owning its part ----
@@ -1133,4 +1134,100 @@ export const CAD_MODELS = [
   ["AUR-WH-19", "AUR-WH-19.stp", "PART", "Wheel 19 in, forged – 3D model"],
   ["STD-F-1265", "STD-F-1265.stp", "PART", "Flange bolt M12×65 – 3D model"],
   ["AUR-0001", "AUR-0001.stp", "ASSEMBLY", "Aurora sedan – packaging model"],
+];
+
+// ---- saved reports (report builder), shared with everyone ----
+const PART_TYPE = "00000000-0000-7000-8000-000000000102";
+const PROBLEM_REPORT_TYPE = "00000000-0000-7000-8000-000000000104";
+const f = (alias, field) => ({ alias, field });
+const c = (alias, field, operator, value) => ({ field: f(alias, field), operator, value, conditions: [] });
+export const REPORTS = [
+  {
+    name: "Cells per battery pack",
+    description: "Each pack's cells, from its structure: how many, of which cell.",
+    groupBy: "col:0",
+    definition: {
+      from: { alias: "pack", typeId: PART_TYPE },
+      links: [{ alias: "cell", from: "pack", relation: "uses" }],
+      where: { group: "AND", conditions: [c("pack", "number", "STARTS_WITH", "VX3-BP-"), c("cell", "class", "EQ", "CELL")] },
+      columns: [
+        { field: f("pack", "number") },
+        { field: f("pack", "name") },
+        { field: f("cell", "number"), label: "Cell" },
+        { field: f("cell", "link:quantity"), aggregate: "SUM", label: "Cells" },
+      ],
+      sort: [{ column: 3, descending: true }],
+      versions: { mode: "LATEST" },
+      parameters: [],
+    },
+  },
+  {
+    name: "Where is it used?",
+    description: "The assemblies that use a part, with the quantity: asks for the part number.",
+    groupBy: null,
+    answers: { part: "VX3-CL-138" },
+    definition: {
+      from: { alias: "part", typeId: PART_TYPE },
+      links: [{ alias: "parent", from: "part", relation: "usedBy" }],
+      where: { group: "AND", conditions: [{ field: f("part", "number"), operator: "EQ", parameter: "part", conditions: [] }] },
+      columns: [
+        { field: f("parent", "number"), label: "Used in" },
+        { field: f("parent", "name") },
+        { field: f("parent", "state") },
+        { field: f("parent", "link:quantity"), label: "Quantity" },
+      ],
+      sort: [{ column: 0 }],
+      versions: { mode: "LATEST" },
+      parameters: [{ name: "part", label: "Which part number?", type: "TEXT", required: true }],
+    },
+  },
+  {
+    name: "Released parts without documents",
+    description: "Released parts that no document describes or references.",
+    groupBy: "col:2",
+    definition: {
+      from: { alias: "part", typeId: PART_TYPE },
+      links: [{ alias: "doc", from: "part", relation: "documents", optional: true }],
+      where: { group: "AND", conditions: [c("part", "state", "EQ", "RELEASED"), c("doc", "number", "EMPTY", null)] },
+      columns: [{ field: f("part", "number") }, { field: f("part", "name") }, { field: f("part", "context") }],
+      sort: [{ column: 0 }],
+      versions: { mode: "LATEST" },
+      parameters: [],
+    },
+  },
+  {
+    name: "Open problem reports by container",
+    description: "Problem reports not yet resolved, counted by product.",
+    groupBy: "col:0",
+    definition: {
+      from: { alias: "problem", typeId: PROBLEM_REPORT_TYPE },
+      links: [],
+      where: { group: "NOT", conditions: [c("problem", "state", "IN", ["RESOLVED", "CANCELLED", "REJECTED"])] },
+      columns: [{ field: f("problem", "context") }, { field: f("problem", "number"), aggregate: "COUNT", label: "Open" }],
+      sort: [{ column: 1, descending: true }],
+      versions: { mode: "LATEST" },
+      parameters: [],
+    },
+  },
+  {
+    name: "Battery cells by chemistry and capacity",
+    description: "Classified cells with their class attributes.",
+    groupBy: "col:2",
+    definition: {
+      from: { alias: "cell", typeId: PART_TYPE },
+      links: [],
+      where: { group: "AND", conditions: [c("cell", "class", "EQ", "CELL")] },
+      columns: [
+        { field: f("cell", "number") },
+        { field: f("cell", "name") },
+        { field: f("cell", "class:chemistry") },
+        { field: f("cell", "class:capacity") },
+        { field: f("cell", "class:voltage") },
+        { field: f("cell", "attr:mass") },
+      ],
+      sort: [{ column: 3, descending: true }],
+      versions: { mode: "LATEST" },
+      parameters: [],
+    },
+  },
 ];

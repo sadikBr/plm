@@ -480,6 +480,31 @@ await step("Baseline", async () => {
   return `Baseline "${K.baseline[0]}" (${masters.size} parts), frozen`;
 });
 
+// Saved reports (report builder), shared: named after the company, as each set brings the same ones.
+await step("Reports", async () => {
+  // Each report keeps to this company's containers.
+  const own = Object.keys(D.CONTEXTS).map((k) => ctx[k].id);
+  for (const r of D.REPORTS ?? []) {
+    const d = r.definition;
+    const scope = { field: { alias: d.from.alias, field: "context" }, operator: "IN", value: own, conditions: [] };
+    const where = d.where ? { group: "AND", conditions: [d.where, scope] } : scope;
+    await admin("POST", "/reports", {
+      name: `${company}: ${r.name}`,
+      description: r.description,
+      definition: { ...d, where },
+      answers: r.answers ?? {},
+      groupBy: r.groupBy,
+      shared: true,
+      columns: ["number"],
+      query: { text: "", typeIds: [], states: [], contextIds: [], attributes: {}, offset: 0, limit: 25 },
+      recipients: [],
+      alert: "ALWAYS",
+      timeZone: "UTC",
+    });
+  }
+  return `${(D.REPORTS ?? []).length} shared reports (Reports in the top bar)`;
+});
+
 console.log();
 bold("Demo data loaded.");
 console.log(`  Open http://localhost:5173 › Organizations › ${company}. Things to look at:`);

@@ -329,6 +329,10 @@ export function fromSimple(s: Settings): Definition {
 
 // ---- the builder ----
 
+/** Links in the order people look for them: structure first. */
+const RELATION_ORDER = ["uses", "usedBy", "documents", "documentedParts", "cadModels", "cadParts", "changes", "changeItems"];
+const order = (key: string) => (RELATION_ORDER.includes(key) ? RELATION_ORDER.indexOf(key) : RELATION_ORDER.length);
+
 const ALIAS_RE = /^[a-z][a-z0-9_]{0,30}$/;
 
 function aliasFor(name: string, taken: string[]): string {
@@ -382,7 +386,7 @@ function FieldSelect({
         <optgroup key={alias} label={alias}>
           {list.map((f) => (
             <option key={f.key} value={`${alias}|${f.key}`}>
-              {f.label}
+              {alias} · {f.label}
               {f.unit ? ` (${f.unit})` : ""}
             </option>
           ))}
@@ -762,7 +766,9 @@ export function ReportBuilder({
     return types?.find((x) => x.id === typeId)?.baseClass;
   };
   const relationsFrom = (alias: string) =>
-    (relations ?? []).filter((r) => !r.from.length || !baseOf(alias) || r.from.includes(baseOf(alias)!));
+    (relations ?? [])
+      .filter((r) => !r.from.length || !baseOf(alias) || r.from.includes(baseOf(alias)!))
+      .sort((a, b) => order(a.key) - order(b.key));
   const renameAlias = (from: string, to: string) => setD(renamed(d, from, to));
   const setColumn = (k: number, c: Column) => setD({ ...d, columns: d.columns.map((x, i) => (i === k ? c : x)) });
   const moveColumn = (k: number, by: number) => {

@@ -135,6 +135,8 @@ export const DOCUMENTS = rename(V.DOCUMENTS).map((d) => {
 
 export const CHANGES = rename(V.CHANGES);
 
+export const REPORTS = rename(V.REPORTS);
+
 // Same models and files; numbers and names follow the renames.
 export const CAD_MODELS = V.CAD_MODELS.map(([part, file, kind, name]) => [rename(part), file, kind, rename(name)]);
 
@@ -150,4 +152,5 @@ export const TOUR = [
   "Changes (top bar): the door-seal problem through to a resolved change notice",
   "Plant 2 – Seal Line Launch: work instructions, PFMEA, control plan, in folders by shop",
   "Classes (top bar): find cells, motors and fasteners by their attributes",
+  "Reports (top bar): cells per pack, where a part is used, parts without documents, open problems",
 ];

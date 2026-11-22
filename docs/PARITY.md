@@ -246,8 +246,8 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | Full-text search in attributes and file content, facets | ⬜ [3] | OpenSearch via events |
 | Advanced search by type and attribute criteria; saved and shared searches | ⬜ [3] | |
 | Classification search, find similar parts | ✅ | |
-| Report definitions (query, columns, grouping) without code; reports in any table | ⬜ [3] | Always access-filtered |
-| Scheduled reports and threshold alerts ("tell me when …") | ⬜ [3] | |
+| Report definitions (query, columns, grouping) without code; reports in any table | ✅ | Report builder: objects and links, all/any/none conditions, totals, questions at run time, live preview; access checked in the SQL |
+| Scheduled reports and threshold alerts ("tell me when …") | ✅ | Mailed on a schedule; always, when anything, more than N, or something new is found |
 | Charts and dashboards | ⬜ [3] | |
 
 ## 14. Security and compliance
@@ -364,7 +364,7 @@ Full design: [EXTENSIBILITY.md](EXTENSIBILITY.md) and [ADR 0018](adr/0018-extens
 | Code inside workflow steps | Automation steps calling extension handlers or scripts | ⬜ [5] |
 | Custom UI pages, tabs and table columns | **UI extension slots**: declarative panels and sandboxed micro-frontends | ⬜ [5] |
 | Custom web services / integration endpoints | Extension endpoints under `/api/ext/{extension}/…` | ⬜ [5] |
-| Custom reports and queries | Report definitions (no code), access-filtered | ⬜ [3] |
+| Custom reports and queries | Report builder (no code), access-filtered in the SQL | ✅ |
 | Packaging and checking customizations for upgrades | Extension packages: versioned manifest, compatibility checks, signed | ⬜ [2] |
 
 ---
