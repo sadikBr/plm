@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { BarChart3, Box, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, Clock, Pin, PinOff, Search, Star, X } from "lucide-react";
 import { favoriteLink, useFavorites } from "../personal/Personal";
 import { NavSharedWithMe } from "../collaboration/Collaboration";
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { Fragment, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router";
 import { api, unwrap } from "../api/client";
 import {
@@ -274,8 +274,15 @@ function KindRow({
   const { data: contexts, isLoading } = useBrowsableContexts(open ? kind : undefined);
   const pinnedIds = new Set(pinned.map((p) => p.id));
   const toggle = () => write(OPEN_KINDS, openKinds.includes(kind) ? openKinds.filter((k) => k !== kind) : [...openKinds, kind]);
-  // The first few, plus where we are if it's further down.
-  const shown = contexts?.filter((c, i) => i < MAX_LISTED || c.id === currentId) ?? [];
+  const organizations = useOrganizationNames();
+  // Grouped under their organization (when names are shown), then the first few, plus where we are.
+  const orgOf = (c: { parentId?: string | null }) => (c.parentId ? (organizations?.get(c.parentId) ?? "") : "");
+  const grouped =
+    organizations && kind !== "ORGANIZATION" && contexts
+      ? [...contexts].sort((a, b) => orgOf(a).localeCompare(orgOf(b)) || a.name.localeCompare(b.name))
+      : contexts;
+  const shown = grouped?.filter((c, i) => i < MAX_LISTED || c.id === currentId) ?? [];
+  const groupedView = grouped !== contexts;
 
   return (
     <li>
@@ -305,10 +312,17 @@ function KindRow({
             </li>
           )}
           {contexts && contexts.length === 0 && <li className="nav-none">{t("None you can see")}</li>}
-          {shown.map((c) => (
-            <li key={c.id}>
-              <FlatRow item={c} current={c.id === currentId} pinned={pinnedIds.has(c.id)} indent />
-            </li>
+          {shown.map((c, i) => (
+            <Fragment key={c.id}>
+              {groupedView && (i === 0 || shown[i - 1]!.parentId !== c.parentId) && (
+                <li className="nav-group" aria-hidden>
+                  {orgOf(c) || t("No organization")}
+                </li>
+              )}
+              <li>
+                <FlatRow item={c} current={c.id === currentId} pinned={pinnedIds.has(c.id)} indent hideOrg={groupedView} />
+              </li>
+            </Fragment>
           ))}
           {contexts && contexts.length > MAX_LISTED && (
             <li>
@@ -351,7 +365,19 @@ function PinButton({ item, pinned }: { item: Remembered; pinned: boolean }) {
   );
 }
 
-function FlatRow({ item, current, pinned, indent = false }: { item: Remembered; current: boolean; pinned: boolean; indent?: boolean }) {
+function FlatRow({
+  item,
+  current,
+  pinned,
+  indent = false,
+  hideOrg = false,
+}: {
+  item: Remembered;
+  current: boolean;
+  pinned: boolean;
+  indent?: boolean;
+  hideOrg?: boolean;
+}) {
   const organizations = useOrganizationNames();
   const org = item.parentId ? organizations?.get(item.parentId) : undefined;
   return (
@@ -365,7 +391,7 @@ function FlatRow({ item, current, pinned, indent = false }: { item: Remembered; 
           <ContextIcon kind={item.kind} size={14} />
         </span>
         <span className="nav-name">{item.name}</span>
-        {org && <span className="nav-org">{org}</span>}
+        {org && !hideOrg && <span className="nav-org">{org}</span>}
       </NavLink>
       <PinButton item={item} pinned={pinned} />
     </div>

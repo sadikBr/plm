@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { Fragment, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { useCanOpen, useContextTemplates, useCreateContext, type Context, type ContextKind } from "../api/queries";
-import { ContextIcon, Dialog, ErrorBanner, PrincipalName, formatDate, kindInText } from "../components/common";
+import { ContextIcon, Dialog, ErrorBanner, PrincipalName, When, kindInText } from "../components/common";
 import { t, tn } from "../i18n/i18n";
 
 /** A table of contexts: an organization's products, the site's organizations, every visible library... */
@@ -16,6 +16,14 @@ export function ContextTable({
   organizations?: Map<string, Context>;
 }) {
   const canOpen = useCanOpen();
+  // With organizations shown, the list is grouped under each one, by name.
+  const orgName = (c: Context) => (c.parentId ? (organizations?.get(c.parentId)?.name ?? "") : "");
+  const sorted = organizations
+    ? [...contexts].sort(
+        (a, b) =>
+          orgName(a).localeCompare(orgName(b)) || (a.parentId ?? "").localeCompare(b.parentId ?? "") || a.name.localeCompare(b.name),
+      )
+    : contexts;
   return (
     <div className="grid-wrap">
       <table className="grid" aria-label={label}>
@@ -25,42 +33,42 @@ export function ContextTable({
               <span className="sr-only">{t("Icon")}</span>
             </th>
             <th>{t("Name")}</th>
-            {organizations && <th>{t("Organization")}</th>}
             <th>{t("Created by")}</th>
             <th>{t("Created")}</th>
           </tr>
         </thead>
         <tbody>
-          {contexts.map((c) => {
+          {sorted.map((c, i) => {
             const org = c.parentId ? organizations?.get(c.parentId) : undefined;
+            const groupStart = organizations && (i === 0 || sorted[i - 1]!.parentId !== c.parentId);
             return (
-              <tr key={c.id}>
-                <td className="icon-cell">
-                  <ContextIcon kind={c.kind} />
-                </td>
-                <td>
-                  <Link className="num-link" to={`/contexts/${c.id}`}>
-                    {c.name}
-                  </Link>
-                </td>
-                {organizations && (
-                  <td className="nowrap">
-                    {org ? (
-                      canOpen?.(org) ? (
-                        <Link to={`/contexts/${org.id}`}>{org.name}</Link>
-                      ) : (
-                        org.name
-                      )
-                    ) : (
-                      <span className="muted">—</span>
-                    )}
-                  </td>
+              <Fragment key={c.id}>
+                {groupStart && (
+                  <tr className="group-row">
+                    <td colSpan={4}>
+                      <ContextIcon kind="ORGANIZATION" />{" "}
+                      {org ? canOpen?.(org) ? <Link to={`/contexts/${org.id}`}>{org.name}</Link> : org.name : t("No organization")}{" "}
+                      <span className="muted small">{sorted.filter((x) => x.parentId === c.parentId).length}</span>
+                    </td>
+                  </tr>
                 )}
-                <td className="nowrap">
-                  <PrincipalName id={c.createdBy} />
-                </td>
-                <td className="nowrap muted">{formatDate(c.createdAt)}</td>
-              </tr>
+                <tr>
+                  <td className="icon-cell">
+                    <ContextIcon kind={c.kind} />
+                  </td>
+                  <td>
+                    <Link className="num-link" to={`/contexts/${c.id}`}>
+                      {c.name}
+                    </Link>
+                  </td>
+                  <td className="nowrap">
+                    <PrincipalName id={c.createdBy} />
+                  </td>
+                  <td className="nowrap muted">
+                    <When iso={c.createdAt} />
+                  </td>
+                </tr>
+              </Fragment>
             );
           })}
         </tbody>

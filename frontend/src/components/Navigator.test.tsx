@@ -50,11 +50,11 @@ describe("Navigator", () => {
     expect(await within(browse).findByText("None you can see")).toBeInTheDocument();
   });
 
-  it("shows each product's organization unless the user turned that off", async () => {
+  it("groups products under their organization unless the user turned that off", async () => {
     api();
     renderAt(`/contexts/${PRODUCT}`);
     const products = await screen.findByRole("list", { name: "Products" });
-    expect(await within(products).findByText("Acme")).toHaveClass("nav-org");
+    expect(await within(products).findByText("Acme")).toHaveClass("nav-group");
   });
 
   it("hides organization names when the preference is off", async () => {
