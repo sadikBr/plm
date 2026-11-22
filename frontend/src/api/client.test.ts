@@ -15,9 +15,7 @@ describe("API client", () => {
   it("turns problem details into an ApiError with the server's code", async () => {
     fakeApi({ "POST /api/v1/objects/:id/checkout": () => problem(409, "ALREADY_CHECKED_OUT", "Checked out by Bob") });
 
-    const error = await unwrap(api.POST("/api/v1/objects/{id}/checkout", { params: { path: { id: "x" } } })).catch(
-      (e: unknown) => e,
-    );
+    const error = await unwrap(api.POST("/api/v1/objects/{id}/checkout", { params: { path: { id: "x" } } })).catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
     expect(error).toMatchObject({ status: 409, code: "ALREADY_CHECKED_OUT", message: "Checked out by Bob" });

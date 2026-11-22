@@ -39,7 +39,8 @@ function api() {
   return fakeApi({
     "GET /api/v1/me": () => me(ALICE, true),
     "GET /api/v1/contexts/site": () => ({ ...product, id: "site", parentId: null, kind: "SITE", name: "Site" }),
-    "GET /api/v1/contexts/:id": (_, { id }) => (id === ORG ? { ...product, id: ORG, kind: "ORGANIZATION", name: "Acme", parentId: null } : product),
+    "GET /api/v1/contexts/:id": (_, { id }) =>
+      id === ORG ? { ...product, id: ORG, kind: "ORGANIZATION", name: "Acme", parentId: null } : product,
     "GET /api/v1/contexts/:id/children": () => [],
     "GET /api/v1/contexts/:id/permissions": () => ["READ", "MANAGE"],
     "GET /api/v1/contexts/:id/objects": () => [],
@@ -57,11 +58,11 @@ describe("Preferences tab", () => {
     api();
     renderAt(`/contexts/${PRODUCT}?tab=preferences`);
 
-    const rows = within(await screen.findByRole("table", { name: "General preferences" }));
-    const pageSize = rows.getByRole("row", { name: "Rows per page" });
+    const rows = within(await screen.findByRole("list", { name: "General preferences" }));
+    const pageSize = rows.getByRole("listitem", { name: "Rows per page" });
     expect(within(pageSize).getByText("100")).toBeInTheDocument();
     expect(await within(pageSize).findByRole("link", { name: "Acme" })).toBeInTheDocument();
-    const comment = rows.getByRole("row", { name: "Check-in comment required" });
+    const comment = rows.getByRole("listitem", { name: "Check-in comment required" });
     expect(within(comment).getByText(/Locked by/)).toBeInTheDocument();
     expect(within(comment).queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
   });
@@ -70,7 +71,7 @@ describe("Preferences tab", () => {
     const calls = api();
     renderAt(`/contexts/${PRODUCT}?tab=preferences`);
 
-    const row = within(await screen.findByRole("row", { name: "Rows per page" }));
+    const row = within(await screen.findByRole("listitem", { name: "Rows per page" }));
     await userEvent.clear(row.getByLabelText("Rows per page"));
     await userEvent.type(row.getByLabelText("Rows per page"), "25");
     await userEvent.click(row.getByLabelText("Lock"));

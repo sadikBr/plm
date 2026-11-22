@@ -10,7 +10,7 @@ import {
   type ContextPreference,
   type UserPreference,
 } from "../api/queries";
-import { ErrorBanner, Loading, Panel } from "../components/common";
+import { EmptyState, ErrorBanner, Loading, Panel } from "../components/common";
 import { PageHeader } from "../components/Layout";
 import { t } from "../i18n/i18n";
 
@@ -94,96 +94,89 @@ function PreferenceRow({ p, contextId }: { p: Pref; contextId?: string }) {
   const [value, setValue] = useState<unknown>(own?.value ?? p.effective.value);
   const [locked, setLocked] = useState(own?.locked ?? false);
   const id = `pref-${p.definition.key}`;
-  const dirty = !own || value !== own.value || locked !== own.locked;
+  const dirty = own ? value !== own.value || locked !== own.locked : value !== p.effective.value || locked;
 
   return (
-    <tr aria-label={p.definition.label}>
-      <td>
+    <li className="pref-item" aria-label={p.definition.label}>
+      <div className="pref-info">
         <label htmlFor={id} className="pref-label">
           {p.definition.label}
         </label>
-        <div className="muted small-note">{p.definition.description}</div>
-      </td>
-      <td className="nowrap">
-        <strong>{show(p, p.effective.value)}</strong>
-        <div>
+        {p.definition.description && <p className="pref-desc">{p.definition.description}</p>}
+        <div className="pref-effect">
+          <span>
+            {t("In effect")}: <strong>{show(p, p.effective.value)}</strong>
+          </span>
           <Source p={p} here={contextId} />
         </div>
-      </td>
-      <td>
-        {p.canSet ? (
-          <div className="row">
-            <ValueInput p={p} id={id} value={value} onChange={setValue} />
-            {contextId && (
-              <label className="check" title={t("Nothing below this context can change it")}>
-                <input type="checkbox" checked={locked} onChange={(e) => setLocked(e.target.checked)} />
-                {t("Lock")}
-              </label>
-            )}
-          </div>
-        ) : (
-          <span className="muted">{p.effective.lockedAt ? t("Locked above") : t("You can't change this here")}</span>
-        )}
         <ErrorBanner error={set.error} />
-      </td>
-      <td className="nowrap">
-        {p.canSet && (
+      </div>
+      <div className="pref-control">
+        {p.canSet ? (
           <>
-            <button
-              className="btn small primary"
-              disabled={!dirty || value === undefined || set.isPending}
-              onClick={() => set.mutate({ key: p.definition.key, value, locked })}
-            >
-              {t("Save")}
-            </button>{" "}
-            {own && (
-              <button
-                className="btn small ghost icon"
-                aria-label={t("Reset {preference}", { preference: p.definition.label })}
-                title={contextId ? t("Remove the value set here: inherit again") : t("Back to the default")}
-                onClick={() => set.mutate({ key: p.definition.key, clear: true })}
-              >
-                <RotateCcw size={13} aria-hidden />
-              </button>
-            )}
+            <ValueInput p={p} id={id} value={value} onChange={setValue} />
+            <div className="pref-actions">
+              {contextId && (
+                <label className="check" title={t("Nothing below this context can change it")}>
+                  <input type="checkbox" checked={locked} onChange={(e) => setLocked(e.target.checked)} />
+                  {t("Lock")}
+                </label>
+              )}
+              <span className="grow" />
+              {own && !dirty && (
+                <button
+                  className="btn small ghost"
+                  aria-label={t("Reset {preference}", { preference: p.definition.label })}
+                  title={contextId ? t("Remove the value set here: inherit again") : t("Back to the default")}
+                  onClick={() => set.mutate({ key: p.definition.key, clear: true })}
+                >
+                  <RotateCcw size={13} aria-hidden /> {t("Reset")}
+                </button>
+              )}
+              {dirty && (
+                <>
+                  <button
+                    className="btn small ghost"
+                    onClick={() => (setValue(own?.value ?? p.effective.value), setLocked(own?.locked ?? false))}
+                  >
+                    {t("Cancel")}
+                  </button>
+                  <button
+                    className="btn small primary"
+                    disabled={value === undefined || set.isPending}
+                    onClick={() => set.mutate({ key: p.definition.key, value, locked })}
+                  >
+                    {t("Save")}
+                  </button>
+                </>
+              )}
+            </div>
           </>
+        ) : (
+          <span className="pref-locked">
+            <Lock size={13} aria-hidden /> {p.effective.lockedAt ? t("Locked above") : t("You can't change this here")}
+          </span>
         )}
-      </td>
-    </tr>
+      </div>
+    </li>
   );
 }
 
 function PreferenceTable({ prefs, contextId }: { prefs: Pref[]; contextId?: string }) {
   const categories = [...new Set(prefs.map((p) => p.definition.category))];
-  if (prefs.length === 0) return <p className="empty">{t("No preferences can be set here.")}</p>;
+  if (prefs.length === 0) return <EmptyState icon={<SlidersHorizontal size={18} />} title={t("No preferences can be set here.")} />;
   return (
     <div className="stack">
       {categories.map((c) => (
-        <Panel key={c} title={c} flush>
-          <table className="grid prefs" aria-label={t("{category} preferences", { category: c })}>
-            <colgroup>
-              <col />
-              <col style={{ width: 220 }} />
-              <col style={{ width: 340 }} />
-              <col style={{ width: 130 }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>{t("Preference")}</th>
-                <th>{t("In effect")}</th>
-                <th>{t("Set here")}</th>
-                <th aria-label={t("Actions")} />
-              </tr>
-            </thead>
-            <tbody>
-              {prefs
-                .filter((p) => p.definition.category === c)
-                .map((p) => (
-                  // Remount after a save, so the editor starts from the stored value.
-                  <PreferenceRow key={`${p.definition.key}-${p.own?.setAt ?? "none"}`} p={p} contextId={contextId} />
-                ))}
-            </tbody>
-          </table>
+        <Panel key={c} title={c} flush className="pref-panel">
+          <ul className="pref-list" aria-label={t("{category} preferences", { category: c })}>
+            {prefs
+              .filter((p) => p.definition.category === c)
+              .map((p) => (
+                // Remount after a save, so the editor starts from the stored value.
+                <PreferenceRow key={`${p.definition.key}-${p.own?.setAt ?? "none"}`} p={p} contextId={contextId} />
+              ))}
+          </ul>
         </Panel>
       ))}
     </div>

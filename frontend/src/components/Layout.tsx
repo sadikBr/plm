@@ -296,7 +296,13 @@ export function Tabs<T extends string>({ tabs, active, onSelect }: { tabs: [T, s
       {shown.map(([key, label]) => link(key, label))}
       {hidden.length > 0 && (
         <div className="tabs-more" ref={moreRef}>
-          <button type="button" className="tabs-more-btn" aria-expanded={moreOpen} aria-haspopup="true" onClick={() => setMoreOpen(!moreOpen)}>
+          <button
+            type="button"
+            className="tabs-more-btn"
+            aria-expanded={moreOpen}
+            aria-haspopup="true"
+            onClick={() => setMoreOpen(!moreOpen)}
+          >
             {t("More")}
             <span className="tabs-more-count">{hidden.length}</span>
             <ChevronDown size={13} aria-hidden />

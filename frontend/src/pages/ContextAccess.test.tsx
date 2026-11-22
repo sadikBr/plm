@@ -48,7 +48,9 @@ function api() {
     "GET /api/v1/contexts/:id/children": () => [],
     "GET /api/v1/contexts/:id/objects": () => ({ items: [], nextCursor: null }),
     "GET /api/v1/contexts/:id/permissions": () => ["READ", "CREATE", "MODIFY", "REVISE", "MANAGE", "PROMOTE"],
-    "GET /api/v1/contexts/:id/members": () => [{ contextId: PRODUCT, principalId: BOB, role: "MEMBER", addedAt: "2026-11-20T09:00:00Z", addedBy: ALICE }],
+    "GET /api/v1/contexts/:id/members": () => [
+      { contextId: PRODUCT, principalId: BOB, role: "MEMBER", addedAt: "2026-11-20T09:00:00Z", addedBy: ALICE },
+    ],
     "GET /api/v1/contexts/:id/members/effective": () => [
       { contextId: PRODUCT, principalId: BOB, role: "MEMBER", addedAt: "2026-11-20T09:00:00Z", addedBy: ALICE },
       { contextId: SITE, principalId: ALICE, role: "MANAGER", addedAt: "2026-11-20T09:00:00Z", addedBy: "system" },
@@ -71,7 +73,17 @@ function api() {
     }),
     "GET /api/v1/team-roles": () => roles,
     "GET /api/v1/types": () => types,
-    "GET /api/v1/lifecycles": () => [{ id: lc.lifecycleId, name: "Basic", labels: { en: "Basic" }, initialState: "IN_WORK", system: true, states: lc.states, transitions: [] }],
+    "GET /api/v1/lifecycles": () => [
+      {
+        id: lc.lifecycleId,
+        name: "Basic",
+        labels: { en: "Basic" },
+        initialState: "IN_WORK",
+        system: true,
+        states: lc.states,
+        transitions: [],
+      },
+    ],
     "GET /api/v1/principals/:id": (_, { id }) => principal(id!),
   });
 }

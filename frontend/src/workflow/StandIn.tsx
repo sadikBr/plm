@@ -22,8 +22,10 @@ export function StandInPanel() {
   return (
     <Panel title={t("While I'm away")} note={t("New tasks for you go to your stand-in instead; tasks you already have stay yours.")}>
       {data ? (
-        <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-          <UserRoundCheck size={16} aria-hidden />
+        <div className="standin-set">
+          <span className="standin-icon">
+            <UserRoundCheck size={16} aria-hidden />
+          </span>
           <span>
             {t("Your stand-in is")} <strong>{<PrincipalName id={data.standIn} />}</strong>
             {data.from || data.until ? ` · ${data.from ?? "…"} – ${data.until ?? "…"}` : ` · ${t("until you remove it")}`}
@@ -34,7 +36,7 @@ export function StandInPanel() {
         </div>
       ) : (
         <form
-          className="attr-form cols-3"
+          className="standin-form"
           onSubmit={(e) => {
             e.preventDefault();
             save.mutate();
@@ -52,11 +54,9 @@ export function StandInPanel() {
             <label htmlFor="standin-until">{t("Until")}</label>
             <input id="standin-until" type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
           </div>
-          <div className="field">
-            <button className="btn primary" type="submit" disabled={!username.trim() || save.isPending}>
-              {t("Set my stand-in")}
-            </button>
-          </div>
+          <button className="btn primary" type="submit" disabled={!username.trim() || save.isPending}>
+            <UserRoundCheck size={14} aria-hidden /> {t("Set my stand-in")}
+          </button>
         </form>
       )}
       <ErrorBanner error={save.error ?? clear.error} />

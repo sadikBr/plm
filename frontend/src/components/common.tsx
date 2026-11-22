@@ -90,6 +90,24 @@ export function formatDate(iso: string | null | undefined): string {
   return new Date(iso).toLocaleString(locale(), { dateStyle: "medium", timeStyle: "short" });
 }
 
+/** "5 min ago", "yesterday", in the interface's language; the full date beyond a month. */
+export function formatAgo(iso: string | null | undefined, now = Date.now()): string {
+  if (!iso) return "—";
+  const secs = (new Date(iso).getTime() - now) / 1000;
+  const rtf = new Intl.RelativeTimeFormat(locale(), { numeric: "auto" });
+  const steps: [Intl.RelativeTimeFormatUnit, number][] = [
+    ["second", 60],
+    ["minute", 3600],
+    ["hour", 86400],
+    ["day", 86400 * 30],
+  ];
+  const size: Record<string, number> = { second: 1, minute: 60, hour: 3600, day: 86400 };
+  for (const [unit, limit] of steps) {
+    if (Math.abs(secs) < limit) return unit === "second" ? rtf.format(0, "second") : rtf.format(Math.round(secs / size[unit]!), unit);
+  }
+  return new Date(iso).toLocaleDateString(locale(), { dateStyle: "medium" });
+}
+
 // ---------- Contexts, types and states ----------
 
 const KIND: Record<ContextKind, { slug: string; icon: LucideIcon }> = {

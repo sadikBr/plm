@@ -1,16 +1,47 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Home, LayoutDashboard, Pencil, Plus, Star, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import {
+  AlarmClock,
+  ArrowDown,
+  ArrowRight,
+  ArrowUp,
+  Bell,
+  BellOff,
+  ClipboardList,
+  Eye,
+  History,
+  Home,
+  Inbox as InboxIcon,
+  LayoutDashboard,
+  Lock,
+  Pencil,
+  Plus,
+  Star,
+  Trash2,
+  X,
+} from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
 import { useMe } from "../api/queries";
-import { Dialog, ErrorBanner, Loading, MenuButton, Panel, StateBadge, TypeIcon, formatDate } from "../components/common";
+import {
+  Dialog,
+  EmptyState,
+  ErrorBanner,
+  Loading,
+  MenuButton,
+  Panel,
+  StateBadge,
+  TypeIcon,
+  formatAgo,
+  formatDate,
+} from "../components/common";
 import { PageHeader } from "../components/Layout";
 import { BarChart } from "./BarChart";
 import { useBars, useReportRun } from "./ReportsPage";
 import { QueryTable } from "./ReportBuilder";
-import { favoriteLink, useFavorites, useNotifications, useRecentVisits } from "../personal/Personal";
-import { t } from "../i18n/i18n";
+import { favoriteLink, useFavorites, useNotifications, useRecentVisits, useUnreadCount } from "../personal/Personal";
+import { useTaskCounts } from "../workflow/Inbox";
+import { locale, t, tn } from "../i18n/i18n";
 import { MyChanges, OpenByState, useChangeMetrics } from "../changes/ChangeDashboard";
 
 type Dashboard = Schemas["Dashboard"];
@@ -71,21 +102,26 @@ function WidgetBody({ widget }: { widget: Widget }) {
   const items = widget.kind === "CHECKED_OUT" ? checkedOut : recent;
   if (!items) return <Loading />;
   if (!items.length)
-    return <p className="empty">{widget.kind === "CHECKED_OUT" ? t("Nothing checked out.") : t("Nothing changed lately.")}</p>;
-  return <MiniList items={items as Item[]} />;
+    return widget.kind === "CHECKED_OUT" ? (
+      <EmptyState icon={<Lock size={18} />} title={t("Nothing checked out.")} hint={t("Check out a part or document to edit it.")} />
+    ) : (
+      <EmptyState icon={<History size={18} />} title={t("Nothing changed lately.")} />
+    );
+  return <MiniList items={items as Item[]} when={widget.kind === "RECENT" ? "modifiedAt" : undefined} />;
 }
 
 function VisitsWidget({ limit }: { limit: number }) {
   const { data } = useRecentVisits(limit);
   if (!data) return <Loading />;
-  if (!data.length) return <p className="empty">{t("Nothing viewed yet.")}</p>;
-  return <MiniList items={data.map((v) => ({ ...v, id: v.objectId }))} />;
+  if (!data.length) return <EmptyState icon={<Eye size={18} />} title={t("Nothing viewed yet.")} />;
+  return <MiniList items={data.map((v) => ({ ...v, id: v.objectId }))} when="visitedAt" />;
 }
 
 function FavoritesWidget({ limit }: { limit: number }) {
   const { data } = useFavorites();
   if (!data) return <Loading />;
-  if (!data.length) return <p className="empty">{t("No favorites yet: use the star on an object, product or report.")}</p>;
+  if (!data.length)
+    return <EmptyState icon={<Star size={18} />} title={t("No favorites yet: use the star on an object, product or report.")} />;
   return (
     <ul className="mini-list">
       {data.slice(0, limit).map((f) => (
@@ -104,7 +140,7 @@ function FavoritesWidget({ limit }: { limit: number }) {
 function NoticesWidget({ limit }: { limit: number }) {
   const { data } = useNotifications(false, limit);
   if (!data) return <Loading />;
-  if (!data.length) return <p className="empty">{t("No notifications.")}</p>;
+  if (!data.length) return <EmptyState icon={<BellOff size={18} />} title={t("No notifications.")} />;
   return (
     <ul className="mini-list">
       {data.map((n) => (
@@ -116,30 +152,63 @@ function NoticesWidget({ limit }: { limit: number }) {
           ) : (
             <span className="grow ellipsis">{n.title}</span>
           )}
-          <span className="muted small nowrap">{formatDate(n.createdAt)}</span>
+          <span className="muted small nowrap" title={formatDate(n.createdAt)}>
+            {formatAgo(n.createdAt)}
+          </span>
         </li>
       ))}
     </ul>
   );
 }
 
-type Item = { id: string; number: string; name: string; typeId: string; version: string; state: string; modifiedAt?: string };
+type Item = {
+  id: string;
+  number: string;
+  name: string;
+  typeId: string;
+  version: string;
+  state: string;
+  modifiedAt?: string;
+  visitedAt?: string;
+};
 
-function MiniList({ items }: { items: Item[] }) {
+const FIRST = 6;
+
+/** Objects, two lines each: number and name, then version, state and when. Long lists show their first rows. */
+function MiniList({ items, when }: { items: Item[]; when?: "modifiedAt" | "visitedAt" }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? items : items.slice(0, FIRST);
   return (
-    <ul className="mini-list">
-      {items.map((o) => (
-        <li key={o.id}>
-          <TypeIcon typeId={o.typeId} />
-          <Link to={`/objects/${o.id}`} className="num-link">
-            {o.number}
-          </Link>
-          <span className="grow ellipsis">{o.name}</span>
-          <span className="version">{o.version}</span>
-          <StateBadge state={o.state} />
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="mini-list object-list">
+        {shown.map((o) => (
+          <li key={o.id}>
+            <span className="object-list-icon">
+              <TypeIcon typeId={o.typeId} />
+            </span>
+            <span className="object-list-main">
+              <Link to={`/objects/${o.id}`} className="object-list-title">
+                <span className="num">{o.number}</span> {o.name}
+              </Link>
+              <span className="object-list-meta">
+                <span className="version">{o.version}</span>
+                <StateBadge state={o.state} />
+              </span>
+            </span>
+            {when && o[when] && (
+              <span className="object-list-when" title={formatDate(o[when])}>
+                {formatAgo(o[when])}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+      {items.length > FIRST && (
+        <button className="mini-list-more" onClick={() => setAll(!all)}>
+          {all ? t("Show fewer") : tn("Show {n} more", "Show {n} more", items.length - FIRST)}
+        </button>
+      )}
+    </>
   );
 }
 
@@ -176,7 +245,7 @@ export function DashboardView({ dashboard, editable }: { dashboard: Dashboard; e
   };
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div className="dashboard">
       {editable && (
         <div className="row" style={{ gap: 6, justifyContent: "flex-end" }}>
           {editing ? (
@@ -199,48 +268,51 @@ export function DashboardView({ dashboard, editable }: { dashboard: Dashboard; e
           )}
         </div>
       )}
-      <div className="dashboard-grid">
-        {shown.map((w, i) => (
-          <Panel
-            key={w.id}
-            title={titleOf(w) ?? ""}
-            flush
-            className={w.width === 2 ? "span-2" : undefined}
-            actions={
-              editing ? (
-                <span className="row" style={{ gap: 2 }}>
-                  <button className="icon-btn" aria-label={t("Move up")} disabled={i === 0} onClick={() => move(i, -1)}>
-                    <ArrowUp size={12} />
-                  </button>
-                  <button className="icon-btn" aria-label={t("Move down")} disabled={i === widgets.length - 1} onClick={() => move(i, 1)}>
-                    <ArrowDown size={12} />
-                  </button>
-                  <button
-                    className="btn small"
-                    onClick={() => setWidgets(widgets.map((x, j) => (j === i ? { ...x, width: x.width === 2 ? 1 : 2 } : x)))}
-                  >
-                    {w.width === 2 ? t("Half width") : t("Full width")}
-                  </button>
-                  <button
-                    className="icon-btn"
-                    aria-label={t("Remove the widget")}
-                    onClick={() => setWidgets(widgets.filter((_, j) => j !== i))}
-                  >
-                    <X size={13} />
-                  </button>
-                </span>
-              ) : w.reportId ? (
-                <Link className="small" to={`/reports/${w.reportId}`}>
-                  {t("Open report")}
-                </Link>
-              ) : undefined
-            }
-          >
-            <WidgetBody widget={w} />
-          </Panel>
-        ))}
-        {!shown.length && <p className="empty">{t("No widgets yet.")}</p>}
-      </div>
+      <Masonry
+        items={shown.map((w, i) => ({
+          key: w.id,
+          wide: w.width === 2,
+          node: (
+            <Panel
+              title={titleOf(w) ?? ""}
+              flush
+              className="widget"
+              actions={
+                editing ? (
+                  <span className="row" style={{ gap: 2 }}>
+                    <button className="icon-btn" aria-label={t("Move up")} disabled={i === 0} onClick={() => move(i, -1)}>
+                      <ArrowUp size={12} />
+                    </button>
+                    <button className="icon-btn" aria-label={t("Move down")} disabled={i === widgets.length - 1} onClick={() => move(i, 1)}>
+                      <ArrowDown size={12} />
+                    </button>
+                    <button
+                      className="btn small"
+                      onClick={() => setWidgets(widgets.map((x, j) => (j === i ? { ...x, width: x.width === 2 ? 1 : 2 } : x)))}
+                    >
+                      {w.width === 2 ? t("Half width") : t("Full width")}
+                    </button>
+                    <button
+                      className="icon-btn"
+                      aria-label={t("Remove the widget")}
+                      onClick={() => setWidgets(widgets.filter((_, j) => j !== i))}
+                    >
+                      <X size={13} />
+                    </button>
+                  </span>
+                ) : w.reportId ? (
+                  <Link className="small" to={`/reports/${w.reportId}`}>
+                    {t("Open report")}
+                  </Link>
+                ) : undefined
+              }
+            >
+              <WidgetBody widget={w} />
+            </Panel>
+          ),
+        }))}
+      />
+      {!shown.length && <EmptyState icon={<LayoutDashboard size={18} />} title={t("No widgets yet.")} />}
       {adding && <AddWidgetDialog onClose={() => setAdding(false)} onAdd={(w) => setWidgets([...widgets, w])} />}
     </div>
   );
@@ -316,6 +388,77 @@ function AddWidgetDialog({ onClose, onAdd }: { onClose: () => void; onAdd: (w: W
   );
 }
 
+/**
+ * Widgets in two columns that fill from the top, each half-width widget going under the
+ * shorter column so tall and short ones leave no holes; full-width widgets span both.
+ * In a narrow space it is one column in the widgets' order.
+ */
+function Masonry({ items }: { items: { key: string; wide: boolean; node: ReactNode }[] }) {
+  const rows: { key: string; wide: boolean; node: ReactNode; order: number }[][] = [];
+  items.forEach((it, order) => {
+    const last = rows[rows.length - 1];
+    if (it.wide || !last || last[0]!.wide) rows.push([{ ...it, order }]);
+    else last.push({ ...it, order });
+  });
+  return (
+    <div className="masonry">
+      {rows.map((row) =>
+        row[0]!.wide ? (
+          <div key={row[0]!.key} className="masonry-wide" style={{ order: row[0]!.order }}>
+            {row[0]!.node}
+          </div>
+        ) : (
+          <BalancedColumns key={row[0]!.key} items={row} />
+        ),
+      )}
+    </div>
+  );
+}
+
+/** Puts each widget under the shorter of two columns, measuring them as they render. */
+function BalancedColumns({ items }: { items: { key: string; node: ReactNode; order: number }[] }) {
+  const refs = useRef(new Map<string, HTMLDivElement>());
+  const [heights, setHeights] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      const next: Record<string, number> = {};
+      refs.current.forEach((el, k) => (next[k] = el.offsetHeight));
+      setHeights((h) => (Object.keys(next).every((k) => Math.abs((h[k] ?? -1) - next[k]!) < 2) ? h : next));
+    });
+    refs.current.forEach((el) => ro.observe(el));
+    return () => ro.disconnect();
+  }, [items.length]);
+  const cols: (typeof items)[] = [[], []];
+  const sum = [0, 0];
+  items.forEach((it, i) => {
+    const h = heights[it.key];
+    const c = h === undefined ? i % 2 : sum[0]! <= sum[1]! ? 0 : 1;
+    cols[c]!.push(it);
+    sum[c]! += h ?? 0;
+  });
+  return (
+    <div className="masonry-cols">
+      {cols.map((col, c) => (
+        <div key={c} className="masonry-col">
+          {col.map((it) => (
+            <div
+              key={it.key}
+              style={{ order: it.order }}
+              ref={(el) => {
+                if (el) refs.current.set(it.key, el);
+                else refs.current.delete(it.key);
+              }}
+            >
+              {it.node}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Choose a home page among the dashboards you can see, or make your own from the default. */
 function HomeChooser({ current }: { current: Dashboard }) {
   const qc = useQueryClient();
@@ -359,23 +502,102 @@ function HomeChooser({ current }: { current: Dashboard }) {
   );
 }
 
-/** Your home page: your chosen dashboard, or the default one. */
+const greeting = (hour: number, name: string) =>
+  hour < 5 || hour >= 18
+    ? t("Good evening, {name}", { name })
+    : hour < 12
+      ? t("Good morning, {name}", { name })
+      : t("Good afternoon, {name}", { name });
+
+/** Your home page: a greeting with what waits for you, then your chosen dashboard, or the default one. */
 export function HomeDashboard() {
   const { data: me } = useMe();
   const { data: home, error } = useQuery({ queryKey: ["home"], queryFn: () => unwrap(api.GET("/api/v1/home")) });
+  const first = me?.user.displayName.split(" ")[0] ?? "";
+  const now = new Date();
   return (
-    <>
-      <PageHeader
-        icon={<Home size={18} className="icon-muted" aria-hidden />}
-        title={<span className="nm">{me ? t("Welcome, {name}", { name: me.user.displayName }) : t("Home")}</span>}
-        meta={home && home.id !== DEFAULT_HOME_ID ? <span className="sub">{home.name}</span> : undefined}
-        toolbar={home ? <HomeChooser current={home} /> : undefined}
-      />
-      <div className="content">
+    <div className="home">
+      <section className="home-hero">
+        <div className="home-hero-text">
+          <p className="home-date">{now.toLocaleDateString(locale(), { weekday: "long", day: "numeric", month: "long" })}</p>
+          <h1>{me ? greeting(now.getHours(), first) : t("Home")}</h1>
+          <HomeSummary />
+        </div>
+        <div className="home-hero-tools">
+          {home && home.id !== DEFAULT_HOME_ID && <span className="home-board">{home.name}</span>}
+          {home && <HomeChooser current={home} />}
+        </div>
+      </section>
+      <HomeStats />
+      <div className="home-board-body">
         <ErrorBanner error={error} />
         {home ? <DashboardView key={home.id + home.updatedAt} dashboard={home} editable={home.owner === me?.user.id} /> : <Loading />}
       </div>
-    </>
+    </div>
+  );
+}
+
+const useCheckedOut = () =>
+  useQuery({
+    queryKey: ["home", "checkedOut", 100],
+    queryFn: () => unwrap(api.GET("/api/v1/home/checked-out", { params: { query: { limit: 100 } } })),
+  });
+
+/** One sentence: what needs you today. */
+function HomeSummary() {
+  const { data: tasks } = useTaskCounts();
+  const { data: unread } = useUnreadCount();
+  const { data: out } = useCheckedOut();
+  if (!tasks || !unread || !out) return <p className="home-summary">&nbsp;</p>;
+  const parts: string[] = [];
+  if (tasks.open) parts.push(tn("{n} open task", "{n} open tasks", tasks.open));
+  if (tasks.overdue) parts.push(tn("{n} of them overdue", "{n} of them overdue", tasks.overdue));
+  if (unread.unread) parts.push(tn("{n} unread notification", "{n} unread notifications", unread.unread));
+  if (out.length) parts.push(tn("{n} object checked out", "{n} objects checked out", out.length));
+  return (
+    <p className="home-summary">
+      {parts.length ? t("You have {list}.", { list: parts.join(", ") }) : t("You're all caught up: nothing waits for you.")}
+    </p>
+  );
+}
+
+/** The numbers that matter, each a way in. */
+function HomeStats() {
+  const { data: tasks } = useTaskCounts();
+  const { data: unread } = useUnreadCount();
+  const { data: changes } = useChangeMetrics();
+  const card = (to: string, icon: ReactNode, tone: string, value: number | undefined, label: string, hint?: string) => (
+    <Link to={to} className={`home-stat tone-${tone}`}>
+      <span className="home-stat-icon">{icon}</span>
+      <span className="home-stat-text">
+        <span className="home-stat-value">{value ?? "–"}</span>
+        <span className="home-stat-label">{label}</span>
+        {hint && <span className="home-stat-hint">{hint}</span>}
+      </span>
+      <ArrowRight size={15} className="home-stat-go" aria-hidden />
+    </Link>
+  );
+  return (
+    <nav className="home-stats" aria-label={t("At a glance")}>
+      {card("/inbox", <InboxIcon size={18} aria-hidden />, "blue", tasks?.open, t("Open tasks"), t("Assigned to you or your roles"))}
+      {card(
+        "/inbox?show=overdue",
+        <AlarmClock size={18} aria-hidden />,
+        tasks?.overdue ? "red" : "green",
+        tasks?.overdue,
+        t("Overdue tasks"),
+        tasks?.overdue ? t("Past their due date") : t("All on time"),
+      )}
+      {card(
+        "/changes",
+        <ClipboardList size={18} aria-hidden />,
+        "violet",
+        changes?.open,
+        t("Open changes"),
+        t("Problems, requests and notices"),
+      )}
+      {card("/notifications", <Bell size={18} aria-hidden />, "amber", unread?.unread, t("Unread notifications"), t("On what you follow"))}
+    </nav>
   );
 }
 

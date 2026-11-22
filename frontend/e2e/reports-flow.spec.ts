@@ -20,5 +20,5 @@ test("a report made in the editor shows its count, chart and rows", async ({ bro
   await expect(admin.getByRole("table", { name: "Report results" })).toBeVisible();
 
   await admin.goto("/");
-  await expect(admin.getByRole("heading", { name: /Welcome/ })).toBeVisible();
+  await expect(admin.getByRole("heading", { name: /^Good (morning|afternoon|evening)/ })).toBeVisible();
 });

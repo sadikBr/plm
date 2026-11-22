@@ -10,7 +10,6 @@ import { PageHeader } from "../components/Layout";
 import { t, tn } from "../i18n/i18n";
 import { ProcessDetail } from "./Processes";
 
-
 /** Promotion requests (roadmap 5.7): objects asked to move to a state, reviewed, then promoted. */
 
 const STATUS_CLASS: Record<string, string> = {
@@ -184,8 +183,7 @@ function PromotionDetail({ id }: { id: string }) {
     >
       <div className="task-panel">
         <div className="muted">
-          {t("To")}{" "}
-          <StateBadge state={r.targetState} /> · {t("asked by")} <PrincipalName id={r.createdBy} /> · {formatDate(r.createdAt)}
+          {t("To")} <StateBadge state={r.targetState} /> · {t("asked by")} <PrincipalName id={r.createdBy} /> · {formatDate(r.createdAt)}
           {r.decidedAt && <> · {t("decided {date}", { date: formatDate(r.decidedAt) })}</>}
         </div>
         {r.comment && <div className="instructions">{r.comment}</div>}
