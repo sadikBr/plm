@@ -173,10 +173,14 @@ find_java() {
     v="$(java_major "$c")"
     if [[ "${v:-0}" =~ ^[0-9]+$ && "$v" -ge 21 ]]; then
       JAVA="$c"
-      if [[ "$c" != "$(command -v java 2>/dev/null || true)" ]]; then
+      # The build runs on this JDK, whatever JAVA_HOME said before (on Fedora it may name a
+      # runtime without a compiler). macOS's /usr/bin/java is a launcher: ask it for the home.
+      if [[ "$real" == /usr/bin/java && -x /usr/libexec/java_home ]]; then
+        JAVA_HOME="$(/usr/libexec/java_home 2>/dev/null || true)"
+      elif [[ "$real" != /usr/bin/java ]]; then
         JAVA_HOME="$(cd "$(dirname "$real")/.." && pwd)"
-        export JAVA_HOME
       fi
+      [[ -n "${JAVA_HOME:-}" ]] && export JAVA_HOME
       return 0
     fi
   done
@@ -481,7 +485,7 @@ install_dependencies() {
 build_backend() {
   bold "Building the backend"
   echo "  (the first build downloads dependencies and takes a few minutes)"
-  (cd "$ROOT" && ./gradlew -q :backend:app:bootJar) >"$STATE/build.log" 2>&1 || {
+  (cd "$ROOT" && ./gradlew -q ${JAVA_HOME:+-Dorg.gradle.java.home="$JAVA_HOME"} :backend:app:bootJar) >"$STATE/build.log" 2>&1 || {
     tail -n 30 "$STATE/build.log" >&2
     fail "The backend didn't build: see .plm/build.log"
   }
