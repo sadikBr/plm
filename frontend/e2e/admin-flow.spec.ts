@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { ADMIN, asUser, openSite } from "./support";
+import { ADMIN, asUser, openSite, openTab } from "./support";
 
 /**
  * The Phase 1 exit criterion: an admin builds a part subtype with a required enumerated attribute
@@ -81,7 +81,7 @@ test("the site administrator models a Bolt type in the admin UI, then creates on
   await admin.getByRole("button", { name: "New organization" }).click();
   await admin.getByLabel("Name").fill(`Fasteners Inc ${suffix}`);
   await admin.getByRole("button", { name: "Create" }).click();
-  await admin.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Products" }).click();
+  await openTab(admin, "Products");
   await admin.getByRole("button", { name: "New product" }).click();
   await admin.getByLabel("Name").fill("Gearbox");
   await admin.getByRole("button", { name: "Create" }).click();

@@ -19,7 +19,7 @@ test("a part on the clipboard is moved into a new folder", async ({ browser, req
 
   const admin = await asUser(browser, ADMIN);
   await admin.goto(`/objects/${part.id}`);
-  await admin.getByRole("button", { name: "More" }).click();
+  await admin.getByRole("button", { name: "More", exact: true }).click();
   await admin.locator('[data-action="object.add-to-clipboard"]').click();
   await expect(admin.getByRole("button", { name: "Clipboard (1)" })).toBeVisible();
 

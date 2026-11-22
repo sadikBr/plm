@@ -299,6 +299,61 @@ export function Props({ items, columns = 1 }: { items: [string, ReactNode][]; co
   );
 }
 
+/**
+ * What a list holds before there's anything in it: what it's for, and how to start. Better than a
+ * blank box.
+ */
+export function EmptyState({ icon, title, hint, children }: { icon?: ReactNode; title: string; hint?: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="empty-state">
+      {icon && <span className="empty-state-icon">{icon}</span>}
+      <strong>{title}</strong>
+      {hint && <p>{hint}</p>}
+      {children}
+    </div>
+  );
+}
+
+/** A name and a button that makes something with it: they line up and keep their size anywhere. */
+export function CreateBar({
+  label,
+  placeholder,
+  value,
+  onChange,
+  onCreate,
+  busy = false,
+  button,
+  icon,
+  children,
+}: {
+  label: string;
+  placeholder?: string;
+  value: string;
+  onChange: (v: string) => void;
+  onCreate: () => void;
+  busy?: boolean;
+  button: string;
+  icon?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <form
+      className="create-bar"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (value.trim()) onCreate();
+      }}
+    >
+      <input aria-label={label} placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
+      {children}
+      <button className="btn primary" type="submit" disabled={!value.trim() || busy}>
+        {icon}
+        {button}
+      </button>
+    </form>
+  );
+}
+
 /** A button that opens a small menu of actions. Closes on outside click or Escape. */
 export function MenuButton({
   label,

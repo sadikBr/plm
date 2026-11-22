@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { ADMIN, API, KEYCLOAK, asUser, passwordOf } from "./support";
+import { ADMIN, API, KEYCLOAK, asUser, openTab, passwordOf } from "./support";
 
 /** Roadmap 3.10: the administrator shares a part with Carol (off the team), who joins its discussion. */
 test("a part shared with someone off the team can be read and discussed by them", async ({ browser, request }) => {
@@ -28,11 +28,7 @@ test("a part shared with someone off the team can be read and discussed by them"
   await dialog.getByRole("button", { name: "Share" }).click();
   await expect(dialog.getByRole("table", { name: "Shared with" })).toContainText("Carol");
   await dialog.getByRole("button", { name: "Done" }).click();
-  await admin
-    .getByRole("tab", { name: "Discussion" })
-    .or(admin.getByRole("link", { name: "Discussion" }))
-    .first()
-    .click();
+  await openTab(admin, "Discussion");
   await admin.getByRole("textbox", { name: "Start a topic" }).fill("@carol does this fit your tooling?");
   await admin.getByRole("button", { name: "Post" }).click();
   await expect(admin.locator(".mention", { hasText: "@carol" })).toBeVisible();

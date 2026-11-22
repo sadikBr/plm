@@ -28,7 +28,7 @@ test("save as copies a document, and compare shows the changed value", async ({ 
 
   const admin = await asUser(browser, ADMIN);
   await admin.goto(`/objects/${doc.id}`);
-  await admin.getByRole("button", { name: "More" }).click();
+  await admin.getByRole("button", { name: "More", exact: true }).click();
   await admin.locator('[data-action="object.compare"]').click();
   await admin.getByRole("dialog").getByRole("button", { name: "Compare", exact: true }).click();
   const diff = admin.getByRole("table", { name: "Attribute differences" });
@@ -36,7 +36,7 @@ test("save as copies a document, and compare shows the changed value", async ({ 
   await expect(diff.getByText("Second issue")).toBeVisible();
 
   await admin.goto(`/objects/${doc.id}`);
-  await admin.getByRole("button", { name: "More" }).click();
+  await admin.getByRole("button", { name: "More", exact: true }).click();
   await admin.locator('[data-action="object.save-as"]').click();
   await admin.getByRole("dialog").getByLabel("Name").fill("Assembly procedure, line 2");
   await admin.getByRole("dialog").getByRole("button", { name: "Save as" }).click();

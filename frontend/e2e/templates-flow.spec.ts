@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { ADMIN, asUser, openSite } from "./support";
+import { ADMIN, asUser, openSite, openTab } from "./support";
 
 /** Roadmap 1.12: shared teams and context templates, set up once and reused. */
 test("the site administrator reuses a shared team and a product template; bob gets access through the team", async ({ browser }) => {
@@ -24,12 +24,12 @@ test("the site administrator reuses a shared team and a product template; bob ge
   await admin.getByRole("button", { name: "New organization" }).click();
   await admin.getByLabel("Name").fill(`Templates Inc ${suffix}`);
   await admin.getByRole("button", { name: "Create" }).click();
-  await admin.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Products" }).click();
+  await openTab(admin, "Products");
   await admin.getByRole("button", { name: "New product" }).click();
   await admin.getByLabel("Name").fill("Prototype");
   await admin.getByRole("button", { name: "Create" }).click();
   await expect(admin.getByRole("heading", { name: "Prototype" })).toBeVisible();
-  await admin.getByRole("link", { name: "Team", exact: true }).click();
+  await openTab(admin, "Team");
   await admin.getByLabel("Attach a shared team").selectOption({ label: `Reviewers ${suffix}` });
   await expect(admin.getByRole("table", { name: "Shared teams" }).getByText(`Reviewers ${suffix}`)).toBeVisible();
 
@@ -45,7 +45,7 @@ test("the site administrator reuses a shared team and a product template; bob ge
     .getByRole("link", { name: `Templates Inc ${suffix}`, exact: true })
     .first()
     .click();
-  await admin.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Products" }).click();
+  await openTab(admin, "Products");
   await admin.getByRole("button", { name: "New product" }).click();
   await admin.getByLabel("Name").fill("Series");
   await admin
@@ -56,7 +56,7 @@ test("the site administrator reuses a shared team and a product template; bob ge
   await admin.getByRole("button", { name: "Create" }).click();
   await expect(admin.getByRole("heading", { name: "Series" })).toBeVisible();
   const seriesUrl = admin.url();
-  await admin.getByRole("link", { name: "Team", exact: true }).click();
+  await openTab(admin, "Team");
   await expect(admin.getByRole("table", { name: "Shared teams" }).getByText(`Reviewers ${suffix}`)).toBeVisible();
 
   // ---- bob sees it through the shared team, read-only ----

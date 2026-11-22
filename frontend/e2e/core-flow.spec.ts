@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { ADMIN, API, KEYCLOAK, asUser, openSite, passwordOf } from "./support";
+import { ADMIN, API, KEYCLOAK, asUser, openSite, openTab, passwordOf } from "./support";
 
 /** Users appear in the directory after their first sign-in; do that for bob and carol via the API. */
 test.beforeAll(async ({ request }) => {
@@ -26,14 +26,14 @@ test("the site administrator sets up a product, bob works on a part, carol sees 
   await admin.getByRole("button", { name: "Create" }).click();
   await expect(admin.getByRole("heading", { name: `Acme ${suffix}` })).toBeVisible();
 
-  await admin.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Products" }).click();
+  await openTab(admin, "Products");
   await admin.getByRole("button", { name: "New product" }).click();
   await admin.getByLabel("Name").fill("Drone X1");
   await admin.getByRole("button", { name: "Create" }).click();
   await expect(admin.getByRole("heading", { name: "Drone X1" })).toBeVisible();
   const productUrl = admin.url();
 
-  await admin.getByRole("link", { name: "Team", exact: true }).click();
+  await openTab(admin, "Team");
   const addMember = admin.getByRole("form", { name: "Add a member" });
   await addMember.getByLabel("Username").fill("bob");
   await addMember.getByLabel("Role").selectOption("MEMBER");
@@ -47,7 +47,7 @@ test("the site administrator sets up a product, bob works on a part, carol sees 
   // Not a site admin: the site isn't in his navigator, and opening it sends him to his own work.
   await expect(bob.getByRole("list", { name: "Browse by kind" }).getByRole("link", { name: "Site", exact: true })).toHaveCount(0);
   await bob.getByRole("button", { name: "New part" }).click();
-  await bob.getByLabel("Type").selectOption({ label: "Part" });
+  await bob.getByLabel("Type", { exact: true }).selectOption({ label: "Part" });
   await bob.getByLabel("Name", { exact: true }).fill("Motor mount");
   const create = bob.getByRole("dialog");
   await create.getByLabel("Material").fill("AL6061");
@@ -105,7 +105,7 @@ test("the site administrator sets up a product, bob works on a part, carol sees 
   await bob.getByRole("button", { name: "Revise" }).click();
   await expect(bob.getByTestId("version")).toHaveText("B.1");
   await expect(bob.locator(".title-row .state")).toHaveText("In Work");
-  await bob.getByRole("link", { name: "History" }).click();
+  await openTab(bob, "History");
   const history = bob.getByRole("table", { name: "Iteration history" });
   await expect(history.getByRole("row")).toHaveCount(4); // header + B.1, A.2, A.1
   await expect(history).toContainText("Switch to titanium");

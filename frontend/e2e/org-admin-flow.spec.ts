@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { ADMIN, asUser, openSite } from "./support";
+import { ADMIN, asUser, openSite, openTab } from "./support";
 
 /** Roadmap 1.14: an organization manager runs their own shared teams and templates, without being a site admin. */
 test("bob, manager of an organization, sets up its own shared team and product template", async ({ browser }) => {
@@ -13,7 +13,7 @@ test("bob, manager of an organization, sets up its own shared team and product t
   await admin.getByRole("button", { name: "Create" }).click();
   await expect(admin.getByRole("heading", { name: `Delegated ${suffix}` })).toBeVisible();
   const orgUrl = admin.url();
-  await admin.getByRole("link", { name: "Team", exact: true }).click();
+  await openTab(admin, "Team");
   const addMember = admin.getByRole("form", { name: "Add a member" });
   await addMember.getByLabel("Username").fill("bob");
   await addMember.getByLabel("Role").selectOption("MANAGER");
@@ -35,12 +35,12 @@ test("bob, manager of an organization, sets up its own shared team and product t
   await expect(bob.getByRole("table", { name: "Team members" }).getByText("Carol Contractor")).toBeVisible();
 
   // ---- a product with the team, saved as the organization's template ----
-  await bob.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Products" }).click();
+  await openTab(bob, "Products");
   await bob.getByRole("button", { name: "New product" }).click();
   await bob.getByRole("dialog").getByLabel("Name").fill("Pilot");
   await bob.getByRole("dialog").getByRole("button", { name: "Create" }).click();
   await expect(bob.getByRole("heading", { name: "Pilot" })).toBeVisible();
-  await bob.getByRole("link", { name: "Team", exact: true }).click();
+  await openTab(bob, "Team");
   await bob.getByLabel("Attach a shared team").selectOption({ label: `Delegated QA ${suffix}` });
   await expect(bob.getByRole("table", { name: "Shared teams" }).getByText(`Delegated QA ${suffix}`)).toBeVisible();
   await bob.getByRole("button", { name: "Save as template" }).click();
@@ -64,7 +64,7 @@ test("bob, manager of an organization, sets up its own shared team and product t
     .selectOption({ label: `Delegated product ${suffix}` });
   await bob.getByRole("dialog").getByRole("button", { name: "Create" }).click();
   await expect(bob.getByRole("heading", { name: "Series" })).toBeVisible();
-  await bob.getByRole("link", { name: "Team", exact: true }).click();
+  await openTab(bob, "Team");
   await expect(bob.getByRole("table", { name: "Shared teams" }).getByText(`Delegated QA ${suffix}`)).toBeVisible();
   await bob.goto(orgUrl + "?tab=templates");
   await expect(bob.getByRole("list", { name: "Context templates" }).getByText(`Delegated product ${suffix}`)).toBeVisible();

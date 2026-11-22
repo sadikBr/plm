@@ -74,7 +74,7 @@ test("bob sends a released part to the ERP with a form, and downloads its cost r
   ).toBeVisible();
 
   // ---- a file back from the ERP ----
-  await bob.getByRole("button", { name: "More" }).click();
+  await bob.getByRole("button", { name: "More", exact: true }).click();
   const download = bob.waitForEvent("download");
   await bob.locator(`[data-action="${id}.erp-report"]`).click();
   expect((await download).suggestedFilename()).toBe(`cost-${part.number}.csv`);

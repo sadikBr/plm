@@ -29,7 +29,9 @@ test("a reviewers profile hides the search bar, a navigator section and authorin
   const bob = await asUser(browser, "bob");
   await bob.goto(`/objects/${part.id}`);
   await expect(bob.locator('[data-action="object.check-out"]')).toBeVisible();
-  await expect(bob.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "History" })).toBeVisible();
+  await expect(bob.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "History", includeHidden: true })).toHaveCount(
+    1,
+  );
 
   const admin = await asUser(browser, ADMIN);
   await admin.goto("/admin?tab=profiles");
@@ -48,8 +50,10 @@ test("a reviewers profile hides the search bar, a navigator section and authorin
   created = { id: profiles.find((p) => p.name === `Reviewers ${suffix}`)!.id, headers };
 
   await bob.reload();
-  await expect(bob.getByRole("button", { name: "More" })).toBeVisible();
+  await expect(bob.getByRole("button", { name: "More", exact: true })).toBeVisible();
   await expect(bob.locator('[data-action="object.check-out"]')).toHaveCount(0);
-  await expect(bob.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "History" })).toHaveCount(0);
+  await expect(bob.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "History", includeHidden: true })).toHaveCount(
+    0,
+  );
   await expect(bob.getByPlaceholder("Search parts and documents by number or name")).toHaveCount(0);
 });

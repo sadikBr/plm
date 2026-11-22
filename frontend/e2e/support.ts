@@ -20,7 +20,7 @@ export async function signIn(page: Page, user: string) {
   await page.locator("#username").fill(user);
   await page.locator("#password").fill(passwordOf(user));
   await page.locator("#kc-login").click();
-  const signedIn = page.getByRole("button", { name: "Sign out" });
+  const signedIn = page.getByTestId("current-user");
   // The built-in administrator's first sign-in asks for a new password.
   const newPassword = page.locator("#password-new");
   await expect(signedIn.or(newPassword)).toBeVisible();
@@ -42,4 +42,17 @@ export async function asUser(browser: Browser, user: string) {
 export async function openSite(page: Page) {
   await page.getByRole("navigation", { name: "Navigator" }).getByRole("link", { name: "Site", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Site" })).toBeVisible();
+}
+
+/**
+ * Opens a page's tab by name: in the tab strip, or under "More" when the strip is too narrow for it.
+ */
+export async function openTab(page: Page, name: string) {
+  const sections = page.getByRole("navigation", { name: "Sections" });
+  const tab = sections.getByRole("link", { name, exact: true });
+  const more = sections.getByRole("button", { name: /^More/ });
+  // Wait until the row is laid out: the tab is either in it or behind "More".
+  await expect(tab.or(more).first()).toBeVisible();
+  if (!(await tab.isVisible())) await more.click();
+  await tab.click();
 }

@@ -3,7 +3,7 @@ import { Plus, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { api, unwrap, type Schemas } from "../api/client";
 import { usePermissions, type VersionedObject } from "../api/queries";
-import { ErrorBanner, Loading, Panel } from "../components/common";
+import { CreateBar, ErrorBanner, Loading, Panel } from "../components/common";
 import { t, tn } from "../i18n/i18n";
 import { RulesSection } from "./OptionRules";
 import { ConfiguredStructurePanel } from "./Configured";
@@ -203,23 +203,16 @@ export function OptionSetsTab({ contextId, canEdit }: { contextId: string; canEd
       ))}
       {!data.length && <div className="empty">{t("No option sets here yet.")}</div>}
       {canEdit && (
-        <form
-          className="row"
-          onSubmit={(e) => {
-            e.preventDefault();
-            create.mutate();
-          }}
-        >
-          <input
-            aria-label={t("New option set")}
-            placeholder={t("New option set, e.g. Rover options")}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <button className="btn primary" disabled={!name.trim() || create.isPending}>
-            <Plus size={14} aria-hidden /> {t("Create")}
-          </button>
-        </form>
+        <CreateBar
+          label={t("New option set")}
+          placeholder={t("New option set, e.g. Rover options")}
+          value={name}
+          onChange={setName}
+          onCreate={() => create.mutate()}
+          busy={create.isPending}
+          button={t("Create")}
+          icon={<Plus size={14} aria-hidden />}
+        />
       )}
     </>
   );

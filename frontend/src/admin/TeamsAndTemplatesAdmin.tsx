@@ -1,4 +1,4 @@
-import { Plus, Trash2, UserPlus } from "lucide-react";
+import { Plus, Trash2, UserPlus, Users } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "../api/client";
@@ -12,7 +12,7 @@ import {
   type ContextTemplate,
 } from "../api/queries";
 import { pickLabel } from "../components/AttributeForm";
-import { ErrorBanner, Loading, Panel, PrincipalName, formatDate, kindLabel } from "../components/common";
+import { CreateBar, EmptyState, ErrorBanner, Loading, Panel, PrincipalName, formatDate, kindLabel } from "../components/common";
 import { t } from "../i18n/i18n";
 
 function useInvalidate() {
@@ -213,28 +213,26 @@ export function SharedTeamsAdmin({ organizationId }: { organizationId?: string }
         title={t("Shared teams")}
         flush
         footer={
-          <form
-            className="row"
-            style={{ width: "100%" }}
-            onSubmit={(e) => {
-              e.preventDefault();
-              create.mutate();
-            }}
-          >
-            <input
-              aria-label={t("New team name")}
-              placeholder={t("New team, e.g. Quality")}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <button className="btn" type="submit" disabled={!name.trim() || create.isPending}>
-              <Plus size={14} aria-hidden />
-              {t("Create")}
-            </button>
-          </form>
+          <CreateBar
+            label={t("New team name")}
+            placeholder={t("New team, e.g. Quality")}
+            value={name}
+            onChange={setName}
+            onCreate={() => create.mutate()}
+            busy={create.isPending}
+            button={t("Create")}
+            icon={<Plus size={14} aria-hidden />}
+          />
         }
       >
         <ErrorBanner error={create.error} />
+        {!teams?.length && (
+          <EmptyState
+            icon={<Users size={20} aria-hidden />}
+            title={t("No shared teams yet")}
+            hint={t("A shared team is a group of people you attach to many products at once: change it here, and every product follows.")}
+          />
+        )}
         <ul className="type-tree" aria-label={t("Shared teams")}>
           {teams?.map((tm) => (
             <li key={tm.id}>
@@ -249,7 +247,17 @@ export function SharedTeamsAdmin({ organizationId }: { organizationId?: string }
           ))}
         </ul>
       </Panel>
-      {current && <TeamDetails key={current.id} teamId={current.id} />}
+      {current ? (
+        <TeamDetails key={current.id} teamId={current.id} />
+      ) : (
+        <div className="panel">
+          <EmptyState
+            icon={<UserPlus size={20} aria-hidden />}
+            title={t("Create a team to add its members")}
+            hint={t("Name it on the left, for example Quality or Design review; then add people and their roles here.")}
+          />
+        </div>
+      )}
     </div>
   );
 }
