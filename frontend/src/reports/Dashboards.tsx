@@ -8,6 +8,7 @@ import { Dialog, ErrorBanner, Loading, MenuButton, Panel, StateBadge, TypeIcon, 
 import { PageHeader } from "../components/Layout";
 import { BarChart } from "./BarChart";
 import { useBars, useReportRun } from "./ReportsPage";
+import { QueryTable } from "./ReportBuilder";
 import { favoriteLink, useFavorites, useNotifications, useRecentVisits } from "../personal/Personal";
 import { t } from "../i18n/i18n";
 import { MyChanges, OpenByState, useChangeMetrics } from "../changes/ChangeDashboard";
@@ -64,6 +65,7 @@ function WidgetBody({ widget }: { widget: Widget }) {
         </div>
       );
     if (widget.kind === "REPORT_CHART") return <BarChart bars={bars} />;
+    if (report.data.table) return <QueryTable result={report.data.table} label={t("Report results")} limit={widget.limit} />;
     return <MiniList items={report.data.rows.slice(0, widget.limit)} />;
   }
   const items = widget.kind === "CHECKED_OUT" ? checkedOut : recent;

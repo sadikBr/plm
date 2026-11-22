@@ -23,6 +23,17 @@ import { describeCron } from "../admin/JobsAdmin";
 import { BarChart, type Bar } from "./BarChart";
 import { PartPicker } from "../structure/Structure";
 import { language, t, tn } from "../i18n/i18n";
+import {
+  AnswersForm,
+  QueryTable,
+  ReportBuilder,
+  describeDefinition,
+  exportQuery,
+  fromSimple,
+  useCellFormatter,
+  useRelations,
+  type Definition,
+} from "./ReportBuilder";
 
 type Report = Schemas["Report"];
 type Settings = Schemas["ReportSettings"];
@@ -78,10 +89,10 @@ export function asObject(r: Row): VersionedObject {
   } as VersionedObject;
 }
 
-export const useReportRun = (id?: string) =>
+export const useReportRun = (id?: string, answers?: Record<string, unknown>) =>
   useQuery({
-    queryKey: ["reportRun", id],
-    queryFn: () => unwrap(api.POST("/api/v1/reports/{id}/run", { params: { path: { id: id! } } })),
+    queryKey: ["reportRun", id, answers ?? null],
+    queryFn: () => unwrap(api.POST("/api/v1/reports/{id}/run", { params: { path: { id: id! } }, body: answers ? { answers } : undefined })),
     enabled: !!id,
     staleTime: 30_000,
   });
@@ -110,19 +121,22 @@ export function useBars(result?: ReportResult): Bar[] {
     }
     return stateLabel(k);
   };
+  const column = groupBy.startsWith("col:") ? result?.table?.columns[Number(groupBy.slice(4))] : undefined;
   return (result?.groups ?? []).map((g, i) => ({
     key: g.key,
     count: g.count,
     label:
-      groupBy === "state"
+      column?.type === "STATE"
         ? stateName(g.key)
-        : groupBy === "type"
-          ? typeLabel(types?.find((t) => t.id === g.key))
-          : groupBy === "context"
-            ? (contexts[i]?.data?.name ?? "…")
-            : groupBy === "owner"
-              ? (people[i]?.data?.displayName ?? "…")
-              : g.key || t("(empty)"),
+        : groupBy === "state"
+          ? stateName(g.key)
+          : groupBy === "type"
+            ? typeLabel(types?.find((t) => t.id === g.key))
+            : groupBy === "context"
+              ? (contexts[i]?.data?.name ?? "…")
+              : groupBy === "owner"
+                ? (people[i]?.data?.displayName ?? "…")
+                : g.key || t("(empty)"),
   }));
 }
 
@@ -132,7 +146,8 @@ export function ReportsPage() {
   const navigate = useNavigate();
   const { data: me } = useMe();
   const { data: reports, isLoading } = useQuery({ queryKey: ["reports"], queryFn: () => unwrap(api.GET("/api/v1/reports")) });
-  const [editing, setEditing] = useState<Report | "new" | null>(null);
+  const [editing, setEditing] = useState<Report | "new" | "simple" | null>(null);
+  const [converting, setConverting] = useState<{ report: Report | null; start: Definition } | null>(null);
   const current = reports?.find((r) => r.id === id) ?? (id ? undefined : reports?.[0]);
 
   return (
@@ -142,9 +157,18 @@ export function ReportsPage() {
         title={<span className="nm">{t("Reports")}</span>}
         meta={<span className="sub">{t("Searches with columns and counts; on demand, or mailed on a schedule")}</span>}
         toolbar={
-          <button className="btn ghost" onClick={() => setEditing("new")}>
-            <Plus size={15} aria-hidden /> {t("New report")}
-          </button>
+          <>
+            <button
+              className="btn ghost"
+              onClick={() => setEditing("simple")}
+              title={t("A search with columns, like before the report builder")}
+            >
+              {t("Simple report")}
+            </button>
+            <button className="btn ghost" onClick={() => setEditing("new")}>
+              <Plus size={15} aria-hidden /> {t("New report")}
+            </button>
+          </>
         }
       />
       <div className="content reports-layout">
@@ -178,21 +202,184 @@ export function ReportsPage() {
           !isLoading && <p className="empty">{t("Choose a report, or make one.")}</p>
         )}
       </div>
-      {editing && (
-        <ReportEditor
+      {editing && (editing === "new" || (editing !== "simple" && editing.settings.definition)) && (
+        <ReportBuilder
           report={editing === "new" ? null : editing}
           onClose={() => setEditing(null)}
           onSaved={(r) => {
             setEditing(null);
             navigate(`/reports/${r.id}`);
           }}
+          scheduleFields={scheduleFields}
+          resolveRecipients={resolveRecipients}
+        />
+      )}
+      {editing && (editing === "simple" || (editing !== "new" && !editing.settings.definition)) && (
+        <ReportEditor
+          report={editing === "simple" ? null : editing}
+          onClose={() => setEditing(null)}
+          onSaved={(r) => {
+            setEditing(null);
+            navigate(`/reports/${r.id}`);
+          }}
+          onConvert={(report, start) => {
+            setEditing(null);
+            setConverting({ report, start });
+          }}
+        />
+      )}
+      {converting && (
+        <ReportBuilder
+          report={converting.report}
+          start={converting.start}
+          onClose={() => setConverting(null)}
+          onSaved={(r) => {
+            setConverting(null);
+            navigate(`/reports/${r.id}`);
+          }}
+          scheduleFields={scheduleFields}
+          resolveRecipients={resolveRecipients}
         />
       )}
     </>
   );
 }
 
-function ReportView({ report, mine, onEdit }: { report: Report; mine: boolean; onEdit: () => void }) {
+function ReportView(props: { report: Report; mine: boolean; onEdit: () => void }) {
+  return props.report.settings.definition ? <QueryReportView {...props} /> : <SimpleReportView {...props} />;
+}
+
+/** A report builder report: its questions, facts, chart and table. */
+function QueryReportView({ report, mine, onEdit }: { report: Report; mine: boolean; onEdit: () => void }) {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const s = report.settings;
+  const definition = s.definition!;
+  const [answers, setAnswers] = useState<Record<string, unknown> | undefined>(undefined);
+  const { data: result, error, isFetching, refetch } = useReportRun(report.id, answers);
+  const { data: types } = useTypes();
+  const { data: relations } = useRelations();
+  const show = useCellFormatter();
+  const bars = useBars(result);
+  const { data: runs } = useQuery({
+    queryKey: ["reportRuns", report.id],
+    queryFn: () => unwrap(api.GET("/api/v1/reports/{id}/runs", { params: { path: { id: report.id } } })),
+    enabled: !!s.cron,
+  });
+  const remove = useMutation({
+    mutationFn: () => unwrap(api.DELETE("/api/v1/reports/{id}", { params: { path: { id: report.id } } })),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["reports"] });
+      navigate("/reports");
+    },
+  });
+  const chartColumn = s.groupBy?.startsWith("col:") ? result?.table?.columns[Number(s.groupBy.slice(4))] : undefined;
+  return (
+    <div style={{ display: "grid", gap: 12, alignContent: "start", minWidth: 0 }}>
+      <Panel
+        title={s.name}
+        note={s.description ?? undefined}
+        actions={
+          <>
+            <FavoriteButton kind="REPORT" targetId={report.id} label={s.name} />
+            <button className="btn small" onClick={() => void refetch()} disabled={isFetching}>
+              <Play size={12} aria-hidden /> {t("Run now")}
+            </button>
+            <button
+              className="btn small"
+              disabled={!result?.table?.rows.length}
+              onClick={() => result?.table && void exportQuery(s.name, result.table, show)}
+            >
+              {t("Export to Excel")}
+            </button>
+            {mine && (
+              <>
+                <button className="btn small" onClick={onEdit}>
+                  <Pencil size={12} aria-hidden /> {t("Edit")}
+                </button>
+                <button
+                  className="icon-btn"
+                  aria-label={t("Delete the report")}
+                  onClick={() => window.confirm(t("Delete the report “{name}”?", { name: s.name })) && remove.mutate()}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </>
+            )}
+          </>
+        }
+      >
+        {definition.parameters.length > 0 && (
+          <AnswersForm definition={definition} answers={{ ...s.answers, ...answers }} onRun={setAnswers} />
+        )}
+        <div className="report-facts">
+          <div className="stat-tile">
+            <span className="muted small">{t("Rows")}</span>
+            <span className="value">
+              {result ? result.total : "…"}
+              {result?.capped ? "+" : ""}
+            </span>
+            <span className="muted small">{result ? t("run {date}", { date: formatDate(result.ranAt) }) : ""}</span>
+          </div>
+          <div style={{ display: "grid", gap: 4, alignContent: "start" }}>
+            <span className="muted small">{t("Finds")}</span>
+            <span>{describeDefinition(definition, types, relations)}</span>
+            {s.cron ? (
+              <span className="row" style={{ gap: 6 }}>
+                <Mail size={13} className="icon-muted" aria-hidden />
+                {t("{schedule} ({zone}) to {recipients}, {alert}", {
+                  schedule: describeCron(s.cron) || s.cron,
+                  zone: s.timeZone,
+                  recipients: tn("{n} recipient", "{n} recipients", s.recipients.length),
+                  alert: `${inSentence(ALERTS()[s.alert] ?? "")}${s.alert === "MORE_THAN" ? ` ${s.threshold}` : ""}`,
+                })}
+              </span>
+            ) : (
+              <span className="muted small">{t("Run on demand")}</span>
+            )}
+          </div>
+        </div>
+        <ErrorBanner error={error} />
+      </Panel>
+      {s.groupBy && chartColumn && (
+        <Panel title={t("By {group}", { group: inSentence(chartColumn.label) })} flush>
+          {result ? <BarChart bars={bars} /> : <Loading />}
+        </Panel>
+      )}
+      <Panel title={t("Result")} note={result?.table ? `${result.table.rows.length}` : undefined} flush>
+        {!result?.table ? <Loading /> : <QueryTable result={result.table} label={t("Report results")} />}
+      </Panel>
+      {!!runs?.length && (
+        <Panel title={t("Scheduled runs")} flush>
+          <table className="grid" aria-label={t("Scheduled runs")}>
+            <thead>
+              <tr>
+                <th>{t("Ran")}</th>
+                <th>{t("Found")}</th>
+                <th>{t("New")}</th>
+                <th>{t("Mailed to")}</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {runs.map((r) => (
+                <tr key={r.id}>
+                  <td className="nowrap">{formatDate(r.ranAt)}</td>
+                  <td>{r.total}</td>
+                  <td>{r.newCount}</td>
+                  <td>{r.sentTo || "—"}</td>
+                  <td className="muted small">{r.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Panel>
+      )}
+    </div>
+  );
+}
+
+function SimpleReportView({ report, mine, onEdit }: { report: Report; mine: boolean; onEdit: () => void }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { data: result, error, isFetching, refetch } = useReportRun(report.id);
@@ -370,7 +557,17 @@ const SCHEDULES = (): [string, string][] => [
   ["0 * * * *", t("Every hour")],
 ];
 
-function ReportEditor({ report, onClose, onSaved }: { report: Report | null; onClose: () => void; onSaved: (r: Report) => void }) {
+function ReportEditor({
+  report,
+  onClose,
+  onSaved,
+  onConvert,
+}: {
+  report: Report | null;
+  onClose: () => void;
+  onSaved: (r: Report) => void;
+  onConvert: (report: Report | null, start: Definition) => void;
+}) {
   const qc = useQueryClient();
   const { data: types } = useTypes();
   const { data: lifecycles } = useLifecycles();
@@ -387,15 +584,7 @@ function ReportEditor({ report, onClose, onSaved }: { report: Report | null; onC
   const preview = useMutation({ mutationFn: () => unwrap(api.POST("/api/v1/reports/preview", { body: settings() })) });
   const save = useMutation({
     mutationFn: async () => {
-      // People by username, others by address.
-      const list = await Promise.all(
-        recipients
-          .split(/[,\s]+/)
-          .map((x) => x.trim())
-          .filter(Boolean)
-          .map(async (x) => (x.includes("@") ? x : (await findPrincipalByUsername(x)).id)),
-      );
-      const body = { ...settings(), recipients: list };
+      const body = { ...settings(), recipients: await resolveRecipients(recipients) };
       return report
         ? unwrap(api.PUT("/api/v1/reports/{id}", { params: { path: { id: report.id } }, body }))
         : unwrap(api.POST("/api/v1/reports", { body }));
@@ -424,6 +613,14 @@ function ReportEditor({ report, onClose, onSaved }: { report: Report | null; onC
           <span className="muted small grow">
             {preview.data ? t("Finds {count} now", { count: `${preview.data.total}${preview.data.capped ? "+" : ""}` }) : ""}
           </span>
+          <button
+            className="btn"
+            disabled={!!s.query.withinStructureOf}
+            title={s.query.withinStructureOf ? t("“Within the structure of” has no equivalent in the builder yet") : undefined}
+            onClick={() => onConvert(report, fromSimple(settings()))}
+          >
+            {t("Open in the report builder")}
+          </button>
           <button className="btn" onClick={() => preview.mutate()} disabled={preview.isPending}>
             {t("Try it")}
           </button>
@@ -541,63 +738,83 @@ function ReportEditor({ report, onClose, onSaved }: { report: Report | null; onC
           {t("Share it (others run it with their own access)")}
         </label>
         <div className="section-label wide">{t("Schedule and alerts")}</div>
-        <div className="field">
-          <label htmlFor="rep-cron">{t("Mail it")}</label>
-          <select
-            id="rep-cron"
-            value={SCHEDULES().some(([c]) => c === (s.cron ?? "")) ? (s.cron ?? "") : "custom"}
-            onChange={(e) => setS({ ...s, cron: e.target.value === "custom" ? (s.cron ?? "0 7 * * *") : e.target.value || null })}
-          >
-            {SCHEDULES().map(([c, l]) => (
-              <option key={c} value={c}>
-                {l}
-              </option>
-            ))}
-            <option value="custom">{t("Custom (cron)…")}</option>
-          </select>
-          {s.cron && !SCHEDULES().some(([c]) => c === s.cron) && (
-            <input aria-label={t("Cron")} className="code" value={s.cron} onChange={(e) => setS({ ...s, cron: e.target.value })} />
-          )}
-        </div>
-        <div className="field">
-          <label htmlFor="rep-alert">{t("Send")}</label>
-          <select
-            id="rep-alert"
-            value={s.alert}
-            disabled={!s.cron}
-            onChange={(e) => setS({ ...s, alert: e.target.value as Settings["alert"] })}
-          >
-            {Object.entries(ALERTS()).map(([k, l]) => (
-              <option key={k} value={k}>
-                {l}
-              </option>
-            ))}
-          </select>
-          {s.alert === "MORE_THAN" && (
-            <input
-              aria-label={t("Threshold")}
-              type="number"
-              min={0}
-              value={s.threshold ?? 0}
-              onChange={(e) => setS({ ...s, threshold: Number(e.target.value) })}
-            />
-          )}
-        </div>
-        <div className="field wide">
-          <label htmlFor="rep-to">{t("To")}</label>
-          <input
-            id="rep-to"
-            value={recipients}
-            disabled={!s.cron}
-            onChange={(e) => setRecipients(e.target.value)}
-            placeholder={t("Usernames or e-mail addresses, comma-separated")}
-          />
-          <span className="hint">
-            {t("Runs with your access, at {zone}.", { zone: s.timeZone })} {s.cron ? describeCron(s.cron) : ""}
-          </span>
-        </div>
+        {scheduleFields(s, setS, recipients, setRecipients)}
       </div>
     </Dialog>
+  );
+}
+
+/** When a report is mailed, when it alerts, and to whom: shared by both editors. */
+function scheduleFields(s: Settings, setS: (s: Settings) => void, recipients: string, setRecipients: (r: string) => void) {
+  return (
+    <>
+      <div className="field">
+        <label htmlFor="rep-cron">{t("Mail it")}</label>
+        <select
+          id="rep-cron"
+          value={SCHEDULES().some(([c]) => c === (s.cron ?? "")) ? (s.cron ?? "") : "custom"}
+          onChange={(e) => setS({ ...s, cron: e.target.value === "custom" ? (s.cron ?? "0 7 * * *") : e.target.value || null })}
+        >
+          {SCHEDULES().map(([c, l]) => (
+            <option key={c} value={c}>
+              {l}
+            </option>
+          ))}
+          <option value="custom">{t("Custom (cron)…")}</option>
+        </select>
+        {s.cron && !SCHEDULES().some(([c]) => c === s.cron) && (
+          <input aria-label={t("Cron")} className="code" value={s.cron} onChange={(e) => setS({ ...s, cron: e.target.value })} />
+        )}
+      </div>
+      <div className="field">
+        <label htmlFor="rep-alert">{t("Send")}</label>
+        <select
+          id="rep-alert"
+          value={s.alert}
+          disabled={!s.cron}
+          onChange={(e) => setS({ ...s, alert: e.target.value as Settings["alert"] })}
+        >
+          {Object.entries(ALERTS()).map(([k, l]) => (
+            <option key={k} value={k}>
+              {l}
+            </option>
+          ))}
+        </select>
+        {s.alert === "MORE_THAN" && (
+          <input
+            aria-label={t("Threshold")}
+            type="number"
+            min={0}
+            value={s.threshold ?? 0}
+            onChange={(e) => setS({ ...s, threshold: Number(e.target.value) })}
+          />
+        )}
+      </div>
+      <div className="field wide">
+        <label htmlFor="rep-to">{t("To")}</label>
+        <input
+          id="rep-to"
+          value={recipients}
+          disabled={!s.cron}
+          onChange={(e) => setRecipients(e.target.value)}
+          placeholder={t("Usernames or e-mail addresses, comma-separated")}
+        />
+        <span className="hint">
+          {t("Runs with your access, at {zone}.", { zone: s.timeZone })} {s.cron ? describeCron(s.cron) : ""}
+        </span>
+      </div>
+    </>
+  );
+}
+
+/** People by username, others by address. */
+async function resolveRecipients(text: string): Promise<string[]> {
+  return Promise.all(
+    text
+      .split(/[,\s]+/)
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .map(async (x) => (x.includes("@") ? x : (await findPrincipalByUsername(x)).id)),
   );
 }
 
