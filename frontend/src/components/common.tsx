@@ -108,6 +108,16 @@ export function formatAgo(iso: string | null | undefined, now = Date.now()): str
   return new Date(iso).toLocaleDateString(locale(), { dateStyle: "medium" });
 }
 
+/** A moment as "8 min ago" / "in 5 days", the full date on hover. */
+export function When({ iso }: { iso: string | null | undefined }) {
+  if (!iso) return <>—</>;
+  return (
+    <time dateTime={iso} title={formatDate(iso)}>
+      {formatAgo(iso)}
+    </time>
+  );
+}
+
 // ---------- Contexts, types and states ----------
 
 const KIND: Record<ContextKind, { slug: string; icon: LucideIcon }> = {

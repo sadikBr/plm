@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Link, NavLink, useSearchParams } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
 import { useMe } from "../api/queries";
-import { ErrorBanner, Loading, Panel, PrincipalName, formatDate } from "../components/common";
+import { ErrorBanner, Loading, Panel, PrincipalName, formatDate, When } from "../components/common";
 import { PageHeader } from "../components/Layout";
 import { t, tn } from "../i18n/i18n";
 import { ProcessDetail, choiceLabel } from "./Processes";
@@ -144,11 +144,13 @@ export function InboxPage() {
                     </td>
                     <td>{w.processName}</td>
                     <td className={overdue(w) ? "nowrap overdue-text" : "nowrap"}>
-                      {filter === "done"
-                        ? `${choiceLabel(w.outcome ?? "")} · ${formatDate(w.completedAt)}`
-                        : w.dueAt
-                          ? formatDate(w.dueAt)
-                          : "—"}
+                      {filter === "done" ? (
+                        `${choiceLabel(w.outcome ?? "")} · ${formatDate(w.completedAt)}`
+                      ) : w.dueAt ? (
+                        <When iso={w.dueAt} />
+                      ) : (
+                        "—"
+                      )}
                     </td>
                   </tr>
                 ))}

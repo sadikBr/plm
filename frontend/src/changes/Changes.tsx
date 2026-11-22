@@ -5,7 +5,17 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
 import { useContextsOfKind, useTypes, type AttributeDefinition, type VersionedObject } from "../api/queries";
-import { Dialog, ErrorBanner, Loading, Panel, PrincipalName, StateBadge, TypeIcon, formatDate, typeLabel } from "../components/common";
+import {
+  Dialog,
+  ErrorBanner,
+  Loading,
+  Panel,
+  PrincipalName,
+  StateBadge,
+  TypeIcon,
+  typeLabel,
+  When,
+} from "../components/common";
 import { PageHeader, Tabs } from "../components/Layout";
 import { ChangeDashboard } from "./ChangeDashboard";
 import { ReferenceInput } from "../components/References";
@@ -184,7 +194,9 @@ export function ChangesPage() {
                       <td>
                         <StateBadge state={h.state} />
                       </td>
-                      <td className="nowrap">{formatDate(h.modifiedAt)}</td>
+                      <td className="nowrap">
+                        <When iso={h.modifiedAt} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>

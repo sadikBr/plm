@@ -14,9 +14,9 @@ import {
   PrincipalName,
   StateBadge,
   TypeIcon,
-  formatDate,
   stateLabel,
   typeLabel,
+  When,
 } from "../components/common";
 import { PageHeader } from "../components/Layout";
 import { t } from "../i18n/i18n";
@@ -235,7 +235,7 @@ export function SearchPage() {
                       </div>
                       {h.snippet && <Snippet text={h.snippet} />}
                       <div className="muted small">
-                        {typeLabel(types?.find((x) => x.id === h.typeId))} · <ContextLabel id={h.contextId} /> · {formatDate(h.modifiedAt)}
+                        {typeLabel(types?.find((x) => x.id === h.typeId))} · <ContextLabel id={h.contextId} /> · <When iso={h.modifiedAt} />
                       </div>
                     </div>
                   </li>
