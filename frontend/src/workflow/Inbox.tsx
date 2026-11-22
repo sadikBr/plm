@@ -111,29 +111,30 @@ export function InboxPage() {
           ) : rows.length === 0 ? (
             <div className="empty">{filter === "done" ? t("You haven't answered any task yet.") : t("Nothing to do. Well done!")}</div>
           ) : (
-            <table className="grid" aria-label={t("My tasks")}>
-              <thead>
-                <tr>
-                  <th>{t("Task")}</th>
-                  <th>{t("Object")}</th>
-                  <th>{t("Process")}</th>
-                  <th>{filter === "done" ? t("Answered") : t("Due")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((w) => (
-                  <tr
-                    key={w.id}
-                    className={w.id === chosenId ? "selected clickable" : "clickable"}
+            <ul className="task-cards" aria-label={t("My tasks")}>
+              {rows.map((w) => (
+                <li key={w.id}>
+                  <button
+                    className={w.id === chosenId ? "task-card selected" : "task-card"}
+                    aria-current={w.id === chosenId ? "true" : undefined}
                     onClick={() => set("task", w.id)}
-                    aria-selected={w.id === chosenId}
                   >
-                    <td>
+                    <span className="task-card-head">
                       <strong>{w.title}</strong>
                       {w.kind === "VOTE" && <span className="tag">{t("vote")}</span>}
                       {w.claimedBy && <span className="tag accent">{t("taken on")}</span>}
-                    </td>
-                    <td>
+                      <span className="grow" />
+                      <span className={overdue(w) ? "task-due overdue-text" : "task-due"}>
+                        {filter === "done" ? (
+                          <>
+                            {choiceLabel(w.outcome ?? "")} · <When iso={w.completedAt} />
+                          </>
+                        ) : w.dueAt ? (
+                          <When iso={w.dueAt} />
+                        ) : null}
+                      </span>
+                    </span>
+                    <span className="task-card-subject">
                       {w.subjectNumber ? (
                         <>
                           <span className="mono">{w.subjectNumber}</span> {w.subjectName}
@@ -141,21 +142,12 @@ export function InboxPage() {
                       ) : (
                         (w.about ?? "—")
                       )}
-                    </td>
-                    <td>{w.processName}</td>
-                    <td className={overdue(w) ? "nowrap overdue-text" : "nowrap"}>
-                      {filter === "done" ? (
-                        `${choiceLabel(w.outcome ?? "")} · ${formatDate(w.completedAt)}`
-                      ) : w.dueAt ? (
-                        <When iso={w.dueAt} />
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </span>
+                    <span className="task-card-process">{w.processName}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </Panel>
         {chosenId && <TaskPanel key={chosenId} id={chosenId} />}
