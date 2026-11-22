@@ -204,7 +204,10 @@ export function PageHeader({
   meta,
   toolbar,
   tabs,
+  variant,
 }: {
+  /** "object": a larger header for an object page, its number above its name. */
+  variant?: "object";
   crumbs?: ReactNode;
   icon?: ReactNode;
   title: ReactNode;
@@ -213,7 +216,7 @@ export function PageHeader({
   tabs?: ReactNode;
 }) {
   return (
-    <div className="page-head">
+    <div className={variant ? `page-head ${variant}-head` : "page-head"}>
       {crumbs ?? <div className="crumbs" />}
       <div className="title-row">
         <h1>

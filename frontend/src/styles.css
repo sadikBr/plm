@@ -6451,3 +6451,61 @@ textarea {
   font-size: 12px;
   color: var(--text-3);
 }
+
+/* Object pages: an icon tile, the number above a large name, then version, state and tracking. */
+.object-head .title-row {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  row-gap: 8px;
+  padding-top: 4px;
+  padding-bottom: 12px;
+}
+.object-head .title-row h1 {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+.object-head .title-row h1 > svg {
+  grid-row: 1 / 3;
+  box-sizing: content-box;
+  width: 22px;
+  height: 22px;
+  padding: 11px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.object-head .title-row h1 .num {
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  line-height: 1.2;
+}
+.object-head .title-row h1 .sep {
+  display: none;
+}
+.object-head .title-row h1 .nm {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.object-head .title-row .meta {
+  flex-basis: 100%;
+  padding-left: 56px;
+}
+.object-head .title-row .meta .track-btns {
+  margin-left: auto;
+}
+@container (max-width: 560px) {
+  .object-head .title-row .meta {
+    padding-left: 0;
+  }
+}

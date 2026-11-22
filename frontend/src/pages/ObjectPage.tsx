@@ -237,6 +237,7 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
   return (
     <>
       <PageHeader
+        variant="object"
         crumbs={<Breadcrumbs contextId={obj.contextId} current={obj.number} />}
         icon={<TypeIcon typeId={obj.typeId} size={18} />}
         title={
