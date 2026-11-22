@@ -86,7 +86,9 @@ test("a problem report becomes a released part through a signed change", async (
   ] as const) {
     await page.goto("/inbox");
     await page.getByRole("table", { name: "My tasks" }).getByText(`Bracket cracks ${suffix}`).first().click();
-    await page.getByLabel("Your password, to sign").fill(user);
+    // The task's own form (another task may have been open before it).
+    await expect(page.getByRole("link", { name: new RegExp(`Bracket cracks ${suffix}`) })).toBeVisible();
+    await page.getByLabel("Your password, to sign").fill(passwordOf(user));
     await page.getByRole("button", { name: "Approve", exact: true }).click();
     await expect(page.getByText(/Answered Approve/)).toBeVisible();
   }
