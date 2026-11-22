@@ -59,10 +59,13 @@ export function Spinner({ label = t("Loading") }: { label?: string }) {
   return <span className="spinner" role="status" aria-label={label} />;
 }
 
-export function Loading() {
+/** Placeholder rows that shimmer where content is about to appear, so the page doesn't jump. */
+export function Loading({ rows = 3 }: { rows?: number }) {
   return (
-    <div className="empty">
-      <Spinner />
+    <div className="skeleton" role="status" aria-label={t("Loading")}>
+      {Array.from({ length: rows }, (_, i) => (
+        <span key={i} className="skeleton-line" style={{ width: `${92 - ((i * 17) % 35)}%` }} />
+      ))}
     </div>
   );
 }

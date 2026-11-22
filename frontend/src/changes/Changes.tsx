@@ -5,17 +5,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
 import { useContextsOfKind, useTypes, type AttributeDefinition, type VersionedObject } from "../api/queries";
-import {
-  Dialog,
-  ErrorBanner,
-  Loading,
-  Panel,
-  PrincipalName,
-  StateBadge,
-  TypeIcon,
-  typeLabel,
-  When,
-} from "../components/common";
+import { Dialog, ErrorBanner, Loading, Panel, PrincipalName, StateBadge, TypeIcon, typeLabel, When } from "../components/common";
 import { PageHeader, Tabs } from "../components/Layout";
 import { ChangeDashboard } from "./ChangeDashboard";
 import { ReferenceInput } from "../components/References";
@@ -119,7 +109,12 @@ export function ChangesPage() {
   const [kind, setKind] = useState<Kind | "">("");
   const [params, setParams] = useSearchParams();
   const view = params.get("view") === "dashboard" ? "dashboard" : "list";
-  const rows = (data?.hits ?? []).filter((h) => !kind || h.typeId === CHANGE_TYPES[kind]);
+  const [stateFilter, setStateFilter] = useState("");
+  const ofKind = (data?.hits ?? []).filter((h) => !kind || h.typeId === CHANGE_TYPES[kind]);
+  const byState = new Map<string, number>();
+  ofKind.forEach((h) => byState.set(h.state, (byState.get(h.state) ?? 0) + 1));
+  const rows = ofKind.filter((h) => !stateFilter || h.state === stateFilter);
+  const kindOf = (typeId: string) => (Object.keys(CHANGE_TYPES) as Kind[]).find((k) => CHANGE_TYPES[k] === typeId);
   return (
     <>
       <PageHeader
@@ -166,6 +161,23 @@ export function ChangesPage() {
             }
           >
             <ErrorBanner error={error} />
+            {byState.size > 1 && (
+              <div className="chip-row" role="group" aria-label={t("State")}>
+                <button className={stateFilter ? "chip" : "chip on"} aria-pressed={!stateFilter} onClick={() => setStateFilter("")}>
+                  {t("All")} <span className="chip-count">{ofKind.length}</span>
+                </button>
+                {[...byState].map(([st, n]) => (
+                  <button
+                    key={st}
+                    className={stateFilter === st ? "chip on" : "chip"}
+                    aria-pressed={stateFilter === st}
+                    onClick={() => setStateFilter(stateFilter === st ? "" : st)}
+                  >
+                    <StateBadge state={st} /> <span className="chip-count">{n}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             {isLoading ? (
               <Loading />
             ) : !rows.length ? (
@@ -189,7 +201,9 @@ export function ChangesPage() {
                       </td>
                       <td>{h.name}</td>
                       <td>
-                        <TypeName id={h.typeId} />
+                        <span className={`kind-badge kind-${kindOf(h.typeId) ?? "OTHER"}`}>
+                          <TypeName id={h.typeId} />
+                        </span>
                       </td>
                       <td>
                         <StateBadge state={h.state} />

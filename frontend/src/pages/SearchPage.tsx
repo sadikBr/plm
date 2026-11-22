@@ -19,7 +19,7 @@ import {
   When,
 } from "../components/common";
 import { PageHeader } from "../components/Layout";
-import { t } from "../i18n/i18n";
+import { t, tn } from "../i18n/i18n";
 
 type Query = Schemas["SearchQuery"];
 type SavedSearch = Schemas["SavedSearch"];
@@ -306,17 +306,25 @@ function Facet({
 }) {
   const shown = [...(values ?? [])];
   for (const a of active) if (!shown.some((v) => v.key === a)) shown.push({ key: a, count: 0 });
+  const [all, setAll] = useState(false);
   if (!shown.length) return null;
+  // The first five, and any chosen further down; the rest behind "Show more".
+  const visible = all ? shown : shown.filter((v, i) => i < 5 || active.includes(v.key));
   return (
     <section className="facet" aria-label={title}>
       <h3>{title}</h3>
-      {shown.slice(0, 12).map((v) => (
+      {visible.map((v) => (
         <label key={v.key} className="check">
           <input type="checkbox" checked={active.includes(v.key)} onChange={() => onToggle(v.key)} />
           <span className="grow">{label(v.key)}</span>
           <span className="muted small">{v.count}</span>
         </label>
       ))}
+      {shown.length > 5 && (
+        <button className="mini-list-more facet-more" onClick={() => setAll(!all)}>
+          {all ? t("Show fewer") : tn("Show {n} more", "Show {n} more", shown.length - visible.length)}
+        </button>
+      )}
     </section>
   );
 }

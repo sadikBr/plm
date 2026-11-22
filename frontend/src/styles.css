@@ -6272,3 +6272,110 @@ textarea {
 .panel-head .btn {
   white-space: nowrap;
 }
+
+/* Filter chips with counts; kinds of change in their own colour. */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.chip:hover {
+  border-color: var(--border-strong);
+}
+.chip.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.chip-count {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.kind-badge {
+  --k: #64748b;
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--k);
+  background: color-mix(in srgb, var(--k) 12%, transparent);
+  white-space: nowrap;
+}
+.kind-PROBLEM_REPORT {
+  --k: #dc2626;
+}
+.kind-CHANGE_REQUEST {
+  --k: #d97706;
+}
+.kind-CHANGE_NOTICE {
+  --k: #2563eb;
+}
+.kind-VARIANCE {
+  --k: #7c3aed;
+}
+.facet-more {
+  padding: 4px 0 0;
+  border-top: 0;
+}
+.facet-more:hover {
+  background: transparent;
+  text-decoration: underline;
+}
+
+/* The answer buttons stay in view at the bottom of a long task. */
+.task-answer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 -12px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -6px 12px -8px rgb(0 0 0 / 0.15);
+}
+
+.skeleton {
+  display: grid;
+  gap: 10px;
+  padding: 14px 12px;
+}
+.skeleton-line {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--panel-2) 0%, var(--row-hover) 40%, var(--panel-2) 80%);
+  background-size: 300% 100%;
+  animation: skeleton 1.4s ease-in-out infinite;
+}
+@keyframes skeleton {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-line {
+    animation: none;
+  }
+}

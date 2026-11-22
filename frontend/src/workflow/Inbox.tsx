@@ -301,7 +301,7 @@ function TaskPanel({ id }: { id: string }) {
                 </p>
               </div>
             )}
-            <div className="row" style={{ gap: 8 }}>
+            <div className="task-answer">
               {w.choices.map((c, i) => (
                 <button
                   key={c}
@@ -312,6 +312,7 @@ function TaskPanel({ id }: { id: string }) {
                   {choiceLabel(c)}
                 </button>
               ))}
+              {w.signature && !password && !claimedByOther && <span className="muted small">{t("Enter your password to answer.")}</span>}
             </div>
             <ErrorBanner error={answer.error ?? claim.error ?? release.error} />
             <Reassign id={w.id} />

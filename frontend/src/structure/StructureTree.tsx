@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
 import { useEffectivePreferences, useLifecycles, type VersionedObject } from "../api/queries";
-import { ErrorBanner, Loading, StateBadge, TypeIcon, stateLabel } from "../components/common";
+import { ErrorBanner, Loading, StateBadge, TypeIcon, stateLabel, MenuButton } from "../components/common";
 import { language, locale, t, tn } from "../i18n/i18n";
 import { formatDesignators } from "./designators";
 import { CompareButton } from "./StructureCompare";
@@ -443,12 +443,20 @@ export function StructureTree({ obj, spec }: { obj: VersionedObject; spec: Spec 
         <button className="btn small" onClick={collapseAll}>
           <ChevronsDownUp size={13} aria-hidden /> {t("Collapse all")}
         </button>
-        <button className="btn small" onClick={() => void exportRows("xlsx")} disabled={!top.data?.nodes.length}>
-          <FileSpreadsheet size={13} aria-hidden /> {t("Export to Excel")}
-        </button>
-        <button className="btn small" onClick={() => void exportRows("csv")} disabled={!top.data?.nodes.length}>
-          {t("CSV")}
-        </button>
+        {!!top.data?.nodes.length && (
+          <MenuButton label={t("Export")} icon={<FileSpreadsheet size={13} aria-hidden />}>
+            {(close) => (
+              <>
+                <button role="menuitem" onClick={() => (void exportRows("xlsx"), close())}>
+                  {t("Export to Excel")}
+                </button>
+                <button role="menuitem" onClick={() => (void exportRows("csv"), close())}>
+                  {t("CSV")}
+                </button>
+              </>
+            )}
+          </MenuButton>
+        )}
       </div>
       {top.data?.truncated && (
         <div className="banner warn">{t("This structure is too large to show in full: the lowest levels were left out.")}</div>
