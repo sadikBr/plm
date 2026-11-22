@@ -21,7 +21,7 @@ import { language, t } from "../i18n/i18n";
 import { DiscussionTab, ShareButton, useComments } from "../collaboration/Collaboration";
 import { FavoriteButton, SubscribeButton, useRecordVisit } from "../personal/Personal";
 import { Bookmark, Lock, Pencil } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import { isApiError } from "../api/client";
 import {
@@ -61,6 +61,7 @@ import {
   TypeIcon,
   formatDate,
   useTypeName,
+  When,
 } from "../components/common";
 import { Breadcrumbs, PageHeader, Tabs, useIdParam } from "../components/Layout";
 import { ObjectFiles } from "../components/ObjectFiles";
@@ -638,7 +639,6 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
   const { data: infoLayout } = useLayout(obj.typeId, "INFO");
   const { data: editLayout } = useLayout(obj.typeId, "EDIT");
   const { data: context } = useContextById(obj.contextId);
-  const typeName = useTypeName(obj.typeId);
   const { data: types } = useTypes();
   const isDocument = types?.find((ty) => ty.id === obj.typeId)?.baseClass === "DOCUMENT";
   const latest = obj.latest;
@@ -663,7 +663,7 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
             </Panel>
           )
         ) : (
-          <Panel title={t("Attributes")} note={t("as of {version}", { version: latest.version })}>
+          <Panel title={t("Attributes")} note={t("as of {version}", { version: latest.version })} className="attr-panel">
             {definitions && infoLayout ? (
               <AttributeValues definitions={definitions} groups={infoLayout.groups} values={latest.attributes as Attributes} />
             ) : (
@@ -671,30 +671,26 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
             )}
           </Panel>
         )}
-        <Panel title={t("General")}>
+        <Panel title={t("General")} className="facts-panel">
+          {/* Number, name, type, version and state are in the page header. */}
           <Props
             items={[
-              [t("Number"), obj.number],
-              [t("Name"), obj.name],
-              [t("Type"), typeName],
-              [t("Version"), <span className="version">{latest.version}</span>],
-              [t("State"), <StateBadge state={latest.state} />],
               [t("Context"), context ? <Link to={`/contexts/${obj.contextId}`}>{context.name}</Link> : null],
               [t("Folder"), <FolderLocation obj={obj} />],
               [t("Owner"), <PrincipalName id={obj.owner} />],
-              [t("Checked out by"), obj.checkedOutBy ? <PrincipalName id={obj.checkedOutBy} /> : null],
-              [t("Reserved by"), obj.reservedBy ? <PrincipalName id={obj.reservedBy} /> : null],
+              ...(obj.checkedOutBy ? ([[t("Checked out by"), <PrincipalName id={obj.checkedOutBy} />]] as [string, ReactNode][]) : []),
+              ...(obj.reservedBy ? ([[t("Reserved by"), <PrincipalName id={obj.reservedBy} />]] as [string, ReactNode][]) : []),
               [
                 t("Last checked in"),
                 <>
-                  {formatDate(latest.checkedInAt)} · <PrincipalName id={latest.createdBy} />
+                  <When iso={latest.checkedInAt} /> · <PrincipalName id={latest.createdBy} />
+                  {latest.comment && <div className="fact-note">“{latest.comment}”</div>}
                 </>,
               ],
-              [t("Comment"), latest.comment],
               [
                 t("Created"),
                 <>
-                  {formatDate(obj.createdAt)} · <PrincipalName id={obj.createdBy} />
+                  <When iso={obj.createdAt} /> · <PrincipalName id={obj.createdBy} />
                 </>,
               ],
             ]}

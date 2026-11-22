@@ -320,7 +320,7 @@ export function Props({ items, columns = 1 }: { items: [string, ReactNode][]; co
       {items.map(([label, value]) => {
         const empty = value === null || value === undefined || value === "";
         return (
-          <div className="prop" key={label}>
+          <div className={typeof value === "string" && value.length > 40 ? "prop long" : "prop"} key={label}>
             <dt title={label}>{label}</dt>
             <dd className={empty ? "is-empty" : undefined}>{empty ? "—" : value}</dd>
           </div>

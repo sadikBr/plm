@@ -6509,3 +6509,72 @@ textarea {
     padding-left: 0;
   }
 }
+
+/* Object details: a spec sheet, label left and value right, in two columns whose rows line up. */
+.attr-panel .props,
+.attr-panel .props.cols-2 {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  column-gap: 32px;
+}
+.attr-panel .prop {
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  min-height: 0;
+}
+.attr-panel .prop dt {
+  font-size: 13px;
+  color: var(--text-2);
+}
+.attr-panel .prop dd {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+.attr-panel .prop dd.is-empty {
+  font-weight: 400;
+  color: var(--text-3);
+}
+.attr-panel .prop-groups {
+  display: grid;
+  gap: 22px;
+}
+.attr-panel .group-title {
+  margin: 0 0 2px;
+  padding-bottom: 6px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent-soft);
+}
+
+/* General: who and where, one fact per line. */
+.facts-panel .prop {
+  grid-template-columns: 120px minmax(0, 1fr);
+  padding: 8px 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--border) 80%, transparent);
+}
+.facts-panel .prop:last-child {
+  border-bottom: 0;
+}
+.facts-panel .prop dt {
+  padding-top: 1px;
+}
+.fact-note {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  font-style: italic;
+}
+.attr-panel .prop.long {
+  grid-column: 1 / -1;
+}
+.attr-panel .prop.long dd {
+  font-weight: 400;
+  line-height: 1.55;
+  max-width: 90ch;
+}
