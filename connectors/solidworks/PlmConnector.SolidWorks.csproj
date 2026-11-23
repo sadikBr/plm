@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- SolidWorks add-in (roadmap 8.8): a starting point on the connector protocol. Needs Windows,
+       SolidWorks and its API interop assemblies (installed with SolidWorks): see README.md. -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>Library</OutputType>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Plm.Connectors.SolidWorks</RootNamespace>
+    <!-- Where SolidWorks keeps its API assemblies; override with /p:SolidWorksDir=... -->
+    <SolidWorksDir Condition="'$(SolidWorksDir)' == ''">C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS</SolidWorksDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="SolidWorks.Interop.sldworks"><HintPath>$(SolidWorksDir)\api\redist\SolidWorks.Interop.sldworks.dll</HintPath><EmbedInteropTypes>false</EmbedInteropTypes></Reference>
+    <Reference Include="SolidWorks.Interop.swconst"><HintPath>$(SolidWorksDir)\api\redist\SolidWorks.Interop.swconst.dll</HintPath><EmbedInteropTypes>false</EmbedInteropTypes></Reference>
+    <Reference Include="SolidWorks.Interop.swpublished"><HintPath>$(SolidWorksDir)\api\redist\SolidWorks.Interop.swpublished.dll</HintPath><EmbedInteropTypes>false</EmbedInteropTypes></Reference>
+    <Reference Include="System.Net.Http" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+</Project>

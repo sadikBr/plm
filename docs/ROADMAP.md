@@ -682,7 +682,7 @@ children), asks for the assembly when it runs, keeps children heavier than 10 kg
 quantity, and opens them from the table; `QueryApiIT` covers links, totals, all/any/none,
 optional links, where used, questions, refused queries and access inside the SQL.
 
-## Phase 8 — Desktop and native CAD
+## Phase 8 — Desktop and native CAD (complete)
 **Goal:** people work on files on their own computer and inside their authoring tools, and the
 system keeps track: what they took, what they changed, what is out of date.
 - [x] 8.1 Personal workspaces: a person's named workspaces (per context) holding the objects they
@@ -751,10 +751,13 @@ system keeps track: what they took, what they changed, what is out of date.
       matched by part number (MPN) or name; a board preview drawn from the board (outline, copper on
       both sides, pads, references); a BOM check on projects and boards. Tested on KiCad's own
       pic_programmer demo.)
-- [ ] 8.8 Commercial CAD connectors (SolidWorks, Inventor, Creo, NX, CATIA): add-in projects on the
+- [x] 8.8 Commercial CAD connectors (SolidWorks, Inventor, Creo, NX, CATIA): add-in projects on the
       connector kit, each needing the vendor's SDK and a licensed Windows machine to build and
       test. This phase delivers the kit, its documentation and a SolidWorks add-in skeleton
       (C#); finished connectors are separate projects.
+      (Done: `connectors/solidworks`: a .NET protocol client and an add-in (Save to PLM walking an
+      assembly's components with placements, Open from PLM), not compiled or run here, which needs
+      Windows and SolidWorks; its README lists what is left. Phase 8 is complete.)
 
 ## Phase 9 — Enterprise integration and infrastructure
 **Goal:** what a company needs to go live: its directory, its existing data, its suppliers, its
