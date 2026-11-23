@@ -683,18 +683,107 @@ quantity, and opens them from the table; `QueryApiIT` covers links, totals, all/
 optional links, where used, questions, refused queries and access inside the SQL.
 
 ## Phase 8 — Desktop and native CAD
-Office/desktop integration · personal workspaces · native connectors (SolidWorks, Creo, NX,
-Inventor, CATIA, electrical CAD), each its own project.
+**Goal:** people work on files on their own computer and inside their authoring tools, and the
+system keeps track: what they took, what they changed, what is out of date.
+- [ ] 8.1 Personal workspaces: a person's named workspaces (per context) holding the objects they
+      work on, with each file's state: in sync, modified locally, out of date (a newer iteration
+      on the server), new (not yet in the system), checked out by me or by someone else. Add
+      objects with what they depend on (the collector, 6.2); upload changed files into the working
+      copies; check in or undo everything in one go, all or nothing; conflicts named, never lost.
+- [ ] 8.2 Workspace page: workspaces in the rail, the files with their state badges, filters,
+      add from search or the clipboard, check out / update / check in / undo for a selection,
+      download as a zip, and the history of what went in.
+- [ ] 8.3 Desktop sync client: `plm-sync`, a command-line client (Node, no install beyond npm)
+      that signs in with a personal access token and mirrors a workspace to a folder: `pull`
+      (bring files up to date), `status` (what changed locally), `push` (upload changes, new files
+      become new documents), `checkin`, `watch` (keep in sync). Personal access tokens in "My
+      preferences".
+- [ ] 8.4 Office integration: properties of Word, Excel and PowerPoint files (title, subject,
+      author, keywords and custom properties) read into attributes on upload and written back
+      into the file on download, mapped per type in Admin; previews and PDF publishing of Office
+      files through a converter (LibreOffice in the converter worker).
+- [ ] 8.5 Connector kit: one protocol for authoring-tool connectors: a connector sends a manifest
+      of the files it saves (model, kind, dependencies with their roles, parameters, the part it
+      represents) and the server creates or updates the CAD documents, their dependencies, family
+      tables and part associations in one transaction; the connector asks what to download for a
+      model and its dependencies. A TypeScript and a Python client library with the protocol
+      documented in `connectors/README.md`.
+- [ ] 8.6 FreeCAD connector: a FreeCAD workbench (Python) on the kit: open from the system, save
+      and check in a document with its linked parts and assemblies (App::Link and the like read
+      from the .FCStd), parameters from spreadsheets, a thumbnail. Tested headless against real
+      .FCStd files.
+- [ ] 8.7 Electrical CAD: KiCad projects (schematic, board, symbol and footprint libraries) as ECAD
+      documents with their dependencies; the schematic's components become a part structure
+      (reference designators as occurrences, 4.5); a board preview; a "compare ECAD BOM with the
+      part structure" report.
+- [ ] 8.8 Commercial CAD connectors (SolidWorks, Inventor, Creo, NX, CATIA): add-in projects on the
+      connector kit, each needing the vendor's SDK and a licensed Windows machine to build and
+      test. This phase delivers the kit, its documentation and a SolidWorks add-in skeleton
+      (C#); finished connectors are separate projects.
 
 ## Phase 9 — Enterprise integration and infrastructure
-LDAP/AD/SCIM groups · bulk load and migration from other PLM systems · packages and deliveries ·
-ERP connectors with distribution targets and plant data · STEP AP242, ReqIF, OSLC · multi-site
-file replication · security labels and agreements · retention, legal hold, archive and purge ·
-tenant administration · upgrade playbook.
+**Goal:** what a company needs to go live: its directory, its existing data, its suppliers, its
+ERP, its legal and security rules, more than one site, and safe upgrades.
+- [ ] 9.1 Directory groups: SCIM 2.0 (users and groups) for identity providers that push them,
+      and LDAP/AD through the identity provider's federation; a directory group becomes a shared
+      team whose members the directory manages, attached to contexts with a role like any other.
+- [ ] 9.2 Bulk load: load objects of any type (with attributes, folders, files from a zip,
+      structure and document links) from a spreadsheet, with validation, a dry run that shows
+      what would happen, and the load itself as a background job with a per-row result.
+- [ ] 9.3 Migration from other PLM systems: an import format (a zip with a JSON manifest) that
+      keeps each object's history (versions, iterations, dates, who), states, files and links,
+      with type, attribute, state and user mappings, a dry run and a resumable job; numbers and
+      versions are kept as they were.
+- [ ] 9.4 Packages and deliveries: a package is a chosen set of objects under a configuration spec
+      with what to include (files, PDFs, 3D, structure, documents); a delivery sends it to a
+      recipient as a download that expires, logs who got what, and a received package can be
+      imported back (as copies marked with where they came from, or as updates).
+- [ ] 9.5 ERP distribution: distribution targets (an ERP system and plant) with plant-specific
+      attributes; rules say which objects go to which targets when released; a release sends them
+      (through the integration outbox), the ERP acknowledges, and the object shows its
+      distribution status per target, with resend.
+- [ ] 9.6 Standards: STEP AP242 export of a product structure (with its CAD files), and the
+      OSLC core services (resources, service provider catalog, link to external resources) so
+      requirements and test tools can link to parts, documents and changes. ReqIF comes with
+      requirements (Phase 14), IPC-1752 with compliance (Phase 13).
+- [ ] 9.7 Security labels and agreements: labels (export control, proprietary…) with ordered
+      values set on objects; people hold clearances; reading or downloading a labelled object needs
+      a clearance or an agreement (a time-limited grant to named people for named objects or
+      contexts), enforced in every access check and list filter; why someone can't see an object
+      is explained.
+- [ ] 9.8 Retention, legal hold, archive and purge: retention rules per type and state (keep for
+      N years, then purge old iterations or archive); legal holds that freeze objects or whole
+      contexts against deletion and purge; archive to the vault as a self-contained package with
+      restore; all as jobs with a report.
+- [ ] 9.9 Audit configuration: which kinds of events are audited, per site; audit retention.
+- [ ] 9.10 File sites: file servers (vault replicas) near remote sites, each person's preferred
+      site, replication of new content as jobs, downloads served from the nearest copy; resumable
+      multipart uploads for large files.
+- [ ] 9.11 Operations: OpenTelemetry tracing and Prometheus metrics (0.12); signed extension
+      packages; `plm upgrade` (backup, migrate, health check) and an upgrade playbook with
+      zero-downtime rules for migrations.
+- [ ] 9.12 Tenants (SaaS): not in this phase. Built-in types, lifecycles and roles have fixed ids
+      shared by every tenant; separate tenants need per-tenant built-ins first (an ADR).
 
 ## Phase 10 — Manufacturing process management
-EBOM → MBOM and plant-specific structures · equivalence links and reconciliation · generate
-downstream structures · process plans, operations, resources, work instructions · new view versions.
+**Goal:** from the engineering structure to how each plant builds it.
+- [ ] 10.1 Views: parts belong to a view (Design, Manufacturing, Service, configurable); a "new
+      view version" makes a downstream part (its number from the upstream one with the view's
+      suffix) linked to its upstream part by an equivalence link.
+- [ ] 10.2 Plants and plant data: plants as contexts' resources; per part and plant: procurement
+      (make, buy), lead time, cost, storage location, as plant-specific attributes.
+- [ ] 10.3 Generate the downstream structure: build an MBOM from the EBOM (phantoms collapsed,
+      purchased assemblies kept whole, lines grouped), with equivalence links throughout.
+- [ ] 10.4 Reconciliation: compare upstream and downstream through equivalence links: missing,
+      extra, quantity differences, upstream newer than its equivalent; fix them one by one or all.
+- [ ] 10.5 Side-by-side editor: the EBOM and the MBOM next to each other, highlighted by
+      equivalence, drag lines across to assign them, plant switcher.
+- [ ] 10.6 Resources: work centers, tooling and skills in libraries, with capacity and cost rates.
+- [ ] 10.7 Process plans and operations: a process plan for a manufacturing part in a plant: a
+      sequence of operations (with work center, setup and run time, tooling, skills), the parts
+      each operation consumes (MBOM lines assigned to operations), time and cost roll-ups.
+- [ ] 10.8 Work instructions: steps per operation with text, images and saved 3D views (6.10),
+      shown to the operator one step at a time and published as a PDF.
 
 ## Phase 11 — Projects and programs
 Project plans, activities, milestones, Gantt · deliverables linked to PLM objects · resources ·
