@@ -7277,3 +7277,10 @@ ol.steps {
   max-width: 760px;
   margin: 24px auto;
 }
+
+/* Retention (roadmap 9.8) */
+.hold-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

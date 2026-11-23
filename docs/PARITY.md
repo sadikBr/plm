@@ -256,7 +256,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 |---|---|---|
 | Security labels and agreements | ✅ | Roadmap 9.7 |
 | Electronic signatures, signature manifest | ✅ | Signatures panel per object, immutable and hashed [5.6] |
-| Retention policies, legal hold, purge and archive with restore | ⬜ [9] | |
+| Retention policies, legal hold, purge and archive with restore | ✅ | Rules per type and state, dry run and job with a report, legal holds on objects and contexts, restorable archives |
 | Audit reports and audit configuration | 🟡 | Audit report with filters and Excel export ✅ [3.10] · choosing audited events [9] |
 | Access reports ("who can see this, and why") | 🟡 | Per person and target, with the deciding rules ✅ · "who can see this object" list [later] |
 

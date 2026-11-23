@@ -826,10 +826,16 @@ ERP, its legal and security rules, more than one site, and safe upgrades.
       `filter()` adds the label predicate to every list and search. A person the context lets in
       gets `LABEL_CLEARANCE_REQUIRED` and a page saying which labels block them; others still get
       404. Site administrators pass. Changes are audited (`access.SecurityLabelsChanged.v1`).
-- [ ] 9.8 Retention, legal hold, archive and purge: retention rules per type and state (keep for
+- [x] 9.8 Retention, legal hold, archive and purge: retention rules per type and state (keep for
       N years, then purge old iterations or archive); legal holds that freeze objects or whole
       contexts against deletion and purge; archive to the vault as a self-contained package with
       restore; all as jobs with a report.
+      Done: `retention` module and Administration → Retention and legal hold. Purging keeps each
+      version's last iteration, the latest, and anything a baseline or a document link points to
+      (versioning's `PurgeService`; the history trigger allows it only for that object, in that
+      transaction). Archives (`plm-archive/1`) hold every iteration with files, structure and
+      links, and restore exactly. Holds on objects or contexts refuse delete, purge and archive (an
+      operation guard). Dry run, then a job with a report per object.
 - [ ] 9.9 Audit configuration: which kinds of events are audited, per site; audit retention.
 - [ ] 9.10 File sites: file servers (vault replicas) near remote sites, each person's preferred
       site, replication of new content as jobs, downloads served from the nearest copy; resumable

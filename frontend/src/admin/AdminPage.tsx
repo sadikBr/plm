@@ -2,6 +2,7 @@ import { DirectoryAdmin } from "./DirectoryAdmin";
 import { MigrationAdmin } from "./MigrationAdmin";
 import { DistributionAdmin } from "../integration/Distribution";
 import { SecurityAdmin } from "../security/Security";
+import { RetentionAdmin } from "../retention/Retention";
 import { OfficeAdmin } from "./OfficeAdmin";
 import { DocumentLinkRulesAdmin } from "../structure/DocumentLinks";
 import {
@@ -11,6 +12,7 @@ import {
   FileSpreadsheet,
   FileText,
   FolderTree,
+  Gavel,
   Globe,
   Hash,
   IdCard,
@@ -100,6 +102,7 @@ type Section =
   | "migration"
   | "distribution"
   | "security"
+  | "retention"
   | "profiles"
   | "jobs"
   | "extensions"
@@ -136,6 +139,7 @@ const GROUPS = (): [string, Entry[]][] => [
       ["site-admins", t("Site administrators"), t("Who administers the site"), <ShieldCheck key="i" size={15} />],
       ["roles", t("Team roles"), t("Roles people hold on teams"), <UserCog key="i" size={15} />],
       ["teams", t("Shared teams"), t("Teams reused across products"), <Users key="i" size={15} />],
+      ["retention", t("Retention and legal hold"), t("Purge old iterations, archive, freeze for litigation"), <Gavel key="i" size={15} />],
       ["security", t("Security labels"), t("Export control and other labels, clearances, agreements"), <Lock key="i" size={15} />],
       ["directory", t("Directory"), t("People and groups from the identity provider"), <Network key="i" size={15} />],
       ["templates", t("Context templates"), t("Ready-made products, libraries and projects"), <LayoutTemplate key="i" size={15} />],
@@ -240,6 +244,7 @@ export function AdminPage() {
             {tab === "migration" && <MigrationAdmin />}
             {tab === "distribution" && <DistributionAdmin />}
             {tab === "security" && <SecurityAdmin />}
+            {tab === "retention" && <RetentionAdmin />}
             {tab === "profiles" && <ProfilesAdmin />}
             {tab === "jobs" && <JobsAdmin />}
             {tab === "extensions" && <ExtensionsAdmin />}

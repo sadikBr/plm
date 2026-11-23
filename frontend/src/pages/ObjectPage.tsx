@@ -14,6 +14,7 @@ import { ClassificationTab } from "../classification/Classification";
 import { DistributionTab } from "../integration/Distribution";
 import { ExternalLinksPanel } from "../standards/Standards";
 import { LabelBlocked, SecurityLabelsPanel } from "../security/Security";
+import { LegalHoldBanner } from "../retention/Retention";
 import { PublicationsPanel } from "../publishing/Publishing";
 import { ExtensionPanels, ExtensionTab, useUiSlots } from "../extensions/ExtensionFrame";
 import { ReplacementsTab } from "../structure/Replacements";
@@ -730,6 +731,7 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
       <VariancesBanner objectId={obj.id} />
       <EcadBomCheck objectId={obj.id} typeId={obj.typeId} />
       <ReferencedBy objectId={obj.id} />
+      <LegalHoldBanner objectId={obj.id} />
       <SecurityLabelsPanel objectId={obj.id} />
       <ExternalLinksPanel objectId={obj.id} editable={!!myId} />
       <SignaturesPanel objectId={obj.id} />
