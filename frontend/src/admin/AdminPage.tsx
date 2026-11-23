@@ -1,8 +1,10 @@
+import { OfficeAdmin } from "./OfficeAdmin";
 import { DocumentLinkRulesAdmin } from "../structure/DocumentLinks";
 import {
   ArrowLeftRight,
   Bot,
   Code2,
+  FileSpreadsheet,
   FileText,
   FolderTree,
   Globe,
@@ -81,6 +83,7 @@ type Section =
   | "scripts"
   | "automations"
   | "publishing"
+  | "office"
   | "classification"
   | "webhooks"
   | "site-admins"
@@ -143,6 +146,7 @@ const GROUPS = (): [string, Entry[]][] => [
     [
       ["document-templates", t("Document templates"), t("Starting points for new documents"), <FileText key="i" size={15} />],
       ["publishing", t("Publishing"), t("PDFs, viewables and watermarks"), <Send key="i" size={15} />],
+      ["office", t("Office files"), t("Word, Excel and PowerPoint properties"), <FileSpreadsheet key="i" size={15} />],
       ["configuration", t("Export / import"), t("Move settings between sites"), <ArrowLeftRight key="i" size={15} />],
     ],
   ],
@@ -212,6 +216,7 @@ export function AdminPage() {
             {tab === "scripts" && <ScriptsAdmin />}
             {tab === "automations" && <AutomationsAdmin />}
             {tab === "publishing" && <PublishingAdmin />}
+            {tab === "office" && <OfficeAdmin />}
             {tab === "classification" && <ClassificationAdmin />}
             {tab === "webhooks" && <WebhooksAdmin />}
             {tab === "service-accounts" && <ServiceAccountsAdmin />}

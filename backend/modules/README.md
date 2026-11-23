@@ -48,6 +48,7 @@ Three layers enforce this:
 | configuration | Export/import of the whole configuration as one bundle (config as code) | types, lifecycle, access |
 | preferences | Typed preferences set per site / organization / context / user, with locking; profiles | access, types |
 | workspace | Personal workspaces: the objects a person works on, their files' states against the person's computer, check out / in for many at once, new files | access, types, versioning, content, cad |
+| office | Office files: their properties ↔ attributes (per type), properties written into downloads, PDF previews through LibreOffice | identity, access, types, versioning, content, jobs |
 | extensions | Extensibility platform: action registry, extension packages, rules, webhooks | types, access, lifecycle, versioning, configuration, identity, preferences |
 
 Every module also depends on `backend/platform` (the shared kernel).

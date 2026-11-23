@@ -612,5 +612,10 @@
   "Then, on your computer:": "Dann auf Ihrem Computer:",
   "Token name": "Name des Tokens",
   "e.g. Laptop sync": "z. B. Laptop-Sync",
-  "sends your changes as you save and brings new versions down; check in with": "sendet Ihre Änderungen beim Speichern und holt neue Versionen; einchecken mit"
+  "sends your changes as you save and brings new versions down; check in with": "sendet Ihre Änderungen beim Speichern und holt neue Versionen; einchecken mit",
+  "Word document": "Word-Dokument",
+  "Excel workbook": "Excel-Arbeitsmappe",
+  "PowerPoint presentation": "PowerPoint-Präsentation",
+  "Image": "Bild",
+  "Text": "Text"
 }

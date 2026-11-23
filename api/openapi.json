@@ -2599,6 +2599,9 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "previewPdf" : {
+            "type" : "boolean"
+          },
           "role" : {
             "enum" : [ "PRIMARY", "ATTACHMENT" ],
             "type" : "string"
@@ -2615,7 +2618,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "addedAt", "addedBy", "carriedOver", "contentType", "fileName", "id", "iterationId", "masterId", "role", "sha256", "size", "thumbnail" ],
+        "required" : [ "addedAt", "addedBy", "carriedOver", "contentType", "fileName", "id", "iterationId", "masterId", "previewPdf", "role", "sha256", "size", "thumbnail" ],
         "type" : "object"
       },
       "ContextPreferenceResponse" : {
@@ -5950,6 +5953,15 @@
         "required" : [ "contextId", "createdAt", "createdBy", "id", "latest", "name", "number", "owner", "typeId", "version" ],
         "type" : "object"
       },
+      "OfficeStatus" : {
+        "properties" : {
+          "previews" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "previews" ],
+        "type" : "object"
+      },
       "OperationResult" : {
         "properties" : {
           "changed" : {
@@ -7176,6 +7188,21 @@
           }
         },
         "required" : [ "contextId", "createdAt", "createdBy", "id", "items", "name", "number", "status", "targetState" ],
+        "type" : "object"
+      },
+      "PropertyMapping" : {
+        "properties" : {
+          "attribute" : {
+            "type" : "string"
+          },
+          "inherited" : {
+            "type" : "boolean"
+          },
+          "property" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "attribute", "inherited", "property" ],
         "type" : "object"
       },
       "Publication" : {
@@ -24065,6 +24092,203 @@
         "tags" : [ "Versioned object" ]
       }
     },
+    "/api/v1/office/content/{contentId}" : {
+      "get" : {
+        "operationId" : "officeDownload",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Office" ]
+      }
+    },
+    "/api/v1/office/content/{contentId}/properties" : {
+      "get" : {
+        "operationId" : "officeProperties",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "contentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "additionalProperties" : {
+                    "type" : "string"
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Office" ]
+      }
+    },
+    "/api/v1/office/mappings/{typeId}" : {
+      "get" : {
+        "operationId" : "officeMappings",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "typeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/PropertyMapping"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Office" ]
+      },
+      "put" : {
+        "operationId" : "officeSetMappings",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "typeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "items" : {
+                  "$ref" : "#/components/schemas/PropertyMapping"
+                },
+                "type" : "array"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/PropertyMapping"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Office" ]
+      }
+    },
+    "/api/v1/office/status" : {
+      "get" : {
+        "operationId" : "officeStatus",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OfficeStatus"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Office" ]
+      }
+    },
     "/api/v1/operation-rules" : {
       "get" : {
         "operationId" : "operationRuleList",
@@ -30585,6 +30809,8 @@
     "name" : "Lifecycle"
   }, {
     "name" : "Markup"
+  }, {
+    "name" : "Office"
   }, {
     "name" : "Operation rule"
   }, {

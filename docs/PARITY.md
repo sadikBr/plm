@@ -145,8 +145,8 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 |---|---|---|
 | Primary content + secondary attachments, URL links | ✅ | Primary content and attachments per iteration [3.2] |
 | Upload/download straight to object storage, resumable large files | 🟡 | Presigned uploads and downloads straight to the vault ✅ [3.2] · resumable uploads for very large files [9] |
-| Desktop / office integration (open, edit locally, check in) | 🟡 | Desktop sync client with personal tokens ✅ [8.3] · Office properties and previews [8.4] | |
-| Thumbnails and previews (PDF, images, office) | 🟡 | Thumbnails, PDF and image previews ✅ [3.2] · Office file previews [8] |
+| Desktop / office integration (open, edit locally, check in) | ✅ | Desktop sync client with personal tokens [8.3] · Office properties ↔ attributes, written into downloads [8.4] | |
+| Thumbnails and previews (PDF, images, office) | ✅ | Thumbnails, PDF and image previews [3.2] · Office files through LibreOffice [8.4] |
 | Publishing: generate PDF / neutral formats on check-in or release, with watermarks and stamps | ✅ | Rules per type and state, watermarks and stamps, PDF data sheets [6.7] |
 | Web 3D and 2D viewers, markups and annotations stored as objects | ✅ | 3D viewer with measure, section, saved views and 3D markups; 2D/PDF viewer with markups [6.8–6.11] |
 | Augmented reality / mobile viewing | ⬜ [14] | Possibly via partners |

@@ -9,7 +9,23 @@ import { Dialog, ErrorBanner, Loading, Panel, PrincipalName, formatDate } from "
 export type ContentItem = Schemas["ContentItem"];
 type Role = ContentItem["role"];
 
-const PREVIEWABLE = /^(image\/(png|jpeg|gif|bmp|webp|svg\+xml)|application\/pdf|text\/.*|application\/json|application\/xml)$/;
+const PREVIEWABLE_TYPES = /^(image\/(png|jpeg|gif|bmp|webp|svg\+xml)|application\/pdf|text\/.*|application\/json|application\/xml)$/;
+/** Office files (roadmap 8.4): downloaded with the object's attributes written into their properties. */
+const OFFICE = /\.(docx|docm|xlsx|xlsm|pptx|pptm|dotx|xltx|potx)$/i;
+/** Shown in the browser: images, PDFs, text, and Office files once a PDF was made of them. */
+/** A file type as people call it ("Word document"), else its media type. */
+export function kindOf(contentType: string): string {
+  const kinds: [RegExp, string][] = [
+    [/wordprocessingml|msword/, t("Word document")],
+    [/spreadsheetml|ms-excel/, t("Excel workbook")],
+    [/presentationml|ms-powerpoint/, t("PowerPoint presentation")],
+    [/^application\/pdf$/, "PDF"],
+    [/^image\//, t("Image")],
+    [/^text\/plain$/, t("Text")],
+  ];
+  return kinds.find(([re]) => re.test(contentType))?.[1] ?? contentType;
+}
+const previewable = (item: ContentItem) => PREVIEWABLE_TYPES.test(item.contentType) || item.previewPdf;
 
 export function formatSize(bytes: number): string {
   if (bytes < 1024) return t("{size} B", { size: bytes });
@@ -144,6 +160,7 @@ export function ObjectFiles({ objectId, iterationKey, editable }: { objectId: st
     if (watermarks?.watermarkDownloads && /\.pdf$/i.test(item.fileName) && item.iterationId) {
       return fetchPdf(`/api/v1/content/${item.id}/watermarked`, item.fileName);
     }
+    if (OFFICE.test(item.fileName)) return fetchPdf(`/api/v1/office/content/${item.id}`, item.fileName);
     const a = document.createElement("a");
     a.href = await fileLink(item.id, false);
     a.download = item.fileName;
@@ -164,7 +181,7 @@ export function ObjectFiles({ objectId, iterationKey, editable }: { objectId: st
         <div className="file-name">
           <Thumbnail item={item} size={36} />
           <div>
-            <button className="link-btn" onClick={() => (PREVIEWABLE.test(item.contentType) ? setPreview(item) : void download(item))}>
+            <button className="link-btn" onClick={() => (previewable(item) ? setPreview(item) : void download(item))}>
               {item.fileName}
             </button>
             {item.description && <div className="muted small">{item.description}</div>}
@@ -172,12 +189,12 @@ export function ObjectFiles({ objectId, iterationKey, editable }: { objectId: st
         </div>
       </td>
       <td className="nowrap muted">{formatSize(item.size)}</td>
-      <td className="nowrap muted">{item.contentType}</td>
+      <td className="nowrap muted">{kindOf(item.contentType)}</td>
       <td className="nowrap muted">
         {formatDate(item.addedAt)} · <PrincipalName id={item.addedBy} />
       </td>
       <td className="nowrap">
-        {PREVIEWABLE.test(item.contentType) && (
+        {previewable(item) && (
           <button
             className="icon-btn"
             aria-label={t("Preview {name}", { name: item.fileName })}
@@ -279,11 +296,11 @@ export function ObjectFiles({ objectId, iterationKey, editable }: { objectId: st
                     {primary.fileName}
                   </strong>
                   <span className="muted small">
-                    {formatSize(primary.size)} · {primary.contentType}
+                    {formatSize(primary.size)} · {kindOf(primary.contentType)}
                     {primary.description ? ` · ${primary.description}` : ""}
                   </span>
                   <div className="row" style={{ gap: 6 }}>
-                    {PREVIEWABLE.test(primary.contentType) && (
+                    {previewable(primary) && (
                       <button className="btn small" onClick={() => setPreview(primary)}>
                         <Eye size={13} aria-hidden /> {t("Preview")}
                       </button>
@@ -362,7 +379,7 @@ export function PreviewDialog({ item, onClose, onDownload }: { item: ContentItem
           <Loading />
         ) : item.contentType.startsWith("image/") ? (
           <img src={url} alt={item.fileName} />
-        ) : item.contentType === "application/pdf" ? (
+        ) : item.contentType === "application/pdf" || item.previewPdf ? (
           <PdfPages item={item} inlineUrl={url} />
         ) : (
           <pre>{text?.slice(0, 200_000) ?? ""}</pre>

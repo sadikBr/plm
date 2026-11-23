@@ -6884,3 +6884,19 @@ textarea {
   flex: 0 0 auto;
   white-space: nowrap;
 }
+.muted-row td {
+  color: var(--text-3);
+}
+.office-prop {
+  gap: 6px;
+}
+.office-prop select,
+.office-prop input {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+.panel-head select {
+  width: auto;
+  flex: 0 1 240px;
+  min-width: 0;
+}

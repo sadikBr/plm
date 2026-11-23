@@ -27,6 +27,8 @@ data class ContentItem(
     val addedBy: String,
     /** True when it came with the iteration it was based on, rather than uploaded to this one. */
     val carriedOver: Boolean,
+    /** A PDF made from it (an Office file converted, roadmap 8.4) gives it page previews like a PDF. */
+    val previewPdf: Boolean = false,
 )
 
 /** Where to send the bytes: PUT them to [uploadUrl] (no other authentication) before [expiresAt]. */
@@ -82,6 +84,12 @@ data class DerivedFile(
  * `INVALID_FILE_NAME`, `NOT_CHECKED_OUT`, `CONTENT_NOT_FOUND`, `NO_THUMBNAIL`.
  */
 interface ContentService {
+    /** One file, if the actor may read its object. @throws com.plm.platform.error.NotFoundException `CONTENT_NOT_FOUND` */
+    fun item(
+        actor: Actor,
+        contentId: UUID,
+    ): ContentItem
+
     fun requestUpload(
         actor: Actor,
         request: RequestUpload,

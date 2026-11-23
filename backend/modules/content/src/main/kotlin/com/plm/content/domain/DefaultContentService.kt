@@ -177,8 +177,22 @@ internal class DefaultContentService(
                         ?: throw NotFoundException("ITERATION_NOT_FOUND", "There's no such iteration of ${obj.number}")
                 else -> obj.latest.id.value
             }
-        return content.items(iteration).map { it.item }
+        return content.items(iteration).map {
+            if (it.item.contentType != "application/pdf" &&
+                derivedRow(it.blobKey, "pdf") != null
+            ) {
+                it.item.copy(previewPdf = true)
+            } else {
+                it.item
+            }
+        }
     }
+
+    @Transactional(readOnly = true)
+    override fun item(
+        actor: Actor,
+        contentId: UUID,
+    ): ContentItem = readable(actor, contentId).item
 
     @Transactional(readOnly = true)
     override fun download(
@@ -207,14 +221,19 @@ internal class DefaultContentService(
         page: Int,
     ): PreviewPage {
         val s = tx.execute { readable(actor, contentId) }
-        if (s.item.contentType != "application/pdf") {
-            throw ValidationException("NOT_A_PDF", "Only PDF files are previewed page by page")
-        }
+        // A PDF, or a file with a PDF made from it (an Office file, roadmap 8.4).
+        val source =
+            if (s.item.contentType == "application/pdf") {
+                s.blobKey
+            } else {
+                derivedRow(s.blobKey, "pdf")?.second
+                    ?: throw ValidationException("NOT_A_PDF", "Only PDF files are previewed page by page")
+            }
         var pages = content.pages(s.blobKey)
         val key = "${s.blobKey}.p$page.png"
         val cached = pages != null && page in 1..pages && runCatching { store.open(key).close() }.isSuccess
         if (!cached) {
-            store.open(s.blobKey).use { input ->
+            store.open(source).use { input ->
                 Loader.loadPDF(input.readAllBytes()).use { pdf ->
                     pages = pdf.numberOfPages
                     tx.executeWithoutResult { content.setPages(s.blobKey, pdf.numberOfPages) }
@@ -367,6 +386,22 @@ internal class DefaultContentService(
                     .size(file),
             ).param("at", java.sql.Timestamp.from(clock.instant()))
             .update()
+        // A file with no picture of its own gets one from its PDF (an Office file, roadmap 8.4).
+        if (kind == "pdf" && s.thumbnailKey == null) {
+            val system =
+                Actor(
+                    s.tenant,
+                    com.plm.platform.id
+                        .PrincipalId("system"),
+                    siteAdmin = true,
+                )
+            jobs.enqueueSystem(
+                system,
+                ThumbnailJob.TYPE,
+                mapOf("blobKey" to s.blobKey, "sourceKey" to key),
+                "Thumbnail of ${s.item.fileName}",
+            )
+        }
         return derivedRow(s.blobKey, kind)!!.first
     }
 

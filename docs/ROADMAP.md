@@ -712,10 +712,15 @@ system keeps track: what they took, what they changed, what is out of date.
       file that can't be sent. Personal access tokens (`PERSONAL`, read / write, admin only for
       administrators) made and revoked in My preferences; a "Sync with your computer" guide on each
       workspace. Its round trip is tested against a running server.)
-- [ ] 8.4 Office integration: properties of Word, Excel and PowerPoint files (title, subject,
+- [x] 8.4 Office integration: properties of Word, Excel and PowerPoint files (title, subject,
       author, keywords and custom properties) read into attributes on upload and written back
       into the file on download, mapped per type in Admin; previews and PDF publishing of Office
       files through a converter (LibreOffice in the converter worker).
+      (Done: an `office` module; core and custom properties read from and written into the file's
+      Office Open XML parts (a custom part registered when missing); mappings per type, inherited
+      by subtypes, with value lists matched by key or label; a download writes the object's values
+      in. LibreOffice, when installed on the server, turns each Office file into a PDF for page
+      previews and a thumbnail (run by the backend's job queue rather than a separate worker).)
 - [ ] 8.5 Connector kit: one protocol for authoring-tool connectors: a connector sends a manifest
       of the files it saves (model, kind, dependencies with their roles, parameters, the part it
       represents) and the server creates or updates the CAD documents, their dependencies, family

@@ -36,8 +36,10 @@ internal class ThumbnailJob(
         if (blob.thumbnail == ThumbnailStatus.READY) return mapOf("thumbnail" to blob.thumbnailKey)
         val source: BufferedImage? =
             try {
-                store.open(key).use { input ->
-                    if (blob.contentType == "application/pdf") {
+                // From the file itself, or from a PDF made from it (roadmap 8.4).
+                val sourceKey = context.payload["sourceKey"] as? String
+                store.open(sourceKey ?: key).use { input ->
+                    if (sourceKey != null || blob.contentType == "application/pdf") {
                         Loader.loadPDF(input.readAllBytes()).use { pdf -> PDFRenderer(pdf).renderImageWithDPI(0, 48f) }
                     } else {
                         ImageIO.read(input)

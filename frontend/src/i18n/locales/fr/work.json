@@ -612,5 +612,10 @@
   "Then, on your computer:": "Puis, sur votre ordinateur :",
   "Token name": "Nom du jeton",
   "e.g. Laptop sync": "p. ex. Synchro portable",
-  "sends your changes as you save and brings new versions down; check in with": "envoie vos modifications à chaque enregistrement et récupère les nouvelles versions ; archivez avec"
+  "sends your changes as you save and brings new versions down; check in with": "envoie vos modifications à chaque enregistrement et récupère les nouvelles versions ; archivez avec",
+  "Word document": "Document Word",
+  "Excel workbook": "Classeur Excel",
+  "PowerPoint presentation": "Présentation PowerPoint",
+  "Image": "Image",
+  "Text": "Texte"
 }
