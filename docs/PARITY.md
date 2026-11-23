@@ -43,7 +43,7 @@ search summaries; those are marked *(to confirm)*. The list is about **what** us
 | Profiles: what actions and UI a group of users sees (e.g. a "viewer" profile) | ✅ | Profiles hide actions, tabs and UI areas for their members [2.8] |
 | **Preferences** with levels (site → organization → context → user) and locking at a level | ✅ | Declared by modules; Preferences tab on each context and My preferences |
 | Folders (cabinets) inside contexts, folder-level defaults | 🟡 | Folders with paths, move between folders and contexts ✅ [3.4] · folder-level defaults [later] |
-| Security labels (e.g. export control, proprietary) with clearance, and agreements that grant temporary access | ⬜ [9] | Combined with policy checks in the SQL predicate |
+| Security labels (e.g. export control, proprietary) with clearance, and agreements that grant temporary access | ✅ | Ordered label values on objects, clearances, agreements over objects or contexts; in every access check and SQL list filter; blocked people told why |
 | Audit trail of every change; configurable audit events and reports | 🟡 | Append-only log ✅ · audit report by period, person, kind and context with Excel export ✅ [3.10] · choosing which events are audited [9] |
 | Domain events for integrations | ✅ | Transactional outbox → Kafka |
 | Localization of the UI and of admin-defined labels | ✅ | Every screen in English, French and German, a language per user ✅ [3.12] · server-written messages still in English |
@@ -254,7 +254,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 
 | Capability | Status | Notes |
 |---|---|---|
-| Security labels and agreements | ⬜ [9] | May move earlier for defense customers |
+| Security labels and agreements | ✅ | Roadmap 9.7 |
 | Electronic signatures, signature manifest | ✅ | Signatures panel per object, immutable and hashed [5.6] |
 | Retention policies, legal hold, purge and archive with restore | ⬜ [9] | |
 | Audit reports and audit configuration | 🟡 | Audit report with filters and Excel export ✅ [3.10] · choosing audited events [9] |

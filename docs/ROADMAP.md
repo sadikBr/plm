@@ -815,11 +815,17 @@ ERP, its legal and security rules, more than one site, and safe upgrades.
       product/library/project (Architecture and Change Management, query capability, delegated
       selection dialog), resources in RDF/XML, Turtle or JSON-LD, compact previews; links to
       requirements, tests and changes on each object, published on its resource.
-- [ ] 9.7 Security labels and agreements: labels (export control, proprietary…) with ordered
+- [x] 9.7 Security labels and agreements: labels (export control, proprietary…) with ordered
       values set on objects; people hold clearances; reading or downloading a labelled object needs
       a clearance or an agreement (a time-limited grant to named people for named objects or
       contexts), enforced in every access check and list filter; why someone can't see an object
       is explained.
+      Done: labels with ordered values (append-only, ranks stored), object labels set by context
+      managers, clearances with expiry, agreements for named people over objects or contexts
+      (and below), all in `DefaultAccessService`: `permissions()` hides a blocked object and the SQL
+      `filter()` adds the label predicate to every list and search. A person the context lets in
+      gets `LABEL_CLEARANCE_REQUIRED` and a page saying which labels block them; others still get
+      404. Site administrators pass. Changes are audited (`access.SecurityLabelsChanged.v1`).
 - [ ] 9.8 Retention, legal hold, archive and purge: retention rules per type and state (keep for
       N years, then purge old iterations or archive); legal holds that freeze objects or whole
       contexts against deletion and purge; archive to the vault as a self-contained package with

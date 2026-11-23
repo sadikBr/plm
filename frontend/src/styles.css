@@ -7231,3 +7231,49 @@ ol.steps {
     grid-template-columns: 1fr;
   }
 }
+
+/* Security labels (roadmap 9.7) */
+.sec-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sec-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  background: color-mix(in srgb, var(--danger, #c33) 12%, transparent);
+  color: var(--danger, #b42318);
+  border: 1px solid color-mix(in srgb, var(--danger, #c33) 35%, transparent);
+}
+.sec-edit {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.sec-scale {
+  display: inline-flex;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.sec-step {
+  padding: 3px 10px;
+  font-size: 12px;
+  background: color-mix(in srgb, var(--danger, #c33) 22%, transparent);
+  border-right: 1px solid var(--border);
+}
+.sec-step:last-child {
+  border-right: 0;
+}
+.sec-grant {
+  display: flex;
+  gap: 6px;
+}
+.sec-blocked {
+  max-width: 760px;
+  margin: 24px auto;
+}

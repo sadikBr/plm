@@ -987,7 +987,15 @@ internal class DefaultVersioningService(
         master: MasterRow,
     ): Iteration {
         val latest = repository.iteration(master.latestIterationId)
-        if (!access.has(actor, master.target(latest), Permission.READ)) notFound(master.id)
+        if (!access.has(actor, master.target(latest), Permission.READ)) {
+            // A security label the person isn't cleared for says so (roadmap 9.7); otherwise it isn't there.
+            try {
+                access.require(actor, master.target(latest), Permission.READ)
+            } catch (e: ForbiddenException) {
+                if (e.code == "LABEL_CLEARANCE_REQUIRED") throw e
+            }
+            notFound(master.id)
+        }
         return latest
     }
 
