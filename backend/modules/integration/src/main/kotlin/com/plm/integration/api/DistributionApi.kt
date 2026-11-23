@@ -45,7 +45,7 @@ data class SaveTarget(
     val active: Boolean = true,
 )
 
-data class SaveRule(
+data class SaveDistributionRule(
     val typeId: UUID,
     val contextId: UUID? = null,
     val state: String = "RELEASED",
@@ -137,7 +137,7 @@ interface DistributionService {
     fun addRule(
         actor: Actor,
         targetId: UUID,
-        command: SaveRule,
+        command: SaveDistributionRule,
     ): DistributionTarget
 
     fun removeRule(

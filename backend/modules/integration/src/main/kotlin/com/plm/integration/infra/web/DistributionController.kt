@@ -2,7 +2,7 @@ package com.plm.integration.infra.web
 
 import com.plm.integration.api.Acknowledge
 import com.plm.integration.api.DistributionService
-import com.plm.integration.api.SaveRule
+import com.plm.integration.api.SaveDistributionRule
 import com.plm.integration.api.SaveTarget
 import com.plm.platform.actor.Actor
 import org.springframework.http.HttpStatus
@@ -51,7 +51,7 @@ internal class DistributionController(
     fun addRule(
         actor: Actor,
         @PathVariable id: UUID,
-        @RequestBody command: SaveRule,
+        @RequestBody command: SaveDistributionRule,
     ) = distribution.addRule(actor, id, command)
 
     @DeleteMapping("/api/v1/distribution/rules/{id}")

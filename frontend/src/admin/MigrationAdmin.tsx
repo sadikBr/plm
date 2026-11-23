@@ -152,14 +152,14 @@ function MigrationDetails({ migration: m }: { migration: Migration }) {
         queryFn: () => unwrap(api.GET("/api/v1/migrations/{id}/items", { params: { path: { id: m.id } } })),
     });
     const a = m.analysis;
-    const set = (kind: keyof Mappings, from: string, to: string) => {
+    const set = (kind: "types" | "states" | "attributes" | "users", from: string, to: string) => {
         const next = { ...mappings, [kind]: { ...(mappings[kind] ?? {}), [from]: to } };
         setMappings(next);
         save.mutate(next);
     };
     const running = job?.status === "QUEUED" || job?.status === "RUNNING";
     const creatable = (types ?? []).filter((ty) => ty.instantiable);
-    const mappedRows = (kind: keyof Mappings) => Object.keys(mappings[kind] ?? {});
+    const mappedRows = (kind: "types" | "states" | "attributes" | "users") => Object.keys(mappings[kind] ?? {});
     const typeRows = [...new Set([...Object.keys(a.unmappedTypes), ...mappedRows("types")])];
     const stateRows = [...new Set([...Object.keys(a.unmappedStates), ...mappedRows("states")])];
     const attributeRows = [...new Set([...Object.keys(a.unmappedAttributes), ...mappedRows("attributes")])];

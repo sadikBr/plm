@@ -9559,6 +9559,23 @@
         "required" : [ "kind", "name" ],
         "type" : "object"
       },
+      "SaveDistributionRule" : {
+        "properties" : {
+          "contextId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "state", "typeId" ],
+        "type" : "object"
+      },
       "SaveFromContextRequest" : {
         "properties" : {
           "description" : {
@@ -17628,7 +17645,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/SaveRule"
+                "$ref" : "#/components/schemas/SaveDistributionRule"
               }
             }
           },

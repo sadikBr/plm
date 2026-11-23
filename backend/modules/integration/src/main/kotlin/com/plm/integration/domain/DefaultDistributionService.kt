@@ -10,7 +10,7 @@ import com.plm.integration.api.DistributionRule
 import com.plm.integration.api.DistributionService
 import com.plm.integration.api.DistributionTarget
 import com.plm.integration.api.ObjectDistribution
-import com.plm.integration.api.SaveRule
+import com.plm.integration.api.SaveDistributionRule
 import com.plm.integration.api.SaveTarget
 import com.plm.integration.api.TargetSecret
 import com.plm.platform.actor.Actor
@@ -178,7 +178,7 @@ internal class DefaultDistributionService(
     override fun addRule(
         actor: Actor,
         targetId: UUID,
-        command: SaveRule,
+        command: SaveDistributionRule,
     ): DistributionTarget {
         requireAdmin(actor)
         val t = target(actor.tenant, targetId)
