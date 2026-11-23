@@ -11,6 +11,7 @@ import { EffectivityTab } from "../effectivity/EffectivityTab";
 import { PartOptionsPanel } from "../variants/OptionSets";
 import { OneOffBanner, OneOffsPanel } from "../variants/OneOffs";
 import { ClassificationTab } from "../classification/Classification";
+import { DistributionTab } from "../integration/Distribution";
 import { PublicationsPanel } from "../publishing/Publishing";
 import { ExtensionPanels, ExtensionTab, useUiSlots } from "../extensions/ExtensionFrame";
 import { ReplacementsTab } from "../structure/Replacements";
@@ -26,43 +27,43 @@ import { useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import { isApiError } from "../api/client";
 import {
-  useAudit,
-  useAvailableActions,
-  useContextById,
-  useHistory,
-  useLifecycle,
-  useMe,
-  usePermissions,
-  useTypes,
-  useObject,
-  useObjectActions,
-  useRenameObject,
-  useChangeLifecycle,
-  useLifecycles,
-  useEffectivePreferences,
-  useLayout,
-  useTypeAttributes,
-  useWorkingCopy,
-  type AttributeDefinition,
-  type LayoutGroup,
-  type Attributes,
-  type ObjectLifecycle,
-  type VersionedObject,
-  useShows,
+    useAudit,
+    useAvailableActions,
+    useContextById,
+    useHistory,
+    useLifecycle,
+    useMe,
+    usePermissions,
+    useTypes,
+    useObject,
+    useObjectActions,
+    useRenameObject,
+    useChangeLifecycle,
+    useLifecycles,
+    useEffectivePreferences,
+    useLayout,
+    useTypeAttributes,
+    useWorkingCopy,
+    type AttributeDefinition,
+    type LayoutGroup,
+    type Attributes,
+    type ObjectLifecycle,
+    type VersionedObject,
+    useShows,
 } from "../api/queries";
 import { AttributeForm, AttributeValues, fieldErrors, pickLabel } from "../components/AttributeForm";
 import {
-  Dialog,
-  ErrorBanner,
-  Loading,
-  Panel,
-  PrincipalName,
-  Props,
-  StateBadge,
-  TypeIcon,
-  formatDate,
-  useTypeName,
-  When,
+    Dialog,
+    ErrorBanner,
+    Loading,
+    Panel,
+    PrincipalName,
+    Props,
+    StateBadge,
+    TypeIcon,
+    formatDate,
+    useTypeName,
+    When,
 } from "../components/common";
 import { Breadcrumbs, PageHeader, Tabs, useIdParam } from "../components/Layout";
 import { ObjectFiles } from "../components/ObjectFiles";
@@ -75,791 +76,820 @@ import { BackgroundActions, useActionRunner } from "./ActionRunner";
 import { ObjectActionBar, type ActionHandlers } from "./ObjectActions";
 
 type Tab =
-  | "details"
-  | "structure"
-  | "where-used"
-  | "documents"
-  | "replacements"
-  | "parts"
-  | "processes"
-  | "change"
-  | "cad"
-  | "view3d"
-  | "view2d"
-  | "effectivity"
-  | "options"
-  | "classification"
-  | "changes"
-  | "discussion"
-  | "history"
-  | "audit"
-  | `ext:${string}`;
+    | "details"
+    | "structure"
+    | "where-used"
+    | "documents"
+    | "replacements"
+    | "parts"
+    | "processes"
+    | "distribution"
+    | "change"
+    | "cad"
+    | "view3d"
+    | "view2d"
+    | "effectivity"
+    | "options"
+    | "classification"
+    | "changes"
+    | "discussion"
+    | "history"
+    | "audit"
+    | `ext:${string}`;
 
 /** Remounts per object, so page state never leaks between objects. */
 export function ObjectPage() {
-  const id = useIdParam();
-  return <ObjectView key={id} id={id} />;
+    const id = useIdParam();
+    return <ObjectView key={id} id={id} />;
 }
 
 function ObjectView({ id }: { id: string }) {
-  const { data: obj, error, isLoading } = useObject(id);
-  useRecordVisit(obj?.id);
-  const { data: me } = useMe();
-  const shows = useShows();
-  const [params, setParams] = useSearchParams();
-  const { data: comments } = useComments(id);
-  const discussionCount = comments?.filter((c) => !c.parentId && !c.resolved).length ?? 0;
-  const { data: allTypes } = useTypes();
-  const { data: uiSlots } = useUiSlots(id);
-  const partLike = allTypes?.find((ty) => ty.id === obj?.typeId)?.baseClass === "PART";
-  const ownerModel = useOwnerModel(id, partLike);
-  const docLike = allTypes?.find((ty) => ty.id === obj?.typeId)?.baseClass === "DOCUMENT";
-  const hasPdf = useHasPdf(id, docLike);
+    const { data: obj, error, isLoading } = useObject(id);
+    useRecordVisit(obj?.id);
+    const { data: me } = useMe();
+    const shows = useShows();
+    const [params, setParams] = useSearchParams();
+    const { data: comments } = useComments(id);
+    const discussionCount = comments?.filter((c) => !c.parentId && !c.resolved).length ?? 0;
+    const { data: allTypes } = useTypes();
+    const { data: uiSlots } = useUiSlots(id);
+    const partLike = allTypes?.find((ty) => ty.id === obj?.typeId)?.baseClass === "PART";
+    const ownerModel = useOwnerModel(id, partLike);
+    const docLike = allTypes?.find((ty) => ty.id === obj?.typeId)?.baseClass === "DOCUMENT";
+    const hasPdf = useHasPdf(id, docLike);
 
-  if (isLoading) return <Loading />;
-  if (isApiError(error, 404)) return <NotFoundPage what="object" />;
-  if (error || !obj) return <ErrorBanner error={error} />;
+    if (isLoading) return <Loading />;
+    if (isApiError(error, 404)) return <NotFoundPage what="object" />;
+    if (error || !obj) return <ErrorBanner error={error} />;
 
-  const isPart = allTypes?.find((ty) => ty.id === obj.typeId)?.baseClass === "PART";
-  const changeKind = changeKindOf(allTypes, obj.typeId);
-  const cadKind = cadKindOf(allTypes, obj.typeId);
-  const tabs: [Tab, string][] = [
-    ["details", t("Details")],
-    ...(cadKind
-      ? [["cad", cadKind === "PART" ? t("Model") : cadKind === "DRAWING" ? t("Models") : t("Model structure")] as [Tab, string]]
-      : []),
-    ...((cadKind && cadKind !== "DRAWING") || ownerModel ? [["view3d", t("3D view")] as [Tab, string]] : []),
-    ...(hasPdf ? [["view2d", t("2D view")] as [Tab, string]] : []),
-    ...(isPart
-      ? [
-          ["structure", t("Structure")] as [Tab, string],
-          ["where-used", t("Where used")] as [Tab, string],
-          ["documents", t("Documents")] as [Tab, string],
-          ["replacements", t("Replacements")] as [Tab, string],
-          ["effectivity", t("Effectivity")] as [Tab, string],
-          ["options", t("Options")] as [Tab, string],
-          ["classification", t("Classification")] as [Tab, string],
-        ]
-      : allTypes && !changeKind
-        ? [["parts", t("Parts")] as [Tab, string]]
-        : []),
-    ...(changeKind ? [["change", kindLabel(changeKind)] as [Tab, string]] : [["changes", t("Changes")] as [Tab, string]]),
-    ["processes", t("Processes")],
-    ...(uiSlots ?? []).filter((s) => s.slot === "object.tab").map((s) => [`ext:${s.extensionId}/${s.id}`, s.title] as [Tab, string]),
-    ["discussion", discussionCount ? t("Discussion ({count})", { count: discussionCount }) : t("Discussion")],
-    ...(shows("object.history") ? [["history", t("History")] as [Tab, string]] : []),
-    ...(me?.siteAdmin && shows("object.audit") ? [["audit", t("Audit")] as [Tab, string]] : []),
-  ];
-  const asked = params.get("tab") as Tab | null;
-  const tab: Tab = asked && tabs.some(([k]) => k === asked) ? asked : "details";
-  const myId = me?.user.id;
+    const isPart = allTypes?.find((ty) => ty.id === obj.typeId)?.baseClass === "PART";
+    const changeKind = changeKindOf(allTypes, obj.typeId);
+    const cadKind = cadKindOf(allTypes, obj.typeId);
+    const tabs: [Tab, string][] = [
+        ["details", t("Details")],
+        ...(cadKind
+            ? [["cad", cadKind === "PART" ? t("Model") : cadKind === "DRAWING" ? t("Models") : t("Model structure")] as [Tab, string]]
+            : []),
+        ...((cadKind && cadKind !== "DRAWING") || ownerModel ? [["view3d", t("3D view")] as [Tab, string]] : []),
+        ...(hasPdf ? [["view2d", t("2D view")] as [Tab, string]] : []),
+        ...(isPart
+            ? [
+                  ["structure", t("Structure")] as [Tab, string],
+                  ["where-used", t("Where used")] as [Tab, string],
+                  ["documents", t("Documents")] as [Tab, string],
+                  ["replacements", t("Replacements")] as [Tab, string],
+                  ["effectivity", t("Effectivity")] as [Tab, string],
+                  ["options", t("Options")] as [Tab, string],
+                  ["classification", t("Classification")] as [Tab, string],
+              ]
+            : allTypes && !changeKind
+              ? [["parts", t("Parts")] as [Tab, string]]
+              : []),
+        ...(changeKind ? [["change", kindLabel(changeKind)] as [Tab, string]] : [["changes", t("Changes")] as [Tab, string]]),
+        ["processes", t("Processes")],
+        ...(!changeKind ? [["distribution", t("Distribution")] as [Tab, string]] : []),
+        ...(uiSlots ?? []).filter((s) => s.slot === "object.tab").map((s) => [`ext:${s.extensionId}/${s.id}`, s.title] as [Tab, string]),
+        ["discussion", discussionCount ? t("Discussion ({count})", { count: discussionCount }) : t("Discussion")],
+        ...(shows("object.history") ? [["history", t("History")] as [Tab, string]] : []),
+        ...(me?.siteAdmin && shows("object.audit") ? [["audit", t("Audit")] as [Tab, string]] : []),
+    ];
+    const asked = params.get("tab") as Tab | null;
+    const tab: Tab = asked && tabs.some(([k]) => k === asked) ? asked : "details";
+    const myId = me?.user.id;
 
-  return (
-    <>
-      <ObjectHeader obj={obj} myId={myId} tabs={<Tabs tabs={tabs} active={tab} onSelect={(k) => setParams({ tab: k })} />} />
-      <div className="content">
-        <OneOffBanner obj={obj} />
-        {tab === "details" && <DetailsTab obj={obj} myId={myId} />}
-        {tab === "cad" && cadKind && <CadTab obj={obj} kind={cadKind} mine={!!myId && obj.checkedOutBy === myId} />}
-        {tab === "view2d" && <SheetTab obj={obj} />}
-        {tab === "classification" && <ClassificationTab obj={obj} />}
-        {tab === "options" && <PartOptionsPanel obj={obj} />}
-        {tab === "effectivity" && <EffectivityTab obj={obj} mine={!!myId && obj.checkedOutBy === myId} />}
-        {tab === "view3d" && <ViewTab obj={obj} modelId={cadKind ? obj.id : ownerModel!} mine={!!myId && obj.checkedOutBy === myId} />}
-        {tab === "structure" && <PartCadPanel obj={obj} mine={!!myId && obj.checkedOutBy === myId} />}
-        {tab === "structure" && <StructureTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}
-        {tab === "where-used" && <WhereUsedTab obj={obj} />}
-        {tab === "documents" && <DocumentLinksTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}
-        {tab === "parts" && <LinkingPartsTab obj={obj} />}
-        {tab === "replacements" && <ReplacementsTab obj={obj} />}
-        {tab === "processes" && <ProcessesTab obj={obj} />}
-        {tab === "change" && changeKind && <ChangeTab obj={obj} kind={changeKind} />}
-        {tab === "changes" && <ObjectChangesTab obj={obj} />}
-        {tab === "discussion" && <DiscussionTab obj={obj} />}
-        {tab === "history" && isPart && <OneOffsPanel obj={obj} />}
-        {tab === "history" && <HistoryTab id={obj.id} />}
-        {tab === "audit" && me?.siteAdmin && <AuditTab id={obj.id} />}
-        {tab.startsWith("ext:") &&
-          (uiSlots ?? []).filter((s) => tab === `ext:${s.extensionId}/${s.id}`).map((s) => <ExtensionTab key={tab} slot={s} obj={obj} />)}
-      </div>
-    </>
-  );
+    return (
+        <>
+            <ObjectHeader obj={obj} myId={myId} tabs={<Tabs tabs={tabs} active={tab} onSelect={(k) => setParams({ tab: k })} />} />
+            <div className="content">
+                <OneOffBanner obj={obj} />
+                {tab === "details" && <DetailsTab obj={obj} myId={myId} />}
+                {tab === "cad" && cadKind && <CadTab obj={obj} kind={cadKind} mine={!!myId && obj.checkedOutBy === myId} />}
+                {tab === "view2d" && <SheetTab obj={obj} />}
+                {tab === "classification" && <ClassificationTab obj={obj} />}
+                {tab === "options" && <PartOptionsPanel obj={obj} />}
+                {tab === "effectivity" && <EffectivityTab obj={obj} mine={!!myId && obj.checkedOutBy === myId} />}
+                {tab === "view3d" && (
+                    <ViewTab obj={obj} modelId={cadKind ? obj.id : ownerModel!} mine={!!myId && obj.checkedOutBy === myId} />
+                )}
+                {tab === "structure" && <PartCadPanel obj={obj} mine={!!myId && obj.checkedOutBy === myId} />}
+                {tab === "structure" && <StructureTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}
+                {tab === "where-used" && <WhereUsedTab obj={obj} />}
+                {tab === "documents" && <DocumentLinksTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}
+                {tab === "parts" && <LinkingPartsTab obj={obj} />}
+                {tab === "replacements" && <ReplacementsTab obj={obj} />}
+                {tab === "processes" && <ProcessesTab obj={obj} />}
+                {tab === "distribution" && <DistributionTab objectId={obj.id} />}
+                {tab === "change" && changeKind && <ChangeTab obj={obj} kind={changeKind} />}
+                {tab === "changes" && <ObjectChangesTab obj={obj} />}
+                {tab === "discussion" && <DiscussionTab obj={obj} />}
+                {tab === "history" && isPart && <OneOffsPanel obj={obj} />}
+                {tab === "history" && <HistoryTab id={obj.id} />}
+                {tab === "audit" && me?.siteAdmin && <AuditTab id={obj.id} />}
+                {tab.startsWith("ext:") &&
+                    (uiSlots ?? [])
+                        .filter((s) => tab === `ext:${s.extensionId}/${s.id}`)
+                        .map((s) => <ExtensionTab key={tab} slot={s} obj={obj} />)}
+            </div>
+        </>
+    );
 }
 
 function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string; tabs: React.ReactNode }) {
-  const typeName = useTypeName(obj.typeId);
-  const actions = useObjectActions(obj.id);
-  const { data: available } = useAvailableActions(obj);
-  const runner = useActionRunner(obj.id);
-  const { data: lifecycle } = useLifecycle(obj.id);
-  const [checkingIn, setCheckingIn] = useState(false);
-  const [comment, setComment] = useState("");
-  const [stateChange, setStateChange] = useState<{ to: string; override: boolean } | null>(null);
-  const [renaming, setRenaming] = useState(false);
-  const [changingLifecycle, setChangingLifecycle] = useState(false);
-  const [docDialog, setDocDialog] = useState<"save-as" | "compare" | "move" | "delete" | "owner" | null>(null);
-  const clipboard = useClipboard();
-  const reservation = useReservation(obj);
-  const { data: me } = useMe();
-  const gate = useReleaseGate(obj.typeId);
-  const { data: contextPermissions } = usePermissions(obj.contextId);
-  const canShare = !!me?.siteAdmin || obj.owner === myId || !!contextPermissions?.has("MANAGE");
-  const { data: prefs } = useEffectivePreferences(obj.contextId);
-  const commentRequired = prefs?.get("versioning.checkInCommentRequired") === true;
+    const typeName = useTypeName(obj.typeId);
+    const actions = useObjectActions(obj.id);
+    const { data: available } = useAvailableActions(obj);
+    const runner = useActionRunner(obj.id);
+    const { data: lifecycle } = useLifecycle(obj.id);
+    const [checkingIn, setCheckingIn] = useState(false);
+    const [comment, setComment] = useState("");
+    const [stateChange, setStateChange] = useState<{ to: string; override: boolean } | null>(null);
+    const [renaming, setRenaming] = useState(false);
+    const [changingLifecycle, setChangingLifecycle] = useState(false);
+    const [docDialog, setDocDialog] = useState<"save-as" | "compare" | "move" | "delete" | "owner" | null>(null);
+    const clipboard = useClipboard();
+    const reservation = useReservation(obj);
+    const { data: me } = useMe();
+    const gate = useReleaseGate(obj.typeId);
+    const { data: contextPermissions } = usePermissions(obj.contextId);
+    const canShare = !!me?.siteAdmin || obj.owner === myId || !!contextPermissions?.has("MANAGE");
+    const { data: prefs } = useEffectivePreferences(obj.contextId);
+    const commentRequired = prefs?.get("versioning.checkInCommentRequired") === true;
 
-  const mine = !!myId && obj.checkedOutBy === myId;
-  const busy = Object.values(actions).some((m) => m.isPending);
-  // Set state and check-in show their errors in their dialogs, where the user is looking.
-  const failed = Object.entries(actions).find(([key, m]) => key !== "setState" && key !== "checkIn" && m.error)?.[1].error;
-  const label = (state: string) => stateName(lifecycle, state);
-  const current = label(obj.latest.state);
+    const mine = !!myId && obj.checkedOutBy === myId;
+    const busy = Object.values(actions).some((m) => m.isPending);
+    // Set state and check-in show their errors in their dialogs, where the user is looking.
+    const failed = Object.entries(actions).find(([key, m]) => key !== "setState" && key !== "checkIn" && m.error)?.[1].error;
+    const label = (state: string) => stateName(lifecycle, state);
+    const current = label(obj.latest.state);
 
-  // What each registry action does on this page. Which ones show, where, and whether they can be
-  // used comes from the server (GET /objects/{id}/actions).
-  const handlers: ActionHandlers = {
-    "object.check-out": () => actions.checkOut.mutate(),
-    "object.check-in": () => setCheckingIn(true),
-    "object.undo-check-out": () => actions.undoCheckOut.mutate(),
-    "object.revise": () => actions.revise.mutate(),
-    "object.set-state": (option) => option && setStateChange({ to: option.value, override: option.override }),
-    "object.copy-number": () => void navigator.clipboard?.writeText(obj.number),
-    "object.copy-link": () => void navigator.clipboard?.writeText(window.location.href),
-    "object.rename": () => setRenaming(true),
-    "object.change-lifecycle": () => setChangingLifecycle(true),
-    "object.save-as": () => setDocDialog("save-as"),
-    "object.compare": () => setDocDialog("compare"),
-    "object.move": () => setDocDialog("move"),
-    "object.delete": () => setDocDialog("delete"),
-    "object.change-owner": () => setDocDialog("owner"),
-    "object.reserve": () => reservation.reserve.mutate(),
-    "object.release": () => reservation.release.mutate(),
-    "object.add-to-clipboard": () => clipboard.add({ id: obj.id, number: obj.number, name: obj.name, version: obj.version }),
-  };
+    // What each registry action does on this page. Which ones show, where, and whether they can be
+    // used comes from the server (GET /objects/{id}/actions).
+    const handlers: ActionHandlers = {
+        "object.check-out": () => actions.checkOut.mutate(),
+        "object.check-in": () => setCheckingIn(true),
+        "object.undo-check-out": () => actions.undoCheckOut.mutate(),
+        "object.revise": () => actions.revise.mutate(),
+        "object.set-state": (option) => option && setStateChange({ to: option.value, override: option.override }),
+        "object.copy-number": () => void navigator.clipboard?.writeText(obj.number),
+        "object.copy-link": () => void navigator.clipboard?.writeText(window.location.href),
+        "object.rename": () => setRenaming(true),
+        "object.change-lifecycle": () => setChangingLifecycle(true),
+        "object.save-as": () => setDocDialog("save-as"),
+        "object.compare": () => setDocDialog("compare"),
+        "object.move": () => setDocDialog("move"),
+        "object.delete": () => setDocDialog("delete"),
+        "object.change-owner": () => setDocDialog("owner"),
+        "object.reserve": () => reservation.reserve.mutate(),
+        "object.release": () => reservation.release.mutate(),
+        "object.add-to-clipboard": () => clipboard.add({ id: obj.id, number: obj.number, name: obj.name, version: obj.version }),
+    };
 
-  return (
-    <>
-      <PageHeader
-        variant="object"
-        crumbs={<Breadcrumbs contextId={obj.contextId} current={obj.number} />}
-        icon={<TypeIcon typeId={obj.typeId} size={18} />}
-        title={
-          <>
-            <span className="num">{obj.number}</span>
-            <span className="sep">·</span>
-            <span className="nm">{obj.name}</span>
-          </>
-        }
-        meta={
-          <>
-            <span className="tag accent version" data-testid="version">
-              {obj.version}
-            </span>
-            <StateBadge state={obj.latest.state} label={current} />
-            {obj.checkedOutBy && (
-              <span className="tag warn" data-testid="checked-out">
-                <Lock size={11} aria-hidden />
-                {mine ? (
-                  t("Checked out by you")
-                ) : (
-                  <>
-                    {t("Checked out by")} <PrincipalName id={obj.checkedOutBy} />
-                  </>
-                )}
-              </span>
+    return (
+        <>
+            <PageHeader
+                variant="object"
+                crumbs={<Breadcrumbs contextId={obj.contextId} current={obj.number} />}
+                icon={<TypeIcon typeId={obj.typeId} size={18} />}
+                title={
+                    <>
+                        <span className="num">{obj.number}</span>
+                        <span className="sep">·</span>
+                        <span className="nm">{obj.name}</span>
+                    </>
+                }
+                meta={
+                    <>
+                        <span className="tag accent version" data-testid="version">
+                            {obj.version}
+                        </span>
+                        <StateBadge state={obj.latest.state} label={current} />
+                        {obj.checkedOutBy && (
+                            <span className="tag warn" data-testid="checked-out">
+                                <Lock size={11} aria-hidden />
+                                {mine ? (
+                                    t("Checked out by you")
+                                ) : (
+                                    <>
+                                        {t("Checked out by")} <PrincipalName id={obj.checkedOutBy} />
+                                    </>
+                                )}
+                            </span>
+                        )}
+                        {obj.reservedBy && (
+                            <span className="tag" data-testid="reserved">
+                                <Bookmark size={11} aria-hidden />
+                                {obj.reservedBy === myId ? (
+                                    t("Reserved by you")
+                                ) : (
+                                    <>
+                                        {t("Reserved by")} <PrincipalName id={obj.reservedBy} />
+                                    </>
+                                )}
+                            </span>
+                        )}
+                        <span className="sub">{typeName}</span>
+                        <span className="track-btns">
+                            <FavoriteButton kind="OBJECT" targetId={obj.id} label={`${obj.number} ${obj.name}`} />
+                            <SubscribeButton kind="OBJECT" targetId={obj.id} label={`${obj.number} ${obj.name}`} />
+                            {canShare && <ShareButton obj={obj} />}
+                        </span>
+                    </>
+                }
+                toolbar={
+                    available ? (
+                        <ObjectActionBar
+                            actions={available}
+                            handlers={handlers}
+                            busy={busy || runner.busy}
+                            stateLabel={label}
+                            onInvoke={runner.run}
+                        />
+                    ) : undefined
+                }
+                tabs={tabs}
+            />
+            {(reservation.reserve.error ?? reservation.release.error) != null && (
+                <div style={{ padding: "12px 16px 0" }}>
+                    <ErrorBanner error={reservation.reserve.error ?? reservation.release.error} />
+                </div>
             )}
-            {obj.reservedBy && (
-              <span className="tag" data-testid="reserved">
-                <Bookmark size={11} aria-hidden />
-                {obj.reservedBy === myId ? (
-                  t("Reserved by you")
-                ) : (
-                  <>
-                    {t("Reserved by")} <PrincipalName id={obj.reservedBy} />
-                  </>
-                )}
-              </span>
+            {failed != null && (
+                <div style={{ padding: "12px 16px 0" }}>
+                    <ErrorBanner error={failed} />
+                </div>
             )}
-            <span className="sub">{typeName}</span>
-            <span className="track-btns">
-              <FavoriteButton kind="OBJECT" targetId={obj.id} label={`${obj.number} ${obj.name}`} />
-              <SubscribeButton kind="OBJECT" targetId={obj.id} label={`${obj.number} ${obj.name}`} />
-              {canShare && <ShareButton obj={obj} />}
-            </span>
-          </>
-        }
-        toolbar={
-          available ? (
-            <ObjectActionBar actions={available} handlers={handlers} busy={busy || runner.busy} stateLabel={label} onInvoke={runner.run} />
-          ) : undefined
-        }
-        tabs={tabs}
-      />
-      {(reservation.reserve.error ?? reservation.release.error) != null && (
-        <div style={{ padding: "12px 16px 0" }}>
-          <ErrorBanner error={reservation.reserve.error ?? reservation.release.error} />
-        </div>
-      )}
-      {failed != null && (
-        <div style={{ padding: "12px 16px 0" }}>
-          <ErrorBanner error={failed} />
-        </div>
-      )}
-      {runner.ui}
-      <BackgroundActions objectId={obj.id} refreshKey={runner.started} />
-      {renaming && <RenameDialog obj={obj} onClose={() => setRenaming(false)} />}
-      {docDialog === "save-as" && <SaveAsDialog obj={obj} onClose={() => setDocDialog(null)} />}
-      {docDialog === "compare" && <CompareDialog obj={obj} onClose={() => setDocDialog(null)} />}
-      {docDialog === "move" && <MoveDialog obj={obj} onClose={() => setDocDialog(null)} />}
-      {docDialog === "delete" && <DeleteDialog obj={obj} onClose={() => setDocDialog(null)} />}
-      {docDialog === "owner" && <OwnerDialog obj={obj} onClose={() => setDocDialog(null)} />}
-      {changingLifecycle && lifecycle && (
-        <ChangeLifecycleDialog obj={obj} current={lifecycle} onClose={() => setChangingLifecycle(false)} />
-      )}
-      <StateChangeDialog
-        gated={!!stateChange && !stateChange.override && gate.gates(stateChange.to)}
-        canOverride={!!me?.siteAdmin}
-        objectNumber={obj.number}
-        from={current}
-        change={stateChange}
-        label={label}
-        busy={busy}
-        // A refusal (a gate, missing required attributes) is shown in the dialog, where the user is looking.
-        error={actions.setState.error}
-        onCancel={() => {
-          setStateChange(null);
-          actions.setState.reset();
-        }}
-        onConfirm={(comment, force) =>
-          stateChange &&
-          actions.setState.mutate(
-            { state: stateChange.to, comment: comment || undefined, override: stateChange.override || force },
-            { onSuccess: () => setStateChange(null) },
-          )
-        }
-      />
-      <Dialog
-        open={checkingIn}
-        title={t("Check in {number}", { number: obj.number })}
-        onClose={() => {
-          setCheckingIn(false);
-          actions.checkIn.reset();
-        }}
-        footer={
-          <>
-            <button
-              className="btn"
-              onClick={() => {
-                setCheckingIn(false);
-                actions.checkIn.reset();
-              }}
-            >
-              {t("Cancel")}
-            </button>
-            <button
-              className="btn primary"
-              disabled={busy || (commentRequired && !comment.trim())}
-              title={commentRequired && !comment.trim() ? t("A comment is required here") : undefined}
-              onClick={() =>
-                actions.checkIn.mutate(comment, {
-                  onSuccess: () => {
+            {runner.ui}
+            <BackgroundActions objectId={obj.id} refreshKey={runner.started} />
+            {renaming && <RenameDialog obj={obj} onClose={() => setRenaming(false)} />}
+            {docDialog === "save-as" && <SaveAsDialog obj={obj} onClose={() => setDocDialog(null)} />}
+            {docDialog === "compare" && <CompareDialog obj={obj} onClose={() => setDocDialog(null)} />}
+            {docDialog === "move" && <MoveDialog obj={obj} onClose={() => setDocDialog(null)} />}
+            {docDialog === "delete" && <DeleteDialog obj={obj} onClose={() => setDocDialog(null)} />}
+            {docDialog === "owner" && <OwnerDialog obj={obj} onClose={() => setDocDialog(null)} />}
+            {changingLifecycle && lifecycle && (
+                <ChangeLifecycleDialog obj={obj} current={lifecycle} onClose={() => setChangingLifecycle(false)} />
+            )}
+            <StateChangeDialog
+                gated={!!stateChange && !stateChange.override && gate.gates(stateChange.to)}
+                canOverride={!!me?.siteAdmin}
+                objectNumber={obj.number}
+                from={current}
+                change={stateChange}
+                label={label}
+                busy={busy}
+                // A refusal (a gate, missing required attributes) is shown in the dialog, where the user is looking.
+                error={actions.setState.error}
+                onCancel={() => {
+                    setStateChange(null);
+                    actions.setState.reset();
+                }}
+                onConfirm={(comment, force) =>
+                    stateChange &&
+                    actions.setState.mutate(
+                        { state: stateChange.to, comment: comment || undefined, override: stateChange.override || force },
+                        { onSuccess: () => setStateChange(null) },
+                    )
+                }
+            />
+            <Dialog
+                open={checkingIn}
+                title={t("Check in {number}", { number: obj.number })}
+                onClose={() => {
                     setCheckingIn(false);
-                    setComment("");
-                  },
-                })
-              }
+                    actions.checkIn.reset();
+                }}
+                footer={
+                    <>
+                        <button
+                            className="btn"
+                            onClick={() => {
+                                setCheckingIn(false);
+                                actions.checkIn.reset();
+                            }}
+                        >
+                            {t("Cancel")}
+                        </button>
+                        <button
+                            className="btn primary"
+                            disabled={busy || (commentRequired && !comment.trim())}
+                            title={commentRequired && !comment.trim() ? t("A comment is required here") : undefined}
+                            onClick={() =>
+                                actions.checkIn.mutate(comment, {
+                                    onSuccess: () => {
+                                        setCheckingIn(false);
+                                        setComment("");
+                                    },
+                                })
+                            }
+                        >
+                            {t("Check in")}
+                        </button>
+                    </>
+                }
             >
-              {t("Check in")}
-            </button>
-          </>
-        }
-      >
-        <ErrorBanner error={actions.checkIn.error} />
-        <div className="field">
-          <div className="label-row">
-            <label htmlFor="checkin-comment">{t("Comment")}</label>
-            {commentRequired && (
-              <span aria-hidden className="required">
-                *
-              </span>
-            )}
-          </div>
-          <textarea
-            id="checkin-comment"
-            required={commentRequired}
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder={t("What changed?")}
-            autoFocus
-          />
-        </div>
-      </Dialog>
-    </>
-  );
+                <ErrorBanner error={actions.checkIn.error} />
+                <div className="field">
+                    <div className="label-row">
+                        <label htmlFor="checkin-comment">{t("Comment")}</label>
+                        {commentRequired && (
+                            <span aria-hidden className="required">
+                                *
+                            </span>
+                        )}
+                    </div>
+                    <textarea
+                        id="checkin-comment"
+                        required={commentRequired}
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        placeholder={t("What changed?")}
+                        autoFocus
+                    />
+                </div>
+            </Dialog>
+        </>
+    );
 }
 
 function stateName(lifecycle: ObjectLifecycle | undefined, state: string): string {
-  const labels = lifecycle?.states.find((s) => s.key === state)?.labels;
-  return labels?.[language()] ?? labels?.en ?? state.charAt(0) + state.slice(1).toLowerCase().replace(/_/g, " ");
+    const labels = lifecycle?.states.find((s) => s.key === state)?.labels;
+    return labels?.[language()] ?? labels?.en ?? state.charAt(0) + state.slice(1).toLowerCase().replace(/_/g, " ");
 }
 
 function ChangeLifecycleDialog({ obj, current, onClose }: { obj: VersionedObject; current: ObjectLifecycle; onClose: () => void }) {
-  const { data: lifecycles } = useLifecycles();
-  const change = useChangeLifecycle(obj.id);
-  // Default: the current version of the object's own lifecycle.
-  const latestOfOwn = lifecycles?.find((l) => l.name === current.lifecycleName);
-  const [lifecycleId, setLifecycleId] = useState("");
-  const chosen = lifecycles?.find((l) => l.id === (lifecycleId || latestOfOwn?.id)) ?? lifecycles?.[0];
-  const keeps = !!chosen?.states.some((s) => s.key === obj.latest.state);
-  const [state, setState] = useState("");
-  const target = state || (keeps ? obj.latest.state : "");
-  return (
-    <Dialog
-      open
-      title={t("Change the lifecycle of {number}", { number: obj.number })}
-      onClose={onClose}
-      footer={
-        <>
-          <button className="btn" type="button" onClick={onClose}>
-            {t("Cancel")}
-          </button>
-          <button
-            className="btn primary"
-            type="submit"
-            form="lifecycle-form"
-            disabled={change.isPending || !chosen || !target || (chosen.id === current.lifecycleId && target === obj.latest.state)}
-          >
-            {t("Move")}
-          </button>
-        </>
-      }
-    >
-      <form
-        id="lifecycle-form"
-        style={{ display: "grid", gap: 12 }}
-        noValidate
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (chosen) change.mutate({ lifecycleId: chosen.id, state: target }, { onSuccess: onClose });
-        }}
-      >
-        <ErrorBanner error={change.error} />
-        <p className="muted" style={{ margin: 0 }}>
-          {t("Now: {lifecycle} version {version}", { lifecycle: current.lifecycleName, version: current.lifecycleVersion })}
-          {!current.lifecycleLatest && ` ${t("(a newer version exists)")}`}, {stateName(current, obj.latest.state)}.{" "}
-          {t("Recorded in the audit trail.")}
-        </p>
-        <div className="field">
-          <label htmlFor="lc-target">{t("Lifecycle")}</label>
-          <select
-            id="lc-target"
-            value={chosen?.id ?? ""}
-            onChange={(e) => {
-              setLifecycleId(e.target.value);
-              setState("");
-            }}
-          >
-            {lifecycles?.map((l) => (
-              <option key={l.id} value={l.id}>
-                {t("{name} (version {version})", { name: pickLabel(l.labels, l.name), version: l.version })}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="field">
-          <label htmlFor="lc-state">{t("State")}</label>
-          <select id="lc-state" value={target} onChange={(e) => setState(e.target.value)}>
-            {!target && <option value="">{t("Choose…")}</option>}
-            {chosen?.states.map((s) => (
-              <option key={s.key} value={s.key}>
-                {pickLabel(s.labels, s.key)}
-              </option>
-            ))}
-          </select>
-          {!keeps && chosen && (
-            <span className="hint">
-              {t("This lifecycle has no {state} state: choose one.", { state: stateName(current, obj.latest.state) })}
-            </span>
-          )}
-        </div>
-      </form>
-    </Dialog>
-  );
+    const { data: lifecycles } = useLifecycles();
+    const change = useChangeLifecycle(obj.id);
+    // Default: the current version of the object's own lifecycle.
+    const latestOfOwn = lifecycles?.find((l) => l.name === current.lifecycleName);
+    const [lifecycleId, setLifecycleId] = useState("");
+    const chosen = lifecycles?.find((l) => l.id === (lifecycleId || latestOfOwn?.id)) ?? lifecycles?.[0];
+    const keeps = !!chosen?.states.some((s) => s.key === obj.latest.state);
+    const [state, setState] = useState("");
+    const target = state || (keeps ? obj.latest.state : "");
+    return (
+        <Dialog
+            open
+            title={t("Change the lifecycle of {number}", { number: obj.number })}
+            onClose={onClose}
+            footer={
+                <>
+                    <button className="btn" type="button" onClick={onClose}>
+                        {t("Cancel")}
+                    </button>
+                    <button
+                        className="btn primary"
+                        type="submit"
+                        form="lifecycle-form"
+                        disabled={
+                            change.isPending || !chosen || !target || (chosen.id === current.lifecycleId && target === obj.latest.state)
+                        }
+                    >
+                        {t("Move")}
+                    </button>
+                </>
+            }
+        >
+            <form
+                id="lifecycle-form"
+                style={{ display: "grid", gap: 12 }}
+                noValidate
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    if (chosen) change.mutate({ lifecycleId: chosen.id, state: target }, { onSuccess: onClose });
+                }}
+            >
+                <ErrorBanner error={change.error} />
+                <p className="muted" style={{ margin: 0 }}>
+                    {t("Now: {lifecycle} version {version}", { lifecycle: current.lifecycleName, version: current.lifecycleVersion })}
+                    {!current.lifecycleLatest && ` ${t("(a newer version exists)")}`}, {stateName(current, obj.latest.state)}.{" "}
+                    {t("Recorded in the audit trail.")}
+                </p>
+                <div className="field">
+                    <label htmlFor="lc-target">{t("Lifecycle")}</label>
+                    <select
+                        id="lc-target"
+                        value={chosen?.id ?? ""}
+                        onChange={(e) => {
+                            setLifecycleId(e.target.value);
+                            setState("");
+                        }}
+                    >
+                        {lifecycles?.map((l) => (
+                            <option key={l.id} value={l.id}>
+                                {t("{name} (version {version})", { name: pickLabel(l.labels, l.name), version: l.version })}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div className="field">
+                    <label htmlFor="lc-state">{t("State")}</label>
+                    <select id="lc-state" value={target} onChange={(e) => setState(e.target.value)}>
+                        {!target && <option value="">{t("Choose…")}</option>}
+                        {chosen?.states.map((s) => (
+                            <option key={s.key} value={s.key}>
+                                {pickLabel(s.labels, s.key)}
+                            </option>
+                        ))}
+                    </select>
+                    {!keeps && chosen && (
+                        <span className="hint">
+                            {t("This lifecycle has no {state} state: choose one.", { state: stateName(current, obj.latest.state) })}
+                        </span>
+                    )}
+                </div>
+            </form>
+        </Dialog>
+    );
 }
 
 function RenameDialog({ obj, onClose }: { obj: VersionedObject; onClose: () => void }) {
-  const rename = useRenameObject(obj.id);
-  const [number, setNumber] = useState(obj.number);
-  const [name, setName] = useState(obj.name);
-  const [comment, setComment] = useState("");
-  const changed = number.trim() !== obj.number || name.trim() !== obj.name;
-  return (
-    <Dialog
-      open
-      title={t("Rename or renumber {number}", { number: obj.number })}
-      onClose={onClose}
-      footer={
-        <>
-          <button className="btn" type="button" onClick={onClose}>
-            {t("Cancel")}
-          </button>
-          <button
-            className="btn primary"
-            type="submit"
-            form="rename-form"
-            disabled={rename.isPending || !changed || !name.trim() || !number.trim()}
-          >
-            {t("Save")}
-          </button>
-        </>
-      }
-    >
-      <form
-        id="rename-form"
-        style={{ display: "grid", gap: 12 }}
-        noValidate
-        onSubmit={(e) => {
-          e.preventDefault();
-          rename.mutate(
-            {
-              number: number.trim() !== obj.number ? number.trim() : null,
-              name: name.trim() !== obj.name ? name.trim() : null,
-              comment: comment.trim() || null,
-            },
-            { onSuccess: onClose },
-          );
-        }}
-      >
-        <ErrorBanner error={rename.error} />
-        <p className="muted" style={{ margin: 0 }}>
-          {t("Applies to every version. The old number and name stay in the audit trail.")}
-        </p>
-        <div className="field">
-          <label htmlFor="rename-number">{t("Number")}</label>
-          <input id="rename-number" value={number} onChange={(e) => setNumber(e.target.value)} />
-        </div>
-        <div className="field">
-          <label htmlFor="rename-name">{t("Name")}</label>
-          <input id="rename-name" value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div className="field">
-          <label htmlFor="rename-comment">{t("Reason")}</label>
-          <input
-            id="rename-comment"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder={t("e.g. Align with the ERP number")}
-          />
-        </div>
-      </form>
-    </Dialog>
-  );
+    const rename = useRenameObject(obj.id);
+    const [number, setNumber] = useState(obj.number);
+    const [name, setName] = useState(obj.name);
+    const [comment, setComment] = useState("");
+    const changed = number.trim() !== obj.number || name.trim() !== obj.name;
+    return (
+        <Dialog
+            open
+            title={t("Rename or renumber {number}", { number: obj.number })}
+            onClose={onClose}
+            footer={
+                <>
+                    <button className="btn" type="button" onClick={onClose}>
+                        {t("Cancel")}
+                    </button>
+                    <button
+                        className="btn primary"
+                        type="submit"
+                        form="rename-form"
+                        disabled={rename.isPending || !changed || !name.trim() || !number.trim()}
+                    >
+                        {t("Save")}
+                    </button>
+                </>
+            }
+        >
+            <form
+                id="rename-form"
+                style={{ display: "grid", gap: 12 }}
+                noValidate
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    rename.mutate(
+                        {
+                            number: number.trim() !== obj.number ? number.trim() : null,
+                            name: name.trim() !== obj.name ? name.trim() : null,
+                            comment: comment.trim() || null,
+                        },
+                        { onSuccess: onClose },
+                    );
+                }}
+            >
+                <ErrorBanner error={rename.error} />
+                <p className="muted" style={{ margin: 0 }}>
+                    {t("Applies to every version. The old number and name stay in the audit trail.")}
+                </p>
+                <div className="field">
+                    <label htmlFor="rename-number">{t("Number")}</label>
+                    <input id="rename-number" value={number} onChange={(e) => setNumber(e.target.value)} />
+                </div>
+                <div className="field">
+                    <label htmlFor="rename-name">{t("Name")}</label>
+                    <input id="rename-name" value={name} onChange={(e) => setName(e.target.value)} />
+                </div>
+                <div className="field">
+                    <label htmlFor="rename-comment">{t("Reason")}</label>
+                    <input
+                        id="rename-comment"
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        placeholder={t("e.g. Align with the ERP number")}
+                    />
+                </div>
+            </form>
+        </Dialog>
+    );
 }
 
 function StateChangeDialog({
-  objectNumber,
-  from,
-  change,
-  label,
-  busy,
-  error,
-  onCancel,
-  onConfirm,
-  gated,
-  canOverride,
+    objectNumber,
+    from,
+    change,
+    label,
+    busy,
+    error,
+    onCancel,
+    onConfirm,
+    gated,
+    canOverride,
 }: {
-  gated: boolean;
-  canOverride: boolean;
-  error?: unknown;
-  objectNumber: string;
-  from: string;
-  change: { to: string; override: boolean } | null;
-  label: (state: string) => string;
-  busy: boolean;
-  onCancel: () => void;
-  onConfirm: (comment: string, force: boolean) => void;
+    gated: boolean;
+    canOverride: boolean;
+    error?: unknown;
+    objectNumber: string;
+    from: string;
+    change: { to: string; override: boolean } | null;
+    label: (state: string) => string;
+    busy: boolean;
+    onCancel: () => void;
+    onConfirm: (comment: string, force: boolean) => void;
 }) {
-  const [comment, setComment] = useState("");
-  const [force, setForce] = useState(false);
-  return (
-    <Dialog
-      open={change !== null}
-      title={t("Set state of {number}", { number: objectNumber })}
-      onClose={onCancel}
-      footer={
-        <>
-          <button className="btn" onClick={onCancel}>
-            {t("Cancel")}
-          </button>
-          <button className="btn primary" disabled={busy || (gated && !force)} onClick={() => onConfirm(comment, gated && force)}>
-            {t("Set state")}
-          </button>
-        </>
-      }
-    >
-      {change && (
-        <>
-          <ErrorBanner error={error} />
-          <p style={{ margin: 0 }}>
-            {from} → <strong>{label(change.to)}</strong>
-          </p>
-          {change.override && (
-            <div className="banner warn">{t("This ignores the lifecycle's transitions. It is recorded in the audit trail.")}</div>
-          )}
-          {gated && (
-            <div className="banner info release-gate-note">
-              <strong>{t("Released through a change")}</strong>{" "}
-              {t("Objects reach this state only through an approved change notice or promotion request.")}{" "}
-              <Link to="/changes">{t("Changes")}</Link> · <Link to="/promotions">{t("Promotion requests")}</Link>
-              {canOverride && (
-                <label className="check" style={{ marginTop: 8 }}>
-                  <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} />
-                  {t("Override the gate as an administrator (recorded in the audit trail)")}
-                </label>
-              )}
-            </div>
-          )}
-          <div className="field">
-            <label htmlFor="state-comment">{t("Comment")}</label>
-            <textarea
-              id="state-comment"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder={t("Why? e.g. approved in design review DR-12")}
-            />
-          </div>
-        </>
-      )}
-    </Dialog>
-  );
+    const [comment, setComment] = useState("");
+    const [force, setForce] = useState(false);
+    return (
+        <Dialog
+            open={change !== null}
+            title={t("Set state of {number}", { number: objectNumber })}
+            onClose={onCancel}
+            footer={
+                <>
+                    <button className="btn" onClick={onCancel}>
+                        {t("Cancel")}
+                    </button>
+                    <button className="btn primary" disabled={busy || (gated && !force)} onClick={() => onConfirm(comment, gated && force)}>
+                        {t("Set state")}
+                    </button>
+                </>
+            }
+        >
+            {change && (
+                <>
+                    <ErrorBanner error={error} />
+                    <p style={{ margin: 0 }}>
+                        {from} → <strong>{label(change.to)}</strong>
+                    </p>
+                    {change.override && (
+                        <div className="banner warn">
+                            {t("This ignores the lifecycle's transitions. It is recorded in the audit trail.")}
+                        </div>
+                    )}
+                    {gated && (
+                        <div className="banner info release-gate-note">
+                            <strong>{t("Released through a change")}</strong>{" "}
+                            {t("Objects reach this state only through an approved change notice or promotion request.")}{" "}
+                            <Link to="/changes">{t("Changes")}</Link> · <Link to="/promotions">{t("Promotion requests")}</Link>
+                            {canOverride && (
+                                <label className="check" style={{ marginTop: 8 }}>
+                                    <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} />
+                                    {t("Override the gate as an administrator (recorded in the audit trail)")}
+                                </label>
+                            )}
+                        </div>
+                    )}
+                    <div className="field">
+                        <label htmlFor="state-comment">{t("Comment")}</label>
+                        <textarea
+                            id="state-comment"
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            placeholder={t("Why? e.g. approved in design review DR-12")}
+                        />
+                    </div>
+                </>
+            )}
+        </Dialog>
+    );
 }
 
 function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
-  const mine = !!myId && obj.checkedOutBy === myId;
-  const workingCopy = useWorkingCopy(obj.id, mine);
-  const { data: definitions } = useTypeAttributes(obj.typeId);
-  const { data: infoLayout } = useLayout(obj.typeId, "INFO");
-  const { data: editLayout } = useLayout(obj.typeId, "EDIT");
-  const { data: context } = useContextById(obj.contextId);
-  const { data: types } = useTypes();
-  const isDocument = types?.find((ty) => ty.id === obj.typeId)?.baseClass === "DOCUMENT";
-  const latest = obj.latest;
+    const mine = !!myId && obj.checkedOutBy === myId;
+    const workingCopy = useWorkingCopy(obj.id, mine);
+    const { data: definitions } = useTypeAttributes(obj.typeId);
+    const { data: infoLayout } = useLayout(obj.typeId, "INFO");
+    const { data: editLayout } = useLayout(obj.typeId, "EDIT");
+    const { data: context } = useContextById(obj.contextId);
+    const { data: types } = useTypes();
+    const isDocument = types?.find((ty) => ty.id === obj.typeId)?.baseClass === "DOCUMENT";
+    const latest = obj.latest;
 
-  return (
-    <div className="details-stack">
-      <div className="cols">
-        {mine ? (
-          workingCopy.data && definitions && editLayout ? (
-            <WorkingCopyEditor
-              key={workingCopy.data.id}
-              objectId={obj.id}
-              version={workingCopy.data.version}
-              definitions={definitions}
-              groups={editLayout.groups}
-              initial={workingCopy.data.attributes as Attributes}
-            />
-          ) : (
-            <Panel title={t("Working copy")}>
-              <ErrorBanner error={workingCopy.error} />
-              <Loading />
-            </Panel>
-          )
-        ) : (
-          <Panel title={t("Attributes")} note={t("as of {version}", { version: latest.version })} className="attr-panel">
-            {definitions && infoLayout ? (
-              <AttributeValues definitions={definitions} groups={infoLayout.groups} values={latest.attributes as Attributes} />
-            ) : (
-              <Loading />
+    return (
+        <div className="details-stack">
+            <div className="cols">
+                {mine ? (
+                    workingCopy.data && definitions && editLayout ? (
+                        <WorkingCopyEditor
+                            key={workingCopy.data.id}
+                            objectId={obj.id}
+                            version={workingCopy.data.version}
+                            definitions={definitions}
+                            groups={editLayout.groups}
+                            initial={workingCopy.data.attributes as Attributes}
+                        />
+                    ) : (
+                        <Panel title={t("Working copy")}>
+                            <ErrorBanner error={workingCopy.error} />
+                            <Loading />
+                        </Panel>
+                    )
+                ) : (
+                    <Panel title={t("Attributes")} note={t("as of {version}", { version: latest.version })} className="attr-panel">
+                        {definitions && infoLayout ? (
+                            <AttributeValues
+                                definitions={definitions}
+                                groups={infoLayout.groups}
+                                values={latest.attributes as Attributes}
+                            />
+                        ) : (
+                            <Loading />
+                        )}
+                    </Panel>
+                )}
+                <Panel title={t("General")} className="facts-panel">
+                    {/* Number, name, type, version and state are in the page header. */}
+                    <Props
+                        items={[
+                            [t("Context"), context ? <Link to={`/contexts/${obj.contextId}`}>{context.name}</Link> : null],
+                            [t("Folder"), <FolderLocation obj={obj} />],
+                            [t("Owner"), <PrincipalName id={obj.owner} />],
+                            ...(obj.checkedOutBy
+                                ? ([[t("Checked out by"), <PrincipalName id={obj.checkedOutBy} />]] as [string, ReactNode][])
+                                : []),
+                            ...(obj.reservedBy
+                                ? ([[t("Reserved by"), <PrincipalName id={obj.reservedBy} />]] as [string, ReactNode][])
+                                : []),
+                            [
+                                t("Last checked in"),
+                                <>
+                                    <When iso={latest.checkedInAt} /> · <PrincipalName id={latest.createdBy} />
+                                    {latest.comment && <div className="fact-note">“{latest.comment}”</div>}
+                                </>,
+                            ],
+                            [
+                                t("Created"),
+                                <>
+                                    <When iso={obj.createdAt} /> · <PrincipalName id={obj.createdBy} />
+                                </>,
+                            ],
+                        ]}
+                    />
+                </Panel>
+            </div>
+            {/* Only documents hold files (primary content and attachments). */}
+            <VariancesBanner objectId={obj.id} />
+            <EcadBomCheck objectId={obj.id} typeId={obj.typeId} />
+            <ReferencedBy objectId={obj.id} />
+            <SignaturesPanel objectId={obj.id} />
+            <PublicationsPanel objectId={obj.id} number={obj.number} />
+            <ExtensionPanels obj={obj} />
+            {isDocument && (
+                <ObjectFiles objectId={obj.id} iterationKey={mine ? `wc:${workingCopy.data?.id ?? ""}` : latest.id} editable={mine} />
             )}
-          </Panel>
-        )}
-        <Panel title={t("General")} className="facts-panel">
-          {/* Number, name, type, version and state are in the page header. */}
-          <Props
-            items={[
-              [t("Context"), context ? <Link to={`/contexts/${obj.contextId}`}>{context.name}</Link> : null],
-              [t("Folder"), <FolderLocation obj={obj} />],
-              [t("Owner"), <PrincipalName id={obj.owner} />],
-              ...(obj.checkedOutBy ? ([[t("Checked out by"), <PrincipalName id={obj.checkedOutBy} />]] as [string, ReactNode][]) : []),
-              ...(obj.reservedBy ? ([[t("Reserved by"), <PrincipalName id={obj.reservedBy} />]] as [string, ReactNode][]) : []),
-              [
-                t("Last checked in"),
-                <>
-                  <When iso={latest.checkedInAt} /> · <PrincipalName id={latest.createdBy} />
-                  {latest.comment && <div className="fact-note">“{latest.comment}”</div>}
-                </>,
-              ],
-              [
-                t("Created"),
-                <>
-                  <When iso={obj.createdAt} /> · <PrincipalName id={obj.createdBy} />
-                </>,
-              ],
-            ]}
-          />
-        </Panel>
-      </div>
-      {/* Only documents hold files (primary content and attachments). */}
-      <VariancesBanner objectId={obj.id} />
-      <EcadBomCheck objectId={obj.id} typeId={obj.typeId} />
-      <ReferencedBy objectId={obj.id} />
-      <SignaturesPanel objectId={obj.id} />
-      <PublicationsPanel objectId={obj.id} number={obj.number} />
-      <ExtensionPanels obj={obj} />
-      {isDocument && <ObjectFiles objectId={obj.id} iterationKey={mine ? `wc:${workingCopy.data?.id ?? ""}` : latest.id} editable={mine} />}
-    </div>
-  );
+        </div>
+    );
 }
 
 function WorkingCopyEditor({
-  objectId,
-  version,
-  definitions,
-  groups,
-  initial,
+    objectId,
+    version,
+    definitions,
+    groups,
+    initial,
 }: {
-  objectId: string;
-  version: string;
-  definitions: AttributeDefinition[];
-  groups: LayoutGroup[];
-  initial: Attributes;
+    objectId: string;
+    version: string;
+    definitions: AttributeDefinition[];
+    groups: LayoutGroup[];
+    initial: Attributes;
 }) {
-  const { updateAttributes } = useObjectActions(objectId);
-  const [values, setValues] = useState(initial);
-  const [dirty, setDirty] = useState(false);
-  const errors = fieldErrors(updateAttributes.error);
+    const { updateAttributes } = useObjectActions(objectId);
+    const [values, setValues] = useState(initial);
+    const [dirty, setDirty] = useState(false);
+    const errors = fieldErrors(updateAttributes.error);
 
-  return (
-    <form
-      className="panel"
-      noValidate
-      onSubmit={(e) => {
-        e.preventDefault();
-        updateAttributes.mutate(values, { onSuccess: () => setDirty(false) });
-      }}
-    >
-      <div className="panel-head">
-        <Pencil size={13} className="icon-muted" aria-hidden />
-        <h2>
-          {t("Working copy")} <span className="version">{version}</span>
-        </h2>
-        <span className="note">{t("Only you see these edits until you check in.")}</span>
-      </div>
-      <div className="panel-body" style={{ display: "grid", gap: 10 }}>
-        {updateAttributes.error != null && Object.keys(errors).length === 0 && <ErrorBanner error={updateAttributes.error} />}
-        <AttributeForm
-          idPrefix="wc"
-          definitions={definitions}
-          groups={groups}
-          values={values}
-          onChange={(next) => {
-            setValues(next);
-            setDirty(true);
-          }}
-          errors={errors}
-        />
-      </div>
-      <div className="panel-foot">
-        <button className="btn primary" type="submit" disabled={updateAttributes.isPending || !dirty}>
-          {t("Save attributes")}
-        </button>
-        {dirty ? (
-          <span className="muted">{t("Unsaved changes")}</span>
-        ) : (
-          updateAttributes.isSuccess && <span className="muted">{t("Saved.")}</span>
-        )}
-      </div>
-    </form>
-  );
+    return (
+        <form
+            className="panel"
+            noValidate
+            onSubmit={(e) => {
+                e.preventDefault();
+                updateAttributes.mutate(values, { onSuccess: () => setDirty(false) });
+            }}
+        >
+            <div className="panel-head">
+                <Pencil size={13} className="icon-muted" aria-hidden />
+                <h2>
+                    {t("Working copy")} <span className="version">{version}</span>
+                </h2>
+                <span className="note">{t("Only you see these edits until you check in.")}</span>
+            </div>
+            <div className="panel-body" style={{ display: "grid", gap: 10 }}>
+                {updateAttributes.error != null && Object.keys(errors).length === 0 && <ErrorBanner error={updateAttributes.error} />}
+                <AttributeForm
+                    idPrefix="wc"
+                    definitions={definitions}
+                    groups={groups}
+                    values={values}
+                    onChange={(next) => {
+                        setValues(next);
+                        setDirty(true);
+                    }}
+                    errors={errors}
+                />
+            </div>
+            <div className="panel-foot">
+                <button className="btn primary" type="submit" disabled={updateAttributes.isPending || !dirty}>
+                    {t("Save attributes")}
+                </button>
+                {dirty ? (
+                    <span className="muted">{t("Unsaved changes")}</span>
+                ) : (
+                    updateAttributes.isSuccess && <span className="muted">{t("Saved.")}</span>
+                )}
+            </div>
+        </form>
+    );
 }
 
 function HistoryTab({ id }: { id: string }) {
-  const { data, isLoading, error } = useHistory(id);
-  return (
-    <Panel title={t("Iterations")} note={data ? String(data.length) : undefined} flush>
-      <ErrorBanner error={error} />
-      {isLoading ? (
-        <Loading />
-      ) : (
-        <div className="grid-wrap">
-          <table className="grid" aria-label={t("Iteration history")}>
-            <thead>
-              <tr>
-                <th>{t("Version")}</th>
-                <th>{t("State")}</th>
-                <th>{t("Comment")}</th>
-                <th>{t("Checked in by")}</th>
-                <th>{t("Checked in")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data?.map((it) => (
-                <tr key={it.id}>
-                  <td className="nowrap version">{it.version}</td>
-                  <td>
-                    <StateBadge state={it.state} />
-                  </td>
-                  <td>{it.comment ?? <span className="muted">—</span>}</td>
-                  <td className="nowrap">
-                    <PrincipalName id={it.createdBy} />
-                  </td>
-                  <td className="nowrap muted">{formatDate(it.checkedInAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </Panel>
-  );
+    const { data, isLoading, error } = useHistory(id);
+    return (
+        <Panel title={t("Iterations")} note={data ? String(data.length) : undefined} flush>
+            <ErrorBanner error={error} />
+            {isLoading ? (
+                <Loading />
+            ) : (
+                <div className="grid-wrap">
+                    <table className="grid" aria-label={t("Iteration history")}>
+                        <thead>
+                            <tr>
+                                <th>{t("Version")}</th>
+                                <th>{t("State")}</th>
+                                <th>{t("Comment")}</th>
+                                <th>{t("Checked in by")}</th>
+                                <th>{t("Checked in")}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {data?.map((it) => (
+                                <tr key={it.id}>
+                                    <td className="nowrap version">{it.version}</td>
+                                    <td>
+                                        <StateBadge state={it.state} />
+                                    </td>
+                                    <td>{it.comment ?? <span className="muted">—</span>}</td>
+                                    <td className="nowrap">
+                                        <PrincipalName id={it.createdBy} />
+                                    </td>
+                                    <td className="nowrap muted">{formatDate(it.checkedInAt)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </Panel>
+    );
 }
 
 function AuditTab({ id }: { id: string }) {
-  const { data, isLoading, error } = useAudit(id, true);
-  return (
-    <Panel title={t("Audit trail")} note={data ? String(data.length) : undefined} flush>
-      <ErrorBanner error={error} />
-      {isLoading ? (
-        <Loading />
-      ) : (
-        <div className="grid-wrap">
-          <table className="grid" aria-label={t("Audit trail")}>
-            <thead>
-              <tr>
-                <th>{t("When")}</th>
-                <th>{t("Action")}</th>
-                <th>{t("Who")}</th>
-                <th>{t("Details")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data?.map((entry) => (
-                <tr key={entry.seq}>
-                  <td className="nowrap muted">{formatDate(entry.occurredAt)}</td>
-                  <td className="nowrap">{auditAction(entry.action)}</td>
-                  <td className="nowrap">
-                    <PrincipalName id={entry.actor} />
-                  </td>
-                  <td>
-                    {"version" in entry.details && <span className="version">{String(entry.details.version)}</span>}
-                    {"previousNumber" in entry.details &&
-                      ` · ${t("was {oldNumber} “{oldName}”, now {number} “{name}”", { oldNumber: String(entry.details.previousNumber), oldName: String(entry.details.previousName), number: String(entry.details.number), name: String(entry.details.name) })}`}
-                    {"from" in entry.details && "to" in entry.details && ` · ${String(entry.details.from)} → ${String(entry.details.to)}`}
-                    {"comment" in entry.details && entry.details.comment ? ` · “${String(entry.details.comment)}”` : ""}
-                    {"actionId" in entry.details && (
-                      <>
-                        <code>{String(entry.details.actionId)}</code> · {String(entry.details.status).toLowerCase()}
-                        {entry.details.message ? ` · ${String(entry.details.message)}` : ""}
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </Panel>
-  );
+    const { data, isLoading, error } = useAudit(id, true);
+    return (
+        <Panel title={t("Audit trail")} note={data ? String(data.length) : undefined} flush>
+            <ErrorBanner error={error} />
+            {isLoading ? (
+                <Loading />
+            ) : (
+                <div className="grid-wrap">
+                    <table className="grid" aria-label={t("Audit trail")}>
+                        <thead>
+                            <tr>
+                                <th>{t("When")}</th>
+                                <th>{t("Action")}</th>
+                                <th>{t("Who")}</th>
+                                <th>{t("Details")}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {data?.map((entry) => (
+                                <tr key={entry.seq}>
+                                    <td className="nowrap muted">{formatDate(entry.occurredAt)}</td>
+                                    <td className="nowrap">{auditAction(entry.action)}</td>
+                                    <td className="nowrap">
+                                        <PrincipalName id={entry.actor} />
+                                    </td>
+                                    <td>
+                                        {"version" in entry.details && <span className="version">{String(entry.details.version)}</span>}
+                                        {"previousNumber" in entry.details &&
+                                            ` · ${t("was {oldNumber} “{oldName}”, now {number} “{name}”", { oldNumber: String(entry.details.previousNumber), oldName: String(entry.details.previousName), number: String(entry.details.number), name: String(entry.details.name) })}`}
+                                        {"from" in entry.details &&
+                                            "to" in entry.details &&
+                                            ` · ${String(entry.details.from)} → ${String(entry.details.to)}`}
+                                        {"comment" in entry.details && entry.details.comment ? ` · “${String(entry.details.comment)}”` : ""}
+                                        {"actionId" in entry.details && (
+                                            <>
+                                                <code>{String(entry.details.actionId)}</code> · {String(entry.details.status).toLowerCase()}
+                                                {entry.details.message ? ` · ${String(entry.details.message)}` : ""}
+                                            </>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </Panel>
+    );
 }
 
 /** `versioning.ObjectCheckedIn.v1` → `Checked in`. */

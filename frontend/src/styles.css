@@ -7114,3 +7114,36 @@ ol.steps {
 .migration-existing input {
   width: 200px;
 }
+
+/* ERP distribution (roadmap 9.5) */
+.dist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 12px;
+}
+.dist-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.dist-values {
+  display: grid;
+  gap: 8px;
+}
+.dist-values .btn {
+  justify-self: start;
+}
+.dist-attrs {
+  padding: 8px 14px 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.dist-attr-row {
+  gap: 8px;
+  margin-bottom: 6px;
+}

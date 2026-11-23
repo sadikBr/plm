@@ -796,10 +796,15 @@ ERP, its legal and security rules, more than one site, and safe upgrades.
       format prepared by a job, behind an expiring link that needs no account (revocable, every
       download logged). Received packages come back through Migration with "numbers already
       here" set to copy (suffixed, marked "Received from …") or update (a new iteration).
-- [ ] 9.5 ERP distribution: distribution targets (an ERP system and plant) with plant-specific
+- [x] 9.5 ERP distribution: distribution targets (an ERP system and plant) with plant-specific
       attributes; rules say which objects go to which targets when released; a release sends them
       (through the integration outbox), the ERP acknowledges, and the object shows its
       distribution status per target, with resend.
+      Done: `integration` module, Administration → ERP distribution and a Distribution tab on
+      objects. Messages (object, attributes, plant values, single-level BOM) are written to an
+      outbox in the state change's transaction, POSTed with an HMAC signature and retries, or
+      fetched by the ERP; acknowledgements carry the ERP's key or a rejection reason. Missing
+      required plant values hold the message and say what to fill in.
 - [ ] 9.6 Standards: STEP AP242 export of a product structure (with its CAD files), and the
       OSLC core services (resources, service provider catalog, link to external resources) so
       requirements and test tools can link to parts, documents and changes. ReqIF comes with

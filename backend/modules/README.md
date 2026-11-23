@@ -27,7 +27,7 @@ Three layers enforce this:
 | jobs | Background jobs: queue, workers, schedules (handlers live in the modules that own the work) | — |
 | audit | Append-only audit log, fed by every domain event; audit reports | access |
 | types | Type definitions, attribute schemas | — |
-| integration | ERP and external connectors (event consumers) | — |
+| integration | ERP distribution: targets (system + plant) with plant attributes, rules, an outbox of signed messages, acknowledgements | access, types, versioning, bom |
 | events | Relays the outbox to Kafka (infrastructure) | — |
 | packages | Packages (objects under a spec, with files, PDFs, structure, documents) and deliveries: expiring downloads with a log | identity, access, types, versioning, content, bom, jobs |
 | migration | Migrations from other PLM systems: a zip with a JSON manifest, mappings, dry run, resumable job, history kept | identity, access, types, lifecycle, versioning, content, bom, jobs |

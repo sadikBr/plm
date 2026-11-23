@@ -270,7 +270,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | Bulk load from spreadsheets / files with validation and a dry run | ✅ | Excel or CSV plus a zip of files: attributes, folders, files, structure, document links, states; row-by-row dry run; a background job with a result per row |
 | Migration from other PLM systems | ✅ | A documented package format (zip + JSON manifest); type, state, attribute and user mappings; dry run; resumable job; numbers, versions, dates, authors, files and links kept |
 | Import/export of object sets between sites or companies (packages, deliveries) | ✅ | Deliveries in the migration format; received packages imported as copies or updates |
-| ERP integration: release distribution targets, plant-specific data, acknowledgement | ⬜ [9] | Event-driven connectors |
+| ERP integration: release distribution targets, plant-specific data, acknowledgement | ✅ | Targets (system + plant) with plant attributes, release rules, a signed push or pull outbox, acknowledgements with the ERP key, status and resend per object |
 | Standards: STEP AP242, ReqIF, IPC-1752, OSLC links | ⬜ [9] | |
 
 ## 16. Infrastructure and operations

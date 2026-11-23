@@ -59,6 +59,12 @@ internal class SecurityConfiguration(
                     // A delivered package (roadmap 9.4): the link is the key; it expires and is logged.
                     .requestMatchers(HttpMethod.GET, "/api/v1/deliveries/*/download")
                     .permitAll()
+                    // An ERP fetching and acknowledging distribution messages (roadmap 9.5): the target's secret.
+                    .requestMatchers(
+                        HttpMethod.POST,
+                        "/api/v1/distribution/targets/*/fetch",
+                        "/api/v1/distribution/messages/*/ack",
+                    ).permitAll()
                     .anyRequest()
                     .authenticated()
             }.oauth2ResourceServer { rs -> rs.authenticationManagerResolver(BearerTokenRouter(jwtDecoder, tokens)) }

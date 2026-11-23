@@ -1,5 +1,6 @@
 import { DirectoryAdmin } from "./DirectoryAdmin";
 import { MigrationAdmin } from "./MigrationAdmin";
+import { DistributionAdmin } from "../integration/Distribution";
 import { OfficeAdmin } from "./OfficeAdmin";
 import { DocumentLinkRulesAdmin } from "../structure/DocumentLinks";
 import {
@@ -15,6 +16,7 @@ import {
     Layers,
     LayoutTemplate,
     Link2,
+    Factory,
     Network,
     PackageOpen,
     ListChecks,
@@ -94,6 +96,7 @@ type Section =
     | "service-accounts"
     | "directory"
     | "migration"
+    | "distribution"
     | "profiles"
     | "jobs"
     | "extensions"
@@ -149,6 +152,7 @@ const GROUPS = (): [string, Entry[]][] => [
             ["scripts", t("Scripts"), t("Server-side scripts"), <Code2 key="i" size={15} />],
             ["automations", t("Automations"), t("When this happens, do that"), <Layers key="i" size={15} />],
             ["webhooks", t("Webhooks"), t("Tell other systems about events"), <Webhook key="i" size={15} />],
+            ["distribution", t("ERP distribution"), t("Which objects go to which ERP plants"), <Factory key="i" size={15} />],
             ["jobs", t("Jobs"), t("Background work and schedules"), <Timer key="i" size={15} />],
             ["extensions", t("Extensions"), t("Installed extension packages"), <Puzzle key="i" size={15} />],
             ["migration", t("Migration"), t("Bring data in from another PLM system"), <PackageOpen key="i" size={15} />],
@@ -235,6 +239,7 @@ export function AdminPage() {
                         {tab === "service-accounts" && <ServiceAccountsAdmin />}
                         {tab === "directory" && <DirectoryAdmin />}
                         {tab === "migration" && <MigrationAdmin />}
+                        {tab === "distribution" && <DistributionAdmin />}
                         {tab === "profiles" && <ProfilesAdmin />}
                         {tab === "jobs" && <JobsAdmin />}
                         {tab === "extensions" && <ExtensionsAdmin />}

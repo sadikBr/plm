@@ -1,6 +1,21 @@
 {
   "components" : {
     "schemas" : {
+      "Acknowledge" : {
+        "properties" : {
+          "erpKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "message" : {
+            "type" : [ "string", "null" ]
+          },
+          "ok" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "ok" ],
+        "type" : "object"
+      },
       "ActionConfigurationRequest" : {
         "properties" : {
           "hidden" : {
@@ -3610,6 +3625,129 @@
         "required" : [ "active", "createdAt", "id", "principalId", "updatedAt", "userName", "version" ],
         "type" : "object"
       },
+      "DistributionMessage" : {
+        "properties" : {
+          "answer" : {
+            "type" : [ "string", "null" ]
+          },
+          "answeredAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "attempts" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "lastError" : {
+            "type" : [ "string", "null" ]
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "payload" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          },
+          "sentAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "targetId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "attempts", "createdAt", "id", "number", "objectId", "payload", "status", "targetId", "version" ],
+        "type" : "object"
+      },
+      "DistributionRule" : {
+        "properties" : {
+          "contextId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "state", "typeId" ],
+        "type" : "object"
+      },
+      "DistributionTarget" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "attributes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PlantAttribute"
+            },
+            "type" : "array"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "endpoint" : {
+            "type" : [ "string", "null" ]
+          },
+          "failed" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "pending" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "plant" : {
+            "type" : "string"
+          },
+          "rules" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DistributionRule"
+            },
+            "type" : "array"
+          },
+          "system" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "attributes", "createdAt", "failed", "id", "name", "pending", "plant", "rules", "system" ],
+        "type" : "object"
+      },
       "DocumentLink" : {
         "properties" : {
           "createdAt" : {
@@ -6797,6 +6935,56 @@
         "required" : [ "example", "id", "name", "nextValue", "padding", "prefix", "suffix" ],
         "type" : "object"
       },
+      "ObjectDistribution" : {
+        "properties" : {
+          "attributes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PlantAttribute"
+            },
+            "type" : "array"
+          },
+          "erpKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "message" : {
+            "type" : [ "string", "null" ]
+          },
+          "plant" : {
+            "type" : "string"
+          },
+          "plantValues" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "ruleState" : {
+            "type" : [ "string", "null" ]
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "system" : {
+            "type" : "string"
+          },
+          "targetId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "targetName" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "version" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "attributes", "plant", "plantValues", "status", "system", "targetId", "targetName" ],
+        "type" : "object"
+      },
       "ObjectLifecycleResponse" : {
         "properties" : {
           "canOverride" : {
@@ -7316,6 +7504,24 @@
           }
         },
         "required" : [ "action", "details", "key", "kind" ],
+        "type" : "object"
+      },
+      "PlantAttribute" : {
+        "properties" : {
+          "defaultValue" : {
+            "type" : [ "string", "null" ]
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "required" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "label", "name", "required" ],
         "type" : "object"
       },
       "PlatformResponse" : {
@@ -9603,6 +9809,33 @@
         "required" : [ "definition", "name", "shared", "table" ],
         "type" : "object"
       },
+      "SaveTarget" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "attributes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PlantAttribute"
+            },
+            "type" : "array"
+          },
+          "endpoint" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "plant" : {
+            "type" : "string"
+          },
+          "system" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "attributes", "name", "plant", "system" ],
+        "type" : "object"
+      },
       "SaveVariantSpec" : {
         "properties" : {
           "description" : {
@@ -10828,6 +11061,19 @@
           }
         },
         "required" : [ "label" ],
+        "type" : "object"
+      },
+      "TargetSecret" : {
+        "properties" : {
+          "secret" : {
+            "type" : "string"
+          },
+          "targetId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "secret", "targetId" ],
         "type" : "object"
       },
       "TaskCounts" : {
@@ -17036,6 +17282,383 @@
         "tags" : [ "Directory" ]
       }
     },
+    "/api/v1/distribution/messages" : {
+      "get" : {
+        "operationId" : "distributionMessages",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "objectId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "targetId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/DistributionMessage"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Distribution" ]
+      }
+    },
+    "/api/v1/distribution/messages/{id}/ack" : {
+      "post" : {
+        "operationId" : "distributionErpAck",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "X-PLM-Target-Secret",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Acknowledge"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DistributionMessage"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Distribution erp" ]
+      }
+    },
+    "/api/v1/distribution/rules/{id}" : {
+      "delete" : {
+        "operationId" : "distributionRemoveRule",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Distribution" ]
+      }
+    },
+    "/api/v1/distribution/targets" : {
+      "get" : {
+        "operationId" : "distributionTargets",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/DistributionTarget"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Distribution" ]
+      },
+      "post" : {
+        "operationId" : "distributionCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveTarget"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TargetSecret"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Distribution" ]
+      }
+    },
+    "/api/v1/distribution/targets/{id}" : {
+      "delete" : {
+        "operationId" : "distributionDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Distribution" ]
+      },
+      "put" : {
+        "operationId" : "distributionUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveTarget"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DistributionTarget"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Distribution" ]
+      }
+    },
+    "/api/v1/distribution/targets/{id}/fetch" : {
+      "post" : {
+        "operationId" : "distributionErpFetch",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "X-PLM-Target-Secret",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 100,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/DistributionMessage"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Distribution erp" ]
+      }
+    },
+    "/api/v1/distribution/targets/{id}/rules" : {
+      "post" : {
+        "operationId" : "distributionAddRule",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveRule"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DistributionTarget"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Distribution" ]
+      }
+    },
     "/api/v1/document-link-rules" : {
       "get" : {
         "operationId" : "documentLinkRules",
@@ -23087,6 +23710,149 @@
           }
         },
         "tags" : [ "Organizing" ]
+      }
+    },
+    "/api/v1/objects/{id}/distribution" : {
+      "get" : {
+        "operationId" : "distributionStatus",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ObjectDistribution"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Distribution" ]
+      }
+    },
+    "/api/v1/objects/{id}/distribution/{targetId}/plant-values" : {
+      "put" : {
+        "operationId" : "distributionPlantValues",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "targetId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "additionalProperties" : {
+                  "type" : "string"
+                },
+                "type" : "object"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ObjectDistribution"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Distribution" ]
+      }
+    },
+    "/api/v1/objects/{id}/distribution/{targetId}/send" : {
+      "post" : {
+        "operationId" : "distributionSend",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "targetId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ObjectDistribution"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Distribution" ]
       }
     },
     "/api/v1/objects/{id}/document-links" : {
@@ -33778,6 +34544,10 @@
     "name" : "Directory"
   }, {
     "name" : "Discussion"
+  }, {
+    "name" : "Distribution"
+  }, {
+    "name" : "Distribution erp"
   }, {
     "name" : "Document"
   }, {
