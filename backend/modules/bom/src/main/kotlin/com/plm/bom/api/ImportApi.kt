@@ -85,3 +85,36 @@ interface StructureImportService {
         fileName: String?,
     ): Job
 }
+
+/** A structure line of a past iteration (roadmap 9.3). */
+data class PastUsage(
+    val childId: UUID,
+    val quantity: BigDecimal,
+    /** A unitOfUse key; `each` when null. */
+    val unit: String? = null,
+    val findNumber: String? = null,
+    val notes: String? = null,
+)
+
+/**
+ * Structure and part–document links of past iterations, for migrations (roadmap 9.3): written
+ * onto the iteration as it was, without a new one. Site administrators only.
+ * Errors: `ADMIN_REQUIRED`, `NOT_A_PART`, `NOT_A_DOCUMENT`, `INVALID_USAGE`.
+ */
+interface StructureHistoryImportService {
+    fun importUsages(
+        actor: Actor,
+        parentId: MasterId,
+        parentIterationId: UUID,
+        lines: List<PastUsage>,
+    )
+
+    /** DESCRIBED_BY points at the document's latest iteration. */
+    fun importDocumentLink(
+        actor: Actor,
+        partId: MasterId,
+        partIterationId: UUID,
+        documentId: MasterId,
+        kind: DocumentLinkKind,
+    )
+}

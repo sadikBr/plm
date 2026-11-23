@@ -6162,6 +6162,200 @@
         "required" : [ "addedAt", "addedBy", "contextId", "principalId", "role" ],
         "type" : "object"
       },
+      "Migration" : {
+        "properties" : {
+          "analysis" : {
+            "$ref" : "#/components/schemas/MigrationAnalysis"
+          },
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "contextName" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "done" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "failed" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "lastJobId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "mappings" : {
+            "$ref" : "#/components/schemas/MigrationMappings"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "size" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "analysis", "contextId", "contextName", "createdAt", "createdBy", "done", "failed", "fileName", "id", "mappings", "name", "size" ],
+        "type" : "object"
+      },
+      "MigrationAnalysis" : {
+        "properties" : {
+          "alreadyDone" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "documentLinks" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "errors" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "files" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "issues" : {
+            "items" : {
+              "$ref" : "#/components/schemas/MigrationIssue"
+            },
+            "type" : "array"
+          },
+          "iterations" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "objects" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "source" : {
+            "type" : [ "string", "null" ]
+          },
+          "unmappedAttributes" : {
+            "additionalProperties" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
+          "unmappedStates" : {
+            "additionalProperties" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
+          "unmappedTypes" : {
+            "additionalProperties" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
+          "usages" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "users" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "warnings" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "alreadyDone", "documentLinks", "errors", "files", "issues", "iterations", "objects", "unmappedAttributes", "unmappedStates", "unmappedTypes", "usages", "users", "warnings" ],
+        "type" : "object"
+      },
+      "MigrationIssue" : {
+        "properties" : {
+          "legacyId" : {
+            "type" : [ "string", "null" ]
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : [ "string", "null" ]
+          },
+          "severity" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "message", "severity" ],
+        "type" : "object"
+      },
+      "MigrationItem" : {
+        "properties" : {
+          "legacyId" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : [ "string", "null" ]
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "status" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "legacyId", "number", "status" ],
+        "type" : "object"
+      },
+      "MigrationMappings" : {
+        "properties" : {
+          "attributes" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "states" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "types" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "users" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          }
+        },
+        "required" : [ "attributes", "states", "types", "users" ],
+        "type" : "object"
+      },
       "ModelFile" : {
         "properties" : {
           "dependencies" : {
@@ -19994,6 +20188,284 @@
         "tags" : [ "Personal token" ]
       }
     },
+    "/api/v1/migrations" : {
+      "get" : {
+        "operationId" : "migrationList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Migration"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Migration" ]
+      },
+      "post" : {
+        "operationId" : "migrationCreate",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "name",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "properties" : {
+                  "package" : {
+                    "format" : "binary",
+                    "type" : "string"
+                  }
+                },
+                "required" : [ "package" ],
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Migration"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Migration" ]
+      }
+    },
+    "/api/v1/migrations/{id}" : {
+      "delete" : {
+        "operationId" : "migrationDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Migration" ]
+      },
+      "get" : {
+        "operationId" : "migrationGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Migration"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Migration" ]
+      }
+    },
+    "/api/v1/migrations/{id}/items" : {
+      "get" : {
+        "operationId" : "migrationItems",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/MigrationItem"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Migration" ]
+      }
+    },
+    "/api/v1/migrations/{id}/mappings" : {
+      "put" : {
+        "operationId" : "migrationMappings",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MigrationMappings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Migration"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Migration" ]
+      }
+    },
+    "/api/v1/migrations/{id}/run" : {
+      "post" : {
+        "operationId" : "migrationRun",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Job"
+                }
+              }
+            },
+            "description" : "Accepted"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Migration" ]
+      }
+    },
     "/api/v1/numbering-schemes" : {
       "get" : {
         "operationId" : "typeRuleSchemes",
@@ -32705,6 +33177,8 @@
     "name" : "Lifecycle"
   }, {
     "name" : "Markup"
+  }, {
+    "name" : "Migration"
   }, {
     "name" : "Office"
   }, {

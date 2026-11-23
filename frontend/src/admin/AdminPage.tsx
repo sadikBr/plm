@@ -1,4 +1,5 @@
 import { DirectoryAdmin } from "./DirectoryAdmin";
+import { MigrationAdmin } from "./MigrationAdmin";
 import { OfficeAdmin } from "./OfficeAdmin";
 import { DocumentLinkRulesAdmin } from "../structure/DocumentLinks";
 import {
@@ -15,6 +16,7 @@ import {
     LayoutTemplate,
     Link2,
     Network,
+    PackageOpen,
     ListChecks,
     ListOrdered,
     Puzzle,
@@ -91,6 +93,7 @@ type Section =
     | "site-admins"
     | "service-accounts"
     | "directory"
+    | "migration"
     | "profiles"
     | "jobs"
     | "extensions"
@@ -148,6 +151,7 @@ const GROUPS = (): [string, Entry[]][] => [
             ["webhooks", t("Webhooks"), t("Tell other systems about events"), <Webhook key="i" size={15} />],
             ["jobs", t("Jobs"), t("Background work and schedules"), <Timer key="i" size={15} />],
             ["extensions", t("Extensions"), t("Installed extension packages"), <Puzzle key="i" size={15} />],
+            ["migration", t("Migration"), t("Bring data in from another PLM system"), <PackageOpen key="i" size={15} />],
         ],
     ],
     [
@@ -230,6 +234,7 @@ export function AdminPage() {
                         {tab === "webhooks" && <WebhooksAdmin />}
                         {tab === "service-accounts" && <ServiceAccountsAdmin />}
                         {tab === "directory" && <DirectoryAdmin />}
+                        {tab === "migration" && <MigrationAdmin />}
                         {tab === "profiles" && <ProfilesAdmin />}
                         {tab === "jobs" && <JobsAdmin />}
                         {tab === "extensions" && <ExtensionsAdmin />}

@@ -173,6 +173,20 @@ interface ContentService {
         description: String? = null,
     ): ContentItem
 
+    /**
+     * Puts a file on a past iteration of [objectId], for migrations (roadmap 9.3). Site
+     * administrators only: `ADMIN_REQUIRED`.
+     */
+    fun importFile(
+        actor: Actor,
+        objectId: MasterId,
+        iterationId: UUID,
+        fileName: String,
+        contentType: String,
+        bytes: ByteArray,
+        role: ContentRole,
+    ): ContentItem
+
     /** The file of [kind] made from [contentId]'s file, if there is one. Needs read access. */
     fun derived(
         actor: Actor,

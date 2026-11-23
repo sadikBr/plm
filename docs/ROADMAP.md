@@ -778,10 +778,15 @@ ERP, its legal and security rules, more than one site, and safe upgrades.
       other column an attribute by name or label (values converted, then validated like a form);
       an existing number updates its object; a template per type. The CSV/Excel reader moved to
       the platform (`Tables`), shared with the structure import.
-- [ ] 9.3 Migration from other PLM systems: an import format (a zip with a JSON manifest) that
+- [x] 9.3 Migration from other PLM systems: an import format (a zip with a JSON manifest) that
       keeps each object's history (versions, iterations, dates, who), states, files and links,
       with type, attribute, state and user mappings, a dry run and a resumable job; numbers and
       versions are kept as they were.
+      Done: `migration` module and Administration → Migration; format in
+      docs/migration-format.md. History comes in through admin-only import paths in versioning
+      (iterations with their labels, dates, authors, states), content (files per past iteration)
+      and BOM (structure and document links per iteration). The analysis lists what to map;
+      each object's outcome is kept, so running again resumes without duplicates.
 - [ ] 9.4 Packages and deliveries: a package is a chosen set of objects under a configuration spec
       with what to include (files, PDFs, 3D, structure, documents); a delivery sends it to a
       recipient as a download that expires, logs who got what, and a received package can be

@@ -17,6 +17,7 @@ import com.plm.content.infra.Upload
 import com.plm.jobs.api.JobService
 import com.plm.platform.actor.Actor
 import com.plm.platform.error.ConflictException
+import com.plm.platform.error.ForbiddenException
 import com.plm.platform.error.NotFoundException
 import com.plm.platform.error.ValidationException
 import com.plm.platform.events.DomainEvents
@@ -476,6 +477,16 @@ internal class DefaultContentService(
     ): ContentItem {
         val wc = versioning.workingCopy(actor, objectId)
         val name = fileName(fileName)
+        val key = putBlob(actor, bytes, contentType)
+        return add(actor, objectId, wc.id.value, role, name, description, key)
+    }
+
+    /** Writes [bytes] to the vault as a new blob; its key. */
+    private fun putBlob(
+        actor: Actor,
+        bytes: ByteArray,
+        contentType: String,
+    ): String {
         if (bytes.size > maxBytes) tooLarge()
         val key = "${actor.tenant.value}/${UuidV7.generate(clock)}"
         val temp = Files.createTempFile("plm-store-", ".bin")
@@ -505,7 +516,41 @@ internal class DefaultContentService(
             actor.principal.value,
             clock.instant(),
         )
-        return add(actor, objectId, wc.id.value, role, name, description, key)
+        return key
+    }
+
+    @Transactional
+    override fun importFile(
+        actor: Actor,
+        objectId: MasterId,
+        iterationId: UUID,
+        fileName: String,
+        contentType: String,
+        bytes: ByteArray,
+        role: ContentRole,
+    ): ContentItem {
+        if (!actor.siteAdmin) throw ForbiddenException("ADMIN_REQUIRED", "Only site administrators bring in history")
+        requireDocument(actor, objectId)
+        val name = fileName(fileName)
+        val key = putBlob(actor, bytes, contentType)
+        val id = UuidV7.generate(clock)
+        content.insertItem(
+            actor.tenant,
+            id,
+            objectId.value,
+            iterationId,
+            role,
+            name,
+            null,
+            key,
+            actor.principal.value,
+            clock.instant(),
+        )
+        events.publish(actor, ContentChanged(objectId.value, iterationId, id, name, role, "IMPORTED"))
+        if (content.blob(key)!!.thumbnail == ThumbnailStatus.PENDING) {
+            jobs.enqueueSystem(actor, ThumbnailJob.TYPE, mapOf("blobKey" to key), "Thumbnail of $name")
+        }
+        return content.item(id)!!.item
     }
 
     private fun add(
