@@ -5,6 +5,11 @@ spring:
     port: ${PLM_MAIL_PORT:1025}
   application:
     name: plm
+  # Multipart uploads (a KiCad project's files, roadmap 8.7): boards can be large.
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 200MB
   datasource:
     url: ${PLM_DB_URL:jdbc:postgresql://localhost:5432/plm}
     username: ${PLM_DB_USER:plm}

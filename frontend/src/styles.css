@@ -6900,3 +6900,56 @@ textarea {
   flex: 0 1 240px;
   min-width: 0;
 }
+
+/* KiCad import (roadmap 8.7). */
+.file-drop {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+  border: 2px dashed var(--border-strong);
+  border-radius: 10px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.file-drop:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.file-drop input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.kicad-preview {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+.kicad-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  align-items: center;
+  color: var(--text-2);
+}
+.kicad-facts span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.kicad-bom {
+  max-height: 340px;
+  overflow: auto;
+}
+.kicad-links {
+  margin: 10px 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+.bom-ok {
+  margin: 12px;
+}

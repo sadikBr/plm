@@ -1289,6 +1289,53 @@
         "required" : [ "iterationIds", "masterIds" ],
         "type" : "object"
       },
+      "BomCheck" : {
+        "properties" : {
+          "assembly" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/EcadImported"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "differences" : {
+            "items" : {
+              "$ref" : "#/components/schemas/BomDifference"
+            },
+            "type" : "array"
+          },
+          "lines" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "differences", "lines" ],
+        "type" : "object"
+      },
+      "BomDifference" : {
+        "properties" : {
+          "kind" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "schematic" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "structure" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "kind", "label", "schematic", "structure" ],
+        "type" : "object"
+      },
       "BuildRequest" : {
         "properties" : {
           "createParts" : {
@@ -3462,6 +3509,147 @@
           }
         },
         "required" : [ "displayName", "id", "instanceId", "intact", "meaning", "principal", "signedAt", "username", "workItemId" ],
+        "type" : "object"
+      },
+      "EcadBomLine" : {
+        "properties" : {
+          "footprint" : {
+            "type" : "string"
+          },
+          "partId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "partLabel" : {
+            "type" : [ "string", "null" ]
+          },
+          "partNumber" : {
+            "type" : [ "string", "null" ]
+          },
+          "quantity" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "references" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "value" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "footprint", "quantity", "references", "value" ],
+        "type" : "object"
+      },
+      "EcadImportResult" : {
+        "properties" : {
+          "assembly" : {
+            "$ref" : "#/components/schemas/EcadImported"
+          },
+          "createdParts" : {
+            "items" : {
+              "$ref" : "#/components/schemas/EcadImported"
+            },
+            "type" : "array"
+          },
+          "documents" : {
+            "items" : {
+              "$ref" : "#/components/schemas/EcadImported"
+            },
+            "type" : "array"
+          },
+          "lines" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "project" : {
+            "$ref" : "#/components/schemas/EcadImported"
+          },
+          "unmatched" : {
+            "items" : {
+              "$ref" : "#/components/schemas/EcadBomLine"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "assembly", "createdParts", "documents", "lines", "project", "unmatched" ],
+        "type" : "object"
+      },
+      "EcadImported" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "kind", "name", "number" ],
+        "type" : "object"
+      },
+      "EcadPreview" : {
+        "properties" : {
+          "board" : {
+            "type" : [ "string", "null" ]
+          },
+          "copperLayers" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "footprints" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "height" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "lines" : {
+            "items" : {
+              "$ref" : "#/components/schemas/EcadBomLine"
+            },
+            "type" : "array"
+          },
+          "project" : {
+            "type" : "string"
+          },
+          "sheets" : {
+            "items" : {
+              "$ref" : "#/components/schemas/EcadSheet"
+            },
+            "type" : "array"
+          },
+          "width" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "copperLayers", "footprints", "height", "lines", "project", "sheets", "width" ],
+        "type" : "object"
+      },
+      "EcadSheet" : {
+        "properties" : {
+          "components" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "file" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "components", "file", "name" ],
         "type" : "object"
       },
       "EditComment" : {
@@ -15997,6 +16185,117 @@
         "tags" : [ "Document" ]
       }
     },
+    "/api/v1/ecad/kicad/import" : {
+      "post" : {
+        "operationId" : "ecadImport",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "createParts",
+          "required" : false,
+          "schema" : {
+            "default" : true,
+            "type" : "boolean"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "properties" : {
+                  "files" : {
+                    "items" : {
+                      "format" : "binary",
+                      "type" : "string"
+                    },
+                    "type" : "array"
+                  }
+                },
+                "required" : [ "files" ],
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EcadImportResult"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Ecad" ]
+      }
+    },
+    "/api/v1/ecad/kicad/preview" : {
+      "post" : {
+        "operationId" : "ecadPreview",
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "properties" : {
+                  "files" : {
+                    "items" : {
+                      "format" : "binary",
+                      "type" : "string"
+                    },
+                    "type" : "array"
+                  }
+                },
+                "required" : [ "files" ],
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EcadPreview"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Ecad" ]
+      }
+    },
     "/api/v1/effectivity-contexts" : {
       "get" : {
         "operationId" : "effectivityContexts",
@@ -21587,6 +21886,43 @@
           }
         },
         "tags" : [ "Document link" ]
+      }
+    },
+    "/api/v1/objects/{id}/ecad/bom-check" : {
+      "get" : {
+        "operationId" : "ecadCheck",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BomCheck"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Ecad" ]
       }
     },
     "/api/v1/objects/{id}/effectivity" : {
@@ -31105,6 +31441,8 @@
     "name" : "Document"
   }, {
     "name" : "Document link"
+  }, {
+    "name" : "Ecad"
   }, {
     "name" : "Effectivity"
   }, {

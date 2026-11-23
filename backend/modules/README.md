@@ -50,6 +50,7 @@ Three layers enforce this:
 | workspace | Personal workspaces: the objects a person works on, their files' states against the person's computer, check out / in for many at once, new files | access, types, versioning, content, cad |
 | office | Office files: their properties ↔ attributes (per type), properties written into downloads, PDF previews through LibreOffice | identity, access, types, versioning, content, jobs |
 | connectors | The connector protocol for authoring tools: save a manifest of models (files, dependencies, parts) in one transaction, list what to download to open a model | access, types, versioning, content, cad |
+| ecad | Electrical CAD: KiCad projects as project, schematic and board documents, the schematic's components as the board assembly's structure, a board preview, a BOM check | access, types, versioning, content, cad, bom |
 | extensions | Extensibility platform: action registry, extension packages, rules, webhooks | types, access, lifecycle, versioning, configuration, identity, preferences |
 
 Every module also depends on `backend/platform` (the shared kernel).

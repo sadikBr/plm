@@ -740,10 +740,17 @@ system keeps track: what they took, what they changed, what is out of date.
       assembly with everything it links to, sending only changed files; opens a model with its
       dependencies where its links expect them. A FreeCAD workbench (Save to PLM, Open from PLM) on
       the same code; tested on FreeCAD's own example files and against a running server.)
-- [ ] 8.7 Electrical CAD: KiCad projects (schematic, board, symbol and footprint libraries) as ECAD
+- [x] 8.7 Electrical CAD: KiCad projects (schematic, board, symbol and footprint libraries) as ECAD
       documents with their dependencies; the schematic's components become a part structure
       (reference designators as occurrences, 4.5); a board preview; a "compare ECAD BOM with the
       part structure" report.
+      (Done: an `ecad` module reading KiCad 6+ files; ECAD project, schematic and board types; a
+      project's files (sent as one folder) become the project, a schematic per sheet and the board,
+      with their dependencies; the schematic's components grouped into lines become the structure of
+      a new assembly part owned by the board, reference designators as occurrences, existing parts
+      matched by part number (MPN) or name; a board preview drawn from the board (outline, copper on
+      both sides, pads, references); a BOM check on projects and boards. Tested on KiCad's own
+      pic_programmer demo.)
 - [ ] 8.8 Commercial CAD connectors (SolidWorks, Inventor, Creo, NX, CATIA): add-in projects on the
       connector kit, each needing the vendor's SDK and a licensed Windows machine to build and
       test. This phase delivers the kit, its documentation and a SolidWorks add-in skeleton

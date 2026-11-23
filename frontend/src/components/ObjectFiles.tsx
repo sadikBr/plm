@@ -22,6 +22,7 @@ export function kindOf(contentType: string): string {
     [/^application\/pdf$/, "PDF"],
     [/^image\//, t("Image")],
     [/^text\/plain$/, t("Text")],
+    [/x-kicad/, "KiCad"],
   ];
   return kinds.find(([re]) => re.test(contentType))?.[1] ?? contentType;
 }

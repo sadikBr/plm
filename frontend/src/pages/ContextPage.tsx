@@ -1,7 +1,8 @@
 import { OptionSetsTab } from "../variants/OptionSets";
 import { FavoriteButton, SubscribeButton } from "../personal/Personal";
-import { FilePlus, LayoutTemplate, Plus, ScrollText, Shapes } from "lucide-react";
+import { CircuitBoard, FilePlus, LayoutTemplate, Plus, ScrollText, Shapes } from "lucide-react";
 import { StepImportDialog } from "../cad/StepImport";
+import { KicadImportDialog } from "../cad/KicadImport";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -391,6 +392,7 @@ function ObjectsTab({ context, canCreate }: { context: Context; canCreate: boole
   const openFolder = (id?: string) => setParams(id ? { tab: "contents", folder: id } : { tab: "contents" });
   const [creating, setCreating] = useState<string | null>(null);
   const [importingStep, setImportingStep] = useState(false);
+  const [importingKicad, setImportingKicad] = useState(false);
   // One New button per kind of thing there are types for: New part, New document.
   const baseClasses = [...new Set(types?.filter((t) => t.instantiable).map((t) => t.baseClass))].sort(
     (a, b) => BASE_CLASS_ORDER.indexOf(a) - BASE_CLASS_ORDER.indexOf(b),
@@ -435,10 +437,16 @@ function ObjectsTab({ context, canCreate }: { context: Context; canCreate: boole
               <Shapes size={14} aria-hidden /> {t("Import STEP…")}
             </button>
           )}
+          {canCreate && (
+            <button className="btn small" onClick={() => setImportingKicad(true)}>
+              <CircuitBoard size={14} aria-hidden /> {t("Import KiCad…")}
+            </button>
+          )}
         </>
       }
     >
       {importingStep && <StepImportDialog contextId={context.id} onClose={() => setImportingStep(false)} />}
+      {importingKicad && <KicadImportDialog contextId={context.id} onClose={() => setImportingKicad(false)} />}
       {creating && <NewObjectDialog context={context} folderId={folder} baseClass={creating} onClose={() => setCreating(null)} />}
       <FolderBar contextId={context.id} contextName={context.name} folderId={folder} onOpen={openFolder} canCreate={canCreate} />
       {bulkJob && (

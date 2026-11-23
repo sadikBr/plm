@@ -1,3 +1,4 @@
+import { EcadBomCheck } from "../cad/KicadImport";
 import { ReferencedBy } from "../components/References";
 import { ProcessesTab } from "../workflow/Processes";
 import { ChangeTab, ObjectChangesTab, VariancesBanner, changeKindOf, kindLabel, useReleaseGate } from "../changes/Changes";
@@ -699,6 +700,7 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
       </div>
       {/* Only documents hold files (primary content and attachments). */}
       <VariancesBanner objectId={obj.id} />
+      <EcadBomCheck objectId={obj.id} typeId={obj.typeId} />
       <ReferencedBy objectId={obj.id} />
       <SignaturesPanel objectId={obj.id} />
       <PublicationsPanel objectId={obj.id} number={obj.number} />

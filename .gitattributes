@@ -8,3 +8,5 @@ plm text eol=lf
 # Generated CAD models (scripts/demo-data/cad/generate.py): no text diffs.
 *.stp -diff linguist-generated
 *.FCStd binary
+*.kicad_pcb -diff linguist-generated
+*.kicad_sch -diff linguist-generated
