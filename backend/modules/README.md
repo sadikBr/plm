@@ -29,6 +29,7 @@ Three layers enforce this:
 | types | Type definitions, attribute schemas | — |
 | integration | ERP distribution: targets (system + plant) with plant attributes, rules, an outbox of signed messages, acknowledgements | access, types, versioning, bom |
 | events | Relays the outbox to Kafka (infrastructure) | — |
+| standards | STEP AP242 export of product structure with CAD files; OSLC core services and external links | access, types, versioning, content, bom, identity |
 | packages | Packages (objects under a spec, with files, PDFs, structure, documents) and deliveries: expiring downloads with a log | identity, access, types, versioning, content, bom, jobs |
 | migration | Migrations from other PLM systems: a zip with a JSON manifest, mappings, dry run, resumable job, history kept | identity, access, types, lifecycle, versioning, content, bom, jobs |
 | directory | SCIM 2.0 users and groups from the identity provider; groups become shared teams | identity, access |

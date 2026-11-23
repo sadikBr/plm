@@ -1,7 +1,14 @@
 import { EcadBomCheck } from "../cad/KicadImport";
 import { ReferencedBy } from "../components/References";
 import { ProcessesTab } from "../workflow/Processes";
-import { ChangeTab, ObjectChangesTab, VariancesBanner, changeKindOf, kindLabel, useReleaseGate } from "../changes/Changes";
+import {
+    ChangeTab,
+    ObjectChangesTab,
+    VariancesBanner,
+    changeKindOf,
+    kindLabel,
+    useReleaseGate,
+} from "../changes/Changes";
 import { SignaturesPanel } from "../workflow/Signatures";
 import { CadTab, cadKindOf } from "../cad/CadTab";
 import { PartCadPanel, useOwnerModel } from "../cad/Associations";
@@ -12,16 +19,29 @@ import { PartOptionsPanel } from "../variants/OptionSets";
 import { OneOffBanner, OneOffsPanel } from "../variants/OneOffs";
 import { ClassificationTab } from "../classification/Classification";
 import { DistributionTab } from "../integration/Distribution";
+import { ExternalLinksPanel } from "../standards/Standards";
 import { PublicationsPanel } from "../publishing/Publishing";
-import { ExtensionPanels, ExtensionTab, useUiSlots } from "../extensions/ExtensionFrame";
+import {
+    ExtensionPanels,
+    ExtensionTab,
+    useUiSlots,
+} from "../extensions/ExtensionFrame";
 import { ReplacementsTab } from "../structure/Replacements";
 import { DocumentLinksTab, LinkingPartsTab } from "../structure/DocumentLinks";
 import { WhereUsedTab } from "../structure/WhereUsed";
 import { StructureTab } from "../structure/Structure";
 import { auditAction } from "../audit/AuditReport";
 import { language, t } from "../i18n/i18n";
-import { DiscussionTab, ShareButton, useComments } from "../collaboration/Collaboration";
-import { FavoriteButton, SubscribeButton, useRecordVisit } from "../personal/Personal";
+import {
+    DiscussionTab,
+    ShareButton,
+    useComments,
+} from "../collaboration/Collaboration";
+import {
+    FavoriteButton,
+    SubscribeButton,
+    useRecordVisit,
+} from "../personal/Personal";
 import { Bookmark, Lock, Pencil } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
@@ -51,7 +71,12 @@ import {
     type VersionedObject,
     useShows,
 } from "../api/queries";
-import { AttributeForm, AttributeValues, fieldErrors, pickLabel } from "../components/AttributeForm";
+import {
+    AttributeForm,
+    AttributeValues,
+    fieldErrors,
+    pickLabel,
+} from "../components/AttributeForm";
 import {
     Dialog,
     ErrorBanner,
@@ -65,12 +90,22 @@ import {
     useTypeName,
     When,
 } from "../components/common";
-import { Breadcrumbs, PageHeader, Tabs, useIdParam } from "../components/Layout";
+import {
+    Breadcrumbs,
+    PageHeader,
+    Tabs,
+    useIdParam,
+} from "../components/Layout";
 import { ObjectFiles } from "../components/ObjectFiles";
 import { CompareDialog, SaveAsDialog } from "../documents/DocumentDialogs";
 import { useClipboard } from "../components/Clipboard";
 import { FolderLocation } from "./FolderLocation";
-import { DeleteDialog, MoveDialog, OwnerDialog, useReservation } from "./OrganizeDialogs";
+import {
+    DeleteDialog,
+    MoveDialog,
+    OwnerDialog,
+    useReservation,
+} from "./OrganizeDialogs";
 import { NotFoundPage } from "./NotFoundPage";
 import { BackgroundActions, useActionRunner } from "./ActionRunner";
 import { ObjectActionBar, type ActionHandlers } from "./ObjectActions";
@@ -110,27 +145,42 @@ function ObjectView({ id }: { id: string }) {
     const shows = useShows();
     const [params, setParams] = useSearchParams();
     const { data: comments } = useComments(id);
-    const discussionCount = comments?.filter((c) => !c.parentId && !c.resolved).length ?? 0;
+    const discussionCount =
+        comments?.filter((c) => !c.parentId && !c.resolved).length ?? 0;
     const { data: allTypes } = useTypes();
     const { data: uiSlots } = useUiSlots(id);
-    const partLike = allTypes?.find((ty) => ty.id === obj?.typeId)?.baseClass === "PART";
+    const partLike =
+        allTypes?.find((ty) => ty.id === obj?.typeId)?.baseClass === "PART";
     const ownerModel = useOwnerModel(id, partLike);
-    const docLike = allTypes?.find((ty) => ty.id === obj?.typeId)?.baseClass === "DOCUMENT";
+    const docLike =
+        allTypes?.find((ty) => ty.id === obj?.typeId)?.baseClass === "DOCUMENT";
     const hasPdf = useHasPdf(id, docLike);
 
     if (isLoading) return <Loading />;
     if (isApiError(error, 404)) return <NotFoundPage what="object" />;
     if (error || !obj) return <ErrorBanner error={error} />;
 
-    const isPart = allTypes?.find((ty) => ty.id === obj.typeId)?.baseClass === "PART";
+    const isPart =
+        allTypes?.find((ty) => ty.id === obj.typeId)?.baseClass === "PART";
     const changeKind = changeKindOf(allTypes, obj.typeId);
     const cadKind = cadKindOf(allTypes, obj.typeId);
     const tabs: [Tab, string][] = [
         ["details", t("Details")],
         ...(cadKind
-            ? [["cad", cadKind === "PART" ? t("Model") : cadKind === "DRAWING" ? t("Models") : t("Model structure")] as [Tab, string]]
+            ? [
+                  [
+                      "cad",
+                      cadKind === "PART"
+                          ? t("Model")
+                          : cadKind === "DRAWING"
+                            ? t("Models")
+                            : t("Model structure"),
+                  ] as [Tab, string],
+              ]
             : []),
-        ...((cadKind && cadKind !== "DRAWING") || ownerModel ? [["view3d", t("3D view")] as [Tab, string]] : []),
+        ...((cadKind && cadKind !== "DRAWING") || ownerModel
+            ? [["view3d", t("3D view")] as [Tab, string]]
+            : []),
         ...(hasPdf ? [["view2d", t("2D view")] as [Tab, string]] : []),
         ...(isPart
             ? [
@@ -145,41 +195,104 @@ function ObjectView({ id }: { id: string }) {
             : allTypes && !changeKind
               ? [["parts", t("Parts")] as [Tab, string]]
               : []),
-        ...(changeKind ? [["change", kindLabel(changeKind)] as [Tab, string]] : [["changes", t("Changes")] as [Tab, string]]),
+        ...(changeKind
+            ? [["change", kindLabel(changeKind)] as [Tab, string]]
+            : [["changes", t("Changes")] as [Tab, string]]),
         ["processes", t("Processes")],
-        ...(!changeKind ? [["distribution", t("Distribution")] as [Tab, string]] : []),
-        ...(uiSlots ?? []).filter((s) => s.slot === "object.tab").map((s) => [`ext:${s.extensionId}/${s.id}`, s.title] as [Tab, string]),
-        ["discussion", discussionCount ? t("Discussion ({count})", { count: discussionCount }) : t("Discussion")],
-        ...(shows("object.history") ? [["history", t("History")] as [Tab, string]] : []),
-        ...(me?.siteAdmin && shows("object.audit") ? [["audit", t("Audit")] as [Tab, string]] : []),
+        ...(!changeKind
+            ? [["distribution", t("Distribution")] as [Tab, string]]
+            : []),
+        ...(uiSlots ?? [])
+            .filter((s) => s.slot === "object.tab")
+            .map(
+                (s) =>
+                    [`ext:${s.extensionId}/${s.id}`, s.title] as [Tab, string],
+            ),
+        [
+            "discussion",
+            discussionCount
+                ? t("Discussion ({count})", { count: discussionCount })
+                : t("Discussion"),
+        ],
+        ...(shows("object.history")
+            ? [["history", t("History")] as [Tab, string]]
+            : []),
+        ...(me?.siteAdmin && shows("object.audit")
+            ? [["audit", t("Audit")] as [Tab, string]]
+            : []),
     ];
     const asked = params.get("tab") as Tab | null;
-    const tab: Tab = asked && tabs.some(([k]) => k === asked) ? asked : "details";
+    const tab: Tab =
+        asked && tabs.some(([k]) => k === asked) ? asked : "details";
     const myId = me?.user.id;
 
     return (
         <>
-            <ObjectHeader obj={obj} myId={myId} tabs={<Tabs tabs={tabs} active={tab} onSelect={(k) => setParams({ tab: k })} />} />
+            <ObjectHeader
+                obj={obj}
+                myId={myId}
+                tabs={
+                    <Tabs
+                        tabs={tabs}
+                        active={tab}
+                        onSelect={(k) => setParams({ tab: k })}
+                    />
+                }
+            />
             <div className="content">
                 <OneOffBanner obj={obj} />
                 {tab === "details" && <DetailsTab obj={obj} myId={myId} />}
-                {tab === "cad" && cadKind && <CadTab obj={obj} kind={cadKind} mine={!!myId && obj.checkedOutBy === myId} />}
+                {tab === "cad" && cadKind && (
+                    <CadTab
+                        obj={obj}
+                        kind={cadKind}
+                        mine={!!myId && obj.checkedOutBy === myId}
+                    />
+                )}
                 {tab === "view2d" && <SheetTab obj={obj} />}
                 {tab === "classification" && <ClassificationTab obj={obj} />}
                 {tab === "options" && <PartOptionsPanel obj={obj} />}
-                {tab === "effectivity" && <EffectivityTab obj={obj} mine={!!myId && obj.checkedOutBy === myId} />}
-                {tab === "view3d" && (
-                    <ViewTab obj={obj} modelId={cadKind ? obj.id : ownerModel!} mine={!!myId && obj.checkedOutBy === myId} />
+                {tab === "effectivity" && (
+                    <EffectivityTab
+                        obj={obj}
+                        mine={!!myId && obj.checkedOutBy === myId}
+                    />
                 )}
-                {tab === "structure" && <PartCadPanel obj={obj} mine={!!myId && obj.checkedOutBy === myId} />}
-                {tab === "structure" && <StructureTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}
+                {tab === "view3d" && (
+                    <ViewTab
+                        obj={obj}
+                        modelId={cadKind ? obj.id : ownerModel!}
+                        mine={!!myId && obj.checkedOutBy === myId}
+                    />
+                )}
+                {tab === "structure" && (
+                    <PartCadPanel
+                        obj={obj}
+                        mine={!!myId && obj.checkedOutBy === myId}
+                    />
+                )}
+                {tab === "structure" && (
+                    <StructureTab
+                        obj={obj}
+                        editable={!!myId && obj.checkedOutBy === myId}
+                    />
+                )}
                 {tab === "where-used" && <WhereUsedTab obj={obj} />}
-                {tab === "documents" && <DocumentLinksTab obj={obj} editable={!!myId && obj.checkedOutBy === myId} />}
+                {tab === "documents" && (
+                    <DocumentLinksTab
+                        obj={obj}
+                        editable={!!myId && obj.checkedOutBy === myId}
+                    />
+                )}
                 {tab === "parts" && <LinkingPartsTab obj={obj} />}
                 {tab === "replacements" && <ReplacementsTab obj={obj} />}
                 {tab === "processes" && <ProcessesTab obj={obj} />}
-                {tab === "distribution" && <DistributionTab objectId={obj.id} />}
-                {tab === "change" && changeKind && <ChangeTab obj={obj} kind={changeKind} />}
+                {tab === "distribution" && (
+                    <DistributionTab objectId={obj.id} />
+                )}
+                {tab === "change" && changeKind && (
+                    <ChangeTab obj={obj} kind={changeKind} />
+                )}
                 {tab === "changes" && <ObjectChangesTab obj={obj} />}
                 {tab === "discussion" && <DiscussionTab obj={obj} />}
                 {tab === "history" && isPart && <OneOffsPanel obj={obj} />}
@@ -188,13 +301,23 @@ function ObjectView({ id }: { id: string }) {
                 {tab.startsWith("ext:") &&
                     (uiSlots ?? [])
                         .filter((s) => tab === `ext:${s.extensionId}/${s.id}`)
-                        .map((s) => <ExtensionTab key={tab} slot={s} obj={obj} />)}
+                        .map((s) => (
+                            <ExtensionTab key={tab} slot={s} obj={obj} />
+                        ))}
             </div>
         </>
     );
 }
 
-function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string; tabs: React.ReactNode }) {
+function ObjectHeader({
+    obj,
+    myId,
+    tabs,
+}: {
+    obj: VersionedObject;
+    myId?: string;
+    tabs: React.ReactNode;
+}) {
     const typeName = useTypeName(obj.typeId);
     const actions = useObjectActions(obj.id);
     const { data: available } = useAvailableActions(obj);
@@ -202,23 +325,34 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
     const { data: lifecycle } = useLifecycle(obj.id);
     const [checkingIn, setCheckingIn] = useState(false);
     const [comment, setComment] = useState("");
-    const [stateChange, setStateChange] = useState<{ to: string; override: boolean } | null>(null);
+    const [stateChange, setStateChange] = useState<{
+        to: string;
+        override: boolean;
+    } | null>(null);
     const [renaming, setRenaming] = useState(false);
     const [changingLifecycle, setChangingLifecycle] = useState(false);
-    const [docDialog, setDocDialog] = useState<"save-as" | "compare" | "move" | "delete" | "owner" | null>(null);
+    const [docDialog, setDocDialog] = useState<
+        "save-as" | "compare" | "move" | "delete" | "owner" | null
+    >(null);
     const clipboard = useClipboard();
     const reservation = useReservation(obj);
     const { data: me } = useMe();
     const gate = useReleaseGate(obj.typeId);
     const { data: contextPermissions } = usePermissions(obj.contextId);
-    const canShare = !!me?.siteAdmin || obj.owner === myId || !!contextPermissions?.has("MANAGE");
+    const canShare =
+        !!me?.siteAdmin ||
+        obj.owner === myId ||
+        !!contextPermissions?.has("MANAGE");
     const { data: prefs } = useEffectivePreferences(obj.contextId);
-    const commentRequired = prefs?.get("versioning.checkInCommentRequired") === true;
+    const commentRequired =
+        prefs?.get("versioning.checkInCommentRequired") === true;
 
     const mine = !!myId && obj.checkedOutBy === myId;
     const busy = Object.values(actions).some((m) => m.isPending);
     // Set state and check-in show their errors in their dialogs, where the user is looking.
-    const failed = Object.entries(actions).find(([key, m]) => key !== "setState" && key !== "checkIn" && m.error)?.[1].error;
+    const failed = Object.entries(actions).find(
+        ([key, m]) => key !== "setState" && key !== "checkIn" && m.error,
+    )?.[1].error;
     const label = (state: string) => stateName(lifecycle, state);
     const current = label(obj.latest.state);
 
@@ -229,9 +363,13 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
         "object.check-in": () => setCheckingIn(true),
         "object.undo-check-out": () => actions.undoCheckOut.mutate(),
         "object.revise": () => actions.revise.mutate(),
-        "object.set-state": (option) => option && setStateChange({ to: option.value, override: option.override }),
-        "object.copy-number": () => void navigator.clipboard?.writeText(obj.number),
-        "object.copy-link": () => void navigator.clipboard?.writeText(window.location.href),
+        "object.set-state": (option) =>
+            option &&
+            setStateChange({ to: option.value, override: option.override }),
+        "object.copy-number": () =>
+            void navigator.clipboard?.writeText(obj.number),
+        "object.copy-link": () =>
+            void navigator.clipboard?.writeText(window.location.href),
         "object.rename": () => setRenaming(true),
         "object.change-lifecycle": () => setChangingLifecycle(true),
         "object.save-as": () => setDocDialog("save-as"),
@@ -241,14 +379,25 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
         "object.change-owner": () => setDocDialog("owner"),
         "object.reserve": () => reservation.reserve.mutate(),
         "object.release": () => reservation.release.mutate(),
-        "object.add-to-clipboard": () => clipboard.add({ id: obj.id, number: obj.number, name: obj.name, version: obj.version }),
+        "object.add-to-clipboard": () =>
+            clipboard.add({
+                id: obj.id,
+                number: obj.number,
+                name: obj.name,
+                version: obj.version,
+            }),
     };
 
     return (
         <>
             <PageHeader
                 variant="object"
-                crumbs={<Breadcrumbs contextId={obj.contextId} current={obj.number} />}
+                crumbs={
+                    <Breadcrumbs
+                        contextId={obj.contextId}
+                        current={obj.number}
+                    />
+                }
                 icon={<TypeIcon typeId={obj.typeId} size={18} />}
                 title={
                     <>
@@ -259,18 +408,25 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
                 }
                 meta={
                     <>
-                        <span className="tag accent version" data-testid="version">
+                        <span
+                            className="tag accent version"
+                            data-testid="version"
+                        >
                             {obj.version}
                         </span>
                         <StateBadge state={obj.latest.state} label={current} />
                         {obj.checkedOutBy && (
-                            <span className="tag warn" data-testid="checked-out">
+                            <span
+                                className="tag warn"
+                                data-testid="checked-out"
+                            >
                                 <Lock size={11} aria-hidden />
                                 {mine ? (
                                     t("Checked out by you")
                                 ) : (
                                     <>
-                                        {t("Checked out by")} <PrincipalName id={obj.checkedOutBy} />
+                                        {t("Checked out by")}{" "}
+                                        <PrincipalName id={obj.checkedOutBy} />
                                     </>
                                 )}
                             </span>
@@ -282,15 +438,24 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
                                     t("Reserved by you")
                                 ) : (
                                     <>
-                                        {t("Reserved by")} <PrincipalName id={obj.reservedBy} />
+                                        {t("Reserved by")}{" "}
+                                        <PrincipalName id={obj.reservedBy} />
                                     </>
                                 )}
                             </span>
                         )}
                         <span className="sub">{typeName}</span>
                         <span className="track-btns">
-                            <FavoriteButton kind="OBJECT" targetId={obj.id} label={`${obj.number} ${obj.name}`} />
-                            <SubscribeButton kind="OBJECT" targetId={obj.id} label={`${obj.number} ${obj.name}`} />
+                            <FavoriteButton
+                                kind="OBJECT"
+                                targetId={obj.id}
+                                label={`${obj.number} ${obj.name}`}
+                            />
+                            <SubscribeButton
+                                kind="OBJECT"
+                                targetId={obj.id}
+                                label={`${obj.number} ${obj.name}`}
+                            />
                             {canShare && <ShareButton obj={obj} />}
                         </span>
                     </>
@@ -308,9 +473,15 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
                 }
                 tabs={tabs}
             />
-            {(reservation.reserve.error ?? reservation.release.error) != null && (
+            {(reservation.reserve.error ?? reservation.release.error) !=
+                null && (
                 <div style={{ padding: "12px 16px 0" }}>
-                    <ErrorBanner error={reservation.reserve.error ?? reservation.release.error} />
+                    <ErrorBanner
+                        error={
+                            reservation.reserve.error ??
+                            reservation.release.error
+                        }
+                    />
                 </div>
             )}
             {failed != null && (
@@ -320,17 +491,37 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
             )}
             {runner.ui}
             <BackgroundActions objectId={obj.id} refreshKey={runner.started} />
-            {renaming && <RenameDialog obj={obj} onClose={() => setRenaming(false)} />}
-            {docDialog === "save-as" && <SaveAsDialog obj={obj} onClose={() => setDocDialog(null)} />}
-            {docDialog === "compare" && <CompareDialog obj={obj} onClose={() => setDocDialog(null)} />}
-            {docDialog === "move" && <MoveDialog obj={obj} onClose={() => setDocDialog(null)} />}
-            {docDialog === "delete" && <DeleteDialog obj={obj} onClose={() => setDocDialog(null)} />}
-            {docDialog === "owner" && <OwnerDialog obj={obj} onClose={() => setDocDialog(null)} />}
+            {renaming && (
+                <RenameDialog obj={obj} onClose={() => setRenaming(false)} />
+            )}
+            {docDialog === "save-as" && (
+                <SaveAsDialog obj={obj} onClose={() => setDocDialog(null)} />
+            )}
+            {docDialog === "compare" && (
+                <CompareDialog obj={obj} onClose={() => setDocDialog(null)} />
+            )}
+            {docDialog === "move" && (
+                <MoveDialog obj={obj} onClose={() => setDocDialog(null)} />
+            )}
+            {docDialog === "delete" && (
+                <DeleteDialog obj={obj} onClose={() => setDocDialog(null)} />
+            )}
+            {docDialog === "owner" && (
+                <OwnerDialog obj={obj} onClose={() => setDocDialog(null)} />
+            )}
             {changingLifecycle && lifecycle && (
-                <ChangeLifecycleDialog obj={obj} current={lifecycle} onClose={() => setChangingLifecycle(false)} />
+                <ChangeLifecycleDialog
+                    obj={obj}
+                    current={lifecycle}
+                    onClose={() => setChangingLifecycle(false)}
+                />
             )}
             <StateChangeDialog
-                gated={!!stateChange && !stateChange.override && gate.gates(stateChange.to)}
+                gated={
+                    !!stateChange &&
+                    !stateChange.override &&
+                    gate.gates(stateChange.to)
+                }
                 canOverride={!!me?.siteAdmin}
                 objectNumber={obj.number}
                 from={current}
@@ -346,7 +537,11 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
                 onConfirm={(comment, force) =>
                     stateChange &&
                     actions.setState.mutate(
-                        { state: stateChange.to, comment: comment || undefined, override: stateChange.override || force },
+                        {
+                            state: stateChange.to,
+                            comment: comment || undefined,
+                            override: stateChange.override || force,
+                        },
                         { onSuccess: () => setStateChange(null) },
                     )
                 }
@@ -371,8 +566,14 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
                         </button>
                         <button
                             className="btn primary"
-                            disabled={busy || (commentRequired && !comment.trim())}
-                            title={commentRequired && !comment.trim() ? t("A comment is required here") : undefined}
+                            disabled={
+                                busy || (commentRequired && !comment.trim())
+                            }
+                            title={
+                                commentRequired && !comment.trim()
+                                    ? t("A comment is required here")
+                                    : undefined
+                            }
                             onClick={() =>
                                 actions.checkIn.mutate(comment, {
                                     onSuccess: () => {
@@ -411,25 +612,46 @@ function ObjectHeader({ obj, myId, tabs }: { obj: VersionedObject; myId?: string
     );
 }
 
-function stateName(lifecycle: ObjectLifecycle | undefined, state: string): string {
+function stateName(
+    lifecycle: ObjectLifecycle | undefined,
+    state: string,
+): string {
     const labels = lifecycle?.states.find((s) => s.key === state)?.labels;
-    return labels?.[language()] ?? labels?.en ?? state.charAt(0) + state.slice(1).toLowerCase().replace(/_/g, " ");
+    return (
+        labels?.[language()] ??
+        labels?.en ??
+        state.charAt(0) + state.slice(1).toLowerCase().replace(/_/g, " ")
+    );
 }
 
-function ChangeLifecycleDialog({ obj, current, onClose }: { obj: VersionedObject; current: ObjectLifecycle; onClose: () => void }) {
+function ChangeLifecycleDialog({
+    obj,
+    current,
+    onClose,
+}: {
+    obj: VersionedObject;
+    current: ObjectLifecycle;
+    onClose: () => void;
+}) {
     const { data: lifecycles } = useLifecycles();
     const change = useChangeLifecycle(obj.id);
     // Default: the current version of the object's own lifecycle.
-    const latestOfOwn = lifecycles?.find((l) => l.name === current.lifecycleName);
+    const latestOfOwn = lifecycles?.find(
+        (l) => l.name === current.lifecycleName,
+    );
     const [lifecycleId, setLifecycleId] = useState("");
-    const chosen = lifecycles?.find((l) => l.id === (lifecycleId || latestOfOwn?.id)) ?? lifecycles?.[0];
+    const chosen =
+        lifecycles?.find((l) => l.id === (lifecycleId || latestOfOwn?.id)) ??
+        lifecycles?.[0];
     const keeps = !!chosen?.states.some((s) => s.key === obj.latest.state);
     const [state, setState] = useState("");
     const target = state || (keeps ? obj.latest.state : "");
     return (
         <Dialog
             open
-            title={t("Change the lifecycle of {number}", { number: obj.number })}
+            title={t("Change the lifecycle of {number}", {
+                number: obj.number,
+            })}
             onClose={onClose}
             footer={
                 <>
@@ -441,7 +663,11 @@ function ChangeLifecycleDialog({ obj, current, onClose }: { obj: VersionedObject
                         type="submit"
                         form="lifecycle-form"
                         disabled={
-                            change.isPending || !chosen || !target || (chosen.id === current.lifecycleId && target === obj.latest.state)
+                            change.isPending ||
+                            !chosen ||
+                            !target ||
+                            (chosen.id === current.lifecycleId &&
+                                target === obj.latest.state)
                         }
                     >
                         {t("Move")}
@@ -455,13 +681,22 @@ function ChangeLifecycleDialog({ obj, current, onClose }: { obj: VersionedObject
                 noValidate
                 onSubmit={(e) => {
                     e.preventDefault();
-                    if (chosen) change.mutate({ lifecycleId: chosen.id, state: target }, { onSuccess: onClose });
+                    if (chosen)
+                        change.mutate(
+                            { lifecycleId: chosen.id, state: target },
+                            { onSuccess: onClose },
+                        );
                 }}
             >
                 <ErrorBanner error={change.error} />
                 <p className="muted" style={{ margin: 0 }}>
-                    {t("Now: {lifecycle} version {version}", { lifecycle: current.lifecycleName, version: current.lifecycleVersion })}
-                    {!current.lifecycleLatest && ` ${t("(a newer version exists)")}`}, {stateName(current, obj.latest.state)}.{" "}
+                    {t("Now: {lifecycle} version {version}", {
+                        lifecycle: current.lifecycleName,
+                        version: current.lifecycleVersion,
+                    })}
+                    {!current.lifecycleLatest &&
+                        ` ${t("(a newer version exists)")}`}
+                    , {stateName(current, obj.latest.state)}.{" "}
                     {t("Recorded in the audit trail.")}
                 </p>
                 <div className="field">
@@ -476,14 +711,21 @@ function ChangeLifecycleDialog({ obj, current, onClose }: { obj: VersionedObject
                     >
                         {lifecycles?.map((l) => (
                             <option key={l.id} value={l.id}>
-                                {t("{name} (version {version})", { name: pickLabel(l.labels, l.name), version: l.version })}
+                                {t("{name} (version {version})", {
+                                    name: pickLabel(l.labels, l.name),
+                                    version: l.version,
+                                })}
                             </option>
                         ))}
                     </select>
                 </div>
                 <div className="field">
                     <label htmlFor="lc-state">{t("State")}</label>
-                    <select id="lc-state" value={target} onChange={(e) => setState(e.target.value)}>
+                    <select
+                        id="lc-state"
+                        value={target}
+                        onChange={(e) => setState(e.target.value)}
+                    >
                         {!target && <option value="">{t("Choose…")}</option>}
                         {chosen?.states.map((s) => (
                             <option key={s.key} value={s.key}>
@@ -493,7 +735,10 @@ function ChangeLifecycleDialog({ obj, current, onClose }: { obj: VersionedObject
                     </select>
                     {!keeps && chosen && (
                         <span className="hint">
-                            {t("This lifecycle has no {state} state: choose one.", { state: stateName(current, obj.latest.state) })}
+                            {t(
+                                "This lifecycle has no {state} state: choose one.",
+                                { state: stateName(current, obj.latest.state) },
+                            )}
                         </span>
                     )}
                 </div>
@@ -502,7 +747,13 @@ function ChangeLifecycleDialog({ obj, current, onClose }: { obj: VersionedObject
     );
 }
 
-function RenameDialog({ obj, onClose }: { obj: VersionedObject; onClose: () => void }) {
+function RenameDialog({
+    obj,
+    onClose,
+}: {
+    obj: VersionedObject;
+    onClose: () => void;
+}) {
     const rename = useRenameObject(obj.id);
     const [number, setNumber] = useState(obj.number);
     const [name, setName] = useState(obj.name);
@@ -522,7 +773,12 @@ function RenameDialog({ obj, onClose }: { obj: VersionedObject; onClose: () => v
                         className="btn primary"
                         type="submit"
                         form="rename-form"
-                        disabled={rename.isPending || !changed || !name.trim() || !number.trim()}
+                        disabled={
+                            rename.isPending ||
+                            !changed ||
+                            !name.trim() ||
+                            !number.trim()
+                        }
                     >
                         {t("Save")}
                     </button>
@@ -537,7 +793,10 @@ function RenameDialog({ obj, onClose }: { obj: VersionedObject; onClose: () => v
                     e.preventDefault();
                     rename.mutate(
                         {
-                            number: number.trim() !== obj.number ? number.trim() : null,
+                            number:
+                                number.trim() !== obj.number
+                                    ? number.trim()
+                                    : null,
                             name: name.trim() !== obj.name ? name.trim() : null,
                             comment: comment.trim() || null,
                         },
@@ -547,15 +806,25 @@ function RenameDialog({ obj, onClose }: { obj: VersionedObject; onClose: () => v
             >
                 <ErrorBanner error={rename.error} />
                 <p className="muted" style={{ margin: 0 }}>
-                    {t("Applies to every version. The old number and name stay in the audit trail.")}
+                    {t(
+                        "Applies to every version. The old number and name stay in the audit trail.",
+                    )}
                 </p>
                 <div className="field">
                     <label htmlFor="rename-number">{t("Number")}</label>
-                    <input id="rename-number" value={number} onChange={(e) => setNumber(e.target.value)} />
+                    <input
+                        id="rename-number"
+                        value={number}
+                        onChange={(e) => setNumber(e.target.value)}
+                    />
                 </div>
                 <div className="field">
                     <label htmlFor="rename-name">{t("Name")}</label>
-                    <input id="rename-name" value={name} onChange={(e) => setName(e.target.value)} />
+                    <input
+                        id="rename-name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                    />
                 </div>
                 <div className="field">
                     <label htmlFor="rename-comment">{t("Reason")}</label>
@@ -606,7 +875,11 @@ function StateChangeDialog({
                     <button className="btn" onClick={onCancel}>
                         {t("Cancel")}
                     </button>
-                    <button className="btn primary" disabled={busy || (gated && !force)} onClick={() => onConfirm(comment, gated && force)}>
+                    <button
+                        className="btn primary"
+                        disabled={busy || (gated && !force)}
+                        onClick={() => onConfirm(comment, gated && force)}
+                    >
                         {t("Set state")}
                     </button>
                 </>
@@ -620,18 +893,36 @@ function StateChangeDialog({
                     </p>
                     {change.override && (
                         <div className="banner warn">
-                            {t("This ignores the lifecycle's transitions. It is recorded in the audit trail.")}
+                            {t(
+                                "This ignores the lifecycle's transitions. It is recorded in the audit trail.",
+                            )}
                         </div>
                     )}
                     {gated && (
                         <div className="banner info release-gate-note">
                             <strong>{t("Released through a change")}</strong>{" "}
-                            {t("Objects reach this state only through an approved change notice or promotion request.")}{" "}
-                            <Link to="/changes">{t("Changes")}</Link> · <Link to="/promotions">{t("Promotion requests")}</Link>
+                            {t(
+                                "Objects reach this state only through an approved change notice or promotion request.",
+                            )}{" "}
+                            <Link to="/changes">{t("Changes")}</Link> ·{" "}
+                            <Link to="/promotions">
+                                {t("Promotion requests")}
+                            </Link>
                             {canOverride && (
-                                <label className="check" style={{ marginTop: 8 }}>
-                                    <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} />
-                                    {t("Override the gate as an administrator (recorded in the audit trail)")}
+                                <label
+                                    className="check"
+                                    style={{ marginTop: 8 }}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={force}
+                                        onChange={(e) =>
+                                            setForce(e.target.checked)
+                                        }
+                                    />
+                                    {t(
+                                        "Override the gate as an administrator (recorded in the audit trail)",
+                                    )}
                                 </label>
                             )}
                         </div>
@@ -642,7 +933,9 @@ function StateChangeDialog({
                             id="state-comment"
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
-                            placeholder={t("Why? e.g. approved in design review DR-12")}
+                            placeholder={t(
+                                "Why? e.g. approved in design review DR-12",
+                            )}
                         />
                     </div>
                 </>
@@ -659,7 +952,8 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
     const { data: editLayout } = useLayout(obj.typeId, "EDIT");
     const { data: context } = useContextById(obj.contextId);
     const { data: types } = useTypes();
-    const isDocument = types?.find((ty) => ty.id === obj.typeId)?.baseClass === "DOCUMENT";
+    const isDocument =
+        types?.find((ty) => ty.id === obj.typeId)?.baseClass === "DOCUMENT";
     const latest = obj.latest;
 
     return (
@@ -682,7 +976,11 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
                         </Panel>
                     )
                 ) : (
-                    <Panel title={t("Attributes")} note={t("as of {version}", { version: latest.version })} className="attr-panel">
+                    <Panel
+                        title={t("Attributes")}
+                        note={t("as of {version}", { version: latest.version })}
+                        className="attr-panel"
+                    >
                         {definitions && infoLayout ? (
                             <AttributeValues
                                 definitions={definitions}
@@ -698,26 +996,51 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
                     {/* Number, name, type, version and state are in the page header. */}
                     <Props
                         items={[
-                            [t("Context"), context ? <Link to={`/contexts/${obj.contextId}`}>{context.name}</Link> : null],
+                            [
+                                t("Context"),
+                                context ? (
+                                    <Link to={`/contexts/${obj.contextId}`}>
+                                        {context.name}
+                                    </Link>
+                                ) : null,
+                            ],
                             [t("Folder"), <FolderLocation obj={obj} />],
                             [t("Owner"), <PrincipalName id={obj.owner} />],
                             ...(obj.checkedOutBy
-                                ? ([[t("Checked out by"), <PrincipalName id={obj.checkedOutBy} />]] as [string, ReactNode][])
+                                ? ([
+                                      [
+                                          t("Checked out by"),
+                                          <PrincipalName
+                                              id={obj.checkedOutBy}
+                                          />,
+                                      ],
+                                  ] as [string, ReactNode][])
                                 : []),
                             ...(obj.reservedBy
-                                ? ([[t("Reserved by"), <PrincipalName id={obj.reservedBy} />]] as [string, ReactNode][])
+                                ? ([
+                                      [
+                                          t("Reserved by"),
+                                          <PrincipalName id={obj.reservedBy} />,
+                                      ],
+                                  ] as [string, ReactNode][])
                                 : []),
                             [
                                 t("Last checked in"),
                                 <>
-                                    <When iso={latest.checkedInAt} /> · <PrincipalName id={latest.createdBy} />
-                                    {latest.comment && <div className="fact-note">“{latest.comment}”</div>}
+                                    <When iso={latest.checkedInAt} /> ·{" "}
+                                    <PrincipalName id={latest.createdBy} />
+                                    {latest.comment && (
+                                        <div className="fact-note">
+                                            “{latest.comment}”
+                                        </div>
+                                    )}
                                 </>,
                             ],
                             [
                                 t("Created"),
                                 <>
-                                    <When iso={obj.createdAt} /> · <PrincipalName id={obj.createdBy} />
+                                    <When iso={obj.createdAt} /> ·{" "}
+                                    <PrincipalName id={obj.createdBy} />
                                 </>,
                             ],
                         ]}
@@ -728,11 +1051,18 @@ function DetailsTab({ obj, myId }: { obj: VersionedObject; myId?: string }) {
             <VariancesBanner objectId={obj.id} />
             <EcadBomCheck objectId={obj.id} typeId={obj.typeId} />
             <ReferencedBy objectId={obj.id} />
+            <ExternalLinksPanel objectId={obj.id} editable={!!myId} />
             <SignaturesPanel objectId={obj.id} />
             <PublicationsPanel objectId={obj.id} number={obj.number} />
             <ExtensionPanels obj={obj} />
             {isDocument && (
-                <ObjectFiles objectId={obj.id} iterationKey={mine ? `wc:${workingCopy.data?.id ?? ""}` : latest.id} editable={mine} />
+                <ObjectFiles
+                    objectId={obj.id}
+                    iterationKey={
+                        mine ? `wc:${workingCopy.data?.id ?? ""}` : latest.id
+                    }
+                    editable={mine}
+                />
             )}
         </div>
     );
@@ -762,18 +1092,26 @@ function WorkingCopyEditor({
             noValidate
             onSubmit={(e) => {
                 e.preventDefault();
-                updateAttributes.mutate(values, { onSuccess: () => setDirty(false) });
+                updateAttributes.mutate(values, {
+                    onSuccess: () => setDirty(false),
+                });
             }}
         >
             <div className="panel-head">
                 <Pencil size={13} className="icon-muted" aria-hidden />
                 <h2>
-                    {t("Working copy")} <span className="version">{version}</span>
+                    {t("Working copy")}{" "}
+                    <span className="version">{version}</span>
                 </h2>
-                <span className="note">{t("Only you see these edits until you check in.")}</span>
+                <span className="note">
+                    {t("Only you see these edits until you check in.")}
+                </span>
             </div>
             <div className="panel-body" style={{ display: "grid", gap: 10 }}>
-                {updateAttributes.error != null && Object.keys(errors).length === 0 && <ErrorBanner error={updateAttributes.error} />}
+                {updateAttributes.error != null &&
+                    Object.keys(errors).length === 0 && (
+                        <ErrorBanner error={updateAttributes.error} />
+                    )}
                 <AttributeForm
                     idPrefix="wc"
                     definitions={definitions}
@@ -787,13 +1125,19 @@ function WorkingCopyEditor({
                 />
             </div>
             <div className="panel-foot">
-                <button className="btn primary" type="submit" disabled={updateAttributes.isPending || !dirty}>
+                <button
+                    className="btn primary"
+                    type="submit"
+                    disabled={updateAttributes.isPending || !dirty}
+                >
                     {t("Save attributes")}
                 </button>
                 {dirty ? (
                     <span className="muted">{t("Unsaved changes")}</span>
                 ) : (
-                    updateAttributes.isSuccess && <span className="muted">{t("Saved.")}</span>
+                    updateAttributes.isSuccess && (
+                        <span className="muted">{t("Saved.")}</span>
+                    )
                 )}
             </div>
         </form>
@@ -803,7 +1147,11 @@ function WorkingCopyEditor({
 function HistoryTab({ id }: { id: string }) {
     const { data, isLoading, error } = useHistory(id);
     return (
-        <Panel title={t("Iterations")} note={data ? String(data.length) : undefined} flush>
+        <Panel
+            title={t("Iterations")}
+            note={data ? String(data.length) : undefined}
+            flush
+        >
             <ErrorBanner error={error} />
             {isLoading ? (
                 <Loading />
@@ -822,15 +1170,23 @@ function HistoryTab({ id }: { id: string }) {
                         <tbody>
                             {data?.map((it) => (
                                 <tr key={it.id}>
-                                    <td className="nowrap version">{it.version}</td>
+                                    <td className="nowrap version">
+                                        {it.version}
+                                    </td>
                                     <td>
                                         <StateBadge state={it.state} />
                                     </td>
-                                    <td>{it.comment ?? <span className="muted">—</span>}</td>
+                                    <td>
+                                        {it.comment ?? (
+                                            <span className="muted">—</span>
+                                        )}
+                                    </td>
                                     <td className="nowrap">
                                         <PrincipalName id={it.createdBy} />
                                     </td>
-                                    <td className="nowrap muted">{formatDate(it.checkedInAt)}</td>
+                                    <td className="nowrap muted">
+                                        {formatDate(it.checkedInAt)}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -844,7 +1200,11 @@ function HistoryTab({ id }: { id: string }) {
 function AuditTab({ id }: { id: string }) {
     const { data, isLoading, error } = useAudit(id, true);
     return (
-        <Panel title={t("Audit trail")} note={data ? String(data.length) : undefined} flush>
+        <Panel
+            title={t("Audit trail")}
+            note={data ? String(data.length) : undefined}
+            flush
+        >
             <ErrorBanner error={error} />
             {isLoading ? (
                 <Loading />
@@ -862,23 +1222,44 @@ function AuditTab({ id }: { id: string }) {
                         <tbody>
                             {data?.map((entry) => (
                                 <tr key={entry.seq}>
-                                    <td className="nowrap muted">{formatDate(entry.occurredAt)}</td>
-                                    <td className="nowrap">{auditAction(entry.action)}</td>
+                                    <td className="nowrap muted">
+                                        {formatDate(entry.occurredAt)}
+                                    </td>
+                                    <td className="nowrap">
+                                        {auditAction(entry.action)}
+                                    </td>
                                     <td className="nowrap">
                                         <PrincipalName id={entry.actor} />
                                     </td>
                                     <td>
-                                        {"version" in entry.details && <span className="version">{String(entry.details.version)}</span>}
+                                        {"version" in entry.details && (
+                                            <span className="version">
+                                                {String(entry.details.version)}
+                                            </span>
+                                        )}
                                         {"previousNumber" in entry.details &&
                                             ` · ${t("was {oldNumber} “{oldName}”, now {number} “{name}”", { oldNumber: String(entry.details.previousNumber), oldName: String(entry.details.previousName), number: String(entry.details.number), name: String(entry.details.name) })}`}
                                         {"from" in entry.details &&
                                             "to" in entry.details &&
                                             ` · ${String(entry.details.from)} → ${String(entry.details.to)}`}
-                                        {"comment" in entry.details && entry.details.comment ? ` · “${String(entry.details.comment)}”` : ""}
+                                        {"comment" in entry.details &&
+                                        entry.details.comment
+                                            ? ` · “${String(entry.details.comment)}”`
+                                            : ""}
                                         {"actionId" in entry.details && (
                                             <>
-                                                <code>{String(entry.details.actionId)}</code> · {String(entry.details.status).toLowerCase()}
-                                                {entry.details.message ? ` · ${String(entry.details.message)}` : ""}
+                                                <code>
+                                                    {String(
+                                                        entry.details.actionId,
+                                                    )}
+                                                </code>{" "}
+                                                ·{" "}
+                                                {String(
+                                                    entry.details.status,
+                                                ).toLowerCase()}
+                                                {entry.details.message
+                                                    ? ` · ${String(entry.details.message)}`
+                                                    : ""}
                                             </>
                                         )}
                                     </td>

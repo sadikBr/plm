@@ -369,6 +369,21 @@
         "required" : [ "from", "kind", "target" ],
         "type" : "object"
       },
+      "AddExternalLink" : {
+        "properties" : {
+          "linkType" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : [ "string", "null" ]
+          },
+          "url" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "linkType", "url" ],
+        "type" : "object"
+      },
       "AddNewFile" : {
         "properties" : {
           "fileName" : {
@@ -4653,6 +4668,48 @@
           }
         },
         "required" : [ "auditId", "config", "enabled", "id", "installedAt", "installedBy", "manifest", "name", "permissions", "platform", "secretsSet", "source", "status", "updatedAt", "updatedBy", "version" ],
+        "type" : "object"
+      },
+      "ExternalLink" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "linkType" : {
+            "type" : "string"
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "title" : {
+            "type" : [ "string", "null" ]
+          },
+          "url" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "createdBy", "id", "linkType", "objectId", "url" ],
+        "type" : "object"
+      },
+      "ExternalLinkType" : {
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "key", "label" ],
         "type" : "object"
       },
       "FacetValue" : {
@@ -19220,6 +19277,37 @@
         "tags" : [ "Action" ]
       }
     },
+    "/api/v1/external-link-types" : {
+      "get" : {
+        "operationId" : "standardsTypes",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExternalLinkType"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Standards" ]
+      }
+    },
     "/api/v1/folders/{id}" : {
       "delete" : {
         "operationId" : "organizingDeleteFolder",
@@ -24271,6 +24359,129 @@
         "tags" : [ "Expression" ]
       }
     },
+    "/api/v1/objects/{id}/external-links" : {
+      "get" : {
+        "operationId" : "standardsLinks",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExternalLink"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Standards" ]
+      },
+      "post" : {
+        "operationId" : "standardsAdd",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddExternalLink"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExternalLink"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Standards" ]
+      }
+    },
+    "/api/v1/objects/{id}/external-links/{linkId}" : {
+      "delete" : {
+        "operationId" : "standardsRemove",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "linkId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Standards" ]
+      }
+    },
     "/api/v1/objects/{id}/flattened" : {
       "get" : {
         "operationId" : "rollupFlatten",
@@ -25662,6 +25873,60 @@
           }
         },
         "tags" : [ "Versioned object" ]
+      }
+    },
+    "/api/v1/objects/{id}/step-export" : {
+      "get" : {
+        "operationId" : "standardsStep",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "released",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "files",
+          "required" : false,
+          "schema" : {
+            "default" : true,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/zip" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Standards" ]
       }
     },
     "/api/v1/objects/{id}/structure" : {
@@ -27813,6 +28078,227 @@
           }
         },
         "tags" : [ "Options" ]
+      }
+    },
+    "/api/v1/oslc/catalog" : {
+      "get" : {
+        "operationId" : "oslcCatalog",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Accept",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Oslc" ]
+      }
+    },
+    "/api/v1/oslc/config" : {
+      "get" : {
+        "operationId" : "oslcConfig",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "additionalProperties" : {
+                    "type" : "string"
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Oslc" ]
+      }
+    },
+    "/api/v1/oslc/contexts/{id}/provider" : {
+      "get" : {
+        "operationId" : "oslcProvider",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Accept",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Oslc" ]
+      }
+    },
+    "/api/v1/oslc/contexts/{id}/query" : {
+      "get" : {
+        "operationId" : "oslcQuery",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "domain",
+          "required" : false,
+          "schema" : {
+            "default" : "am",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "oslc.where",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "oslc.searchTerms",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Accept",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Oslc" ]
+      }
+    },
+    "/api/v1/oslc/resources/{id}" : {
+      "get" : {
+        "operationId" : "oslcResource",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Accept",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Oslc" ]
       }
     },
     "/api/v1/packages" : {
@@ -34602,6 +35088,8 @@
   }, {
     "name" : "Organizing"
   }, {
+    "name" : "Oslc"
+  }, {
     "name" : "Package"
   }, {
     "name" : "Personal"
@@ -34657,6 +35145,8 @@
     "name" : "Signature"
   }, {
     "name" : "Stand in"
+  }, {
+    "name" : "Standards"
   }, {
     "name" : "Step import"
   }, {

@@ -1,5 +1,6 @@
 import { WorkspacesPage } from "./workspace/WorkspacesPage";
 import { PackagesPage } from "./packages/PackagesPage";
+import { OslcPreviewPage, OslcSelectPage } from "./standards/Standards";
 import { ClassSearchPage } from "./classification/ClassSearch";
 import { BaselinesPage } from "./structure/Baselines";
 import { InboxPage } from "./workflow/Inbox";
@@ -34,21 +35,35 @@ export function makeQueryClient(): QueryClient {
                 staleTime: 15_000,
                 refetchOnWindowFocus: true,
                 // Client errors (403/404/409...) won't fix themselves: don't retry them.
-                retry: (count, error) => !(isApiError(error) && error.status < 500) && count < 2,
+                retry: (count, error) =>
+                    !(isApiError(error) && error.status < 500) && count < 2,
             },
             mutations: { retry: false },
         },
     });
 }
 
-export function Providers({ children, client }: { children: ReactNode; client?: QueryClient }) {
+export function Providers({
+    children,
+    client,
+}: {
+    children: ReactNode;
+    client?: QueryClient;
+}) {
     const [queryClient] = useState(() => client ?? makeQueryClient());
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+    return (
+        <QueryClientProvider client={queryClient}>
+            {children}
+        </QueryClientProvider>
+    );
 }
 
 export function AppRoutes() {
     return (
         <Routes>
+            {/* Shown inside other tools' pages (OSLC delegated UI, roadmap 9.6): no app shell. */}
+            <Route path="oslc/select" element={<OslcSelectPage />} />
+            <Route path="oslc/preview/:id" element={<OslcPreviewPage />} />
             <Route element={<Layout />}>
                 <Route index element={<HomePage />} />
                 <Route path="browse/:kind" element={<BrowsePage />} />
@@ -62,7 +77,10 @@ export function AppRoutes() {
                 <Route path="dashboards/:id" element={<DashboardsPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="audit" element={<AuditReportPage />} />
-                <Route path="structure-compare" element={<StructureComparePage />} />
+                <Route
+                    path="structure-compare"
+                    element={<StructureComparePage />}
+                />
                 <Route path="inbox" element={<InboxPage />} />
                 <Route path="workspaces" element={<WorkspacesPage />} />
                 <Route path="workspaces/:id" element={<WorkspacesPage />} />

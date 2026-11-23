@@ -271,7 +271,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | Migration from other PLM systems | ✅ | A documented package format (zip + JSON manifest); type, state, attribute and user mappings; dry run; resumable job; numbers, versions, dates, authors, files and links kept |
 | Import/export of object sets between sites or companies (packages, deliveries) | ✅ | Deliveries in the migration format; received packages imported as copies or updates |
 | ERP integration: release distribution targets, plant-specific data, acknowledgement | ✅ | Targets (system + plant) with plant attributes, release rules, a signed push or pull outbox, acknowledgements with the ERP key, status and resend per object |
-| Standards: STEP AP242, ReqIF, IPC-1752, OSLC links | ⬜ [9] | |
+| Standards: STEP AP242, ReqIF, IPC-1752, OSLC links | 🟡 | STEP AP242 structure export with CAD files ✅ · OSLC catalog, providers, query, selection dialog, previews, links ✅ · ReqIF [14] · IPC-1752 [13] |
 
 ## 16. Infrastructure and operations
 

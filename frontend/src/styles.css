@@ -7147,3 +7147,87 @@ ol.steps {
   gap: 8px;
   margin-bottom: 6px;
 }
+
+/* Standards: external links and OSLC dialogs (roadmap 9.6) */
+.ext-links {
+  list-style: none;
+  margin: 0;
+  padding: 8px 14px;
+  display: grid;
+  gap: 6px;
+}
+.ext-links li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ext-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.ext-link-form {
+  display: grid;
+  grid-template-columns: 200px 1fr 1fr auto auto;
+  gap: 6px;
+  padding: 10px 14px;
+}
+.oslc-dialog {
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+  font-size: 14px;
+}
+.oslc-dialog h1 {
+  font-size: 16px;
+  margin: 0;
+}
+.oslc-hits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 340px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.oslc-hits button {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  color: inherit;
+}
+.oslc-hits button:hover {
+  background: var(--hover, rgba(127, 127, 127, 0.1));
+}
+.oslc-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.oslc-preview {
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+.oslc-preview-head {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.oslc-preview-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+@media (max-width: 700px) {
+  .ext-link-form {
+    grid-template-columns: 1fr;
+  }
+}

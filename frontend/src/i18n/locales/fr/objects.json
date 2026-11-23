@@ -308,5 +308,22 @@
   "structure lines": "lignes de structure",
   "updated": "mis à jour",
   "{n} row has errors: fix the sheet and choose it again.": "{n} ligne a des erreurs : corrigez le tableur et choisissez-le à nouveau.",
-  "{n} rows have errors: fix the sheet and choose it again.": "{n} lignes ont des erreurs : corrigez le tableur et choisissez-le à nouveau."
+  "{n} rows have errors: fix the sheet and choose it again.": "{n} lignes ont des erreurs : corrigez le tableur et choisissez-le à nouveau.",
+  "Address": "Adresse",
+  "Choose a change": "Choisir une modification",
+  "Choose parts or documents": "Choisir des pièces ou documents",
+  "Link type": "Type de lien",
+  "Links to other tools": "Liens vers d'autres outils",
+  "No links yet.": "Aucun lien pour l'instant.",
+  "Open in PLM": "Ouvrir dans le PLM",
+  "Requirements, tests and changes elsewhere (OSLC)": "Exigences, tests et modifications ailleurs (OSLC)",
+  "STEP AP242": "STEP AP242",
+  "The structure as STEP AP242, with the CAD files of its documents": "La structure en STEP AP242, avec les fichiers CAO de ses documents",
+  "Title, e.g. REQ-118 Shift time": "Titre, p. ex. REQ-118 Temps de passage",
+  "Implements requirement": "Réalise l'exigence",
+  "Satisfies requirement": "Satisfait l'exigence",
+  "Tested by test case": "Testé par le cas de test",
+  "Validated by test result": "Validé par le résultat de test",
+  "Related change request": "Demande de modification liée",
+  "References": "Références"
 }

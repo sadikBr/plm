@@ -805,10 +805,16 @@ ERP, its legal and security rules, more than one site, and safe upgrades.
       outbox in the state change's transaction, POSTed with an HMAC signature and retries, or
       fetched by the ERP; acknowledgements carry the ERP's key or a rejection reason. Missing
       required plant values hold the message and say what to fill in.
-- [ ] 9.6 Standards: STEP AP242 export of a product structure (with its CAD files), and the
+- [x] 9.6 Standards: STEP AP242 export of a product structure (with its CAD files), and the
       OSLC core services (resources, service provider catalog, link to external resources) so
       requirements and test tools can link to parts, documents and changes. ReqIF comes with
       requirements (Phase 14), IPC-1752 with compliance (Phase 13).
+      Done: `standards` module (docs/oslc.md). STEP export: Structure → STEP AP242, a zip with
+      the AP242 file (products, versions, an occurrence per unit, CAD files as external document
+      references) and those files; the STEP import reads it back. OSLC: catalog, a provider per
+      product/library/project (Architecture and Change Management, query capability, delegated
+      selection dialog), resources in RDF/XML, Turtle or JSON-LD, compact previews; links to
+      requirements, tests and changes on each object, published on its resource.
 - [ ] 9.7 Security labels and agreements: labels (export control, proprietary…) with ordered
       values set on objects; people hold clearances; reading or downloading a labelled object needs
       a clearance or an agreement (a time-limited grant to named people for named objects or
