@@ -89,7 +89,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | **Promotion Request** | ✅ | Numbered requests (PRM-), review process, objects locked while under review [5.7] |
 | **Baseline** and **managed baseline** | ✅ | Frozen sets of exact iterations, usable as a configuration spec [4.10] |
 | **Managed collection** (a named, versionable set of objects) | ✅ | Collections [4.10] |
-| **Package / Delivery** (controlled data set sent to a supplier or partner) | ⬜ [9] | |
+| **Package / Delivery** (controlled data set sent to a supplier or partner) | ✅ | Packages under latest or released versions with structure, documents, files, PDFs; expiring, revocable download links with a download log |
 | **Manufacturer part / Vendor part** | ⬜ [13] | manufacturer, vendor, sourcing status |
 | **Option set, Option, Choice, Variant specification** | ✅ | |
 | **Classification node** | ✅ | |
@@ -269,7 +269,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | Service accounts and OAuth client credentials for integrations | ✅ | Scoped API tokens [2.7] |
 | Bulk load from spreadsheets / files with validation and a dry run | ✅ | Excel or CSV plus a zip of files: attributes, folders, files, structure, document links, states; row-by-row dry run; a background job with a result per row |
 | Migration from other PLM systems | ✅ | A documented package format (zip + JSON manifest); type, state, attribute and user mappings; dry run; resumable job; numbers, versions, dates, authors, files and links kept |
-| Import/export of object sets between sites or companies (packages, deliveries) | ⬜ [9] | |
+| Import/export of object sets between sites or companies (packages, deliveries) | ✅ | Deliveries in the migration format; received packages imported as copies or updates |
 | ERP integration: release distribution targets, plant-specific data, acknowledgement | ⬜ [9] | Event-driven connectors |
 | Standards: STEP AP242, ReqIF, IPC-1752, OSLC links | ⬜ [9] | |
 

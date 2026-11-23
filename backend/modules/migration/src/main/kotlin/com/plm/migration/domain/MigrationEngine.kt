@@ -59,6 +59,8 @@ internal class MigrationEngine(
     private val organizing: OrganizingService,
     private val content: ContentService,
     private val structure: StructureHistoryImportService,
+    private val bom: com.plm.bom.api.BomService,
+    private val links: com.plm.bom.api.DocumentLinkService,
     private val tx: TransactionTemplate,
 ) {
     private class Lookup(
@@ -258,20 +260,33 @@ internal class MigrationEngine(
         for (t in translated) {
             if (t.source.id in done) continue
             t.errors.forEach { issues += MigrationIssue(t.source.id, t.source.number, "ERROR", it) }
-            val existing =
-                versioning.list(
-                    actor,
-                    com.plm.versioning.api
-                        .ObjectQuery(text = t.source.number, limit = 20),
-                )
-            if (existing.any { it.number.equals(t.source.number, true) }) {
-                issues +=
-                    MigrationIssue(
-                        t.source.id,
-                        t.source.number,
-                        "ERROR",
-                        "An object numbered ${t.source.number} is already here",
-                    )
+            val number = numberFor(t.source, mappings)
+            val here = find(actor, number)
+            if (here != null) {
+                when {
+                    mappings.existing == "UPDATE" && t.type != null && here.typeId != t.type.id ->
+                        issues +=
+                            MigrationIssue(
+                                t.source.id,
+                                number,
+                                "ERROR",
+                                "$number is here as another type: it can't be updated",
+                            )
+                    mappings.existing == "UPDATE" ->
+                        warnings +=
+                            MigrationIssue(t.source.id, number, "WARNING", "$number is here: it gets a new iteration")
+                    mappings.existing == "COPY" ->
+                        issues +=
+                            MigrationIssue(
+                                t.source.id,
+                                number,
+                                "ERROR",
+                                "The copy's number $number is taken too: choose another suffix",
+                            )
+                    else ->
+                        issues +=
+                            MigrationIssue(t.source.id, number, "ERROR", "An object numbered $number is already here")
+                }
             }
         }
         unmapped["attributes"]?.forEach { (name, n) ->
@@ -306,6 +321,28 @@ internal class MigrationEngine(
         )
     }
 
+    /** The number an object gets here: its own, or its copy's. */
+    fun numberFor(
+        o: LegacyObject,
+        mappings: MigrationMappings,
+    ) = if (mappings.existing ==
+        "COPY"
+    ) {
+        "${o.number}-${mappings.copySuffix?.trim()?.ifEmpty { null } ?: "R"}"
+    } else {
+        o.number
+    }
+
+    private fun find(
+        actor: Actor,
+        number: String,
+    ) = versioning
+        .list(
+            actor,
+            com.plm.versioning.api
+                .ObjectQuery(text = number, limit = 20),
+        ).firstOrNull { it.number.equals(number, true) }
+
     /** What happened to one object in a run. */
     data class Outcome(
         val legacyId: String,
@@ -313,6 +350,8 @@ internal class MigrationEngine(
         val masterId: UUID?,
         val ok: Boolean,
         val message: String,
+        /** An object already here got a new iteration. */
+        val updated: Boolean = false,
     )
 
     /** Brings in the people who made the objects, then each object not yet done. */
@@ -352,6 +391,29 @@ internal class MigrationEngine(
                 each(Outcome(o.id, o.number, null, false, t.errors.joinToString("; ")))
                 continue
             }
+            val number = numberFor(o, mappings)
+            val here = find(actor, number)
+            if (here != null && mappings.existing == "UPDATE") {
+                try {
+                    tx.executeWithoutResult { update(actor, here.id, o, t, zip, m.source) }
+                    each(Outcome(o.id, number, here.id.value, true, "Updated: a new iteration", updated = true))
+                } catch (e: PlmException) {
+                    each(Outcome(o.id, number, here.id.value, false, e.message ?: e.code))
+                }
+                continue
+            }
+            // A copy says where it came from.
+            val iterations =
+                if (mappings.existing == "COPY") {
+                    t.iterations.map {
+                        it.copy(
+                            comment =
+                                "Received from ${m.source ?: "a package"}" + (it.comment?.let { c -> ": $c" } ?: ""),
+                        )
+                    }
+                } else {
+                    t.iterations
+                }
             try {
                 val id =
                     tx.execute {
@@ -362,10 +424,10 @@ internal class MigrationEngine(
                                 ImportObjectHistory(
                                     t.type.id,
                                     ContextId(contextId),
-                                    o.number,
+                                    number,
                                     o.name,
                                     folderId,
-                                    t.iterations,
+                                    iterations,
                                 ),
                             )
                         o.iterations.forEachIndexed { i, legacy ->
@@ -418,6 +480,7 @@ internal class MigrationEngine(
         contents: PackageContents,
         objects: Map<String, UUID>,
         pending: Set<String>,
+        updated: Set<String>,
         each: (legacyId: String, ok: Boolean, message: String) -> Unit,
         cancelled: () -> Unit,
     ) {
@@ -437,23 +500,39 @@ internal class MigrationEngine(
                         val past = versioning.history(actor, id).associateBy { "${it.revision}.${it.iteration}" }
                         var lines = 0
                         var docs = 0
-                        for (i in o.iterations) {
-                            val iteration = past["${i.version}.${i.iteration}"]?.id?.value ?: continue
+                        // An object updated here: the package's last iteration's links go on its latest.
+                        val update = o.id in updated
+                        val latest =
+                            if (update) {
+                                versioning
+                                    .get(actor, id)
+                                    .latest.id.value
+                            } else {
+                                null
+                            }
+                        val usedHere =
+                            latest?.let { bom.usages(actor, id, it).map { l -> l.child.id }.toSet() } ?: emptySet()
+                        val linkedHere =
+                            latest?.let { links.links(actor, id, it).map { l -> l.document.id }.toSet() } ?: emptySet()
+                        for (i in if (update) listOf(o.iterations.last()) else o.iterations) {
+                            val iteration = latest ?: past["${i.version}.${i.iteration}"]?.id?.value ?: continue
                             val usages =
-                                i.uses.map { u ->
-                                    val child =
-                                        objects[u.child]
-                                            ?: throw ValidationException(
-                                                "INVALID_MIGRATION",
-                                                "${u.child} wasn't brought in",
-                                            )
-                                    PastUsage(child, u.quantity, u.unit, u.findNumber)
-                                }
+                                i.uses
+                                    .map { u ->
+                                        val child =
+                                            objects[u.child]
+                                                ?: throw ValidationException(
+                                                    "INVALID_MIGRATION",
+                                                    "${u.child} wasn't brought in",
+                                                )
+                                        PastUsage(child, u.quantity, u.unit, u.findNumber)
+                                    }.filter { it.childId !in usedHere }
                             if (usages.isNotEmpty()) structure.importUsages(actor, id, iteration, usages)
                             lines += usages.size
                             for (d in i.describedBy) {
                                 val doc =
                                     objects[d] ?: throw ValidationException("INVALID_MIGRATION", "$d wasn't brought in")
+                                if (doc in linkedHere) continue
                                 structure.importDocumentLink(
                                     actor,
                                     id,
@@ -471,6 +550,36 @@ internal class MigrationEngine(
                 each(o.id, false, e.message ?: e.code)
             }
         }
+    }
+
+    /** The package's last iteration of [o] as a new iteration of the object here. */
+    private fun update(
+        actor: Actor,
+        id: MasterId,
+        o: LegacyObject,
+        t: Translated,
+        zip: ZipFile,
+        source: String?,
+    ) {
+        val last = t.iterations.last()
+        val legacy = o.iterations.last()
+        if (versioning.get(actor, id).checkedOutBy == null) versioning.checkOut(actor, id)
+        val current = versioning.workingCopy(actor, id).attributes
+        versioning.updateWorkingCopy(actor, id, current + last.attributes)
+        for (f in legacy.files) {
+            val path = f.path.trimStart('/')
+            val entry = zip.getEntry(path) ?: throw ValidationException("INVALID_MIGRATION", "$path isn't in the zip")
+            val name = path.substringAfterLast('/')
+            content.store(
+                actor,
+                id,
+                name,
+                URLConnection.guessContentTypeFromName(name) ?: "application/octet-stream",
+                zip.getInputStream(entry).use { it.readAllBytes() },
+                if (f.role.equals("ATTACHMENT", true)) ContentRole.ATTACHMENT else ContentRole.PRIMARY,
+            )
+        }
+        versioning.checkIn(actor, id, "Received from ${source ?: "a package"} (${last.revision}.${last.iteration})")
     }
 
     private fun folder(

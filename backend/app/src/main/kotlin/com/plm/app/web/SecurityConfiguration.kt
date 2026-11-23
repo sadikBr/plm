@@ -56,6 +56,9 @@ internal class SecurityConfiguration(
                     ).permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/v1/vault/files")
                     .permitAll()
+                    // A delivered package (roadmap 9.4): the link is the key; it expires and is logged.
+                    .requestMatchers(HttpMethod.GET, "/api/v1/deliveries/*/download")
+                    .permitAll()
                     .anyRequest()
                     .authenticated()
             }.oauth2ResourceServer { rs -> rs.authenticationManagerResolver(BearerTokenRouter(jwtDecoder, tokens)) }

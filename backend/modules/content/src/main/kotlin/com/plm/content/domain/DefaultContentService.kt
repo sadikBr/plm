@@ -315,6 +315,15 @@ internal class DefaultContentService(
         return store.open(s.blobKey)
     }
 
+    override fun openDerived(
+        actor: Actor,
+        contentId: UUID,
+        kind: String,
+    ): InputStream? {
+        val key = tx.execute { derivedRow(readable(actor, contentId).blobKey, kind)?.second } ?: return null
+        return store.open(key)
+    }
+
     /** A signed link to a stored file, valid for a few minutes. */
     private val derivedMapper =
         org.springframework.jdbc.core.RowMapper { rs, _ ->

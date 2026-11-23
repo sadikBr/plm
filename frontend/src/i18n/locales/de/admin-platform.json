@@ -664,5 +664,12 @@
   "{n} problem stops the run: map what isn't matched below.": "{n} Problem verhindert den Lauf: unten Fehlendes zuordnen.",
   "{n} problems stop the run: map what isn't matched below.": "{n} Probleme verhindern den Lauf: unten Fehlendes zuordnen.",
   "{n} remark": "{n} Hinweis",
-  "{n} remarks": "{n} Hinweise"
+  "{n} remarks": "{n} Hinweise",
+  "Numbers already here": "Bereits vorhandene Nummern",
+  "For a package received back": "Für ein zurückerhaltenes Paket",
+  "Stop: report them as problems": "Anhalten: als Probleme melden",
+  "Bring them in as copies with a suffix": "Als Kopien mit Suffix übernehmen",
+  "Update them: a new iteration each": "Aktualisieren: je eine neue Iteration",
+  "Suffix": "Suffix",
+  "Suffix, e.g. ACME": "Suffix, z. B. ACME"
 }

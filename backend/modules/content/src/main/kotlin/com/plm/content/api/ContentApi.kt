@@ -194,6 +194,13 @@ interface ContentService {
         kind: String,
     ): DerivedFile?
 
+    /** The bytes of the file of [kind] made from [contentId]'s file, if there is one. */
+    fun openDerived(
+        actor: Actor,
+        contentId: UUID,
+        kind: String,
+    ): InputStream?
+
     /** A link to it, named [fileName]. */
     fun derivedLink(
         actor: Actor,

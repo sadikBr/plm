@@ -165,6 +165,14 @@ internal class MigrationRepository(
             .list()
             .toMap()
 
+    fun updated(id: UUID): Set<String> =
+        jdbc
+            .sql("select legacy_id from migration_item where migration_id = :id and updated")
+            .param("id", id)
+            .query { rs, _ -> rs.getString(1) }
+            .list()
+            .toSet()
+
     fun linksPending(id: UUID): Set<String> =
         jdbc
             .sql("select legacy_id from migration_item where migration_id = :id and status = 'DONE' and not links_done")
@@ -190,17 +198,19 @@ internal class MigrationRepository(
         ok: Boolean,
         message: String,
         at: Instant,
+        updated: Boolean = false,
     ) {
         jdbc
             .sql(
                 """
-                insert into migration_item (migration_id, legacy_id, number, master_id, status, message, updated_at)
-                values (:id, :legacy, :number, :master, :status, :message, :at)
+                insert into migration_item (migration_id, legacy_id, number, master_id, status, message, updated_at, updated)
+                values (:id, :legacy, :number, :master, :status, :message, :at, :updated)
                 on conflict (migration_id, legacy_id) do update
                     set master_id = excluded.master_id, status = excluded.status, message = excluded.message,
-                        updated_at = excluded.updated_at, links_done = false
+                        updated_at = excluded.updated_at, links_done = false, updated = excluded.updated
                 """,
             ).param("id", id)
+            .param("updated", updated)
             .param("legacy", legacyId)
             .param("number", number)
             .param("master", masterId)
@@ -411,7 +421,7 @@ internal class MigrationJob(
             Files.write(temp, bytes)
             ZipFile(temp.toFile()).use { zip ->
                 engine.runObjects(actor, row.contextId, contents, zip, row.mappings, done, { o ->
-                    repository.record(id, o.legacyId, o.number, o.masterId, o.ok, o.message, clock.instant())
+                    repository.record(id, o.legacyId, o.number, o.masterId, o.ok, o.message, clock.instant(), o.updated)
                     if (o.ok) ok++ else failed++
                     if (!o.ok) context.log("${o.number}: ${o.message}", "WARN")
                     progress()
@@ -422,14 +432,24 @@ internal class MigrationJob(
         }
         val objects = repository.done(id)
         var linkFailures = 0
-        engine.runLinks(actor, contents, objects, repository.linksPending(id), { legacy, linked, message ->
-            repository.linksDone(id, legacy, linked, message, clock.instant())
-            if (!linked) {
-                linkFailures++
-                context.log("$legacy: $message", "WARN")
-            }
-            progress()
-        }, context::checkCancelled)
+        engine.runLinks(
+            actor,
+            contents,
+            objects,
+            repository.linksPending(
+                id,
+            ),
+            repository.updated(id),
+            { legacy, linked, message ->
+                repository.linksDone(id, legacy, linked, message, clock.instant())
+                if (!linked) {
+                    linkFailures++
+                    context.log("$legacy: $message", "WARN")
+                }
+                progress()
+            },
+            context::checkCancelled,
+        )
         val (allDone, allFailed) = repository.counts(id)
         return mapOf(
             "broughtIn" to ok,

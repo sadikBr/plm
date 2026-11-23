@@ -7086,3 +7086,31 @@ ol.steps {
     grid-template-columns: 1fr;
   }
 }
+
+/* Packages (roadmap 9.4) */
+.pkg-form {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 12px;
+}
+.pkg-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 6px 0 12px;
+}
+.pkg-description {
+  padding: 10px 14px 0;
+  margin: 0;
+}
+@media (max-width: 700px) {
+  .pkg-form {
+    grid-template-columns: 1fr;
+  }
+}
+.migration-existing select {
+  width: 340px;
+}
+.migration-existing input {
+  width: 200px;
+}

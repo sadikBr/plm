@@ -664,5 +664,12 @@
   "{n} problem stops the run: map what isn't matched below.": "{n} problème empêche l'exécution : faites correspondre ci-dessous ce qui ne l'est pas.",
   "{n} problems stop the run: map what isn't matched below.": "{n} problèmes empêchent l'exécution : faites correspondre ci-dessous ce qui ne l'est pas.",
   "{n} remark": "{n} remarque",
-  "{n} remarks": "{n} remarques"
+  "{n} remarks": "{n} remarques",
+  "Numbers already here": "Numéros déjà présents",
+  "For a package received back": "Pour un paquet reçu en retour",
+  "Stop: report them as problems": "Arrêter : les signaler comme problèmes",
+  "Bring them in as copies with a suffix": "Les reprendre comme copies avec un suffixe",
+  "Update them: a new iteration each": "Les mettre à jour : une nouvelle itération chacun",
+  "Suffix": "Suffixe",
+  "Suffix, e.g. ACME": "Suffixe, p. ex. ACME"
 }

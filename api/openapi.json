@@ -3198,6 +3198,52 @@
         "required" : [ "name", "shared", "widgets" ],
         "type" : "object"
       },
+      "DataPackage" : {
+        "properties" : {
+          "contents" : {
+            "$ref" : "#/components/schemas/PackageContents"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "deliveries" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Delivery"
+            },
+            "type" : "array"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "rootIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "spec" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "contents", "createdAt", "createdBy", "deliveries", "id", "name", "rootIds", "spec", "updatedAt" ],
+        "type" : "object"
+      },
       "DefineAttributeRequest" : {
         "properties" : {
           "aliasOf" : {
@@ -3313,6 +3359,106 @@
           }
         },
         "required" : [ "states", "who" ],
+        "type" : "object"
+      },
+      "Deliver" : {
+        "properties" : {
+          "days" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "email" : {
+            "type" : [ "string", "null" ]
+          },
+          "message" : {
+            "type" : [ "string", "null" ]
+          },
+          "recipient" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "days", "recipient" ],
+        "type" : "object"
+      },
+      "Delivery" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "downloadPath" : {
+            "type" : "string"
+          },
+          "downloads" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "email" : {
+            "type" : [ "string", "null" ]
+          },
+          "error" : {
+            "type" : [ "string", "null" ]
+          },
+          "expired" : {
+            "type" : "boolean"
+          },
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "fileName" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "lastDownloadAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "members" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "message" : {
+            "type" : [ "string", "null" ]
+          },
+          "packageId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "recipient" : {
+            "type" : "string"
+          },
+          "size" : {
+            "format" : "int64",
+            "type" : [ "integer", "null" ]
+          },
+          "status" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "createdBy", "downloadPath", "downloads", "expired", "expiresAt", "id", "packageId", "recipient", "status" ],
+        "type" : "object"
+      },
+      "DeliveryDownload" : {
+        "properties" : {
+          "address" : {
+            "type" : [ "string", "null" ]
+          },
+          "at" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "userAgent" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "at" ],
         "type" : "object"
       },
       "DiffLine" : {
@@ -6334,6 +6480,12 @@
             },
             "type" : "object"
           },
+          "copySuffix" : {
+            "type" : [ "string", "null" ]
+          },
+          "existing" : {
+            "type" : "string"
+          },
           "states" : {
             "additionalProperties" : {
               "type" : "string"
@@ -6353,7 +6505,7 @@
             "type" : "object"
           }
         },
-        "required" : [ "attributes", "states", "types", "users" ],
+        "required" : [ "attributes", "existing", "states", "types", "users" ],
         "type" : "object"
       },
       "ModelFile" : {
@@ -6966,6 +7118,60 @@
           }
         },
         "required" : [ "owner" ],
+        "type" : "object"
+      },
+      "PackageContents" : {
+        "properties" : {
+          "documents" : {
+            "type" : "boolean"
+          },
+          "files" : {
+            "type" : "boolean"
+          },
+          "pdfs" : {
+            "type" : "boolean"
+          },
+          "structure" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "documents", "files", "pdfs", "structure" ],
+        "type" : "object"
+      },
+      "PackageMember" : {
+        "properties" : {
+          "files" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "iterationId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "files", "iterationId", "name", "number", "objectId", "reason", "state", "type", "version" ],
         "type" : "object"
       },
       "PartClassification" : {
@@ -9269,6 +9475,31 @@
           }
         },
         "required" : [ "name" ],
+        "type" : "object"
+      },
+      "SavePackage" : {
+        "properties" : {
+          "contents" : {
+            "$ref" : "#/components/schemas/PackageContents"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "rootIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "spec" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "contents", "name", "rootIds", "spec" ],
         "type" : "object"
       },
       "SaveProcessAssignment" : {
@@ -16538,6 +16769,134 @@
           }
         },
         "tags" : [ "Organizing" ]
+      }
+    },
+    "/api/v1/deliveries/{id}/downloads" : {
+      "get" : {
+        "operationId" : "packageDownloads",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/DeliveryDownload"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Package" ]
+      }
+    },
+    "/api/v1/deliveries/{id}/revoke" : {
+      "post" : {
+        "operationId" : "packageRevoke",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Delivery"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Package" ]
+      }
+    },
+    "/api/v1/deliveries/{token}/download" : {
+      "get" : {
+        "operationId" : "deliveryDownloadDownload",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "token",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "X-Forwarded-For",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "User-Agent",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/zip" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Delivery download" ]
       }
     },
     "/api/v1/directory" : {
@@ -26673,6 +27032,270 @@
         "tags" : [ "Options" ]
       }
     },
+    "/api/v1/packages" : {
+      "get" : {
+        "operationId" : "packageList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/DataPackage"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Package" ]
+      },
+      "post" : {
+        "operationId" : "packageCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SavePackage"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DataPackage"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Package" ]
+      }
+    },
+    "/api/v1/packages/{id}" : {
+      "delete" : {
+        "operationId" : "packageDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Package" ]
+      },
+      "get" : {
+        "operationId" : "packageGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DataPackage"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Package" ]
+      },
+      "put" : {
+        "operationId" : "packageUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SavePackage"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DataPackage"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Package" ]
+      }
+    },
+    "/api/v1/packages/{id}/deliveries" : {
+      "post" : {
+        "operationId" : "packageDeliver",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Deliver"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Delivery"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Package" ]
+      }
+    },
+    "/api/v1/packages/{id}/members" : {
+      "get" : {
+        "operationId" : "packageMembers",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/PackageMember"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Package" ]
+      }
+    },
     "/api/v1/platform" : {
       "get" : {
         "operationId" : "extensionPlatform",
@@ -33150,6 +33773,8 @@
   }, {
     "name" : "Context template"
   }, {
+    "name" : "Delivery download"
+  }, {
     "name" : "Directory"
   }, {
     "name" : "Discussion"
@@ -33189,6 +33814,8 @@
     "name" : "Options"
   }, {
     "name" : "Organizing"
+  }, {
+    "name" : "Package"
   }, {
     "name" : "Personal"
   }, {

@@ -49,6 +49,8 @@ internal class DefaultStructureHistoryImportService(
         ) {
             throw ValidationException("NOT_A_PART", "Only parts have structure")
         }
+        // After the lines already there (an update adds to them).
+        val start = usages.links(parentIterationId).maxOfOrNull { it.lineNumber } ?: 0
         lines.forEachIndexed { i, line ->
             if (line.childId == parentId.value) throw ValidationException("INVALID_USAGE", "A part can't use itself")
             if (base(actor, MasterId(line.childId)) != BaseClass.PART) {
@@ -61,7 +63,7 @@ internal class DefaultStructureHistoryImportService(
                     UuidV7.generate(clock),
                     parentIterationId,
                     line.childId,
-                    (i + 1) * 10,
+                    (start / 10 + i + 1) * 10,
                     line.findNumber,
                     line.quantity,
                     line.unit ?: "each",

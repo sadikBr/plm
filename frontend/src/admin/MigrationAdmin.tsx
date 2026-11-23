@@ -214,6 +214,35 @@ function MigrationDetails({ migration: m }: { migration: Migration }) {
                           : t("Ready: {n} objects keep their numbers, versions, dates and authors.", { n: a.objects - a.alreadyDone })}
                 </div>
             </Panel>
+            <Panel title={t("Numbers already here")} note={t("For a package received back")}>
+                <div className="row migration-existing">
+                    <select
+                        aria-label={t("Numbers already here")}
+                        value={mappings.existing ?? "STOP"}
+                        onChange={(e) => {
+                            const next = { ...mappings, existing: e.target.value };
+                            setMappings(next);
+                            save.mutate(next);
+                        }}
+                    >
+                        <option value="STOP">{t("Stop: report them as problems")}</option>
+                        <option value="COPY">{t("Bring them in as copies with a suffix")}</option>
+                        <option value="UPDATE">{t("Update them: a new iteration each")}</option>
+                    </select>
+                    {mappings.existing === "COPY" && (
+                        <input
+                            aria-label={t("Suffix")}
+                            defaultValue={mappings.copySuffix ?? ""}
+                            placeholder={t("Suffix, e.g. ACME")}
+                            onBlur={(e) => {
+                                const next = { ...mappings, copySuffix: e.target.value };
+                                setMappings(next);
+                                save.mutate(next);
+                            }}
+                        />
+                    )}
+                </div>
+            </Panel>
             <div className="migration-maps">
                 <Panel title={t("Types")} flush>
                     <MapTable

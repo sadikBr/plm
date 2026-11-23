@@ -787,10 +787,15 @@ ERP, its legal and security rules, more than one site, and safe upgrades.
       (iterations with their labels, dates, authors, states), content (files per past iteration)
       and BOM (structure and document links per iteration). The analysis lists what to map;
       each object's outcome is kept, so running again resumes without duplicates.
-- [ ] 9.4 Packages and deliveries: a package is a chosen set of objects under a configuration spec
+- [x] 9.4 Packages and deliveries: a package is a chosen set of objects under a configuration spec
       with what to include (files, PDFs, 3D, structure, documents); a delivery sends it to a
       recipient as a download that expires, logs who got what, and a received package can be
       imported back (as copies marked with where they came from, or as updates).
+      Done: `packages` module and a Packages page: roots under latest or released versions,
+      with structure, describing documents, files and PDFs; a delivery is a zip in the migration
+      format prepared by a job, behind an expiring link that needs no account (revocable, every
+      download logged). Received packages come back through Migration with "numbers already
+      here" set to copy (suffixed, marked "Received from …") or update (a new iteration).
 - [ ] 9.5 ERP distribution: distribution targets (an ERP system and plant) with plant-specific
       attributes; rules say which objects go to which targets when released; a release sends them
       (through the integration outbox), the ERP acknowledges, and the object shows its

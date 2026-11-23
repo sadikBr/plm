@@ -15,6 +15,13 @@ data class MigrationMappings(
     val attributes: Map<String, String> = emptyMap(),
     /** Legacy user id → a user name here. Users not mapped are brought in from the manifest. */
     val users: Map<String, String> = emptyMap(),
+    /**
+     * When a number is already here (a package received back, roadmap 9.4): STOP (an error),
+     * COPY (a new object numbered `<number>-<copySuffix>`, marked with where it came from) or
+     * UPDATE (a new iteration of the object here, with the package's attributes, files and links).
+     */
+    val existing: String = "STOP",
+    val copySuffix: String? = null,
 )
 
 data class MigrationIssue(
