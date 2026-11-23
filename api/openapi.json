@@ -2566,6 +2566,16 @@
         "required" : [ "applying", "lines", "rootId", "selection", "total" ],
         "type" : "object"
       },
+      "ConnectorInfo" : {
+        "properties" : {
+          "protocol" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "protocol" ],
+        "type" : "object"
+      },
       "ContentItem" : {
         "properties" : {
           "addedAt" : {
@@ -5283,6 +5293,36 @@
         "required" : [ "appliesTo", "handler", "id", "label", "order", "placement" ],
         "type" : "object"
       },
+      "ManifestDependency" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "key" : {
+            "type" : [ "string", "null" ]
+          },
+          "kind" : {
+            "enum" : [ "COMPONENT", "DRAWING", "REFERENCE" ],
+            "type" : "string"
+          },
+          "occurrence" : {
+            "type" : [ "string", "null" ]
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "transform" : {
+            "items" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : [ "array", "null" ]
+          }
+        },
+        "required" : [ "kind", "required" ],
+        "type" : "object"
+      },
       "ManifestEndpoint" : {
         "properties" : {
           "id" : {
@@ -5324,6 +5364,69 @@
             } ]
           }
         },
+        "type" : "object"
+      },
+      "ManifestModel" : {
+        "properties" : {
+          "attributes" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          },
+          "dependencies" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ManifestDependency"
+            },
+            "type" : "array"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "PART", "ASSEMBLY", "DRAWING" ],
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : [ "string", "null" ]
+          },
+          "part" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ManifestPart"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "uploadId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "attributes", "dependencies", "key", "kind", "name" ],
+        "type" : "object"
+      },
+      "ManifestPart" : {
+        "properties" : {
+          "create" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "number" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "create" ],
         "type" : "object"
       },
       "ManifestRule" : {
@@ -5607,6 +5710,48 @@
           }
         },
         "required" : [ "addedAt", "addedBy", "contextId", "principalId", "role" ],
+        "type" : "object"
+      },
+      "ModelFile" : {
+        "properties" : {
+          "dependencies" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ManifestDependency"
+            },
+            "type" : "array"
+          },
+          "fileName" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "iterationId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "PART", "ASSEMBLY", "DRAWING" ],
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "sha256" : {
+            "type" : [ "string", "null" ]
+          },
+          "url" : {
+            "type" : [ "string", "null" ]
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "dependencies", "id", "iterationId", "name", "number", "version" ],
         "type" : "object"
       },
       "ModelPmi" : {
@@ -8391,6 +8536,35 @@
         "required" : [ "groups" ],
         "type" : "object"
       },
+      "SaveManifest" : {
+        "properties" : {
+          "application" : {
+            "type" : "string"
+          },
+          "checkIn" : {
+            "type" : "boolean"
+          },
+          "comment" : {
+            "type" : [ "string", "null" ]
+          },
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "folderId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "models" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ManifestModel"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "application", "checkIn", "contextId", "models" ],
+        "type" : "object"
+      },
       "SaveMarkup" : {
         "properties" : {
           "contentId" : {
@@ -8573,6 +8747,35 @@
           }
         },
         "required" : [ "name", "selection", "spec" ],
+        "type" : "object"
+      },
+      "SavedModel" : {
+        "properties" : {
+          "created" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "partId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "partNumber" : {
+            "type" : [ "string", "null" ]
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "created", "id", "key", "number", "version" ],
         "type" : "object"
       },
       "SavedSearch" : {
@@ -13797,6 +14000,115 @@
           }
         },
         "tags" : [ "Configuration" ]
+      }
+    },
+    "/api/v1/connectors" : {
+      "get" : {
+        "operationId" : "connectorInfo",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConnectorInfo"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Connector" ]
+      }
+    },
+    "/api/v1/connectors/models/{id}/files" : {
+      "get" : {
+        "operationId" : "connectorFiles",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ModelFile"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Connector" ]
+      }
+    },
+    "/api/v1/connectors/save" : {
+      "post" : {
+        "operationId" : "connectorSave",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveManifest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/SavedModel"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Connector" ]
       }
     },
     "/api/v1/content/{contentId}/link" : {
@@ -30779,6 +31091,8 @@
     "name" : "Conditions"
   }, {
     "name" : "Configuration"
+  }, {
+    "name" : "Connector"
   }, {
     "name" : "Content"
   }, {

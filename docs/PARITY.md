@@ -157,7 +157,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 |---|---|---|
 | CAD documents with dependency structure (assemblies, drawings, references) | ✅ | Dependency structure, STEP import [6.1, 6.5] |
 | Personal workspaces (local cache of files, sync status, conflicts) | ✅ | File states (in sync, out of date, modified, conflict…), all-or-nothing check-in, new files [8.1–8.2] | |
-| CAD connectors (SolidWorks, Creo, NX, Inventor, CATIA, electrical CAD) | ⬜ [8] | Each its own project |
+| CAD connectors (SolidWorks, Creo, NX, Inventor, CATIA, electrical CAD) | 🟡 | Connector protocol and clients ✅ [8.5] · FreeCAD ✅ [8.6] · KiCad [8.7] · commercial tools need their SDKs [8.8] | Each its own project |
 | Family tables / generics and instances | ✅ | Generic models and instances from a parameter table [6.3] |
 | Collector: gather dependents and drawings for an operation | ✅ | Dependents and drawings collected for check-in, revise and state changes [6.2] |
 | Part ↔ CAD association (owner, content, image), auto-associate, build part structure from CAD | ✅ | Owning and contributing models, build part structure from CAD [6.4] |

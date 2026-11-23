@@ -44,6 +44,7 @@ ci:        ## Run exactly what CI runs (backend build with lint and tests, web U
 	./gradlew build --console=plain
 	cd frontend && npm run lint && npm run typecheck && npm test && npm run build
 	cd clients/plm-sync && npm test
+	cd connectors/freecad && python3 -m unittest discover -s tests
 	$(COMPOSE) --profile full config --quiet
 api-contract: ## Regenerate api/openapi.json after changing the API
 	./gradlew :backend:app:test --tests '*OpenApiContractIT' -Dplm.openapi.update=true

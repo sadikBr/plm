@@ -57,6 +57,8 @@ jobs:
       # Desktop clients (roadmap 8): their unit tests (no server needed).
       - run: npm test
         working-directory: clients/plm-sync
+      - run: python3 -m unittest discover -s tests
+        working-directory: connectors/freecad
 
   dev-stack:
     name: Validate dev stack

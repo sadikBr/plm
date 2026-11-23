@@ -721,16 +721,25 @@ system keeps track: what they took, what they changed, what is out of date.
       by subtypes, with value lists matched by key or label; a download writes the object's values
       in. LibreOffice, when installed on the server, turns each Office file into a PDF for page
       previews and a thumbnail (run by the backend's job queue rather than a separate worker).)
-- [ ] 8.5 Connector kit: one protocol for authoring-tool connectors: a connector sends a manifest
+- [x] 8.5 Connector kit: one protocol for authoring-tool connectors: a connector sends a manifest
       of the files it saves (model, kind, dependencies with their roles, parameters, the part it
       represents) and the server creates or updates the CAD documents, their dependencies, family
       tables and part associations in one transaction; the connector asks what to download for a
       model and its dependencies. A TypeScript and a Python client library with the protocol
       documented in `connectors/README.md`.
-- [ ] 8.6 FreeCAD connector: a FreeCAD workbench (Python) on the kit: open from the system, save
+      (Done: a `connectors` module: `POST /connectors/save` creates or updates a manifest's models,
+      files, values, dependencies and owned parts in one transaction, leaving unchanged models at
+      their version, the error naming the model's key; `GET /connectors/models/{id}/files` lists a
+      model with everything it depends on. Python and JavaScript clients without dependencies.)
+- [x] 8.6 FreeCAD connector: a FreeCAD workbench (Python) on the kit: open from the system, save
       and check in a document with its linked parts and assemblies (App::Link and the like read
       from the .FCStd), parameters from spreadsheets, a thumbnail. Tested headless against real
       .FCStd files.
+      (Done: `connectors/freecad`: reads links to other documents with their instance names and
+      placements, spreadsheet parameters, drawings and thumbnails from the .FCStd itself; saves an
+      assembly with everything it links to, sending only changed files; opens a model with its
+      dependencies where its links expect them. A FreeCAD workbench (Save to PLM, Open from PLM) on
+      the same code; tested on FreeCAD's own example files and against a running server.)
 - [ ] 8.7 Electrical CAD: KiCad projects (schematic, board, symbol and footprint libraries) as ECAD
       documents with their dependencies; the schematic's components become a part structure
       (reference designators as occurrences, 4.5); a board preview; a "compare ECAD BOM with the
