@@ -28,6 +28,7 @@ import com.plm.access.api.TemplatePolicy
 import com.plm.access.infra.AccessRepository
 import com.plm.access.infra.TemplateRepository
 import com.plm.platform.actor.Actor
+import com.plm.platform.error.ConflictException
 import com.plm.platform.error.ForbiddenException
 import com.plm.platform.error.NotFoundException
 import com.plm.platform.error.ValidationException
@@ -160,6 +161,7 @@ internal class DefaultSharedTeamService(
     ) {
         val team = get(actor, id)
         requireScopeAdmin(actor, team.organizationId, contexts, accessService, "shared teams")
+        requireNotDirectory(team)
         teams.deleteTeam(id)
         events.publish(actor, SharedTeamChanged(id.value, team.name, "deleted"))
     }
@@ -172,6 +174,7 @@ internal class DefaultSharedTeamService(
     ): SharedTeam {
         val team = get(actor, id)
         requireScopeAdmin(actor, team.organizationId, contexts, accessService, "shared teams")
+        requireNotDirectory(team)
         val definition = access.role(actor.tenant, role)
         if (definition == null || !definition.active) {
             throw ValidationException(
@@ -192,6 +195,7 @@ internal class DefaultSharedTeamService(
     ): SharedTeam {
         val team = get(actor, id)
         requireScopeAdmin(actor, team.organizationId, contexts, accessService, "shared teams")
+        requireNotDirectory(team)
         if (teams.removeTeamMember(id, principalId) == 0) {
             throw NotFoundException("MEMBER_NOT_FOUND", "$principalId is not on this team")
         }
@@ -206,6 +210,15 @@ internal class DefaultSharedTeamService(
     ): List<SharedTeam> {
         val context = contexts.get(actor, contextId)
         return teams.attachedTeams(context.id).mapNotNull { teams.team(actor.tenant, it) }
+    }
+
+    @Transactional(readOnly = true)
+    override fun attachedTo(
+        actor: Actor,
+        id: SharedTeamId,
+    ): List<ContextId> {
+        get(actor, id)
+        return teams.contextsOf(id)
     }
 
     override fun attach(
@@ -235,6 +248,80 @@ internal class DefaultSharedTeamService(
             throw NotFoundException("SHARED_TEAM_NOT_FOUND", "${team.name} is not attached to ${context.name}")
         }
         events.publish(actor, SharedTeamChanged(id.value, team.name, "detached from ${context.name} (${context.id})"))
+    }
+
+    override fun syncDirectoryTeam(
+        actor: Actor,
+        group: String,
+        name: String,
+        members: Map<PrincipalId, TeamRole>,
+    ): SharedTeam {
+        requireAdmin(actor, "manage directory teams")
+        members.values.toSet().forEach { role ->
+            val definition = access.role(actor.tenant, role)
+            if (definition == null || !definition.active) {
+                throw ValidationException(
+                    "UNKNOWN_ROLE",
+                    "There is no active role '${role.key}'",
+                    mapOf(
+                        "role" to role.key,
+                    ),
+                )
+            }
+        }
+        val trimmed = name.trim().take(200).ifEmpty { group }
+        val existing = teams.teamOfGroup(actor.tenant, group)
+        val team =
+            existing ?: SharedTeam(
+                SharedTeamId(UuidV7.generate(clock)),
+                trimmed,
+                "Managed by the directory",
+                null,
+                emptyList(),
+                now(),
+                actor.principal.value,
+                directoryGroup = group,
+            ).also {
+                teams.insertTeam(actor.tenant, it)
+                events.publish(actor, SharedTeamChanged(it.id.value, it.name, "created from the directory"))
+            }
+        if (existing != null && existing.name != trimmed) {
+            teams.renameTeam(team.id, trimmed)
+            events.publish(actor, SharedTeamChanged(team.id.value, trimmed, "renamed from ${existing.name}"))
+        }
+        val current = team.members.associate { it.principalId to it.role }
+        for ((principal, _) in current - members.keys) {
+            teams.removeTeamMember(team.id, principal)
+            events.publish(actor, SharedTeamChanged(team.id.value, trimmed, "member removed ${principal.value}"))
+        }
+        for ((principal, role) in members) {
+            if (current[principal] == role) continue
+            teams.putTeamMember(actor.tenant, team.id, SharedTeamMember(principal, role, now(), actor.principal.value))
+            events.publish(
+                actor,
+                SharedTeamChanged(team.id.value, trimmed, "member put ${principal.value} as ${role.key}"),
+            )
+        }
+        return get(actor, team.id)
+    }
+
+    override fun deleteDirectoryTeam(
+        actor: Actor,
+        group: String,
+    ) {
+        requireAdmin(actor, "manage directory teams")
+        val team = teams.teamOfGroup(actor.tenant, group) ?: return
+        teams.deleteTeam(team.id)
+        events.publish(actor, SharedTeamChanged(team.id.value, team.name, "deleted by the directory"))
+    }
+
+    private fun requireNotDirectory(team: SharedTeam) {
+        if (team.directoryGroup != null) {
+            throw ConflictException(
+                "DIRECTORY_MANAGED",
+                "${team.name} is managed by the directory: change its members in the identity provider",
+            )
+        }
     }
 
     private fun now() = clock.instant().truncatedTo(ChronoUnit.MICROS)

@@ -23,6 +23,9 @@ internal class PrincipalRepository(
                 firstSeen = rs.getTimestamp("first_seen").toInstant(),
                 lastSeen = rs.getTimestamp("last_seen").toInstant(),
                 siteAdmin = rs.getBoolean("site_admin"),
+                provisioned = rs.getBoolean("provisioned"),
+                active = rs.getBoolean("active"),
+                signedIn = rs.getBoolean("signed_in"),
             )
         }
 
@@ -42,7 +45,8 @@ internal class PrincipalRepository(
                 values (:id, :tenant, :username, :displayName, :email, :siteAdmin, :now, :now)
                 on conflict (tenant_id, id) do update
                     set username = excluded.username, display_name = excluded.display_name,
-                        email = excluded.email, site_admin = excluded.site_admin, last_seen = excluded.last_seen
+                        email = excluded.email, site_admin = excluded.site_admin, last_seen = excluded.last_seen,
+                        signed_in = true
                 """,
             ).param("id", id.value)
             .param("tenant", tenant.value)
@@ -53,6 +57,48 @@ internal class PrincipalRepository(
             .param("now", Timestamp.from(now))
             .update()
     }
+
+    fun provision(
+        tenant: TenantId,
+        id: PrincipalId,
+        username: String,
+        displayName: String,
+        email: String?,
+        active: Boolean,
+        now: Instant,
+    ) {
+        jdbc
+            .sql(
+                """
+                insert into principal (id, tenant_id, username, display_name, email, first_seen, last_seen,
+                                       provisioned, active, signed_in)
+                values (:id, :tenant, :username, :displayName, :email, :now, :now, true, :active, false)
+                on conflict (tenant_id, id) do update
+                    set username = excluded.username, display_name = excluded.display_name,
+                        email = excluded.email, provisioned = true, active = excluded.active
+                """,
+            ).param("id", id.value)
+            .param("tenant", tenant.value)
+            .param("username", username)
+            .param("displayName", displayName)
+            .param("email", email)
+            .param("active", active)
+            .param("now", Timestamp.from(now))
+            .update()
+    }
+
+    /** Gives a person who never signed in their real id. */
+    fun rekey(
+        tenant: TenantId,
+        from: PrincipalId,
+        to: PrincipalId,
+    ): Int =
+        jdbc
+            .sql("update principal set id = :to where tenant_id = :tenant and id = :from and not signed_in")
+            .param("tenant", tenant.value)
+            .param("from", from.value)
+            .param("to", to.value)
+            .update()
 
     fun find(
         tenant: TenantId,

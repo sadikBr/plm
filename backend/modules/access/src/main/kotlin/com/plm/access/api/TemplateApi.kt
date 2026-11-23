@@ -31,6 +31,8 @@ data class SharedTeam(
     val members: List<SharedTeamMember>,
     val createdAt: Instant,
     val createdBy: String,
+    /** The directory group (roadmap 9.1) that manages its members; null for a team managed here. */
+    val directoryGroup: String? = null,
 )
 
 /**
@@ -40,7 +42,8 @@ data class SharedTeam(
  * its managers (roadmap 1.14). A context's managers attach and detach teams usable there.
  *
  * Error codes: `ADMIN_REQUIRED`, `ACCESS_DENIED`, `SHARED_TEAM_NOT_FOUND`, `INVALID_SHARED_TEAM`,
- * `DUPLICATE_SHARED_TEAM`, `UNKNOWN_ROLE`, `MEMBER_NOT_FOUND`.
+ * `DUPLICATE_SHARED_TEAM`, `UNKNOWN_ROLE`, `MEMBER_NOT_FOUND`, `DIRECTORY_MANAGED` (a directory
+ * team's members and name change only through the directory).
  */
 interface SharedTeamService {
     /** Teams the actor can see: site-wide ones and those of organizations visible to them. */
@@ -89,6 +92,12 @@ interface SharedTeamService {
         contextId: ContextId,
     ): List<SharedTeam>
 
+    /** The contexts [id] is attached to. */
+    fun attachedTo(
+        actor: Actor,
+        id: SharedTeamId,
+    ): List<ContextId>
+
     /** Needs MANAGE on the context. Attaching twice is a no-op. */
     fun attach(
         actor: Actor,
@@ -100,6 +109,23 @@ interface SharedTeamService {
         actor: Actor,
         contextId: ContextId,
         id: SharedTeamId,
+    )
+
+    /**
+     * For the directory (roadmap 9.1), site administrators only: makes or renames the site-wide team
+     * of directory group [group] and sets its members exactly. Returns the team.
+     */
+    fun syncDirectoryTeam(
+        actor: Actor,
+        group: String,
+        name: String,
+        members: Map<PrincipalId, TeamRole>,
+    ): SharedTeam
+
+    /** Deletes the team of directory group [group], if there is one. */
+    fun deleteDirectoryTeam(
+        actor: Actor,
+        group: String,
     )
 }
 

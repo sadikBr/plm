@@ -226,6 +226,8 @@ internal data class SharedTeamResponse(
     val organizationId: UUID?,
     val members: List<SharedTeamMemberResponse>,
     val createdAt: Instant,
+    /** Set when the directory manages its members (roadmap 9.1). */
+    val directoryGroup: String?,
 ) {
     constructor(t: SharedTeam) : this(
         t.id.value,
@@ -234,5 +236,6 @@ internal data class SharedTeamResponse(
         t.organizationId?.value,
         t.members.map { SharedTeamMemberResponse(it.principalId.value, it.role.key, it.addedAt) },
         t.createdAt,
+        t.directoryGroup,
     )
 }

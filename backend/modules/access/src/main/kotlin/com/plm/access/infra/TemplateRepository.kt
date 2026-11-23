@@ -57,6 +57,7 @@ internal class TemplateRepository(
             members = members(SharedTeamId(getObject("id", UUID::class.java))),
             createdAt = getTimestamp("created_at").toInstant(),
             createdBy = getString("created_by"),
+            directoryGroup = getString("directory_group"),
         )
 
     fun teams(tenant: TenantId): List<SharedTeam> =
@@ -86,10 +87,12 @@ internal class TemplateRepository(
             jdbc
                 .sql(
                     """
-                    insert into shared_team (id, tenant_id, name, description, organization_id, created_at, created_by)
-                    values (:id, :tenant, :name, :description, :organization, :createdAt, :createdBy)
+                    insert into shared_team
+                        (id, tenant_id, name, description, organization_id, created_at, created_by, directory_group)
+                    values (:id, :tenant, :name, :description, :organization, :createdAt, :createdBy, :group)
                     """,
                 ).param("id", team.id.value)
+                .param("group", team.directoryGroup)
                 .param("organization", team.organizationId?.value)
                 .param("tenant", tenant.value)
                 .param("name", team.name)
@@ -99,6 +102,35 @@ internal class TemplateRepository(
                 .update()
         } catch (e: DuplicateKeyException) {
             throw ConflictException("DUPLICATE_SHARED_TEAM", "A shared team named '${team.name}' already exists")
+                .apply { initCause(e) }
+        }
+    }
+
+    fun teamOfGroup(
+        tenant: TenantId,
+        group: String,
+    ): SharedTeam? =
+        jdbc
+            .sql("select * from shared_team where tenant_id = :tenant and directory_group = :group")
+            .param("tenant", tenant.value)
+            .param("group", group)
+            .query { rs, _ -> rs.team() }
+            .optional()
+            .orElse(null)
+
+    fun renameTeam(
+        id: SharedTeamId,
+        name: String,
+    ) {
+        try {
+            jdbc
+                .sql(
+                    "update shared_team set name = :name where id = :id",
+                ).param("id", id.value)
+                .param("name", name)
+                .update()
+        } catch (e: DuplicateKeyException) {
+            throw ConflictException("DUPLICATE_SHARED_TEAM", "A shared team named '$name' already exists")
                 .apply { initCause(e) }
         }
     }
@@ -138,6 +170,13 @@ internal class TemplateRepository(
             .param("team", team.value)
             .param("principal", principal.value)
             .update()
+
+    fun contextsOf(team: SharedTeamId): List<ContextId> =
+        jdbc
+            .sql("select context_id from context_shared_team where team_id = :team order by attached_at")
+            .param("team", team.value)
+            .query { rs, _ -> ContextId(rs.getObject("context_id", UUID::class.java)) }
+            .list()
 
     fun attachedTeams(context: ContextId): List<SharedTeamId> =
         jdbc

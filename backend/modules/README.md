@@ -29,6 +29,7 @@ Three layers enforce this:
 | types | Type definitions, attribute schemas | — |
 | integration | ERP and external connectors (event consumers) | — |
 | events | Relays the outbox to Kafka (infrastructure) | — |
+| directory | SCIM 2.0 users and groups from the identity provider; groups become shared teams | identity, access |
 | access | Contexts, teams, policies, permission checks and SQL filters | identity, types |
 | content | File vault: blobs (S3 or disk), signed links, iteration content, thumbnails, previews | access, versioning, jobs |
 | versioning | Master / Version / Iteration engine, lifecycle enforcement | types, access, identity, lifecycle, preferences |

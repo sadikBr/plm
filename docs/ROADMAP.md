@@ -762,9 +762,14 @@ system keeps track: what they took, what they changed, what is out of date.
 ## Phase 9 — Enterprise integration and infrastructure
 **Goal:** what a company needs to go live: its directory, its existing data, its suppliers, its
 ERP, its legal and security rules, more than one site, and safe upgrades.
-- [ ] 9.1 Directory groups: SCIM 2.0 (users and groups) for identity providers that push them,
+- [x] 9.1 Directory groups: SCIM 2.0 (users and groups) for identity providers that push them,
       and LDAP/AD through the identity provider's federation; a directory group becomes a shared
       team whose members the directory manages, attached to contexts with a role like any other.
+      Done: `directory` module at `/api/v1/scim/v2` (Users, Groups, filters, paging, PATCH as
+      Entra ID / Okta send it, SCIM errors), authenticated by an admin service account's token.
+      People exist before their first sign-in and are re-keyed to their real subject when they
+      sign in; deactivation takes them off every team. Each group is a read-only shared team with
+      a role chosen in Administration → Directory.
 - [ ] 9.2 Bulk load: load objects of any type (with attributes, folders, files from a zip,
       structure and document links) from a spreadsheet, with validation, a dry run that shows
       what would happen, and the load itself as a background job with a per-row result.
