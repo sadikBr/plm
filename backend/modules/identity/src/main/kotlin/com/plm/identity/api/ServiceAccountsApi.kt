@@ -155,8 +155,6 @@ interface ServiceAccountService {
     )
 }
 
-/** Checks tokens for the web layer, and issues the short-lived ones. */
-
 /**
  * A person's own access tokens (roadmap 8.3), for the desktop sync client and scripts: each acts
  * as them, with their access rules, within its scopes (`read`, `write`; `admin` only for site
@@ -179,6 +177,7 @@ interface PersonalTokenService {
     )
 }
 
+/** Checks tokens for the web layer, and issues the short-lived ones. */
 interface TokenAuthenticator {
     /** Null when the token is unknown, revoked, expired, or its account is inactive. */
     fun authenticate(token: String): TokenAuthentication?

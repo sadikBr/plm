@@ -24,7 +24,8 @@ internal object OfficeProperties {
     private const val DC = "http://purl.org/dc/elements/1.1/"
     private const val CUSTOM = "http://schemas.openxmlformats.org/officeDocument/2006/custom-properties"
     private const val VT = "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"
-    private const val CUSTOM_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties"
+    private const val CUSTOM_REL =
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties"
     private const val CUSTOM_TYPE = "application/vnd.openxmlformats-officedocument.custom-properties+xml"
     private const val FMTID = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}"
 

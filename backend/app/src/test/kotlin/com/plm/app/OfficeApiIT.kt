@@ -22,23 +22,30 @@ class OfficeApiIT : ApiTest() {
         val parts =
             mapOf(
                 "[Content_Types].xml" to
-                    """<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">""" +
-                    """<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>""" +
+                    """<?xml version="1.0" encoding="UTF-8"?><Types """ +
+                    """xmlns="http://schemas.openxmlformats.org/package/2006/content-types">""" +
+                    """<Default Extension="rels" """ +
+                    """ContentType="application/vnd.openxmlformats-package.relationships+xml"/>""" +
                     """<Default Extension="xml" ContentType="application/xml"/></Types>""",
                 "_rels/.rels" to
-                    """<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">""" +
-                    """<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" """ +
+                    """<?xml version="1.0" encoding="UTF-8"?><Relationships """ +
+                    """xmlns="http://schemas.openxmlformats.org/package/2006/relationships">""" +
+                    """<Relationship Id="rId1" """ +
+                    """Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" """ +
+                    """""" +
                     """Target="word/document.xml"/></Relationships>""",
                 "word/document.xml" to
                     """<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body/></w:document>""",
                 "docProps/core.xml" to
-                    """<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" """ +
+                    """<cp:coreProperties """ +
+                    """xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" """ +
                     """xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>Bracket test procedure</dc:title>""" +
                     """<dc:description>How the bracket is load tested.</dc:description></cp:coreProperties>""",
                 "docProps/custom.xml" to
                     """<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" """ +
                     """xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">""" +
-                    """<property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2" name="Department"><vt:lpwstr>Quality</vt:lpwstr>""" +
+                    """<property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2" name="Department">""" +
+                    """<vt:lpwstr>Quality</vt:lpwstr>""" +
                     """</property></Properties>""",
             )
         val out = ByteArrayOutputStream()
