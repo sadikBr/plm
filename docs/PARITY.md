@@ -156,7 +156,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | Capability | Status | Notes |
 |---|---|---|
 | CAD documents with dependency structure (assemblies, drawings, references) | ✅ | Dependency structure, STEP import [6.1, 6.5] |
-| Personal workspaces (local cache of files, sync status, conflicts) | ⬜ [8] | |
+| Personal workspaces (local cache of files, sync status, conflicts) | ✅ | File states (in sync, out of date, modified, conflict…), all-or-nothing check-in, new files [8.1–8.2] | |
 | CAD connectors (SolidWorks, Creo, NX, Inventor, CATIA, electrical CAD) | ⬜ [8] | Each its own project |
 | Family tables / generics and instances | ✅ | Generic models and instances from a parameter table [6.3] |
 | Collector: gather dependents and drawings for an operation | ✅ | Dependents and drawings collected for check-in, revise and state changes [6.2] |

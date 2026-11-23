@@ -44,14 +44,8 @@ export async function fileLink(contentId: string, inline: boolean): Promise<stri
   return link.url;
 }
 
-/** Sends a file to the vault (with progress) and attaches it to the working copy. */
-export async function uploadFile(
-  objectId: string,
-  file: File,
-  role: Role,
-  onProgress: (fraction: number) => void,
-  description?: string,
-): Promise<ContentItem> {
+/** Sends a file to the vault (with progress): its upload id, to attach somewhere. */
+export async function sendToVault(file: File, onProgress: (fraction: number) => void = () => {}): Promise<string> {
   const ticket = await unwrap(
     api.POST("/api/v1/vault/uploads", { body: { fileName: file.name, contentType: file.type || null, size: file.size } }),
   );
@@ -74,10 +68,22 @@ export async function uploadFile(
     xhr.onerror = () => reject(new Error(t("The upload failed: the connection was lost")));
     xhr.send(file);
   });
+  return ticket.uploadId;
+}
+
+/** Sends a file to the vault (with progress) and attaches it to the working copy. */
+export async function uploadFile(
+  objectId: string,
+  file: File,
+  role: Role,
+  onProgress: (fraction: number) => void,
+  description?: string,
+): Promise<ContentItem> {
+  const uploadId = await sendToVault(file, onProgress);
   return unwrap(
     api.POST("/api/v1/objects/{id}/content", {
       params: { path: { id: objectId } },
-      body: { uploadId: ticket.uploadId, role, description: description ?? null },
+      body: { uploadId, role, description: description ?? null },
     }),
   );
 }

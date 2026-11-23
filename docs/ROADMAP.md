@@ -685,14 +685,22 @@ optional links, where used, questions, refused queries and access inside the SQL
 ## Phase 8 — Desktop and native CAD
 **Goal:** people work on files on their own computer and inside their authoring tools, and the
 system keeps track: what they took, what they changed, what is out of date.
-- [ ] 8.1 Personal workspaces: a person's named workspaces (per context) holding the objects they
+- [x] 8.1 Personal workspaces: a person's named workspaces (per context) holding the objects they
       work on, with each file's state: in sync, modified locally, out of date (a newer iteration
       on the server), new (not yet in the system), checked out by me or by someone else. Add
       objects with what they depend on (the collector, 6.2); upload changed files into the working
       copies; check in or undo everything in one go, all or nothing; conflicts named, never lost.
-- [ ] 8.2 Workspace page: workspaces in the rail, the files with their state badges, filters,
+      (Done: a `workspace` module; each item remembers the iteration the person's computer holds and
+      the hash their client last reported, from which its state follows; an upload into an
+      out-of-date item is refused rather than overwriting someone's newer iteration; check out,
+      check in and undo over many items in one transaction, the error naming the object; new files
+      wait in the workspace until made into documents; a per-workspace history.)
+- [x] 8.2 Workspace page: workspaces in the rail, the files with their state badges, filters,
       add from search or the clipboard, check out / update / check in / undo for a selection,
       download as a zip, and the history of what went in.
+      (Done: Workspaces in the rail; state chips with counts as filters; add from search or the
+      clipboard (CAD models with what they depend on); upload a changed file per row; new files
+      made into documents with a type and name; the history on demand.)
 - [ ] 8.3 Desktop sync client: `plm-sync`, a command-line client (Node, no install beyond npm)
       that signs in with a personal access token and mirrors a workspace to a folder: `pull`
       (bring files up to date), `status` (what changed locally), `push` (upload changes, new files

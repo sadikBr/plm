@@ -47,6 +47,7 @@ Three layers enforce this:
 | search | Search: indexing from events (OpenSearch or Postgres), queries with facets, saved searches | access, types, versioning, content, jobs |
 | configuration | Export/import of the whole configuration as one bundle (config as code) | types, lifecycle, access |
 | preferences | Typed preferences set per site / organization / context / user, with locking; profiles | access, types |
+| workspace | Personal workspaces: the objects a person works on, their files' states against the person's computer, check out / in for many at once, new files | access, types, versioning, content, cad |
 | extensions | Extensibility platform: action registry, extension packages, rules, webhooks | types, access, lifecycle, versioning, configuration, identity, preferences |
 
 Every module also depends on `backend/platform` (the shared kernel).

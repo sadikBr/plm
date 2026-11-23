@@ -6578,3 +6578,250 @@ textarea {
   line-height: 1.55;
   max-width: 90ch;
 }
+
+/* Workspaces (roadmap 8.2): a list of your workspaces, the chosen one's files with their states. */
+.ws-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+@container (max-width: 760px) {
+  .ws-layout {
+    grid-template-columns: 1fr;
+  }
+}
+.ws-list {
+  display: grid;
+  gap: 6px;
+  position: sticky;
+  top: 0;
+}
+.ws-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  text-decoration: none;
+}
+.ws-card:hover {
+  border-color: var(--border-strong);
+  text-decoration: none;
+}
+.ws-card.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.ws-card-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--panel-2);
+  color: var(--accent);
+  flex: 0 0 32px;
+}
+.ws-card-text {
+  display: grid;
+  min-width: 0;
+}
+.ws-card-text strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-card-flag {
+  color: var(--warn);
+  font-weight: 600;
+}
+.ws-new {
+  justify-content: flex-start;
+}
+.ws-main {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.ws-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ws-head h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+.ws-head p {
+  margin: 2px 0 0;
+}
+.ws-head-tools {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.ws-chips {
+  padding: 0;
+  border: 0;
+}
+.ws-actions {
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.file-state {
+  --t: var(--text-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px 1px 6px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--t);
+  background: color-mix(in srgb, var(--t) 12%, transparent);
+}
+.file-state.tone-ok {
+  --t: var(--ok);
+}
+.file-state.tone-warn {
+  --t: var(--warn);
+}
+.file-state.tone-info {
+  --t: var(--info);
+}
+.file-state.tone-accent {
+  --t: var(--accent);
+}
+.file-state.tone-danger {
+  --t: var(--danger);
+}
+.chip .file-state {
+  padding: 0;
+  background: none;
+}
+.ws-by {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+}
+.ws-kind {
+  margin-left: 6px;
+  text-transform: capitalize;
+}
+.ws-file {
+  max-width: 260px;
+}
+.ws-file .ellipsis {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-pick {
+  list-style: none;
+  margin: 8px 0 12px;
+  padding: 0;
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.ws-pick li {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.ws-pick li:last-child {
+  border-bottom: 0;
+}
+.ws-pick .check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ws-checkin-list {
+  margin: 8px 0 12px;
+  padding-left: 18px;
+}
+.ws-checkin-list li {
+  margin: 3px 0;
+}
+.ws-newfiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ws-newfile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
+.ws-newfile:first-child {
+  border-top: 0;
+}
+.ws-newfile-name {
+  display: grid;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.ws-newfile select,
+.ws-newfile input {
+  flex: 0 1 200px;
+  min-width: 0;
+}
+.ws-newfile-error {
+  flex-basis: 100%;
+}
+.ws-history-kind {
+  font-weight: 600;
+  min-width: 140px;
+}
+.ws-object {
+  min-width: 0;
+  max-width: 340px;
+}
+.ws-object-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.ws-object-name {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-table td {
+  vertical-align: middle;
+}
+.ws-file {
+  max-width: 220px;
+}
+.ws-newfile {
+  flex-wrap: nowrap;
+}
+.ws-newfile-name {
+  flex: 1 1 160px;
+}
+@container (max-width: 760px) {
+  .ws-newfile {
+    flex-wrap: wrap;
+  }
+}

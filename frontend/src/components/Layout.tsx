@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ClipboardList,
   FolderTree,
+  HardDrive,
   Home,
   Inbox as InboxIcon,
   LayoutDashboard,
@@ -79,6 +80,7 @@ function AppRail() {
         aria: tn("Tasks: {n} open", "Tasks: {n} open", open),
         badge: open > 0 ? <span className={counts?.overdue ? "rail-badge overdue" : "rail-badge"}>{open > 99 ? "99+" : open}</span> : null,
       })}
+      {item("/workspaces", <HardDrive size={18} aria-hidden />, t("Workspaces"))}
       {item("/changes", <ClipboardList size={18} aria-hidden />, t("Changes"))}
       {item("/classes", <FolderTree size={18} aria-hidden />, t("Classes"))}
       {item("/reports", <BarChart3 size={18} aria-hidden />, t("Reports"))}

@@ -354,6 +354,23 @@
         "required" : [ "from", "kind", "target" ],
         "type" : "object"
       },
+      "AddNewFile" : {
+        "properties" : {
+          "fileName" : {
+            "type" : "string"
+          },
+          "size" : {
+            "format" : "int64",
+            "type" : [ "integer", "null" ]
+          },
+          "uploadId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "fileName", "uploadId" ],
+        "type" : "object"
+      },
       "AddRedline" : {
         "properties" : {
           "attribute" : {
@@ -400,6 +417,22 @@
           }
         },
         "required" : [ "substituteId" ],
+        "type" : "object"
+      },
+      "AddToWorkspace" : {
+        "properties" : {
+          "dependencies" : {
+            "type" : "boolean"
+          },
+          "ids" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "dependencies", "ids" ],
         "type" : "object"
       },
       "AddUsage" : {
@@ -2725,6 +2758,22 @@
         "required" : [ "endItemId" ],
         "type" : "object"
       },
+      "CreateFromFile" : {
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : [ "string", "null" ]
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "name", "typeId" ],
+        "type" : "object"
+      },
       "CreateLifecycleRequest" : {
         "properties" : {
           "initialState" : {
@@ -2969,6 +3018,26 @@
           }
         },
         "required" : [ "code", "dimension", "labels" ],
+        "type" : "object"
+      },
+      "CreateWorkspace" : {
+        "properties" : {
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "folderId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "contextId", "name" ],
         "type" : "object"
       },
       "Created" : {
@@ -3301,6 +3370,35 @@
           }
         },
         "required" : [ "active", "id", "name", "number", "objectId", "typeId", "updatedAt", "updatedBy", "version" ],
+        "type" : "object"
+      },
+      "Download" : {
+        "properties" : {
+          "fileName" : {
+            "type" : "string"
+          },
+          "iterationId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "sha256" : {
+            "type" : "string"
+          },
+          "url" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "fileName", "iterationId", "number", "objectId", "sha256", "url", "version" ],
         "type" : "object"
       },
       "ESignature" : {
@@ -5086,6 +5184,23 @@
         "required" : [ "kind", "part" ],
         "type" : "object"
       },
+      "LocalFile" : {
+        "properties" : {
+          "iterationId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "sha256" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "objectId" ],
+        "type" : "object"
+      },
       "MakeOneOff" : {
         "properties" : {
           "baseIterationId" : {
@@ -5565,6 +5680,27 @@
         "required" : [ "contextId", "name" ],
         "type" : "object"
       },
+      "NewFile" : {
+        "properties" : {
+          "addedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "size" : {
+            "format" : "int64",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "required" : [ "addedAt", "fileName", "id" ],
+        "type" : "object"
+      },
       "NewFromTemplate" : {
         "properties" : {
           "attributes" : {
@@ -5793,6 +5929,25 @@
           }
         },
         "required" : [ "contextId", "createdAt", "createdBy", "id", "latest", "name", "number", "owner", "typeId", "version" ],
+        "type" : "object"
+      },
+      "OperationResult" : {
+        "properties" : {
+          "changed" : {
+            "type" : "boolean"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "version" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "changed", "number", "objectId" ],
         "type" : "object"
       },
       "OperationRule" : {
@@ -7517,6 +7672,19 @@
         "required" : [ "enabled", "states" ],
         "type" : "object"
       },
+      "RemoveFromWorkspace" : {
+        "properties" : {
+          "ids" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "ids" ],
+        "type" : "object"
+      },
       "RenameContentRequest" : {
         "properties" : {
           "description" : {
@@ -7596,6 +7764,18 @@
           }
         },
         "required" : [ "count", "key" ],
+        "type" : "object"
+      },
+      "ReportLocal" : {
+        "properties" : {
+          "files" : {
+            "items" : {
+              "$ref" : "#/components/schemas/LocalFile"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "files" ],
         "type" : "object"
       },
       "ReportResult" : {
@@ -10112,6 +10292,20 @@
         "required" : [ "attributes" ],
         "type" : "object"
       },
+      "UploadChange" : {
+        "properties" : {
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "uploadId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "objectId", "uploadId" ],
+        "type" : "object"
+      },
       "UploadTicket" : {
         "properties" : {
           "expiresAt" : {
@@ -10824,6 +11018,182 @@
           }
         },
         "required" : [ "assignee", "choices", "createdAt", "id", "instanceId", "kind", "nodeId", "processName", "sharedWith", "signature", "status", "tally", "title" ],
+        "type" : "object"
+      },
+      "Workspace" : {
+        "properties" : {
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "counts" : {
+            "additionalProperties" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "folderId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "contextId", "counts", "createdAt", "id", "name", "updatedAt" ],
+        "type" : "object"
+      },
+      "WorkspaceDetail" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/WorkspaceItem"
+            },
+            "type" : "array"
+          },
+          "newFiles" : {
+            "items" : {
+              "$ref" : "#/components/schemas/NewFile"
+            },
+            "type" : "array"
+          },
+          "workspace" : {
+            "$ref" : "#/components/schemas/Workspace"
+          }
+        },
+        "required" : [ "items", "newFiles", "workspace" ],
+        "type" : "object"
+      },
+      "WorkspaceEvent" : {
+        "properties" : {
+          "at" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "detail" : {
+            "type" : [ "string", "null" ]
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : [ "string", "null" ]
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "at", "kind" ],
+        "type" : "object"
+      },
+      "WorkspaceFile" : {
+        "properties" : {
+          "contentId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "sha256" : {
+            "type" : "string"
+          },
+          "size" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "contentId", "fileName", "sha256", "size" ],
+        "type" : "object"
+      },
+      "WorkspaceItem" : {
+        "properties" : {
+          "addedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "baseVersion" : {
+            "type" : [ "string", "null" ]
+          },
+          "cadKind" : {
+            "type" : [ "string", "null" ]
+          },
+          "checkedOutBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "file" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/WorkspaceFile"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "fileState" : {
+            "enum" : [ "IN_SYNC", "OUT_OF_DATE", "MODIFIED", "CHECKED_OUT", "CONFLICT", "CHECKED_OUT_BY_OTHER", "UNAVAILABLE" ],
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "state" : {
+            "type" : [ "string", "null" ]
+          },
+          "typeId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "version" : {
+            "type" : [ "string", "null" ]
+          },
+          "workingFile" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/WorkspaceFile"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "addedAt", "fileState", "name", "number", "objectId" ],
+        "type" : "object"
+      },
+      "WorkspaceOperation" : {
+        "properties" : {
+          "comment" : {
+            "type" : [ "string", "null" ]
+          },
+          "ids" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "ids" ],
         "type" : "object"
       }
     },
@@ -29244,6 +29614,790 @@
         },
         "tags" : [ "Webhook" ]
       }
+    },
+    "/api/v1/workspaces" : {
+      "get" : {
+        "operationId" : "workspaceList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Workspace"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      },
+      "post" : {
+        "operationId" : "workspaceCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateWorkspace"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Workspace"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      }
+    },
+    "/api/v1/workspaces/{id}" : {
+      "delete" : {
+        "operationId" : "workspaceDelete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      },
+      "get" : {
+        "operationId" : "workspaceGet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkspaceDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      },
+      "put" : {
+        "operationId" : "workspaceUpdate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateWorkspace"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Workspace"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      }
+    },
+    "/api/v1/workspaces/{id}/check-in" : {
+      "post" : {
+        "operationId" : "workspaceCheckIn",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WorkspaceOperation"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/OperationResult"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      }
+    },
+    "/api/v1/workspaces/{id}/check-out" : {
+      "post" : {
+        "operationId" : "workspaceCheckOut",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WorkspaceOperation"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/OperationResult"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      }
+    },
+    "/api/v1/workspaces/{id}/downloads" : {
+      "get" : {
+        "operationId" : "workspaceDownloads",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "ids",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Download"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      }
+    },
+    "/api/v1/workspaces/{id}/history" : {
+      "get" : {
+        "operationId" : "workspaceHistory",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/WorkspaceEvent"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      }
+    },
+    "/api/v1/workspaces/{id}/items" : {
+      "post" : {
+        "operationId" : "workspaceAdd",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddToWorkspace"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkspaceDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      }
+    },
+    "/api/v1/workspaces/{id}/items/remove" : {
+      "post" : {
+        "operationId" : "workspaceRemove",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RemoveFromWorkspace"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkspaceDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      }
+    },
+    "/api/v1/workspaces/{id}/local" : {
+      "post" : {
+        "operationId" : "workspaceReportLocal",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReportLocal"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkspaceDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      }
+    },
+    "/api/v1/workspaces/{id}/new-files" : {
+      "post" : {
+        "operationId" : "workspaceAddNewFile",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddNewFile"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NewFile"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      }
+    },
+    "/api/v1/workspaces/{id}/new-files/{fileId}" : {
+      "delete" : {
+        "operationId" : "workspaceRemoveNewFile",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "fileId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      }
+    },
+    "/api/v1/workspaces/{id}/new-files/{fileId}/create" : {
+      "post" : {
+        "operationId" : "workspaceCreateFromFile",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "fileId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateFromFile"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkspaceItem"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      }
+    },
+    "/api/v1/workspaces/{id}/undo" : {
+      "post" : {
+        "operationId" : "workspaceUndo",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WorkspaceOperation"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/OperationResult"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      }
+    },
+    "/api/v1/workspaces/{id}/upload" : {
+      "post" : {
+        "operationId" : "workspaceUpload",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UploadChange"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkspaceItem"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      }
+    },
+    "/api/v1/workspaces/{id}/zip" : {
+      "get" : {
+        "operationId" : "workspaceZip",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Workspace" ]
+      }
     }
   },
   "security" : [ {
@@ -29405,5 +30559,7 @@
     "name" : "Webhook"
   }, {
     "name" : "Work item"
+  }, {
+    "name" : "Workspace"
   } ]
 }

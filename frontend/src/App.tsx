@@ -1,3 +1,4 @@
+import { WorkspacesPage } from "./workspace/WorkspacesPage";
 import { ClassSearchPage } from "./classification/ClassSearch";
 import { BaselinesPage } from "./structure/Baselines";
 import { InboxPage } from "./workflow/Inbox";
@@ -62,6 +63,8 @@ export function AppRoutes() {
         <Route path="audit" element={<AuditReportPage />} />
         <Route path="structure-compare" element={<StructureComparePage />} />
         <Route path="inbox" element={<InboxPage />} />
+        <Route path="workspaces" element={<WorkspacesPage />} />
+        <Route path="workspaces/:id" element={<WorkspacesPage />} />
         <Route path="changes" element={<ChangesPage />} />
         <Route path="classes" element={<ClassSearchPage />} />
         <Route path="promotions" element={<PromotionsPage />} />
