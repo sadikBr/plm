@@ -7,6 +7,7 @@ import {
   Download,
   FilePlus2,
   HardDrive,
+  Laptop,
   History,
   Lock,
   LockOpen,
@@ -22,6 +23,7 @@ import {
 import { useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { api, unwrap, type Schemas } from "../api/client";
+import { config } from "../config";
 import { useContextsOfKind, useObjectSearch, useTypes } from "../api/queries";
 import { useClipboard } from "../components/Clipboard";
 import {
@@ -232,6 +234,7 @@ function WorkspaceView({ id }: { id: string }) {
   const [adding, setAdding] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [failure, setFailure] = useState<unknown>(null);
   const newFileInput = useRef<HTMLInputElement>(null);
@@ -353,6 +356,9 @@ function WorkspaceView({ id }: { id: string }) {
                 >
                   <Download size={14} aria-hidden /> {t("Download all as a zip")}
                 </a>
+                <button role="menuitem" onClick={() => (setSyncing(true), close())}>
+                  <Laptop size={14} aria-hidden /> {t("Sync with your computer…")}
+                </button>
                 <button role="menuitem" onClick={() => (setEditing(true), close())}>
                   {t("Workspace settings")}
                 </button>
@@ -538,7 +544,56 @@ function WorkspaceView({ id }: { id: string }) {
         />
       )}
       {editing && <WorkspaceDialog ws={workspace} onClose={() => setEditing(false)} />}
+      {syncing && <SyncDialog name={workspace.name} onClose={() => setSyncing(false)} />}
     </div>
+  );
+}
+
+/** How to keep a folder in sync with this workspace, with the desktop client (roadmap 8.3). */
+function SyncDialog({ name, onClose }: { name: string; onClose: () => void }) {
+  const server = config.apiBase || window.location.origin;
+  const quoted = /\s/.test(name) ? `"${name}"` : name;
+  const folder =
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "workspace";
+  return (
+    <Dialog
+      open
+      title={t("Sync with your computer")}
+      onClose={onClose}
+      footer={
+        <button className="btn primary" onClick={onClose}>
+          {t("Done")}
+        </button>
+      }
+    >
+      <ol className="sync-steps">
+        <li>
+          <span>
+            {t("Make an access token in")} <Link to="/preferences">{t("My preferences")}</Link>.
+          </span>
+        </li>
+        <li>
+          {t("Install the client (Node 22 or newer) and sign in:")}
+          <code>npm install -g ./clients/plm-sync</code>
+          <code>plm-sync login --server {server} --token plm_…</code>
+        </li>
+        <li>
+          {t("Sync this workspace into a folder:")}
+          <code>
+            plm-sync init {quoted} ~/PLM/{folder}
+          </code>
+        </li>
+        <li>
+          {t("Then work in the folder:")}
+          <code>plm-sync watch</code>
+          <span className="muted small">{t("sends your changes as you save and brings new versions down; check in with")}</span>
+          <code>plm-sync checkin -m "…"</code>
+        </li>
+      </ol>
+    </Dialog>
   );
 }
 

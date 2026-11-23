@@ -1,4 +1,5 @@
 import { StandInPanel } from "../workflow/StandIn";
+import { AccessTokensPanel } from "../personal/AccessTokens";
 import { Lock, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
@@ -213,6 +214,7 @@ export function MyPreferencesPage() {
       <div className="content">
         <ErrorBanner error={error} />
         <StandInPanel />
+        <AccessTokensPanel />
         {isLoading ? <Loading /> : <PreferenceTable prefs={data ?? []} />}
       </div>
     </>

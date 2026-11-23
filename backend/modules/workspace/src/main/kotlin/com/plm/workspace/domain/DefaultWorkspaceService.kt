@@ -52,6 +52,9 @@ import java.util.zip.ZipOutputStream
 
 private const val MAX_ITEMS = 2000
 
+/** What "update" brings down when nothing is chosen. */
+private val NEEDS_UPDATE = setOf(FileState.OUT_OF_DATE, FileState.CONFLICT)
+
 private data class Row(
     val objectId: UUID,
     val baseIteration: UUID?,
@@ -254,7 +257,7 @@ internal class DefaultWorkspaceService(
     ): List<Download> {
         find(actor, id)
         return items(actor, id)
-            .filter { if (ids.isEmpty()) it.fileState == FileState.OUT_OF_DATE else it.objectId in ids }
+            .filter { if (ids.isEmpty()) it.fileState in NEEDS_UPDATE else it.objectId in ids }
             .mapNotNull { item ->
                 val obj = versioning.get(actor, MasterId(item.objectId))
                 val mine = obj.checkedOutBy == actor.principal.value

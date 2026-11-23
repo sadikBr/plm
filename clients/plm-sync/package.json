@@ -1,0 +1,10 @@
+{
+  "name": "plm-sync",
+  "version": "1.0.0",
+  "description": "Keeps a PLM workspace in sync with a folder on your computer.",
+  "type": "module",
+  "bin": { "plm-sync": "bin/plm-sync.mjs" },
+  "engines": { "node": ">=22" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "license": "Apache-2.0"
+}

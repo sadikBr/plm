@@ -209,7 +209,7 @@ interface WorkspaceService {
         report: ReportLocal,
     ): WorkspaceDetail
 
-    /** Links to bring the chosen items (default: all out of date or missing) up to date. */
+    /** Links to bring the chosen items (default: those out of date or in conflict) up to date. */
     fun downloads(
         actor: Actor,
         id: UUID,

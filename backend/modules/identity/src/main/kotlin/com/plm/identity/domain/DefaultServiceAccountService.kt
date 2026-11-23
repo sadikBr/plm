@@ -43,11 +43,30 @@ private val USE_RECORDING: Duration = Duration.ofMinutes(1)
 @Transactional
 internal class DefaultServiceAccountService(
     private val accounts: ServiceAccountRepository,
+    private val principals: com.plm.identity.infra.PrincipalRepository,
     private val events: DomainEvents,
     private val clock: Clock,
 ) : ServiceAccountService,
     TokenAuthenticator {
     private val random = SecureRandom()
+
+    /** A personal token (roadmap 8.3): see [DefaultPersonalTokenService]. */
+    internal fun mintPersonal(
+        actor: Actor,
+        name: String,
+        scopes: List<String>,
+        expiresIn: Duration?,
+    ): IssuedToken =
+        newToken(
+            actor.tenant,
+            actor.principal,
+            TokenKind.PERSONAL,
+            name,
+            scopes,
+            null,
+            expiresIn,
+            actor.principal.value,
+        )
 
     @Transactional(readOnly = true)
     override fun list(actor: Actor): List<ServiceAccount> {
@@ -211,6 +230,18 @@ internal class DefaultServiceAccountService(
         val now = clock.instant()
         if (t.revokedAt != null || t.kind == TokenKind.CLIENT_SECRET) return null
         if (t.expiresAt != null && !t.expiresAt.isAfter(now)) return null
+        if (t.kind == TokenKind.PERSONAL) {
+            val person = principals.find(stored.tenant, t.principalId) ?: return null
+            if (t.lastUsedAt == null || t.lastUsedAt.plus(USE_RECORDING).isBefore(now)) accounts.used(t.id, now)
+            return TokenAuthentication(
+                tenant = stored.tenant,
+                principal = t.principalId,
+                siteAdmin = person.siteAdmin && TokenScopes.ADMIN in t.scopes,
+                scopes = t.scopes.toSet(),
+                kind = t.kind,
+                extensionId = null,
+            )
+        }
         val account = if (t.kind == TokenKind.DELEGATED) null else accounts.account(stored.tenant, t.principalId)
         if (t.kind != TokenKind.DELEGATED && account?.active != true) return null
         if (t.lastUsedAt == null || t.lastUsedAt.plus(USE_RECORDING).isBefore(now)) accounts.used(t.id, now)

@@ -209,4 +209,37 @@ class WorkspaceApiIT : ApiTest() {
         val list = get("/api/v1/workspaces").list
         assertThat((list.first { it["id"] == w }["counts"] as Map<*, *>).keys).contains("IN_SYNC")
     }
+
+    @Test
+    fun `a personal token acts as its owner, within its scopes, until revoked`() {
+        val issued = post("/api/v1/me/tokens", mapOf("name" to "Laptop sync", "scopes" to listOf("read")))
+        assertThat(issued.status).withFailMessage(issued.raw).isEqualTo(201)
+        val secret = issued.body["secret"] as String
+        val id = issued.nested("token")["id"]
+        assertThat(secret).startsWith("plm_")
+        val me = call(org.springframework.http.HttpMethod.GET, "/api/v1/workspaces", as_ = null, token = secret)
+        assertThat(me.status).isEqualTo(200)
+        // Read only: no writing.
+        val write =
+            call(
+                org.springframework.http.HttpMethod.POST,
+                "/api/v1/workspaces",
+                as_ = null,
+                body = mapOf("name" to "Nope $s", "contextId" to product),
+                token = secret,
+            )
+        assertThat(write.status).isEqualTo(403)
+        // Only for people, scopes they may have, listed for them alone.
+        val adminScope = post("/api/v1/me/tokens", mapOf("name" to "x", "scopes" to listOf("admin")), TestTokens.bob)
+        assertThat(adminScope.body["code"]).isEqualTo("INVALID_SCOPES")
+        assertThat(get("/api/v1/me/tokens").list.map { it["name"] }).contains("Laptop sync")
+        assertThat(get("/api/v1/me/tokens", TestTokens.bob).list.map { it["name"] }).doesNotContain("Laptop sync")
+        assertThat(
+            call(org.springframework.http.HttpMethod.DELETE, "/api/v1/me/tokens/$id", TestTokens.bob).status,
+        ).isEqualTo(404)
+        assertThat(call(org.springframework.http.HttpMethod.DELETE, "/api/v1/me/tokens/$id").status).isEqualTo(204)
+        assertThat(
+            call(org.springframework.http.HttpMethod.GET, "/api/v1/workspaces", as_ = null, token = secret).status,
+        ).isEqualTo(401)
+    }
 }

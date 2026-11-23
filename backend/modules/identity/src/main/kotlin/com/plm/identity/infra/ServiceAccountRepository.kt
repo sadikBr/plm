@@ -206,7 +206,7 @@ internal class ServiceAccountRepository(
         jdbc
             .sql(
                 """
-                select * from api_token where tenant_id = :tenant and principal_id = :p and kind in ('API_TOKEN', 'CLIENT_SECRET')
+                select * from api_token where tenant_id = :tenant and principal_id = :p and kind in ('API_TOKEN', 'CLIENT_SECRET', 'PERSONAL')
                 order by created_at desc
                 """.trimIndent(),
             ).param("tenant", tenant.value)

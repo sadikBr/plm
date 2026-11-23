@@ -701,11 +701,17 @@ system keeps track: what they took, what they changed, what is out of date.
       (Done: Workspaces in the rail; state chips with counts as filters; add from search or the
       clipboard (CAD models with what they depend on); upload a changed file per row; new files
       made into documents with a type and name; the history on demand.)
-- [ ] 8.3 Desktop sync client: `plm-sync`, a command-line client (Node, no install beyond npm)
+- [x] 8.3 Desktop sync client: `plm-sync`, a command-line client (Node, no install beyond npm)
       that signs in with a personal access token and mirrors a workspace to a folder: `pull`
       (bring files up to date), `status` (what changed locally), `push` (upload changes, new files
       become new documents), `checkin`, `watch` (keep in sync). Personal access tokens in "My
       preferences".
+      (Done: `clients/plm-sync`, no dependencies; a folder's `.plm-sync.json` records each file's
+      object, iteration and hash, so changes here and in the system are told apart; a change here
+      meeting a newer version there is kept, the newer one saved beside it; push goes on past a
+      file that can't be sent. Personal access tokens (`PERSONAL`, read / write, admin only for
+      administrators) made and revoked in My preferences; a "Sync with your computer" guide on each
+      workspace. Its round trip is tested against a running server.)
 - [ ] 8.4 Office integration: properties of Word, Excel and PowerPoint files (title, subject,
       author, keywords and custom properties) read into attributes on upload and written back
       into the file on download, mapped per type in Admin; previews and PDF publishing of Office

@@ -34,6 +34,9 @@ enum class TokenKind {
 
     /** A short-lived token acting as a user, handed to an extension's service in a webhook call. */
     DELEGATED,
+
+    /** A person's own token for their desktop tools (roadmap 8.3): it acts as them, within its scopes. */
+    PERSONAL,
 }
 
 data class ServiceAccount(
@@ -153,6 +156,29 @@ interface ServiceAccountService {
 }
 
 /** Checks tokens for the web layer, and issues the short-lived ones. */
+
+/**
+ * A person's own access tokens (roadmap 8.3), for the desktop sync client and scripts: each acts
+ * as them, with their access rules, within its scopes (`read`, `write`; `admin` only for site
+ * administrators). Only their owner sees or revokes them; the secret is shown once.
+ * Errors: `INVALID_TOKEN_NAME`, `INVALID_SCOPES`, `TOKEN_NOT_FOUND`, `NOT_A_PERSON`.
+ */
+interface PersonalTokenService {
+    fun list(actor: Actor): List<ApiToken>
+
+    fun issue(
+        actor: Actor,
+        name: String,
+        scopes: List<String>,
+        expiresIn: Duration?,
+    ): IssuedToken
+
+    fun revoke(
+        actor: Actor,
+        tokenId: UUID,
+    )
+}
+
 interface TokenAuthenticator {
     /** Null when the token is unknown, revoked, expired, or its account is inactive. */
     fun authenticate(token: String): TokenAuthentication?

@@ -507,7 +507,7 @@
             "type" : "string"
           },
           "kind" : {
-            "enum" : [ "API_TOKEN", "CLIENT_SECRET", "ACCESS", "DELEGATED" ],
+            "enum" : [ "API_TOKEN", "CLIENT_SECRET", "ACCESS", "DELEGATED", "PERSONAL" ],
             "type" : "string"
           },
           "lastUsedAt" : {
@@ -4559,6 +4559,25 @@
         },
         "type" : "object"
       },
+      "IssuePersonalToken" : {
+        "properties" : {
+          "expiresInDays" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "scopes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "name", "scopes" ],
+        "type" : "object"
+      },
       "IssueTokenRequest" : {
         "properties" : {
           "expiresInDays" : {
@@ -4566,7 +4585,7 @@
             "type" : [ "integer", "null" ]
           },
           "kind" : {
-            "enum" : [ "API_TOKEN", "CLIENT_SECRET", "ACCESS", "DELEGATED" ],
+            "enum" : [ "API_TOKEN", "CLIENT_SECRET", "ACCESS", "DELEGATED", "PERSONAL" ],
             "type" : [ "string", "null" ]
           },
           "name" : {
@@ -18686,6 +18705,103 @@
         "tags" : [ "Personal" ]
       }
     },
+    "/api/v1/me/tokens" : {
+      "get" : {
+        "operationId" : "personalTokenList",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ApiTokenResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Personal token" ]
+      },
+      "post" : {
+        "operationId" : "personalTokenIssue",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/IssuePersonalToken"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IssuedTokenResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Personal token" ]
+      }
+    },
+    "/api/v1/me/tokens/{id}" : {
+      "delete" : {
+        "operationId" : "personalTokenRevoke",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Personal token" ]
+      }
+    },
     "/api/v1/numbering-schemes" : {
       "get" : {
         "operationId" : "typeRuleSchemes",
@@ -30479,6 +30595,8 @@
     "name" : "Organizing"
   }, {
     "name" : "Personal"
+  }, {
+    "name" : "Personal token"
   }, {
     "name" : "Pmi"
   }, {

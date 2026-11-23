@@ -6825,3 +6825,62 @@ textarea {
     flex-wrap: wrap;
   }
 }
+
+/* Access tokens and the sync client (roadmap 8.3). */
+.token-secret {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 12px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--ok) 40%, var(--border));
+  border-radius: 10px;
+  background: var(--ok-soft);
+}
+.token-secret .grow {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.token-secret code,
+.sync-steps code {
+  display: block;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+.token-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+.token-form input:not([type]) {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.sync-steps {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 12px;
+}
+.sync-steps li {
+  display: grid;
+  gap: 6px;
+}
+.token-form select,
+.token-form .btn {
+  width: auto;
+  flex: 0 0 auto;
+}
+.token-form .check {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}

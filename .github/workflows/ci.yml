@@ -54,6 +54,9 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      # Desktop clients (roadmap 8): their unit tests (no server needed).
+      - run: npm test
+        working-directory: clients/plm-sync
 
   dev-stack:
     name: Validate dev stack
