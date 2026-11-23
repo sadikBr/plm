@@ -770,9 +770,14 @@ ERP, its legal and security rules, more than one site, and safe upgrades.
       People exist before their first sign-in and are re-keyed to their real subject when they
       sign in; deactivation takes them off every team. Each group is a read-only shared team with
       a role chosen in Administration → Directory.
-- [ ] 9.2 Bulk load: load objects of any type (with attributes, folders, files from a zip,
+- [x] 9.2 Bulk load: load objects of any type (with attributes, folders, files from a zip,
       structure and document links) from a spreadsheet, with validation, a dry run that shows
       what would happen, and the load itself as a background job with a per-row result.
+      Done: Import → From a spreadsheet on a product (`/api/v1/bulk-loads`, preview and job):
+      Type/Number/Name/Folder/File/Parent/Quantity/Find number/Documents/State columns, every
+      other column an attribute by name or label (values converted, then validated like a form);
+      an existing number updates its object; a template per type. The CSV/Excel reader moved to
+      the platform (`Tables`), shared with the structure import.
 - [ ] 9.3 Migration from other PLM systems: an import format (a zip with a JSON manifest) that
       keeps each object's history (versions, iterations, dates, who), states, files and links,
       with type, attribute, state and user mappings, a dry run and a resumable job; numbers and

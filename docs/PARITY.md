@@ -267,7 +267,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 | Complete REST API (everything the UI does) with OpenAPI | ✅ | Contract committed and tested |
 | Webhooks and event subscriptions | ✅ | Filters, signing, retries with backoff, dead letters [2.6] |
 | Service accounts and OAuth client credentials for integrations | ✅ | Scoped API tokens [2.7] |
-| Bulk load from spreadsheets / files with validation and a dry run | ⬜ [9] | |
+| Bulk load from spreadsheets / files with validation and a dry run | ✅ | Excel or CSV plus a zip of files: attributes, folders, files, structure, document links, states; row-by-row dry run; a background job with a result per row |
 | Migration from other PLM systems | ⬜ [9] | |
 | Import/export of object sets between sites or companies (packages, deliveries) | ⬜ [9] | |
 | ERP integration: release distribution targets, plant-specific data, acknowledgement | ⬜ [9] | Event-driven connectors |

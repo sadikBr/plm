@@ -5541,6 +5541,131 @@
         "required" : [ "kind", "part" ],
         "type" : "object"
       },
+      "LoadColumn" : {
+        "properties" : {
+          "attribute" : {
+            "type" : [ "string", "null" ]
+          },
+          "header" : {
+            "type" : "string"
+          },
+          "meaning" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "header", "meaning" ],
+        "type" : "object"
+      },
+      "LoadPreview" : {
+        "properties" : {
+          "columns" : {
+            "items" : {
+              "$ref" : "#/components/schemas/LoadColumn"
+            },
+            "type" : "array"
+          },
+          "contextId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "contextName" : {
+            "type" : "string"
+          },
+          "creates" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "errors" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "files" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "links" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "newFolders" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/LoadRow"
+            },
+            "type" : "array"
+          },
+          "updates" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "usages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "columns", "contextId", "contextName", "creates", "errors", "fileName", "files", "links", "newFolders", "rows", "updates", "usages" ],
+        "type" : "object"
+      },
+      "LoadRow" : {
+        "properties" : {
+          "action" : {
+            "enum" : [ "CREATE", "UPDATE", "UNCHANGED", "ERROR" ],
+            "type" : "string"
+          },
+          "attributes" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          },
+          "errors" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "file" : {
+            "type" : [ "string", "null" ]
+          },
+          "folder" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "number" : {
+            "type" : [ "string", "null" ]
+          },
+          "objectId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "parent" : {
+            "type" : [ "string", "null" ]
+          },
+          "row" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "type" : {
+            "type" : [ "string", "null" ]
+          },
+          "warnings" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "action", "attributes", "errors", "row", "warnings" ],
+        "type" : "object"
+      },
       "LocalFile" : {
         "properties" : {
           "iterationId" : {
@@ -12727,6 +12852,158 @@
           }
         },
         "tags" : [ "Bulk" ]
+      }
+    },
+    "/api/v1/bulk-loads" : {
+      "post" : {
+        "operationId" : "bulkLoadStart",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "properties" : {
+                  "files" : {
+                    "format" : "binary",
+                    "type" : "string"
+                  },
+                  "sheet" : {
+                    "format" : "binary",
+                    "type" : "string"
+                  }
+                },
+                "required" : [ "sheet" ],
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Job"
+                }
+              }
+            },
+            "description" : "Accepted"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Bulk load" ]
+      }
+    },
+    "/api/v1/bulk-loads/preview" : {
+      "post" : {
+        "operationId" : "bulkLoadPreview",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "contextId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "properties" : {
+                  "files" : {
+                    "format" : "binary",
+                    "type" : "string"
+                  },
+                  "sheet" : {
+                    "format" : "binary",
+                    "type" : "string"
+                  }
+                },
+                "required" : [ "sheet" ],
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoadPreview"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Bulk load" ]
+      }
+    },
+    "/api/v1/bulk-loads/template" : {
+      "get" : {
+        "operationId" : "bulkLoadTemplate",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "typeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "text/csv" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Bulk load" ]
       }
     },
     "/api/v1/cad/collector" : {
@@ -32372,6 +32649,8 @@
     "name" : "Bom"
   }, {
     "name" : "Bulk"
+  }, {
+    "name" : "Bulk load"
   }, {
     "name" : "Cad"
   }, {

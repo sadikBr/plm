@@ -6,8 +6,9 @@ dependencies {
     implementation(project(":backend:modules:access"))
     implementation(project(":backend:modules:versioning"))
     implementation(project(":backend:modules:jobs"))
+    implementation(project(":backend:modules:types"))
+    implementation(project(":backend:modules:content"))
+    implementation(project(":backend:modules:bom"))
 
     implementation(libs.jackson.kotlin)
-
-    testImplementation(project(":backend:modules:types"))
 }
