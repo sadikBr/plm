@@ -3,6 +3,7 @@ import { MigrationAdmin } from "./MigrationAdmin";
 import { DistributionAdmin } from "../integration/Distribution";
 import { SecurityAdmin } from "../security/Security";
 import { RetentionAdmin } from "../retention/Retention";
+import { AuditAdmin } from "../audit/AuditAdmin";
 import { OfficeAdmin } from "./OfficeAdmin";
 import { DocumentLinkRulesAdmin } from "../structure/DocumentLinks";
 import {
@@ -103,6 +104,7 @@ type Section =
   | "distribution"
   | "security"
   | "retention"
+  | "audit"
   | "profiles"
   | "jobs"
   | "extensions"
@@ -139,6 +141,7 @@ const GROUPS = (): [string, Entry[]][] => [
       ["site-admins", t("Site administrators"), t("Who administers the site"), <ShieldCheck key="i" size={15} />],
       ["roles", t("Team roles"), t("Roles people hold on teams"), <UserCog key="i" size={15} />],
       ["teams", t("Shared teams"), t("Teams reused across products"), <Users key="i" size={15} />],
+      ["audit", t("Audit"), t("Which events are recorded, and for how long"), <ScrollText key="i" size={15} />],
       ["retention", t("Retention and legal hold"), t("Purge old iterations, archive, freeze for litigation"), <Gavel key="i" size={15} />],
       ["security", t("Security labels"), t("Export control and other labels, clearances, agreements"), <Lock key="i" size={15} />],
       ["directory", t("Directory"), t("People and groups from the identity provider"), <Network key="i" size={15} />],
@@ -245,6 +248,7 @@ export function AdminPage() {
             {tab === "distribution" && <DistributionAdmin />}
             {tab === "security" && <SecurityAdmin />}
             {tab === "retention" && <RetentionAdmin />}
+            {tab === "audit" && <AuditAdmin />}
             {tab === "profiles" && <ProfilesAdmin />}
             {tab === "jobs" && <JobsAdmin />}
             {tab === "extensions" && <ExtensionsAdmin />}

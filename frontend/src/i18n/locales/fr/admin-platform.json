@@ -747,5 +747,21 @@
   "restored": "restauré",
   "years": "ans",
   "{n} year": "{n} an",
-  "{n} years": "{n} ans"
+  "{n} years": "{n} ans",
+  "Audited": "Audité",
+  "Entries": "Entrées",
+  "Event kinds": "Types d'événements",
+  "Everything, until you leave some kinds out": "Tout, tant que vous n'excluez rien",
+  "How long entries are kept": "Durée de conservation des entrées",
+  "Kept for ever.": "Conservées indéfiniment.",
+  "Kind of event": "Type d'événement",
+  "Older entries are purged every night; each purge is itself on record": "Les entrées plus anciennes sont purgées chaque nuit ; chaque purge est elle-même consignée",
+  "Purge entries older than": "Purger les entrées de plus de",
+  "Purge now": "Purger maintenant",
+  "What is audited": "Ce qui est audité",
+  "Which events are recorded, and for how long": "Quels événements sont consignés, et combien de temps",
+  "recorded": "consigné",
+  "{n} entries purged": "{n} entrées purgées",
+  "Audit": "Audit",
+  "always": "toujours"
 }

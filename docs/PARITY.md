@@ -44,7 +44,7 @@ search summaries; those are marked *(to confirm)*. The list is about **what** us
 | **Preferences** with levels (site → organization → context → user) and locking at a level | ✅ | Declared by modules; Preferences tab on each context and My preferences |
 | Folders (cabinets) inside contexts, folder-level defaults | 🟡 | Folders with paths, move between folders and contexts ✅ [3.4] · folder-level defaults [later] |
 | Security labels (e.g. export control, proprietary) with clearance, and agreements that grant temporary access | ✅ | Ordered label values on objects, clearances, agreements over objects or contexts; in every access check and SQL list filter; blocked people told why |
-| Audit trail of every change; configurable audit events and reports | 🟡 | Append-only log ✅ · audit report by period, person, kind and context with Excel export ✅ [3.10] · choosing which events are audited [9] |
+| Audit trail of every change; configurable audit events and reports | ✅ | Append-only log ✅ · audit report by period, person, kind and context with Excel export ✅ [3.10] · which kinds are recorded and for how long, per site ✅ [9.9] |
 | Domain events for integrations | ✅ | Transactional outbox → Kafka |
 | Localization of the UI and of admin-defined labels | ✅ | Every screen in English, French and German, a language per user ✅ [3.12] · server-written messages still in English |
 | Multi-tenancy (SaaS) and single-tenant installs | 🟡 | `tenant_id` everywhere ✅ · tenant admin [9] |

@@ -1043,6 +1043,35 @@
         "required" : [ "labels" ],
         "type" : "object"
       },
+      "AuditConfig" : {
+        "properties" : {
+          "alwaysAudited" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "excluded" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "retentionDays" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "updatedBy" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "alwaysAudited", "excluded" ],
+        "type" : "object"
+      },
       "AuditCount" : {
         "properties" : {
           "count" : {
@@ -1089,6 +1118,25 @@
           }
         },
         "required" : [ "action", "actor", "aggregateId", "aggregateType", "details", "eventId", "occurredAt", "seq" ],
+        "type" : "object"
+      },
+      "AuditEventKind" : {
+        "properties" : {
+          "alwaysAudited" : {
+            "type" : "boolean"
+          },
+          "entries" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "excluded" : {
+            "type" : "boolean"
+          },
+          "kind" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "alwaysAudited", "entries", "excluded", "kind" ],
         "type" : "object"
       },
       "AuditReport" : {
@@ -9903,6 +9951,22 @@
         "required" : [ "changeTypeId", "role", "targetTypeId" ],
         "type" : "object"
       },
+      "SaveAuditConfig" : {
+        "properties" : {
+          "excluded" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "retentionDays" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "required" : [ "excluded" ],
+        "type" : "object"
+      },
       "SaveChangeTemplate" : {
         "properties" : {
           "active" : {
@@ -13660,6 +13724,133 @@
           }
         },
         "tags" : [ "Audit" ]
+      }
+    },
+    "/api/v1/audit/config" : {
+      "get" : {
+        "operationId" : "auditConfigGet",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuditConfig"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Audit config" ]
+      },
+      "put" : {
+        "operationId" : "auditConfigUpdate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveAuditConfig"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuditConfig"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Audit config" ]
+      }
+    },
+    "/api/v1/audit/kinds" : {
+      "get" : {
+        "operationId" : "auditConfigKinds",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/AuditEventKind"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Audit config" ]
+      }
+    },
+    "/api/v1/audit/purge" : {
+      "post" : {
+        "operationId" : "auditConfigPurge",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "additionalProperties" : {
+                    "format" : "int64",
+                    "type" : "integer"
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error (RFC 9457 problem details)"
+          }
+        },
+        "tags" : [ "Audit config" ]
       }
     },
     "/api/v1/audit/report" : {
@@ -36452,6 +36643,8 @@
     "name" : "Attribute"
   }, {
     "name" : "Audit"
+  }, {
+    "name" : "Audit config"
   }, {
     "name" : "Automation"
   }, {

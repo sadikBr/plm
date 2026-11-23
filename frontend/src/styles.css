@@ -7284,3 +7284,11 @@ ol.steps {
   align-items: center;
   gap: 6px;
 }
+.audit-retention {
+  align-items: center;
+  gap: 8px;
+}
+.audit-retention input[type="number"] {
+  width: 80px;
+  flex: 0 0 80px;
+}

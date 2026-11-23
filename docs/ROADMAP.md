@@ -836,7 +836,11 @@ ERP, its legal and security rules, more than one site, and safe upgrades.
       transaction). Archives (`plm-archive/1`) hold every iteration with files, structure and
       links, and restore exactly. Holds on objects or contexts refuse delete, purge and archive (an
       operation guard). Dry run, then a job with a report per object.
-- [ ] 9.9 Audit configuration: which kinds of events are audited, per site; audit retention.
+- [x] 9.9 Audit configuration: which kinds of events are audited, per site; audit retention.
+      Done: Administration → Audit: event kinds with their counts, each recorded or left out
+      (access, identity and audit always recorded); retention in years, purged nightly and on
+      demand through a narrow opening in the append-only trigger; purges and configuration
+      changes are themselves audited.
 - [ ] 9.10 File sites: file servers (vault replicas) near remote sites, each person's preferred
       site, replication of new content as jobs, downloads served from the nearest copy; resumable
       multipart uploads for large files.

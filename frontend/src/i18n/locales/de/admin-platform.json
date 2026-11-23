@@ -747,5 +747,21 @@
   "restored": "wiederhergestellt",
   "years": "Jahre",
   "{n} year": "{n} Jahr",
-  "{n} years": "{n} Jahre"
+  "{n} years": "{n} Jahre",
+  "Audited": "Protokolliert",
+  "Entries": "Einträge",
+  "Event kinds": "Ereignisarten",
+  "Everything, until you leave some kinds out": "Alles, bis Sie Arten ausschließen",
+  "How long entries are kept": "Wie lange Einträge aufbewahrt werden",
+  "Kept for ever.": "Unbegrenzt aufbewahrt.",
+  "Kind of event": "Ereignisart",
+  "Older entries are purged every night; each purge is itself on record": "Ältere Einträge werden jede Nacht gelöscht; jede Löschung wird selbst protokolliert",
+  "Purge entries older than": "Einträge löschen, die älter sind als",
+  "Purge now": "Jetzt löschen",
+  "What is audited": "Was protokolliert wird",
+  "Which events are recorded, and for how long": "Welche Ereignisse wie lange protokolliert werden",
+  "recorded": "protokolliert",
+  "{n} entries purged": "{n} Einträge gelöscht",
+  "Audit": "Audit",
+  "always": "immer"
 }

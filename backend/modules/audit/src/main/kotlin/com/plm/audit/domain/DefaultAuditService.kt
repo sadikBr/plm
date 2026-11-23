@@ -24,6 +24,7 @@ private const val MAX_LIMIT = 500
 internal class DefaultAuditService(
     private val audit: AuditRepository,
     private val access: AccessService,
+    private val config: DefaultAuditConfigService,
 ) : AuditService {
     /**
      * Runs synchronously inside the transaction that published the event. If the audit row cannot
@@ -32,7 +33,8 @@ internal class DefaultAuditService(
     @EventListener
     @Transactional(propagation = Propagation.MANDATORY)
     fun record(event: EventEnvelope) {
-        audit.insert(event)
+        // Kinds the site left out (roadmap 9.9) aren't written.
+        if (config.audited(event.tenantId, event.eventType)) audit.insert(event)
     }
 
     @Transactional(readOnly = true)
