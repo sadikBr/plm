@@ -49,6 +49,31 @@ internal class ContentController(
         body: InputStream,
     ) = vault.receive(id, exp, sig, body)
 
+    /** A part of a resumable upload (roadmap 9.10): `{n}` from 1; a part may be sent again. */
+    @PutMapping("/api/v1/vault/uploads/{id}/parts/{n}", consumes = [MediaType.ALL_VALUE])
+    fun part(
+        @PathVariable id: UUID,
+        @PathVariable n: Int,
+        @RequestParam exp: String,
+        @RequestParam sig: String,
+        body: InputStream,
+    ) = vault.receivePart(id, n, exp, sig, body)
+
+    /** Which parts have arrived: resend the others. */
+    @GetMapping("/api/v1/vault/uploads/{id}/parts")
+    fun parts(
+        @PathVariable id: UUID,
+        @RequestParam exp: String,
+        @RequestParam sig: String,
+    ) = vault.parts(id, exp, sig)
+
+    @PostMapping("/api/v1/vault/uploads/{id}/complete")
+    fun complete(
+        @PathVariable id: UUID,
+        @RequestParam exp: String,
+        @RequestParam sig: String,
+    ) = vault.complete(id, exp, sig)
+
     /** A signed file link (from download or thumbnail): the file itself. */
     @GetMapping("/api/v1/vault/files")
     fun file(
@@ -58,8 +83,9 @@ internal class ContentController(
         @RequestParam d: String,
         @RequestParam exp: String,
         @RequestParam sig: String,
+        @RequestParam(required = false) s: String?,
     ): ResponseEntity<InputStreamResource> {
-        val (stream, size) = vault.serve(k, n, t, d, exp, sig)
+        val (stream, size) = vault.serve(k, n, t, d, exp, sig, s)
         val disposition =
             (if (d == "inline") ContentDisposition.inline() else ContentDisposition.attachment())
                 .filename(n, Charsets.UTF_8)

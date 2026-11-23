@@ -9,6 +9,7 @@ import com.plm.content.api.FileLink
 import com.plm.content.api.PreviewPage
 import com.plm.content.api.RequestUpload
 import com.plm.content.api.ThumbnailStatus
+import com.plm.content.api.UploadPart
 import com.plm.content.api.UploadTicket
 import com.plm.content.infra.Blob
 import com.plm.content.infra.ContentRepository
@@ -46,6 +47,9 @@ import java.util.HexFormat
 import java.util.UUID
 import javax.imageio.ImageIO
 
+/** The size of each part of a resumable upload but the last (roadmap 9.10). */
+internal const val PART_SIZE = 8L * 1024 * 1024
+
 /** File types we make thumbnails of. */
 internal val THUMBNAILABLE = setOf("image/png", "image/jpeg", "image/gif", "image/bmp", "application/pdf")
 
@@ -53,6 +57,7 @@ internal val THUMBNAILABLE = setOf("image/png", "image/jpeg", "image/gif", "imag
 internal class DefaultContentService(
     private val content: ContentRepository,
     private val store: BlobStore,
+    private val sites: FileSites,
     private val jdbc: org.springframework.jdbc.core.simple.JdbcClient,
     private val signer: Signer,
     private val versioning: VersioningService,
@@ -84,11 +89,16 @@ internal class DefaultContentService(
             now,
         )
         val exp = expires.epochSecond.toString()
+        val q = "exp=$exp&sig=${signer.sign("upload", id.toString(), exp)}"
         return UploadTicket(
             id,
-            "/api/v1/vault/uploads/$id?exp=$exp&sig=${signer.sign("upload", id.toString(), exp)}",
+            "/api/v1/vault/uploads/$id?$q",
             expires,
             maxBytes,
+            partsUrl = "/api/v1/vault/uploads/$id/parts/{n}?$q",
+            listUrl = "/api/v1/vault/uploads/$id/parts?$q",
+            completeUrl = "/api/v1/vault/uploads/$id/complete?$q",
+            partSize = PART_SIZE,
         )
     }
 
@@ -109,6 +119,107 @@ internal class DefaultContentService(
         }
         val upload = content.upload(uploadId) ?: throw NotFoundException("UPLOAD_NOT_FOUND", "There's no such upload")
         if (upload.blobKey != null) throw ConflictException("UPLOAD_ALREADY_RECEIVED", "This upload was already sent")
+        return ingest(upload, body)
+    }
+
+    private fun checkUpload(
+        uploadId: UUID,
+        exp: String,
+        signature: String,
+    ): Upload {
+        if (!signer.valid(signature, "upload", uploadId.toString(), exp) ||
+            (exp.toLongOrNull() ?: 0) < clock.instant().epochSecond
+        ) {
+            throw ValidationException(
+                "UPLOAD_EXPIRED",
+                "This upload address is invalid or has expired: ask for a new one",
+            )
+        }
+        val upload = content.upload(uploadId) ?: throw NotFoundException("UPLOAD_NOT_FOUND", "There's no such upload")
+        if (upload.blobKey != null) throw ConflictException("UPLOAD_ALREADY_RECEIVED", "This upload was already sent")
+        return upload
+    }
+
+    /** One part of a resumable upload (roadmap 9.10); sending a part again replaces it. */
+    fun receivePart(
+        uploadId: UUID,
+        part: Int,
+        exp: String,
+        signature: String,
+        body: InputStream,
+    ): UploadPart {
+        val upload = checkUpload(uploadId, exp, signature)
+        if (part !in 1..10_000) throw ValidationException("INVALID_PART", "Parts are numbered 1 to 10000")
+        val temp = Files.createTempFile("plm-part-", ".bin")
+        try {
+            val digest = MessageDigest.getInstance("SHA-256")
+            var size = 0L
+            DigestInputStream(body, digest).use { input ->
+                Files.newOutputStream(temp).use { out ->
+                    size =
+                        input.copyTo(out)
+                }
+            }
+            if (size >
+                PART_SIZE * 2
+            ) {
+                throw ValidationException("INVALID_PART", "A part is at most ${PART_SIZE * 2} bytes")
+            }
+            val sha = HexFormat.of().formatHex(digest.digest())
+            store.put(partKey(upload, part), temp, "application/octet-stream")
+            tx.executeWithoutResult { content.putPart(uploadId, part, size, sha) }
+            return UploadPart(part, size, sha)
+        } finally {
+            Files.deleteIfExists(temp)
+        }
+    }
+
+    fun parts(
+        uploadId: UUID,
+        exp: String,
+        signature: String,
+    ): List<UploadPart> {
+        checkUpload(uploadId, exp, signature)
+        return content.parts(uploadId)
+    }
+
+    /** Joins the parts, in order, into the uploaded file. */
+    fun complete(
+        uploadId: UUID,
+        exp: String,
+        signature: String,
+    ): Map<String, Any?> {
+        val upload = checkUpload(uploadId, exp, signature)
+        val parts = content.parts(uploadId)
+        if (parts.isEmpty()) throw ValidationException("INVALID_PART", "No parts have arrived")
+        val gaps = (1..parts.maxOf { it.part }).filter { n -> parts.none { it.part == n } }
+        if (gaps.isNotEmpty()) {
+            throw ValidationException(
+                "PARTS_MISSING",
+                "Parts ${gaps.joinToString()} haven't arrived",
+                mapOf(
+                    "missing" to gaps,
+                ),
+            )
+        }
+        val streams = parts.sortedBy { it.part }.map { store.open(partKey(upload, it.part)) }
+        val result = java.io.SequenceInputStream(java.util.Collections.enumeration(streams)).use { ingest(upload, it) }
+        parts.forEach { runCatching { store.delete(partKey(upload, it.part)) } }
+        tx.executeWithoutResult { content.deleteParts(uploadId) }
+        return result
+    }
+
+    private fun partKey(
+        upload: Upload,
+        part: Int,
+    ) = "${upload.tenant.value}/parts/${upload.id}/$part"
+
+    /** Stores an upload's bytes as a blob (checked by size) and queues its copies to file sites. */
+    private fun ingest(
+        upload: Upload,
+        body: InputStream,
+    ): Map<String, Any?> {
+        val uploadId = upload.id
         val temp = Files.createTempFile("plm-upload-", ".bin")
         try {
             val digest = MessageDigest.getInstance("SHA-256")
@@ -149,6 +260,7 @@ internal class DefaultContentService(
                     clock.instant(),
                 )
                 content.received(uploadId, key)
+                replicate(upload.tenant.value, key)
             }
             return mapOf("uploadId" to uploadId, "size" to size, "sha256" to sha)
         } finally {
@@ -202,7 +314,7 @@ internal class DefaultContentService(
         inline: Boolean,
     ): FileLink {
         val s = readable(actor, contentId)
-        return link(s.blobKey, s.item.fileName, s.item.contentType, inline)
+        return link(s.blobKey, s.item.fileName, s.item.contentType, inline, siteFor(actor, s.blobKey))
     }
 
     @Transactional(readOnly = true)
@@ -420,17 +532,20 @@ internal class DefaultContentService(
         fileName: String,
         contentType: String,
         inline: Boolean,
+        site: SiteRow? = null,
     ): FileLink {
         val expires = clock.instant().plus(linkLifetime)
         val exp = expires.epochSecond.toString()
         val disposition = if (inline) "inline" else "attachment"
-        val sig = signer.sign("file", key, fileName, contentType, disposition, exp)
+        val siteId = site?.id?.toString() ?: ""
+        val sig = signer.sign("file", key, fileName, contentType, disposition, exp, siteId)
 
         fun q(v: String) = URLEncoder.encode(v, Charsets.UTF_8)
-        return FileLink(
-            "/api/v1/vault/files?k=${q(key)}&n=${q(fileName)}&t=${q(contentType)}&d=$disposition&exp=$exp&sig=$sig",
-            expires,
-        )
+        val path =
+            "/api/v1/vault/files?k=${q(key)}&n=${q(fileName)}&t=${q(contentType)}&d=$disposition&exp=$exp&sig=$sig" +
+                (if (site != null) "&s=$siteId" else "")
+        // From the site's own file server when it has one (roadmap 9.10).
+        return FileLink((site?.baseUrl?.trimEnd('/') ?: "") + path, expires)
     }
 
     /** Serves a signed file link: what to send and how. */
@@ -441,8 +556,9 @@ internal class DefaultContentService(
         disposition: String,
         exp: String,
         signature: String,
+        site: String? = null,
     ): Pair<InputStream, Long?> {
-        if (!signer.valid(signature, "file", key, fileName, contentType, disposition, exp) ||
+        if (!signer.valid(signature, "file", key, fileName, contentType, disposition, exp, site ?: "") ||
             (exp.toLongOrNull() ?: 0) < clock.instant().epochSecond
         ) {
             throw ValidationException(
@@ -451,7 +567,14 @@ internal class DefaultContentService(
             )
         }
         val size = content.blob(key)?.size
-        return store.open(key) to size
+        // A site's copy when the link names one and it has it; else the main vault.
+        val copy =
+            site
+                ?.let {
+                    runCatching { UUID.fromString(it) }.getOrNull()
+                }?.let { sites.site(it) }
+                ?.takeIf { sites.ready(key, it.id) }
+        return (copy?.let { runCatching { sites.store(it).open(key) }.getOrNull() } ?: store.open(key)) to size
     }
 
     // ---------- Changing (the actor's working copy) ----------
@@ -525,7 +648,32 @@ internal class DefaultContentService(
             actor.principal.value,
             clock.instant(),
         )
+        replicate(actor.tenant.value, key)
         return key
+    }
+
+    /** Queues copies of a new file to the file sites (roadmap 9.10). */
+    private fun replicate(
+        tenant: UUID,
+        key: String,
+    ) {
+        if (sites.hasActiveSites(tenant)) {
+            jobs.enqueueSystem(
+                ReplicationJob.system(tenant),
+                ReplicationJob.TYPE,
+                mapOf("blobKey" to key),
+                "Copy a file to the file sites",
+            )
+        }
+    }
+
+    /** The person's preferred file site, when it has the file. */
+    private fun siteFor(
+        actor: Actor,
+        key: String,
+    ): SiteRow? {
+        val id = sites.preferred(actor.tenant.value, actor.principal.value) ?: return null
+        return if (sites.ready(key, id)) sites.site(id) else null
     }
 
     @Transactional

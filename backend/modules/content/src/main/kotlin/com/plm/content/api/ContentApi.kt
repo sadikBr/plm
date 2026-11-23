@@ -37,6 +37,22 @@ data class UploadTicket(
     val uploadUrl: String,
     val expiresAt: Instant,
     val maxSize: Long,
+    /**
+     * Resumable multipart upload (roadmap 9.10), for large files: PUT each part to
+     * `partsUrl` with `{n}` replaced by its number (1, 2, ...), GET `listUrl` to see which arrived,
+     * then POST `completeUrl`. Parts may be sent again; all but the last should be [partSize].
+     */
+    val partsUrl: String? = null,
+    val listUrl: String? = null,
+    val completeUrl: String? = null,
+    val partSize: Long? = null,
+)
+
+/** A part of a multipart upload that has arrived. */
+data class UploadPart(
+    val part: Int,
+    val size: Long,
+    val sha256: String,
 )
 
 data class RequestUpload(
@@ -235,3 +251,74 @@ data class ContentChanged(
     override val aggregateType = "versioned-object"
     override val aggregateId: UUID = objectId
 }
+
+/** A file site: a copy of the vault near a remote office (roadmap 9.10). */
+data class FileSite(
+    val id: UUID,
+    val name: String,
+    /** Where its copies are kept: a directory the server can write. */
+    val location: String,
+    /** Its own file server's address, if it runs one; null: this server serves its copies. */
+    val baseUrl: String?,
+    val active: Boolean,
+    /** Files copied there. */
+    val ready: Long,
+    /** Files of the vault not there yet. */
+    val missing: Long,
+    val failed: Long,
+    val createdAt: Instant,
+)
+
+data class SaveFileSite(
+    val name: String,
+    val location: String,
+    val baseUrl: String? = null,
+    val active: Boolean = true,
+)
+
+/**
+ * File sites (roadmap 9.10). New files are copied to every active site by a background job;
+ * downloads are served from the person's preferred site when it has the file, else from the main
+ * vault. Sites: site administrators. Errors: `ADMIN_REQUIRED`, `INVALID_FILE_SITE`, `FILE_SITE_NOT_FOUND`.
+ */
+interface FileSiteService {
+    fun sites(actor: Actor): List<FileSite>
+
+    fun create(
+        actor: Actor,
+        command: SaveFileSite,
+    ): FileSite
+
+    fun update(
+        actor: Actor,
+        id: UUID,
+        command: SaveFileSite,
+    ): FileSite
+
+    fun delete(
+        actor: Actor,
+        id: UUID,
+    )
+
+    /** Copies every file the site doesn't have yet (a job); returns the job's id. */
+    fun replicateAll(
+        actor: Actor,
+        id: UUID,
+    ): UUID
+
+    /** The actor's preferred site, or null for the main vault. */
+    fun preferred(actor: Actor): UUID?
+
+    fun setPreferred(
+        actor: Actor,
+        siteId: UUID?,
+    )
+
+    /** Active sites anyone may choose from. */
+    fun choices(actor: Actor): List<FileSiteChoice>
+}
+
+data class FileSiteChoice(
+    val id: UUID,
+    val name: String,
+)

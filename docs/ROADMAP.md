@@ -841,9 +841,14 @@ ERP, its legal and security rules, more than one site, and safe upgrades.
       (access, identity and audit always recorded); retention in years, purged nightly and on
       demand through a narrow opening in the append-only trigger; purges and configuration
       changes are themselves audited.
-- [ ] 9.10 File sites: file servers (vault replicas) near remote sites, each person's preferred
+- [x] 9.10 File sites: file servers (vault replicas) near remote sites, each person's preferred
       site, replication of new content as jobs, downloads served from the nearest copy; resumable
       multipart uploads for large files.
+      Done: Administration → File sites (a directory each, optionally its own file server's
+      address); each new file is copied to every active site by a job, "copy what's missing"
+      backfills; My preferences → File site; signed download links name the site when it has the
+      file and fall back to the main vault. Upload tickets carry `partsUrl`, `listUrl` and
+      `completeUrl` for resumable multipart uploads.
 - [ ] 9.11 Operations: OpenTelemetry tracing and Prometheus metrics (0.12); signed extension
       packages; `plm upgrade` (backup, migrate, health check) and an upgrade playbook with
       zero-downtime rules for migrations.

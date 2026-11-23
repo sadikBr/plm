@@ -763,5 +763,17 @@
   "recorded": "consigné",
   "{n} entries purged": "{n} entrées purgées",
   "Audit": "Audit",
-  "always": "toujours"
+  "always": "toujours",
+  "Copies kept in": "Copies conservées dans",
+  "Copies of the vault near remote offices": "Copies du coffre près des sites distants",
+  "Copy what's missing": "Copier ce qui manque",
+  "Downloads come from the copy nearest you, when it has the file": "Les téléchargements viennent de la copie la plus proche, quand elle a le fichier",
+  "File site": "Site de fichiers",
+  "File sites": "Sites de fichiers",
+  "Its file server (optional)": "Son serveur de fichiers (facultatif)",
+  "Its file server (optional), https://…": "Son serveur de fichiers (facultatif), https://…",
+  "Main vault": "Coffre principal",
+  "New files are copied to every active site; people choose their site in My preferences": "Les nouveaux fichiers sont copiés sur chaque site actif ; chacun choisit son site dans Mes préférences",
+  "e.g. Shenzhen": "p. ex. Shenzhen",
+  "{ready} of {total} files": "{ready} fichiers sur {total}"
 }

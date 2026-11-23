@@ -7292,3 +7292,24 @@ ol.steps {
   width: 80px;
   flex: 0 0 80px;
 }
+
+/* File sites (roadmap 9.10) */
+.site-sync {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.site-bar {
+  display: inline-block;
+  width: 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+.site-bar span {
+  display: block;
+  height: 100%;
+  background: var(--success, #1a7f37);
+}

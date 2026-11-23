@@ -763,5 +763,17 @@
   "recorded": "protokolliert",
   "{n} entries purged": "{n} Einträge gelöscht",
   "Audit": "Audit",
-  "always": "immer"
+  "always": "immer",
+  "Copies kept in": "Kopien liegen in",
+  "Copies of the vault near remote offices": "Kopien des Tresors bei entfernten Standorten",
+  "Copy what's missing": "Fehlendes kopieren",
+  "Downloads come from the copy nearest you, when it has the file": "Downloads kommen von der nächsten Kopie, wenn sie die Datei hat",
+  "File site": "Dateistandort",
+  "File sites": "Dateistandorte",
+  "Its file server (optional)": "Sein Dateiserver (optional)",
+  "Its file server (optional), https://…": "Sein Dateiserver (optional), https://…",
+  "Main vault": "Haupttresor",
+  "New files are copied to every active site; people choose their site in My preferences": "Neue Dateien werden an jeden aktiven Standort kopiert; jeder wählt seinen Standort in Meine Einstellungen",
+  "e.g. Shenzhen": "z. B. Shenzhen",
+  "{ready} of {total} files": "{ready} von {total} Dateien"
 }

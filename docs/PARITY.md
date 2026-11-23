@@ -277,7 +277,7 @@ Seeded with sensible OOTB attributes; every one can be extended, hidden or const
 
 | Capability | Status | Notes |
 |---|---|---|
-| File replication / caches near remote sites | ⬜ [9] | |
+| File replication / caches near remote sites | ✅ | File sites with replication jobs, a preferred site per person, downloads from the nearest copy; resumable multipart uploads |
 | Background job queues with admin monitoring and retry | ✅ | Admin → Jobs: progress, retries, cancel [3.1] |
 | Scheduled jobs | ✅ | Cron schedules with time zones [3.1] |
 | Monitoring, tracing, metrics, health | 🟡 | Health ✅ · OpenTelemetry tracing and Prometheus metrics [0.12, still open] |

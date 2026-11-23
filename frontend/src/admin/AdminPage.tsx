@@ -4,6 +4,7 @@ import { DistributionAdmin } from "../integration/Distribution";
 import { SecurityAdmin } from "../security/Security";
 import { RetentionAdmin } from "../retention/Retention";
 import { AuditAdmin } from "../audit/AuditAdmin";
+import { FileSitesAdmin } from "../sites/FileSites";
 import { OfficeAdmin } from "./OfficeAdmin";
 import { DocumentLinkRulesAdmin } from "../structure/DocumentLinks";
 import {
@@ -15,6 +16,7 @@ import {
   FolderTree,
   Gavel,
   Globe,
+  HardDrive,
   Hash,
   IdCard,
   Layers,
@@ -105,6 +107,7 @@ type Section =
   | "security"
   | "retention"
   | "audit"
+  | "file-sites"
   | "profiles"
   | "jobs"
   | "extensions"
@@ -159,6 +162,7 @@ const GROUPS = (): [string, Entry[]][] => [
       ["automations", t("Automations"), t("When this happens, do that"), <Layers key="i" size={15} />],
       ["webhooks", t("Webhooks"), t("Tell other systems about events"), <Webhook key="i" size={15} />],
       ["distribution", t("ERP distribution"), t("Which objects go to which ERP plants"), <Factory key="i" size={15} />],
+      ["file-sites", t("File sites"), t("Copies of the vault near remote offices"), <HardDrive key="i" size={15} />],
       ["jobs", t("Jobs"), t("Background work and schedules"), <Timer key="i" size={15} />],
       ["extensions", t("Extensions"), t("Installed extension packages"), <Puzzle key="i" size={15} />],
       ["migration", t("Migration"), t("Bring data in from another PLM system"), <PackageOpen key="i" size={15} />],
@@ -249,6 +253,7 @@ export function AdminPage() {
             {tab === "security" && <SecurityAdmin />}
             {tab === "retention" && <RetentionAdmin />}
             {tab === "audit" && <AuditAdmin />}
+            {tab === "file-sites" && <FileSitesAdmin />}
             {tab === "profiles" && <ProfilesAdmin />}
             {tab === "jobs" && <JobsAdmin />}
             {tab === "extensions" && <ExtensionsAdmin />}

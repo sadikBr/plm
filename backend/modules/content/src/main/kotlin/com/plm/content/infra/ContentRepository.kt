@@ -114,6 +114,38 @@ internal class ContentRepository(
             .update()
     }
 
+    fun putPart(
+        uploadId: UUID,
+        part: Int,
+        size: Long,
+        sha: String,
+    ) {
+        jdbc
+            .sql(
+                """
+                insert into upload_part (upload_id, part, size, sha256) values (:u, :p, :s, :h)
+                on conflict (upload_id, part) do update set size = excluded.size, sha256 = excluded.sha256
+                """,
+            ).param("u", uploadId)
+            .param("p", part)
+            .param("s", size)
+            .param("h", sha)
+            .update()
+    }
+
+    fun parts(uploadId: UUID): List<com.plm.content.api.UploadPart> =
+        jdbc
+            .sql("select part, size, sha256 from upload_part where upload_id = :u order by part")
+            .param("u", uploadId)
+            .query { rs, _ ->
+                com.plm.content.api
+                    .UploadPart(rs.getInt(1), rs.getLong(2), rs.getString(3))
+            }.list()
+
+    fun deleteParts(uploadId: UUID) {
+        jdbc.sql("delete from upload_part where upload_id = :u").param("u", uploadId).update()
+    }
+
     fun received(
         uploadId: UUID,
         blobKey: String,
